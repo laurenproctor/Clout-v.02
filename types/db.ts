@@ -1,195 +1,261 @@
-// Full Supabase Database interface — Row / Insert / Update for all 14 tables
+// Database row types — mirrors supabase/schema.sql exactly
+// Regenerate with: npx supabase gen types typescript --project-id <id>
 
-export type Database = {
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string
+          clerk_id: string
+          email: string
+          full_name: string | null
+          avatar_url: string | null
+          operator_role: 'super_admin' | 'agency_operator' | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          clerk_id: string
+          email: string
+          full_name?: string | null
+          avatar_url?: string | null
+          operator_role?: 'super_admin' | 'agency_operator' | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          email?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          operator_role?: 'super_admin' | 'agency_operator' | null
+          updated_at?: string
+          deleted_at?: string | null
+        }
+      }
       workspaces: {
         Row: {
           id: string
           name: string
           slug: string
-          plan: 'free' | 'pro' | 'enterprise'
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
+          plan: 'free' | 'pro' | 'business' | 'enterprise'
+          assigned_operator_id: string | null
           created_at: string
           updated_at: string
+          deleted_at: string | null
         }
         Insert: {
           id?: string
           name: string
           slug: string
-          plan?: 'free' | 'pro' | 'enterprise'
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
+          plan?: 'free' | 'pro' | 'business' | 'enterprise'
+          assigned_operator_id?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
         }
         Update: {
-          id?: string
           name?: string
           slug?: string
-          plan?: 'free' | 'pro' | 'enterprise'
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
+          plan?: 'free' | 'pro' | 'business' | 'enterprise'
+          assigned_operator_id?: string | null
           updated_at?: string
+          deleted_at?: string | null
         }
       }
       workspace_members: {
         Row: {
           workspace_id: string
           user_id: string
-          role: 'owner' | 'admin' | 'member'
+          role: 'owner' | 'admin' | 'editor' | 'viewer'
+          invited_by: string | null
           joined_at: string
         }
         Insert: {
           workspace_id: string
           user_id: string
-          role?: 'owner' | 'admin' | 'member'
+          role?: 'owner' | 'admin' | 'editor' | 'viewer'
+          invited_by?: string | null
           joined_at?: string
         }
         Update: {
-          role?: 'owner' | 'admin' | 'member'
-        }
-      }
-      workspace_invitations: {
-        Row: {
-          id: string
-          workspace_id: string
-          invited_by_user_id: string
-          email: string
-          role: 'owner' | 'admin' | 'member'
-          token: string
-          accepted_at: string | null
-          expires_at: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          workspace_id: string
-          invited_by_user_id: string
-          email: string
-          role?: 'owner' | 'admin' | 'member'
-          token: string
-          accepted_at?: string | null
-          expires_at: string
-          created_at?: string
-        }
-        Update: {
-          accepted_at?: string | null
+          role?: 'owner' | 'admin' | 'editor' | 'viewer'
         }
       }
       profiles: {
         Row: {
           id: string
-          user_id: string
+          workspace_id: string
           display_name: string | null
-          avatar_url: string | null
           bio: string | null
+          industries: string[]
+          target_audiences: string[]
+          tone_notes: string | null
+          mental_models: Json
+          philosophies: Json
+          sample_content: string[]
+          private_feed_operator_visible: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          user_id: string
+          workspace_id: string
           display_name?: string | null
-          avatar_url?: string | null
           bio?: string | null
+          industries?: string[]
+          target_audiences?: string[]
+          tone_notes?: string | null
+          mental_models?: Json
+          philosophies?: Json
+          sample_content?: string[]
+          private_feed_operator_visible?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           display_name?: string | null
-          avatar_url?: string | null
           bio?: string | null
+          industries?: string[]
+          target_audiences?: string[]
+          tone_notes?: string | null
+          mental_models?: Json
+          philosophies?: Json
+          sample_content?: string[]
+          private_feed_operator_visible?: boolean
           updated_at?: string
+        }
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          workspace_id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          plan: 'free' | 'pro' | 'business' | 'enterprise'
+          status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
+          entitlements: Json
+          current_period_start: string | null
+          current_period_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          plan?: 'free' | 'pro' | 'business' | 'enterprise'
+          status?: 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
+          entitlements?: Json
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          plan?: 'free' | 'pro' | 'business' | 'enterprise'
+          status?: 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
+          entitlements?: Json
+          current_period_start?: string | null
+          current_period_end?: string | null
+          updated_at?: string
+        }
+      }
+      lenses: {
+        Row: {
+          id: string
+          workspace_id: string | null
+          created_by: string | null
+          scope: 'system' | 'workspace'
+          name: string
+          description: string | null
+          system_prompt: string
+          tags: string[]
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          workspace_id?: string | null
+          created_by?: string | null
+          scope?: 'system' | 'workspace'
+          name: string
+          description?: string | null
+          system_prompt: string
+          tags?: string[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          name?: string
+          description?: string | null
+          system_prompt?: string
+          tags?: string[]
+          is_active?: boolean
+          updated_at?: string
+          deleted_at?: string | null
         }
       }
       captures: {
         Row: {
           id: string
           workspace_id: string
-          created_by_user_id: string
-          title: string
-          raw_content: string
-          summary: string | null
-          tags: string[]
-          status: 'draft' | 'processing' | 'ready' | 'failed'
+          created_by: string
+          source: 'text' | 'voice' | 'structured' | 'url'
+          status: 'pending' | 'processing' | 'ready' | 'failed'
+          raw_content: string | null
           source_url: string | null
+          structured_data: Json | null
+          audio_path: string | null
+          transcript: string | null
+          notes: string | null
+          is_private: boolean
+          tags: string[]
           created_at: string
           updated_at: string
+          deleted_at: string | null
         }
         Insert: {
           id?: string
           workspace_id: string
-          created_by_user_id: string
-          title: string
-          raw_content: string
-          summary?: string | null
-          tags?: string[]
-          status?: 'draft' | 'processing' | 'ready' | 'failed'
+          created_by: string
+          source: 'text' | 'voice' | 'structured' | 'url'
+          status?: 'pending' | 'processing' | 'ready' | 'failed'
+          raw_content?: string | null
           source_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          title?: string
-          raw_content?: string
-          summary?: string | null
+          structured_data?: Json | null
+          audio_path?: string | null
+          transcript?: string | null
+          notes?: string | null
+          is_private?: boolean
           tags?: string[]
-          status?: 'draft' | 'processing' | 'ready' | 'failed'
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          status?: 'pending' | 'processing' | 'ready' | 'failed'
+          raw_content?: string | null
           source_url?: string | null
+          structured_data?: Json | null
+          transcript?: string | null
+          notes?: string | null
+          is_private?: boolean
+          tags?: string[]
           updated_at?: string
-        }
-      }
-      capture_embeddings: {
-        Row: {
-          id: string
-          capture_id: string
-          embedding: number[]
-          model: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          capture_id: string
-          embedding: number[]
-          model: string
-          created_at?: string
-        }
-        Update: {
-          embedding?: number[]
-          model?: string
-        }
-      }
-      lenses: {
-        Row: {
-          id: string
-          workspace_id: string
-          created_by_user_id: string
-          name: string
-          description: string | null
-          system_prompt: string
-          visibility: 'private' | 'workspace' | 'public'
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          workspace_id: string
-          created_by_user_id: string
-          name: string
-          description?: string | null
-          system_prompt: string
-          visibility?: 'private' | 'workspace' | 'public'
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          name?: string
-          description?: string | null
-          system_prompt?: string
-          visibility?: 'private' | 'workspace' | 'public'
-          updated_at?: string
+          deleted_at?: string | null
         }
       }
       generations: {
@@ -198,13 +264,14 @@ export type Database = {
           workspace_id: string
           capture_id: string
           lens_id: string
-          triggered_by_user_id: string
-          status: 'queued' | 'running' | 'completed' | 'failed'
-          output_format: 'tweet' | 'thread' | 'linkedin' | 'newsletter' | 'blog' | 'email'
-          raw_prompt: string | null
+          profile_id: string
+          status: 'pending' | 'generating' | 'complete' | 'failed'
+          model: string
+          prompt_snapshot: string | null
           raw_response: string | null
-          quality_score: number | null
-          quality_feedback: string | null
+          error_message: string | null
+          duration_ms: number | null
+          token_count: number | null
           created_at: string
           completed_at: string | null
         }
@@ -213,63 +280,95 @@ export type Database = {
           workspace_id: string
           capture_id: string
           lens_id: string
-          triggered_by_user_id: string
-          status?: 'queued' | 'running' | 'completed' | 'failed'
-          output_format: 'tweet' | 'thread' | 'linkedin' | 'newsletter' | 'blog' | 'email'
-          raw_prompt?: string | null
+          profile_id: string
+          status?: 'pending' | 'generating' | 'complete' | 'failed'
+          model: string
+          prompt_snapshot?: string | null
           raw_response?: string | null
-          quality_score?: number | null
-          quality_feedback?: string | null
+          error_message?: string | null
+          duration_ms?: number | null
+          token_count?: number | null
           created_at?: string
           completed_at?: string | null
         }
         Update: {
-          status?: 'queued' | 'running' | 'completed' | 'failed'
-          raw_prompt?: string | null
+          status?: 'pending' | 'generating' | 'complete' | 'failed'
+          prompt_snapshot?: string | null
           raw_response?: string | null
-          quality_score?: number | null
-          quality_feedback?: string | null
+          error_message?: string | null
+          duration_ms?: number | null
+          token_count?: number | null
           completed_at?: string | null
         }
       }
       outputs: {
         Row: {
           id: string
-          generation_id: string
           workspace_id: string
-          format: 'tweet' | 'thread' | 'linkedin' | 'newsletter' | 'blog' | 'email'
-          content: string
-          metadata: Record<string, unknown>
-          published_at: string | null
+          generation_id: string
+          channel_id: string | null
+          status: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+          title: string | null
+          content: Json
+          approved_by: string | null
+          approved_at: string | null
           created_at: string
           updated_at: string
+          deleted_at: string | null
         }
         Insert: {
           id?: string
-          generation_id: string
           workspace_id: string
-          format: 'tweet' | 'thread' | 'linkedin' | 'newsletter' | 'blog' | 'email'
-          content: string
-          metadata?: Record<string, unknown>
-          published_at?: string | null
+          generation_id: string
+          channel_id?: string | null
+          status?: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+          title?: string | null
+          content?: Json
+          approved_by?: string | null
+          approved_at?: string | null
           created_at?: string
           updated_at?: string
+          deleted_at?: string | null
         }
         Update: {
-          content?: string
-          metadata?: Record<string, unknown>
-          published_at?: string | null
+          channel_id?: string | null
+          status?: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+          title?: string | null
+          content?: Json
+          approved_by?: string | null
+          approved_at?: string | null
           updated_at?: string
+          deleted_at?: string | null
         }
+      }
+      output_versions: {
+        Row: {
+          id: string
+          output_id: string
+          version_number: number
+          content: Json
+          change_summary: string | null
+          edited_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          output_id: string
+          version_number: number
+          content: Json
+          change_summary?: string | null
+          edited_by?: string | null
+          created_at?: string
+        }
+        Update: never
       }
       channels: {
         Row: {
           id: string
           workspace_id: string
-          created_by_user_id: string
-          platform: string
-          name: string
-          credentials_encrypted: string | null
+          platform: 'linkedin' | 'newsletter' | 'twitter'
+          label: string | null
+          config: Json
           is_active: boolean
           created_at: string
           updated_at: string
@@ -277,135 +376,159 @@ export type Database = {
         Insert: {
           id?: string
           workspace_id: string
-          created_by_user_id: string
-          platform: string
-          name: string
-          credentials_encrypted?: string | null
+          platform: 'linkedin' | 'newsletter' | 'twitter'
+          label?: string | null
+          config?: Json
           is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
-          name?: string
-          credentials_encrypted?: string | null
+          label?: string | null
+          config?: Json
           is_active?: boolean
           updated_at?: string
         }
       }
-      scheduled_posts: {
+      private_enrichments: {
         Row: {
           id: string
-          output_id: string
-          channel_id: string
+          capture_id: string
           workspace_id: string
-          scheduled_for: string
-          posted_at: string | null
-          status: 'pending' | 'posted' | 'failed' | 'cancelled'
+          lens_id: string | null
+          content: string
+          insights: Json
+          model: string
+          prompt_snapshot: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          capture_id: string
+          workspace_id: string
+          lens_id?: string | null
+          content: string
+          insights?: Json
+          model: string
+          prompt_snapshot?: string | null
+          created_at?: string
+        }
+        Update: never
+      }
+      jobs: {
+        Row: {
+          id: string
+          workspace_id: string
+          type: 'transcribe' | 'generate' | 'summarize' | 'reformat'
+          status: 'queued' | 'running' | 'done' | 'failed' | 'canceled'
+          resource_type: string
+          resource_id: string
+          payload: Json
+          result: Json | null
           error_message: string | null
+          attempts: number
+          max_attempts: number
+          scheduled_at: string
+          started_at: string | null
+          completed_at: string | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
-          output_id: string
-          channel_id: string
           workspace_id: string
-          scheduled_for: string
-          posted_at?: string | null
-          status?: 'pending' | 'posted' | 'failed' | 'cancelled'
+          type: 'transcribe' | 'generate' | 'summarize' | 'reformat'
+          status?: 'queued' | 'running' | 'done' | 'failed' | 'canceled'
+          resource_type: string
+          resource_id: string
+          payload?: Json
+          result?: Json | null
           error_message?: string | null
+          attempts?: number
+          max_attempts?: number
+          scheduled_at?: string
+          started_at?: string | null
+          completed_at?: string | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
-          scheduled_for?: string
-          posted_at?: string | null
-          status?: 'pending' | 'posted' | 'failed' | 'cancelled'
+          status?: 'queued' | 'running' | 'done' | 'failed' | 'canceled'
+          result?: Json | null
           error_message?: string | null
-          updated_at?: string
+          attempts?: number
+          started_at?: string | null
+          completed_at?: string | null
         }
       }
-      usage_ledger: {
+      usage_events: {
         Row: {
           id: string
           workspace_id: string
-          period_start: string
-          period_end: string
-          generations_used: number
-          generations_limit: number
+          user_id: string | null
+          event_type: 'capture_created' | 'generation_run' | 'output_published' | 'lens_applied' | 'voice_transcribed' | 'member_invited'
+          resource_type: string | null
+          resource_id: string | null
+          quantity: number
+          metadata: Json
           created_at: string
         }
         Insert: {
           id?: string
           workspace_id: string
-          period_start: string
-          period_end: string
-          generations_used?: number
-          generations_limit: number
+          user_id?: string | null
+          event_type: 'capture_created' | 'generation_run' | 'output_published' | 'lens_applied' | 'voice_transcribed' | 'member_invited'
+          resource_type?: string | null
+          resource_id?: string | null
+          quantity?: number
+          metadata?: Json
           created_at?: string
         }
-        Update: {
-          generations_used?: number
-          generations_limit?: number
-        }
+        Update: never
       }
       audit_logs: {
         Row: {
           id: string
-          workspace_id: string
-          actor_user_id: string | null
-          action: string
+          workspace_id: string | null
+          actor_id: string | null
+          action: 'create' | 'update' | 'delete' | 'publish' | 'approve' | 'assign' | 'restore' | 'soft_delete'
           resource_type: string
           resource_id: string | null
-          metadata: Record<string, unknown>
+          before_state: Json | null
+          after_state: Json | null
+          ip_address: string | null
+          user_agent: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          workspace_id: string
-          actor_user_id?: string | null
-          action: string
+          workspace_id?: string | null
+          actor_id?: string | null
+          action: 'create' | 'update' | 'delete' | 'publish' | 'approve' | 'assign' | 'restore' | 'soft_delete'
           resource_type: string
           resource_id?: string | null
-          metadata?: Record<string, unknown>
+          before_state?: Json | null
+          after_state?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
           created_at?: string
         }
-        Update: Record<string, never>
-      }
-      webhook_events: {
-        Row: {
-          id: string
-          source: 'clerk' | 'stripe'
-          event_type: string
-          payload: Record<string, unknown>
-          processed_at: string | null
-          error_message: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          source: 'clerk' | 'stripe'
-          event_type: string
-          payload: Record<string, unknown>
-          processed_at?: string | null
-          error_message?: string | null
-          created_at?: string
-        }
-        Update: {
-          processed_at?: string | null
-          error_message?: string | null
-        }
+        Update: never
       }
     }
-    Views: Record<string, unknown>
-    Functions: Record<string, unknown>
+    Views: Record<string, never>
+    Functions: Record<string, never>
     Enums: {
-      workspace_plan: 'free' | 'pro' | 'enterprise'
-      workspace_role: 'owner' | 'admin' | 'member'
-      capture_status: 'draft' | 'processing' | 'ready' | 'failed'
-      lens_visibility: 'private' | 'workspace' | 'public'
-      generation_status: 'queued' | 'running' | 'completed' | 'failed'
-      output_format: 'tweet' | 'thread' | 'linkedin' | 'newsletter' | 'blog' | 'email'
+      workspace_role: 'owner' | 'admin' | 'editor' | 'viewer'
+      operator_role: 'super_admin' | 'agency_operator'
+      subscription_plan: 'free' | 'pro' | 'business' | 'enterprise'
+      subscription_status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
+      capture_source: 'text' | 'voice' | 'structured' | 'url'
+      capture_status: 'pending' | 'processing' | 'ready' | 'failed'
+      generation_status: 'pending' | 'generating' | 'complete' | 'failed'
+      output_status: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+      channel_platform: 'linkedin' | 'newsletter' | 'twitter'
+      lens_scope: 'system' | 'workspace'
+      job_type: 'transcribe' | 'generate' | 'summarize' | 'reformat'
+      job_status: 'queued' | 'running' | 'done' | 'failed' | 'canceled'
     }
   }
 }

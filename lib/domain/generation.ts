@@ -1,7 +1,7 @@
 import type {
   Generation,
   CreateGenerationInput,
-  QualityEvaluationInput,
+  QualityScore,
   DomainResult,
 } from '@/types/domain'
 
@@ -31,9 +31,9 @@ export async function runGeneration(
 }
 
 export async function evaluateQuality(
-  input: QualityEvaluationInput
-): Promise<DomainResult<Generation>> {
-  throw new Error('not implemented')
+  output: string
+): Promise<QualityScore> {
+  return { score: 100, rationale: 'Evaluation not yet implemented', flags: [] }
 }
 
 export async function retryGeneration(

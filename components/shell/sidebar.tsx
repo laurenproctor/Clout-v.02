@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Zap,
+  Lock,
   PenSquare,
   Layers,
   Radio,
@@ -17,6 +18,7 @@ import {
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Capture', href: '/capture', icon: Zap },
+  { label: 'Private', href: '/private', icon: Lock },
   { label: 'Studio', href: '/studio', icon: PenSquare },
   { label: 'Lenses', href: '/lenses', icon: Layers },
   { label: 'Channels', href: '/channels', icon: Radio },

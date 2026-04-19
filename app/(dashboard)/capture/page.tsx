@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Lock } from 'lucide-react'
 
 export default function CapturePage() {
   return (
@@ -10,12 +11,21 @@ export default function CapturePage() {
             Raw inputs waiting to become content.
           </p>
         </div>
-        <Link
-          href="/capture/new"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-        >
-          + New Capture
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/private"
+            className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Private
+          </Link>
+          <Link
+            href="/capture/new"
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+          >
+            + New Capture
+          </Link>
+        </div>
       </div>
 
       {/* Empty state */}
@@ -28,12 +38,21 @@ export default function CapturePage() {
           <p className="mt-1 max-w-sm text-sm text-zinc-500">
             Paste a thought, record your voice, paste a URL, or fill out a quick form. It all goes through the same pipeline.
           </p>
-          <Link
-            href="/capture/new"
-            className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-          >
-            New capture
-          </Link>
+          <div className="mt-4 flex items-center gap-2">
+            <Link
+              href="/capture/new"
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+            >
+              New capture
+            </Link>
+            <Link
+              href="/private"
+              className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Private
+            </Link>
+          </div>
         </div>
       </div>
     </div>

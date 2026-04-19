@@ -1,69 +1,96 @@
-// Domain-level types for Clout
+// Domain-level types — aligned with supabase/schema.sql
+// Used across lib/domain/ and components
 
 // ─── Enums / Literals ────────────────────────────────────────────────────────
 
-export type WorkspacePlan = 'free' | 'pro' | 'enterprise'
-export type WorkspaceRole = 'owner' | 'admin' | 'member'
-export type CaptureStatus = 'draft' | 'processing' | 'ready' | 'failed'
-export type LensVisibility = 'private' | 'workspace' | 'public'
-export type GenerationStatus = 'queued' | 'running' | 'completed' | 'failed'
-export type OutputFormat = 'tweet' | 'thread' | 'linkedin' | 'newsletter' | 'blog' | 'email'
-export type QualityScore = 1 | 2 | 3 | 4 | 5
+export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'viewer'
+export type OperatorRole = 'super_admin' | 'agency_operator'
+export type SubscriptionPlan = 'free' | 'pro' | 'business' | 'enterprise'
+export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
+export type CaptureSource = 'text' | 'voice' | 'structured' | 'url'
+export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
+export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
+export type OutputStatus = 'draft' | 'review' | 'approved' | 'published' | 'archived'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter'
+export type LensScope = 'system' | 'workspace'
 
 // ─── Core Entities ────────────────────────────────────────────────────────────
+
+export interface User {
+  id: string
+  clerkId: string
+  email: string
+  fullName: string | null
+  avatarUrl: string | null
+  operatorRole: OperatorRole | null
+  createdAt: string
+  updatedAt: string
+}
 
 export interface Workspace {
   id: string
   name: string
   slug: string
-  plan: WorkspacePlan
-  stripeCustomerId: string | null
-  stripeSubscriptionId: string | null
-  createdAt: Date
-  updatedAt: Date
+  plan: SubscriptionPlan
+  assignedOperatorId: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface WorkspaceMember {
   workspaceId: string
   userId: string
   role: WorkspaceRole
-  joinedAt: Date
+  invitedBy: string | null
+  joinedAt: string
 }
 
 export interface Profile {
   id: string
-  userId: string
+  workspaceId: string
   displayName: string | null
-  avatarUrl: string | null
   bio: string | null
-  createdAt: Date
-  updatedAt: Date
+  industries: string[]
+  targetAudiences: string[]
+  toneNotes: string | null
+  mentalModels: Array<{ name: string; description: string }>
+  philosophies: Array<{ name: string; description: string }>
+  sampleContent: string[]
+  privateFeedOperatorVisible: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Lens {
+  id: string
+  workspaceId: string | null
+  createdBy: string | null
+  scope: LensScope
+  name: string
+  description: string | null
+  systemPrompt: string
+  tags: string[]
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Capture {
   id: string
   workspaceId: string
-  createdByUserId: string
-  title: string
-  rawContent: string
-  summary: string | null
-  tags: string[]
+  createdBy: string
+  source: CaptureSource
   status: CaptureStatus
+  rawContent: string | null
   sourceUrl: string | null
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface Lens {
-  id: string
-  workspaceId: string
-  createdByUserId: string
-  name: string
-  description: string | null
-  systemPrompt: string
-  visibility: LensVisibility
-  createdAt: Date
-  updatedAt: Date
+  structuredData: Record<string, unknown> | null
+  audioPath: string | null
+  transcript: string | null
+  notes: string | null
+  isPrivate: boolean
+  tags: string[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Generation {
@@ -71,40 +98,105 @@ export interface Generation {
   workspaceId: string
   captureId: string
   lensId: string
-  triggeredByUserId: string
+  profileId: string
   status: GenerationStatus
-  outputFormat: OutputFormat
-  rawPrompt: string | null
+  model: string
+  promptSnapshot: string | null
   rawResponse: string | null
-  qualityScore: QualityScore | null
-  qualityFeedback: string | null
-  createdAt: Date
-  completedAt: Date | null
+  errorMessage: string | null
+  durationMs: number | null
+  tokenCount: number | null
+  createdAt: string
+  completedAt: string | null
+}
+
+export interface OutputContent {
+  body: string
+  hook?: string
+  hashtags?: string[]
+  wordCount?: number
+  [key: string]: unknown
 }
 
 export interface Output {
   id: string
-  generationId: string
   workspaceId: string
-  format: OutputFormat
-  content: string
-  metadata: Record<string, unknown>
-  publishedAt: Date | null
-  createdAt: Date
-  updatedAt: Date
+  generationId: string
+  channelId: string | null
+  status: OutputStatus
+  title: string | null
+  content: OutputContent
+  approvedBy: string | null
+  approvedAt: string | null
+  createdAt: string
+  updatedAt: string
 }
 
-export interface UsageLedger {
+export interface OutputVersion {
+  id: string
+  outputId: string
+  versionNumber: number
+  content: OutputContent
+  changeSummary: string | null
+  editedBy: string | null
+  createdAt: string
+}
+
+export interface Channel {
   id: string
   workspaceId: string
-  periodStart: Date
-  periodEnd: Date
-  generationsUsed: number
-  generationsLimit: number
-  createdAt: Date
+  platform: ChannelPlatform
+  label: string | null
+  config: Record<string, unknown>
+  isActive: boolean
+  createdAt: string
+}
+
+export interface PrivateEnrichment {
+  id: string
+  captureId: string
+  workspaceId: string
+  lensId: string | null
+  content: string
+  insights: Array<{ title: string; body: string }>
+  model: string
+  createdAt: string
 }
 
 // ─── Input / Command Types ────────────────────────────────────────────────────
+
+export interface CreateCaptureInput {
+  workspaceId: string
+  createdBy: string
+  source: CaptureSource
+  rawContent?: string
+  sourceUrl?: string
+  structuredData?: Record<string, unknown>
+  isPrivate?: boolean
+  tags?: string[]
+}
+
+export interface UpdateCaptureInput {
+  status?: CaptureStatus
+  rawContent?: string
+  transcript?: string
+  notes?: string
+  tags?: string[]
+}
+
+export interface CreateGenerationInput {
+  workspaceId: string
+  captureId: string
+  lensId: string
+  profileId: string
+  model: string
+}
+
+export interface QualityScore {
+  score: number
+  rationale: string
+  flags: string[]
+}
 
 export interface CreateWorkspaceInput {
   name: string
@@ -115,62 +207,33 @@ export interface CreateWorkspaceInput {
 export interface UpdateWorkspaceInput {
   name?: string
   slug?: string
-  plan?: WorkspacePlan
-}
-
-export interface CreateCaptureInput {
-  workspaceId: string
-  createdByUserId: string
-  title: string
-  rawContent: string
-  tags?: string[]
-  sourceUrl?: string
-}
-
-export interface UpdateCaptureInput {
-  title?: string
-  rawContent?: string
-  summary?: string
-  tags?: string[]
-  status?: CaptureStatus
+  plan?: SubscriptionPlan
 }
 
 export interface CreateLensInput {
   workspaceId: string
-  createdByUserId: string
+  createdBy: string
   name: string
   description?: string
   systemPrompt: string
-  visibility?: LensVisibility
+  scope?: LensScope
+  tags?: string[]
 }
 
 export interface UpdateLensInput {
   name?: string
   description?: string
   systemPrompt?: string
-  visibility?: LensVisibility
-}
-
-export interface CreateGenerationInput {
-  workspaceId: string
-  captureId: string
-  lensId: string
-  triggeredByUserId: string
-  outputFormat: OutputFormat
-}
-
-export interface QualityEvaluationInput {
-  generationId: string
-  score: QualityScore
-  feedback?: string
+  tags?: string[]
+  isActive?: boolean
 }
 
 export interface PublishOutputInput {
   outputId: string
-  publishedAt?: Date
+  channelId?: string
 }
 
-// ─── Result Wrappers ─────────────────────────────────────────────────────────
+// ─── Result Wrapper ───────────────────────────────────────────────────────────
 
 export type DomainResult<T> =
   | { ok: true; data: T }

@@ -490,3 +490,97 @@ create policy "usage_events_select" on usage_events for select using (
 create policy "audit_logs_select" on audit_logs for select using (
   is_workspace_member(workspace_id) or is_assigned_operator(workspace_id) or is_super_admin()
 );
+
+-- ============================================================
+-- CLOUT PRIVATE — Schema additions
+-- ============================================================
+
+-- captures: private flag and life-section tags
+alter table captures
+  add column if not exists is_private boolean not null default false,
+  add column if not exists tags text[] not null default '{}';
+
+create index if not exists captures_private_idx
+  on captures(workspace_id, created_by, is_private)
+  where deleted_at is null;
+create index if not exists captures_tags_idx on captures using gin(tags);
+
+-- profiles: operator visibility preference for private feed
+alter table profiles
+  add column if not exists private_feed_operator_visible boolean not null default false;
+
+-- private_enrichments: AI-enriched versions of private captures (append-only)
+create table if not exists private_enrichments (
+  id              uuid primary key default gen_random_uuid(),
+  capture_id      uuid not null references captures(id) on delete cascade,
+  workspace_id    uuid not null references workspaces(id) on delete cascade,
+  lens_id         uuid references lenses(id) on delete set null,
+  content         text not null,
+  insights        jsonb not null default '[]',
+  model           text not null,
+  prompt_snapshot text,
+  created_at      timestamptz not null default now()
+);
+create index if not exists private_enrichments_capture_idx
+  on private_enrichments(capture_id);
+create index if not exists private_enrichments_workspace_idx
+  on private_enrichments(workspace_id);
+
+alter table private_enrichments enable row level security;
+
+-- Updated captures RLS: private captures visible only to creator
+-- (and optionally to operators if private_feed_operator_visible = true)
+drop policy if exists "captures_select" on captures;
+create policy "captures_select" on captures for select using (
+  (not is_private and (
+    is_workspace_member(workspace_id)
+    or is_assigned_operator(workspace_id)
+    or is_super_admin()
+  ))
+  or
+  (is_private and (
+    created_by = auth_user_id()
+    or is_super_admin()
+    or (
+      is_assigned_operator(workspace_id)
+      and exists (
+        select 1 from profiles p
+        where p.workspace_id = captures.workspace_id
+        and p.private_feed_operator_visible = true
+      )
+    )
+  ))
+);
+
+-- private_enrichments RLS: mirrors private capture visibility
+create policy "private_enrichments_select" on private_enrichments for select using (
+  exists (
+    select 1 from captures c
+    where c.id = capture_id
+    and (
+      c.created_by = auth_user_id()
+      or is_super_admin()
+      or (
+        is_assigned_operator(private_enrichments.workspace_id)
+        and exists (
+          select 1 from profiles p
+          where p.workspace_id = private_enrichments.workspace_id
+          and p.private_feed_operator_visible = true
+        )
+      )
+    )
+  )
+);
+
+-- System lens seed: Extract the Gold
+insert into lenses (scope, name, description, system_prompt, tags, is_active)
+select
+  'system',
+  'Extract the Gold',
+  'Surfaces the deepest insight from a raw private thought using the user''s own mental models.',
+  'You are a personal insight coach. The user has shared a raw, private thought. Using their stated mental models and philosophies as a lens, surface the single most valuable insight hidden in this thought. Write it as a rich, personal reflection — not a summary. Speak to them directly.',
+  ARRAY['private', 'reflection'],
+  true
+where not exists (
+  select 1 from lenses where name = 'Extract the Gold' and scope = 'system'
+);
