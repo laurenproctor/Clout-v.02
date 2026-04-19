@@ -37,6 +37,7 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       workspaces: {
         Row: {
@@ -67,6 +68,7 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       workspace_members: {
         Row: {
@@ -86,6 +88,7 @@ export interface Database {
         Update: {
           role?: 'owner' | 'admin' | 'editor' | 'viewer'
         }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -130,6 +133,7 @@ export interface Database {
           private_feed_operator_visible?: boolean
           updated_at?: string
         }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -168,6 +172,7 @@ export interface Database {
           current_period_end?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       lenses: {
         Row: {
@@ -207,6 +212,7 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       captures: {
         Row: {
@@ -257,6 +263,7 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       generations: {
         Row: {
@@ -300,6 +307,7 @@ export interface Database {
           token_count?: number | null
           completed_at?: string | null
         }
+        Relationships: []
       }
       outputs: {
         Row: {
@@ -340,6 +348,7 @@ export interface Database {
           updated_at?: string
           deleted_at?: string | null
         }
+        Relationships: []
       }
       output_versions: {
         Row: {
@@ -361,6 +370,7 @@ export interface Database {
           created_at?: string
         }
         Update: never
+        Relationships: []
       }
       channels: {
         Row: {
@@ -389,6 +399,7 @@ export interface Database {
           is_active?: boolean
           updated_at?: string
         }
+        Relationships: []
       }
       private_enrichments: {
         Row: {
@@ -414,6 +425,7 @@ export interface Database {
           created_at?: string
         }
         Update: never
+        Relationships: []
       }
       jobs: {
         Row: {
@@ -458,6 +470,7 @@ export interface Database {
           started_at?: string | null
           completed_at?: string | null
         }
+        Relationships: []
       }
       usage_events: {
         Row: {
@@ -483,6 +496,7 @@ export interface Database {
           created_at?: string
         }
         Update: never
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -512,6 +526,7 @@ export interface Database {
           created_at?: string
         }
         Update: never
+        Relationships: []
       }
     }
     Views: Record<string, never>

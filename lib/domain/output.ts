@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Output, OutputVersion, OutputContent, OutputStatus, DomainResult } from '@/types/domain'
+import type { Json } from '@/types/db'
 
 function toOutput(row: Record<string, unknown>): Output {
   return {
@@ -78,7 +79,7 @@ export async function updateOutput(params: {
   const { data, error } = await supabase
     .from('outputs')
     .update({
-      ...(params.content && { content: params.content }),
+      ...(params.content && { content: params.content as unknown as Json }),
       ...(params.title !== undefined && { title: params.title }),
       ...(params.status && { status: params.status }),
       ...(params.approvedBy && {
@@ -118,7 +119,7 @@ export async function createOutputVersion(params: {
     .insert({
       output_id: params.outputId,
       version_number: nextVersion,
-      content: params.content,
+      content: params.content as unknown as Json,
       edited_by: params.editedBy,
       change_summary: params.changeSummary ?? null,
     })

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Capture, CreateCaptureInput, UpdateCaptureInput, DomainResult } from '@/types/domain'
+import type { Json } from '@/types/db'
 
 function toCapture(row: Record<string, unknown>): Capture {
   return {
@@ -33,7 +34,7 @@ export async function createCapture(
       source: input.source,
       raw_content: input.rawContent ?? null,
       source_url: input.sourceUrl ?? null,
-      structured_data: input.structuredData ?? null,
+      structured_data: (input.structuredData ?? null) as Json | null,
       is_private: input.isPrivate ?? false,
       tags: input.tags ?? [],
       status: 'pending',
