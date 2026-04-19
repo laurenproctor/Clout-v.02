@@ -1,43 +1,130 @@
-import type {
-  Output,
-  PublishOutputInput,
-  DomainResult,
-} from '@/types/domain'
+import { createClient } from '@/lib/supabase/server'
+import type { Output, OutputVersion, OutputContent, OutputStatus, DomainResult } from '@/types/domain'
 
-export async function getOutputById(
-  id: string
-): Promise<DomainResult<Output>> {
-  throw new Error('not implemented')
+function toOutput(row: Record<string, unknown>): Output {
+  return {
+    id: row.id as string,
+    workspaceId: row.workspace_id as string,
+    generationId: row.generation_id as string,
+    channelId: row.channel_id as string | null,
+    status: row.status as OutputStatus,
+    title: row.title as string | null,
+    content: row.content as OutputContent,
+    approvedBy: row.approved_by as string | null,
+    approvedAt: row.approved_at as string | null,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  }
 }
 
-export async function listOutputs(
-  workspaceId: string,
-  options?: { generationId?: string; limit?: number; offset?: number }
-): Promise<DomainResult<Output[]>> {
-  throw new Error('not implemented')
+function toOutputVersion(row: Record<string, unknown>): OutputVersion {
+  return {
+    id: row.id as string,
+    outputId: row.output_id as string,
+    versionNumber: row.version_number as number,
+    content: row.content as OutputContent,
+    changeSummary: row.change_summary as string | null,
+    editedBy: row.edited_by as string | null,
+    createdAt: row.created_at as string,
+  }
 }
 
-export async function publishOutput(
-  input: PublishOutputInput
-): Promise<DomainResult<Output>> {
-  throw new Error('not implemented')
+export async function getOutput(outputId: string): Promise<DomainResult<Output>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('outputs')
+    .select()
+    .eq('id', outputId)
+    .is('deleted_at', null)
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: toOutput(data as Record<string, unknown>) }
 }
 
-export async function unpublishOutput(
-  id: string
-): Promise<DomainResult<Output>> {
-  throw new Error('not implemented')
+export async function listOutputs(params: {
+  workspaceId: string
+  status?: OutputStatus
+  limit?: number
+  offset?: number
+}): Promise<DomainResult<Output[]>> {
+  const supabase = await createClient()
+  let query = supabase
+    .from('outputs')
+    .select()
+    .eq('workspace_id', params.workspaceId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(params.limit ?? 50)
+
+  if (params.status) query = query.eq('status', params.status)
+  if (params.offset) {
+    query = query.range(params.offset, params.offset + (params.limit ?? 50) - 1)
+  }
+
+  const { data, error } = await query
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: (data as Record<string, unknown>[]).map(toOutput) }
 }
 
-export async function deleteOutput(
-  id: string
-): Promise<DomainResult<void>> {
-  throw new Error('not implemented')
+export async function updateOutput(params: {
+  outputId: string
+  content?: OutputContent
+  title?: string
+  status?: OutputStatus
+  approvedBy?: string
+}): Promise<DomainResult<Output>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('outputs')
+    .update({
+      ...(params.content && { content: params.content }),
+      ...(params.title !== undefined && { title: params.title }),
+      ...(params.status && { status: params.status }),
+      ...(params.approvedBy && {
+        approved_by: params.approvedBy,
+        approved_at: new Date().toISOString(),
+      }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.outputId)
+    .select()
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: toOutput(data as Record<string, unknown>) }
 }
 
-export async function updateOutputContent(
-  id: string,
-  content: string
-): Promise<DomainResult<Output>> {
-  throw new Error('not implemented')
+export async function createOutputVersion(params: {
+  outputId: string
+  content: OutputContent
+  editedBy: string
+  changeSummary?: string
+}): Promise<DomainResult<OutputVersion>> {
+  const supabase = await createClient()
+
+  const { data: latest } = await supabase
+    .from('output_versions')
+    .select('version_number')
+    .eq('output_id', params.outputId)
+    .order('version_number', { ascending: false })
+    .limit(1)
+    .single()
+
+  const nextVersion = latest ? (latest.version_number as number) + 1 : 1
+
+  const { data, error } = await supabase
+    .from('output_versions')
+    .insert({
+      output_id: params.outputId,
+      version_number: nextVersion,
+      content: params.content,
+      edited_by: params.editedBy,
+      change_summary: params.changeSummary ?? null,
+    })
+    .select()
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: toOutputVersion(data as Record<string, unknown>) }
 }
