@@ -178,10 +178,12 @@ export default function CaptureDetailPage() {
         <h2 className="text-sm font-medium text-zinc-900">Generate content</h2>
 
         {lenses.length === 0 ? (
-          <p className="text-sm text-zinc-500">
-            No lenses available yet.{' '}
-            <Link href="/lenses" className="underline">Create a lens</Link> to get started.
-          </p>
+          <QuickCreateLens
+            onCreated={(lens) => {
+              setLenses([lens])
+              setSelectedLensId(lens.id)
+            }}
+          />
         ) : (
           <>
             <div>
@@ -236,6 +238,97 @@ export default function CaptureDetailPage() {
       {/* Existing outputs for this capture */}
       <ExistingOutputs captureId={id} />
     </div>
+  )
+}
+
+function QuickCreateLens({ onCreated }: { onCreated: (lens: Lens) => void }) {
+  const [showForm, setShowForm] = useState(false)
+  const [name, setName] = useState('')
+  const [systemPrompt, setSystemPrompt] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!showForm) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-zinc-500">
+          No lenses yet. Lenses define the perspective Clout uses to generate content.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+          >
+            Create a lens →
+          </button>
+          <Link href="/lenses" className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+            Browse lenses
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || !systemPrompt.trim()) return
+    setCreating(true)
+    setError(null)
+
+    const res = await fetch('/api/lenses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, system_prompt: systemPrompt }),
+    })
+
+    if (res.ok) {
+      const lens = await res.json()
+      onCreated(lens)
+      setShowForm(false)
+    } else {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to create lens')
+    }
+    setCreating(false)
+  }
+
+  return (
+    <form onSubmit={handleCreate} className="space-y-3">
+      <p className="text-sm font-medium text-zinc-900">Create your first lens</p>
+      <div>
+        <input
+          autoFocus
+          className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+          placeholder="Lens name (e.g. Contrarian Take)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <textarea
+          className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
+          rows={3}
+          placeholder="Describe how this lens should shape the content..."
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          required
+        />
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={creating || !name.trim() || !systemPrompt.trim()}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-40"
+        >
+          {creating ? 'Creating...' : 'Create lens'}
+        </button>
+        <button type="button" onClick={() => setShowForm(false)} className="text-sm text-zinc-400 hover:text-zinc-700">
+          Cancel
+        </button>
+      </div>
+    </form>
   )
 }
 
