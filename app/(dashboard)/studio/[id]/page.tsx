@@ -35,6 +35,7 @@ export default function StudioEditorPage() {
   const [showExport, setShowExport] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [reverting, setReverting] = useState(false)
+  const [publishing, setPublishing] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -91,6 +92,20 @@ export default function StudioEditorPage() {
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [showExport])
+
+  async function handleMarkPublished() {
+    setPublishing(true)
+    const res = await fetch(`/api/outputs/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'published' }),
+    })
+    if (res.ok) {
+      const updated: Output = await res.json()
+      setOutput(updated)
+    }
+    setPublishing(false)
+  }
 
   async function handleRevertToDraft() {
     setReverting(true)
@@ -259,6 +274,7 @@ export default function StudioEditorPage() {
           <h1 className="text-xl font-semibold text-zinc-900">Edit Output</h1>
           <span className={cn(
             'rounded-full px-2.5 py-0.5 text-xs font-medium',
+            output.status === 'published' ? 'bg-blue-50 text-blue-700' :
             isApproved ? 'bg-green-50 text-green-700' :
             output.status === 'review' ? 'bg-yellow-50 text-yellow-700' :
             'bg-zinc-100 text-zinc-600'
@@ -349,6 +365,20 @@ export default function StudioEditorPage() {
           >
             {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save draft'}
           </button>
+          {output.status === 'approved' && (
+            <button
+              onClick={handleMarkPublished}
+              disabled={publishing}
+              className={cn(
+                'rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                publishing
+                  ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                  : 'border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+              )}
+            >
+              {publishing ? 'Marking...' : '↑ Mark published'}
+            </button>
+          )}
           <button
             onClick={handleApprove}
             disabled={approving || isApproved}
