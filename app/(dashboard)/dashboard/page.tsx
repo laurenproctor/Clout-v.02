@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import type { Capture, Output } from '@/types/domain'
+import { cn } from '@/lib/utils'
 
 interface Stats {
   capturesThisMonth: number
@@ -14,39 +15,65 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ capturesThisMonth: 0, outputsGenerated: 0, draftsAwaitingReview: 0 })
   const [recentOutputs, setRecentOutputs] = useState<Output[]>([])
   const [loading, setLoading] = useState(true)
+  const [quickCapture, setQuickCapture] = useState('')
+  const [capturing, setCapturing] = useState(false)
+  const [captureSuccess, setCaptureSuccess] = useState(false)
+
+  const load = useCallback(async () => {
+    const [capturesRes, allOutputsRes, draftRes] = await Promise.all([
+      fetch('/api/capture?private=false&limit=200'),
+      fetch('/api/outputs?limit=5'),
+      fetch('/api/outputs?status=draft&limit=200'),
+    ])
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    if (capturesRes.ok) {
+      const captures: Capture[] = await capturesRes.json()
+      const thisMonth = captures.filter((c) => c.createdAt >= monthStart).length
+      setStats((prev) => ({ ...prev, capturesThisMonth: thisMonth }))
+    }
+
+    if (allOutputsRes.ok) {
+      const outputs: Output[] = await allOutputsRes.json()
+      setRecentOutputs(outputs)
+      setStats((prev) => ({ ...prev, outputsGenerated: outputs.length }))
+    }
+
+    if (draftRes.ok) {
+      const drafts: Output[] = await draftRes.json()
+      setStats((prev) => ({ ...prev, draftsAwaitingReview: drafts.length }))
+    }
+
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
-    async function load() {
-      const [capturesRes, allOutputsRes, draftRes] = await Promise.all([
-        fetch('/api/capture?private=false&limit=200'),
-        fetch('/api/outputs?limit=5'),
-        fetch('/api/outputs?status=draft&limit=200'),
-      ])
-
-      const now = new Date()
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-
-      if (capturesRes.ok) {
-        const captures: Capture[] = await capturesRes.json()
-        const thisMonth = captures.filter((c) => c.createdAt >= monthStart).length
-        setStats((prev) => ({ ...prev, capturesThisMonth: thisMonth }))
-      }
-
-      if (allOutputsRes.ok) {
-        const outputs: Output[] = await allOutputsRes.json()
-        setRecentOutputs(outputs)
-        setStats((prev) => ({ ...prev, outputsGenerated: outputs.length }))
-      }
-
-      if (draftRes.ok) {
-        const drafts: Output[] = await draftRes.json()
-        setStats((prev) => ({ ...prev, draftsAwaitingReview: drafts.length }))
-      }
-
-      setLoading(false)
-    }
     load()
-  }, [])
+  }, [load])
+
+  async function handleQuickCapture(e: React.FormEvent) {
+    e.preventDefault()
+    if (!quickCapture.trim()) return
+    setCapturing(true)
+    try {
+      const res = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'text', raw_content: quickCapture }),
+      })
+      if (res.ok) {
+        await res.json()
+        setQuickCapture('')
+        setCaptureSuccess(true)
+        setTimeout(() => setCaptureSuccess(false), 3000)
+        // Re-fetch stats
+        load()
+      }
+    } catch {}
+    setCapturing(false)
+  }
 
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime()
@@ -71,6 +98,37 @@ export default function DashboardPage() {
           + New Capture
         </Link>
       </div>
+
+      {/* Quick capture */}
+      <form onSubmit={handleQuickCapture} className="rounded-lg border border-zinc-200 bg-white p-4">
+        <div className="flex gap-3">
+          <textarea
+            className="flex-1 resize-none rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none min-h-[72px]"
+            placeholder="What's on your mind? Capture it here..."
+            value={quickCapture}
+            onChange={(e) => setQuickCapture(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuickCapture(e as unknown as React.FormEvent)
+            }}
+          />
+          <div className="flex flex-col justify-end">
+            <button
+              type="submit"
+              disabled={capturing || !quickCapture.trim()}
+              className={cn(
+                'rounded-md px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap',
+                capturing || !quickCapture.trim()
+                  ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                  : captureSuccess
+                  ? 'bg-green-600 text-white'
+                  : 'bg-zinc-900 text-white hover:bg-zinc-700'
+              )}
+            >
+              {capturing ? 'Saving...' : captureSuccess ? 'Saved ✓' : '⌘↵ Capture'}
+            </button>
+          </div>
+        </div>
+      </form>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
