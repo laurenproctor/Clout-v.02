@@ -34,6 +34,7 @@ export default function StudioEditorPage() {
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showExport, setShowExport] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [reverting, setReverting] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -90,6 +91,20 @@ export default function StudioEditorPage() {
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [showExport])
+
+  async function handleRevertToDraft() {
+    setReverting(true)
+    const res = await fetch(`/api/outputs/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'draft' }),
+    })
+    if (res.ok) {
+      const updated: Output = await res.json()
+      setOutput(updated)
+    }
+    setReverting(false)
+  }
 
   async function handleDelete() {
     if (!confirm('Delete this output? This cannot be undone.')) return
@@ -387,6 +402,18 @@ export default function StudioEditorPage() {
               Cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {(output.status === 'review' || output.status === 'approved') && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleRevertToDraft}
+            disabled={reverting}
+            className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            {reverting ? 'Reverting...' : '← Revert to draft'}
+          </button>
         </div>
       )}
 
