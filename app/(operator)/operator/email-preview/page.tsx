@@ -36,6 +36,7 @@ export default function EmailPreviewPage() {
   })
   const [failedEvents, setFailedEvents] = useState<FailedEvent[]>([])
   const [resending, setResending] = useState<string | null>(null)
+  const [resendError, setResendError] = useState<string | null>(null)
 
   useEffect(() => {
     // Render previews client-side to avoid server-side React Email import issues
@@ -90,13 +91,18 @@ export default function EmailPreviewPage() {
 
   async function handleResend(eventId: string) {
     setResending(eventId)
-    await fetch('/api/email-events/resend', {
+    setResendError(null)
+    const res = await fetch('/api/email-events/resend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId }),
     })
     setResending(null)
-    setFailedEvents(prev => prev.filter(e => e.id !== eventId))
+    if (res.ok) {
+      setFailedEvents(prev => prev.filter(e => e.id !== eventId))
+    } else {
+      setResendError('Failed to resend. Please try again.')
+    }
   }
 
   return (
@@ -151,6 +157,9 @@ export default function EmailPreviewPage() {
       {failedEvents.length > 0 && (
         <div className="mt-12">
           <h2 className="text-lg font-semibold text-zinc-900 mb-4">Failed Sends</h2>
+          {resendError && (
+            <p className="text-sm text-red-600 mb-3">{resendError}</p>
+          )}
           <div className="space-y-2">
             {failedEvents.map(event => (
               <div key={event.id} className="flex items-center justify-between p-4 border border-zinc-200 rounded">

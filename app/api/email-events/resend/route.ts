@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const { data: event, error } = await supabase
     .from('email_events')
-    .select('*')
+    .select('id, status, payload')
     .eq('id', eventId)
     .single()
 
@@ -49,7 +49,15 @@ export async function POST(req: NextRequest) {
     .update({ status: 'pending', error: null, attempt_count: 0 })
     .eq('id', eventId)
 
-  await dispatchEmail.trigger(event.payload as unknown as EmailPayload)
+  try {
+    await dispatchEmail.trigger(event.payload as unknown as EmailPayload)
+  } catch (err) {
+    await supabase
+      .from('email_events')
+      .update({ status: 'failed', error: String(err) })
+      .eq('id', eventId)
+    return NextResponse.json({ error: 'Failed to dispatch email' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }
