@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { PenSquare } from 'lucide-react'
+import { PenSquare, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Output } from '@/types/domain'
+import type { Output, OutputContent } from '@/types/domain'
 
 type FilterStatus = 'all' | 'draft' | 'review' | 'approved'
 
@@ -21,14 +21,24 @@ export default function StudioPage() {
   const [outputs, setOutputs] = useState<Output[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterStatus>('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    const url = filter === 'all' ? '/api/outputs' : `/api/outputs?status=${filter}`
-    fetch(url)
+    setLoading(true)
+    fetch('/api/outputs?limit=200')
       .then((r) => r.ok ? r.json() : [])
       .then((data) => { setOutputs(data); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [filter])
+  }, [])
+
+  const filtered = outputs.filter((o) => {
+    const matchesStatus = filter === 'all' || o.status === filter
+    const body = (o.content as OutputContent).body ?? ''
+    const matchesSearch = !search.trim() ||
+      (o.title ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      body.toLowerCase().includes(search.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
 
   return (
     <div className="space-y-6">
@@ -39,19 +49,33 @@ export default function StudioPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-1 w-fit">
-        {(['all', 'draft', 'review', 'approved'] as FilterStatus[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => { setFilter(f); setLoading(true) }}
-            className={cn(
-              'rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors',
-              filter === f ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-900'
-            )}
-          >
-            {f}
-          </button>
-        ))}
+      {/* Filter + search */}
+      <div className="flex gap-3">
+        <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-1 shrink-0">
+          {(['all', 'draft', 'review', 'approved'] as FilterStatus[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors',
+                filter === f ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-900'
+              )}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        {!loading && outputs.length > 0 && (
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              className="w-full rounded-md border border-zinc-200 bg-white pl-9 pr-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+              placeholder="Search outputs..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -60,27 +84,41 @@ export default function StudioPage() {
             <div key={i} className="h-20 rounded-lg border border-zinc-200 bg-white animate-pulse" />
           ))}
         </div>
-      ) : outputs.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
-              <PenSquare className="h-5 w-5 text-zinc-400" />
+      ) : filtered.length === 0 ? (
+        outputs.length === 0 ? (
+          <div className="rounded-lg border border-zinc-200 bg-white">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
+                <PenSquare className="h-5 w-5 text-zinc-400" />
+              </div>
+              <p className="text-sm font-medium text-zinc-900">No content yet</p>
+              <p className="mt-1 max-w-sm text-sm text-zinc-500">
+                Create a capture and run it through a Lens to generate content.
+              </p>
+              <Link
+                href="/capture/new"
+                className="mt-4 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+              >
+                New capture
+              </Link>
             </div>
-            <p className="text-sm font-medium text-zinc-900">No content yet</p>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Create a capture and run it through a Lens to generate content.
-            </p>
-            <Link
-              href="/capture/new"
-              className="mt-4 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-            >
-              New capture
-            </Link>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-lg border border-zinc-200 bg-white">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-sm text-zinc-500">No outputs match your filter.</p>
+              <button
+                onClick={() => { setSearch(''); setFilter('all') }}
+                className="mt-2 text-sm text-zinc-900 underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          </div>
+        )
       ) : (
         <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
-          {outputs.map((output) => (
+          {filtered.map((output) => (
             <Link
               key={output.id}
               href={`/studio/${output.id}`}
@@ -108,6 +146,12 @@ export default function StudioPage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <p className="text-xs text-zinc-400 text-right">
+          {filtered.length} of {outputs.length} output{outputs.length !== 1 ? 's' : ''}
+        </p>
       )}
     </div>
   )
