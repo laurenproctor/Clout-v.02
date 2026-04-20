@@ -32,18 +32,10 @@ create unique index if not exists onboarding_generations_workspace_idx
 
 alter table onboarding_generations enable row level security;
 
-create policy if not exists "workspace members can read own generation"
-  on onboarding_generations for select
-  using (
-    exists (
-      select 1 from workspace_members
-      where workspace_members.workspace_id = onboarding_generations.workspace_id
-        and workspace_members.user_id = (
-          select id from users where clerk_id = auth.jwt() ->> 'sub'
-        )
-    )
-  );
-
-create policy if not exists "service role can manage onboarding_generations"
-  on onboarding_generations for all
-  using (auth.role() = 'service_role');
+drop policy if exists "workspace members can read own generation" on onboarding_generations;
+drop policy if exists "service role can manage onboarding_generations" on onboarding_generations;
+create policy "onboarding_gen_select" on onboarding_generations for select
+  using (is_workspace_member(workspace_id));
+create policy "onboarding_gen_write" on onboarding_generations for all
+  using (is_workspace_member(workspace_id))
+  with check (is_workspace_member(workspace_id));

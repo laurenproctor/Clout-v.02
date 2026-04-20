@@ -133,23 +133,6 @@ create table onboarding_generations (
 );
 create unique index onboarding_generations_workspace_idx on onboarding_generations(workspace_id);
 
--- RLS
-alter table onboarding_generations enable row level security;
-create policy "workspace members can read own generation"
-  on onboarding_generations for select
-  using (
-    exists (
-      select 1 from workspace_members
-      where workspace_members.workspace_id = onboarding_generations.workspace_id
-        and workspace_members.user_id = (
-          select id from users where clerk_id = auth.jwt() ->> 'sub'
-        )
-    )
-  );
-create policy "service role can manage onboarding_generations"
-  on onboarding_generations for all
-  using (auth.role() = 'service_role');
-
 -- ============================================================
 -- SUBSCRIPTIONS
 -- ============================================================
@@ -385,6 +368,7 @@ alter table channels          enable row level security;
 alter table jobs              enable row level security;
 alter table usage_events      enable row level security;
 alter table audit_logs        enable row level security;
+alter table onboarding_generations enable row level security;
 
 -- ---- Helper functions ----------------------------------------
 create or replace function is_workspace_member(ws_id uuid)
@@ -611,6 +595,13 @@ create policy "private_enrichments_select" on private_enrichments for select usi
     )
   )
 );
+
+-- onboarding_generations
+create policy "onboarding_gen_select" on onboarding_generations for select
+  using (is_workspace_member(workspace_id));
+create policy "onboarding_gen_write" on onboarding_generations for all
+  using (is_workspace_member(workspace_id))
+  with check (is_workspace_member(workspace_id));
 
 -- System lens seed: Extract the Gold
 insert into lenses (scope, name, description, system_prompt, tags, is_active)
