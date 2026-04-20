@@ -19,6 +19,7 @@ export default function StudioEditorPage() {
   const [saving, setSaving] = useState(false)
   const [approving, setApproving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -80,6 +81,13 @@ export default function StudioEditorPage() {
     setApproving(false)
   }
 
+  async function handleCopy() {
+    const text = [title, body].filter(Boolean).join('\n\n')
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
@@ -119,6 +127,13 @@ export default function StudioEditorPage() {
           </span>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={handleCopy}
+            disabled={!body}
+            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-40"
+          >
+            {copied ? 'Copied ✓' : 'Copy'}
+          </button>
           <button
             onClick={handleSave}
             disabled={saving || isApproved}
@@ -217,6 +232,79 @@ export default function StudioEditorPage() {
           </div>
         )}
       </div>
+
+      {/* Version history */}
+      <VersionHistory outputId={id} />
+    </div>
+  )
+}
+
+function VersionHistory({ outputId }: { outputId: string }) {
+  const [versions, setVersions] = useState<Array<{
+    id: string
+    version_number: number
+    content: { body?: string }
+    change_summary: string | null
+    created_at: string
+  }>>([])
+  const [expanded, setExpanded] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function load() {
+    if (loading) return
+    setLoading(true)
+    const res = await fetch(`/api/outputs/${outputId}/versions`)
+    if (res.ok) setVersions(await res.json())
+    setLoading(false)
+  }
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
+  }
+
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => { setExpanded(true); load() }}
+        className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+      >
+        View version history →
+      </button>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-zinc-900">Version history</h3>
+        <button onClick={() => setExpanded(false)} className="text-xs text-zinc-400 hover:text-zinc-600">
+          Hide
+        </button>
+      </div>
+      {loading ? (
+        <div className="h-16 rounded bg-zinc-100 animate-pulse" />
+      ) : versions.length === 0 ? (
+        <p className="text-sm text-zinc-400 italic">No versions saved yet. Editing creates a snapshot.</p>
+      ) : (
+        <div className="divide-y divide-zinc-100">
+          {versions.map((v) => (
+            <div key={v.id} className="py-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-zinc-600">v{v.version_number}</span>
+                <span className="text-xs text-zinc-400">{timeAgo(v.created_at)}</span>
+              </div>
+              <p className="text-xs text-zinc-500 line-clamp-2">
+                {v.content?.body?.slice(0, 120) ?? '—'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

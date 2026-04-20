@@ -176,6 +176,53 @@ export default function CaptureDetailPage() {
           </>
         )}
       </div>
+
+      {/* Existing outputs for this capture */}
+      <ExistingOutputs captureId={id} />
+    </div>
+  )
+}
+
+function ExistingOutputs({ captureId }: { captureId: string }) {
+  const [outputs, setOutputs] = useState<Array<{
+    id: string
+    title: string | null
+    status: string
+    created_at: string
+  }>>([])
+
+  useEffect(() => {
+    fetch(`/api/capture/${captureId}/outputs`)
+      .then((r) => r.ok ? r.json() : [])
+      .then(setOutputs)
+      .catch(() => {})
+  }, [captureId])
+
+  if (outputs.length === 0) return null
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
+      <h2 className="text-sm font-medium text-zinc-900">Existing outputs</h2>
+      <div className="space-y-2">
+        {outputs.map((output) => (
+          <Link
+            key={output.id}
+            href={`/studio/${output.id}`}
+            className="flex items-center justify-between rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 hover:bg-zinc-100 transition-colors"
+          >
+            <span className="text-sm text-zinc-800 truncate">
+              {output.title ?? 'Untitled output'}
+            </span>
+            <span className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+              output.status === 'approved' ? 'bg-green-50 text-green-700' :
+              output.status === 'review' ? 'bg-yellow-50 text-yellow-700' :
+              'bg-zinc-100 text-zinc-600'
+            }`}>
+              {output.status}
+            </span>
+          </Link>
+        ))}
+      </div>
     </div>
   )
 }
