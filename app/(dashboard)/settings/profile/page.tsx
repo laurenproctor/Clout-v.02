@@ -1,8 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Lock } from 'lucide-react'
+import { Lock, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+interface NamedItem {
+  name: string
+  description: string
+}
 
 interface Profile {
   display_name: string | null
@@ -10,6 +15,8 @@ interface Profile {
   tone_notes: string | null
   industries: string[]
   target_audiences: string[]
+  mental_models: NamedItem[]
+  philosophies: NamedItem[]
   private_feed_operator_visible: boolean
 }
 
@@ -25,13 +32,11 @@ function TagInput({
   placeholder: string
 }) {
   const [input, setInput] = useState('')
-
   function add(v: string) {
     const tag = v.trim().toLowerCase()
     if (tag && !values.includes(tag)) onChange([...values, tag])
     setInput('')
   }
-
   return (
     <div>
       <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">{label}</label>
@@ -55,6 +60,80 @@ function TagInput({
   )
 }
 
+function NamedItemEditor({
+  label,
+  description,
+  items,
+  onChange,
+  namePlaceholder,
+  descriptionPlaceholder,
+}: {
+  label: string
+  description: string
+  items: NamedItem[]
+  onChange: (items: NamedItem[]) => void
+  namePlaceholder: string
+  descriptionPlaceholder: string
+}) {
+  function add() {
+    onChange([...items, { name: '', description: '' }])
+  }
+  function update(index: number, field: keyof NamedItem, value: string) {
+    const updated = items.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    )
+    onChange(updated)
+  }
+  function remove(index: number) {
+    onChange(items.filter((_, i) => i !== index))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">{label}</p>
+        <p className="text-xs text-zinc-400 mt-0.5">{description}</p>
+      </div>
+
+      {items.map((item, index) => (
+        <div key={index} className="rounded-md border border-zinc-200 bg-zinc-50 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <input
+              className="flex-1 rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              placeholder={namePlaceholder}
+              value={item.name}
+              onChange={(e) => update(index, 'name', e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => remove(index)}
+              className="mt-0.5 text-zinc-300 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+          <textarea
+            className="w-full rounded border border-zinc-200 bg-white px-2.5 py-1.5 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none resize-none"
+            rows={2}
+            placeholder={descriptionPlaceholder}
+            value={item.description}
+            onChange={(e) => update(index, 'description', e.target.value)}
+          />
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={add}
+        className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors w-full justify-center"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Add {label.toLowerCase()}
+      </button>
+    </div>
+  )
+}
+
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<Profile>({
     display_name: '',
@@ -62,6 +141,8 @@ export default function ProfileSettingsPage() {
     tone_notes: '',
     industries: [],
     target_audiences: [],
+    mental_models: [],
+    philosophies: [],
     private_feed_operator_visible: false,
   })
   const [loading, setLoading] = useState(true)
@@ -79,6 +160,8 @@ export default function ProfileSettingsPage() {
           tone_notes: data.tone_notes ?? '',
           industries: data.industries ?? [],
           target_audiences: data.target_audiences ?? [],
+          mental_models: (data.mental_models as NamedItem[]) ?? [],
+          philosophies: (data.philosophies as NamedItem[]) ?? [],
           private_feed_operator_visible: data.private_feed_operator_visible ?? false,
         })
         setLoading(false)
@@ -89,6 +172,10 @@ export default function ProfileSettingsPage() {
   async function handleSave() {
     setSaving(true)
     setError(null)
+    // Filter out incomplete items before saving
+    const cleanModels = profile.mental_models.filter((m) => m.name.trim())
+    const cleanPhilosophies = profile.philosophies.filter((p) => p.name.trim())
+
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -98,6 +185,8 @@ export default function ProfileSettingsPage() {
         tone_notes: profile.tone_notes || null,
         industries: profile.industries,
         target_audiences: profile.target_audiences,
+        mental_models: cleanModels,
+        philosophies: cleanPhilosophies,
         private_feed_operator_visible: profile.private_feed_operator_visible,
       }),
     })
@@ -124,7 +213,7 @@ export default function ProfileSettingsPage() {
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <h1 className="text-xl font-semibold text-zinc-900">Profile</h1>
-        <p className="mt-0.5 text-sm text-zinc-500">Your thought leader identity — the context behind your content.</p>
+        <p className="mt-0.5 text-sm text-zinc-500">Your thought leader identity — the context behind every generation.</p>
       </div>
 
       {/* Identity */}
@@ -174,6 +263,30 @@ export default function ProfileSettingsPage() {
         />
       </div>
 
+      {/* Mental models */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <NamedItemEditor
+          label="Mental models"
+          description="Frameworks you use to understand the world. These shape how Clout reasons through your captures."
+          items={profile.mental_models}
+          onChange={(items) => setProfile((p) => ({ ...p, mental_models: items }))}
+          namePlaceholder="e.g. First Principles"
+          descriptionPlaceholder="Break problems down to their fundamental truths rather than reasoning by analogy."
+        />
+      </div>
+
+      {/* Philosophies */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        <NamedItemEditor
+          label="Philosophies"
+          description="Core beliefs that inform your perspective. Clout uses these to make your content distinctly yours."
+          items={profile.philosophies}
+          onChange={(items) => setProfile((p) => ({ ...p, philosophies: items }))}
+          namePlaceholder="e.g. Simplicity over complexity"
+          descriptionPlaceholder="The best solutions are often the simplest ones. Complexity is a sign of unfinished thinking."
+        />
+      </div>
+
       {/* Private feed */}
       <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
         <div className="flex items-center gap-2">
@@ -211,7 +324,7 @@ export default function ProfileSettingsPage() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pb-8">
         <button
           onClick={handleSave}
           disabled={saving}
