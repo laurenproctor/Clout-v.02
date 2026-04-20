@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -26,6 +26,10 @@ export default function StudioEditorPage() {
   const [lenses, setLenses] = useState<Array<{id: string; name: string; description: string | null; scope: string}>>([])
   const [regenLensId, setRegenLensId] = useState('')
   const [regenerating, setRegenerating] = useState(false)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showExport, setShowExport] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -51,6 +55,36 @@ export default function StudioEditorPage() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    if (!output || output.status === 'approved') return
+    if (autoSaveRef.current) clearTimeout(autoSaveRef.current)
+
+    autoSaveRef.current = setTimeout(async () => {
+      setAutoSaving(true)
+      const content: OutputContent = { ...(output.content ?? {}), body }
+      const res = await fetch(`/api/outputs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, title }),
+      })
+      if (res.ok) {
+        const updated: Output = await res.json()
+        setOutput(updated)
+        setLastSaved(new Date())
+      }
+      setAutoSaving(false)
+    }, 2000)
+
+    return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current) }
+  }, [body, title]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!showExport) return
+    function handleClickOutside() { setShowExport(false) }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showExport])
 
   async function handleRegenerate() {
     if (!output || !regenLensId) return
@@ -126,6 +160,30 @@ export default function StudioEditorPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function exportAs(format: 'markdown' | 'plain' | 'linkedin') {
+    let text = ''
+    const content = output?.content as OutputContent
+    const hashtags = (content?.hashtags as string[] ?? []).map((h) => `#${h.replace(/^#/, '')}`).join(' ')
+
+    if (format === 'markdown') {
+      text = [
+        title ? `# ${title}` : '',
+        '',
+        body,
+        hashtags ? `\n${hashtags}` : '',
+      ].filter((l) => l !== undefined).join('\n').trim()
+    } else if (format === 'linkedin') {
+      text = [title, '', body, hashtags ? `\n${hashtags}` : ''].filter(Boolean).join('\n').trim()
+    } else {
+      text = [title, body].filter(Boolean).join('\n\n')
+    }
+
+    navigator.clipboard.writeText(text)
+    setShowExport(false)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
@@ -163,6 +221,13 @@ export default function StudioEditorPage() {
           )}>
             {output.status}
           </span>
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+            {autoSaving ? (
+              <span>Saving...</span>
+            ) : lastSaved ? (
+              <span>Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            ) : null}
+          </div>
         </div>
         <div className="flex gap-2">
           <button
@@ -172,13 +237,41 @@ export default function StudioEditorPage() {
           >
             ↻ Regenerate
           </button>
-          <button
-            onClick={handleCopy}
-            disabled={!body}
-            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-40"
-          >
-            {copied ? 'Copied ✓' : 'Copy'}
-          </button>
+          <div className="relative">
+            <div className="flex rounded-md border border-zinc-200 overflow-hidden">
+              <button
+                onClick={handleCopy}
+                disabled={!body}
+                className="px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-40"
+              >
+                {copied ? 'Copied ✓' : 'Copy'}
+              </button>
+              <button
+                onClick={() => setShowExport((v) => !v)}
+                disabled={!body}
+                className="px-2 py-2 text-sm text-zinc-400 hover:bg-zinc-50 border-l border-zinc-200 transition-colors disabled:opacity-40"
+              >
+                ▾
+              </button>
+            </div>
+            {showExport && (
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-md border border-zinc-200 bg-white shadow-sm z-10">
+                {[
+                  { label: 'Copy as plain text', format: 'plain' as const },
+                  { label: 'Copy as Markdown', format: 'markdown' as const },
+                  { label: 'Copy for LinkedIn', format: 'linkedin' as const },
+                ].map(({ label, format }) => (
+                  <button
+                    key={format}
+                    onClick={() => exportAs(format)}
+                    className="block w-full px-4 py-2.5 text-left text-sm text-zinc-700 hover:bg-zinc-50 first:rounded-t-md last:rounded-b-md transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleSave}
             disabled={saving || isApproved}
