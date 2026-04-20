@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.CheckoutSession
+      const session = event.data.object as Stripe.Checkout.Session
       if (session.mode !== 'subscription') break
       const workspaceId = session.metadata?.workspace_id
       if (!workspaceId) break
@@ -71,13 +71,16 @@ export async function POST(req: NextRequest) {
         .eq('stripe_customer_id', sub.customer as string)
         .single()
       if (!existing) break
+      const item = sub.items.data[0]
       await supabase
         .from('subscriptions')
         .update({
-          plan: planFromSubscription(sub),
-          status: statusFromSubscription(sub),
-          current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          plan: planFromSubscription(sub) as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          status: statusFromSubscription(sub) as any,
+          current_period_start: item ? new Date(item.current_period_start * 1000).toISOString() : undefined,
+          current_period_end: item ? new Date(item.current_period_end * 1000).toISOString() : undefined,
           stripe_subscription_id: sub.id,
           updated_at: new Date().toISOString(),
         })
