@@ -88,10 +88,12 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="space-y-5">
             <div>
-              <h1 className="text-lg font-semibold text-zinc-900">Name your workspace</h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                This is your thought leadership home. You can change it later.
-              </p>
+              <h1 className="text-lg font-semibold text-zinc-900">Create your workspace</h1>
+              <div className="mt-1 space-y-2 text-sm text-zinc-500">
+                <p>Your workspace is where Clout stores your ideas, lenses, drafts, publishing settings, and audience strategy.</p>
+                <p>Use your own name for a personal brand, or a company name for a team account.</p>
+                <p>You can rename it anytime.</p>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
@@ -100,7 +102,7 @@ export default function OnboardingPage() {
               <input
                 autoFocus
                 className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-                placeholder="e.g. Lauren's Workspace"
+                placeholder="Clout or James Dean"
                 value={workspaceName}
                 onChange={(e) => setWorkspaceName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && canAdvance && !loading && next()}
@@ -112,10 +114,11 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h1 className="text-lg font-semibold text-zinc-900">Tell us about yourself</h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                This becomes your thought leader profile — the context behind your content.
-              </p>
+              <h1 className="text-lg font-semibold text-zinc-900">Tell us about you</h1>
+              <div className="mt-1 space-y-2 text-sm text-zinc-500">
+                <p>Your profile is the context behind your content. Clout uses your name and bio to personalize your content strategy and tailor suggestions to your voice and expertise.</p>
+                <p>You can update this anytime in Settings.</p>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
@@ -149,11 +152,12 @@ export default function OnboardingPage() {
             <div>
               <div className="flex items-center gap-2">
                 <Lock className="h-4 w-4 text-zinc-400" />
-                <h1 className="text-lg font-semibold text-zinc-900">Private feed visibility</h1>
+                <h1 className="text-lg font-semibold text-zinc-900">Your Private feed</h1>
               </div>
-              <p className="mt-1 text-sm text-zinc-500">
-                Clout Private is your personal journal — raw thoughts that never go public. If you have an operator assigned to your workspace, you choose whether they can see it.
-              </p>
+              <div className="mt-1 space-y-2 text-sm text-zinc-500">
+                <p>Your Private feed is a personal journal — raw thoughts, half-formed ideas, and unfiltered notes that never go public.</p>
+                <p>If you work with an operator (a strategist or team member assigned to your workspace), you choose whether they can see it.</p>
+              </div>
             </div>
 
             <div className="space-y-3">
