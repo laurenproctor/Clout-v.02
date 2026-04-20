@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, Lens } from '@/types/domain'
+import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 
 export default function CaptureDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -16,7 +17,15 @@ export default function CaptureDetailPage() {
   const [selectedLensId, setSelectedLensId] = useState<string>('')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [limitError, setLimitError] = useState<{ type: 'capture' | 'generation' } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notes, setNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
+
+  useEffect(() => {
+    if (capture) setNotes(capture.notes ?? '')
+  }, [capture])
 
   useEffect(() => {
     async function load() {
@@ -35,10 +44,25 @@ export default function CaptureDetailPage() {
     load()
   }, [id])
 
+  async function handleSaveNotes() {
+    setSavingNotes(true)
+    const res = await fetch(`/api/capture/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes }),
+    })
+    if (res.ok) {
+      setNotesSaved(true)
+      setTimeout(() => setNotesSaved(false), 2000)
+    }
+    setSavingNotes(false)
+  }
+
   async function handleGenerate() {
     if (!selectedLensId) return
     setGenerating(true)
     setError(null)
+    setLimitError(null)
 
     try {
       const res = await fetch('/api/generate', {
@@ -48,6 +72,10 @@ export default function CaptureDetailPage() {
       })
       const data = await res.json()
       if (!res.ok) {
+        if (data.code === 'GENERATION_LIMIT_EXCEEDED') {
+          setLimitError({ type: 'generation' })
+          return
+        }
         setError(data.error ?? 'Generation failed')
         return
       }
@@ -125,6 +153,26 @@ export default function CaptureDetailPage() {
         </p>
       </div>
 
+      {/* Notes */}
+      {!loading && capture && (
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
+          <h2 className="text-sm font-medium text-zinc-900">Notes</h2>
+          <textarea
+            className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
+            rows={3}
+            placeholder="Add context, reminders, or ideas about this capture..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={handleSaveNotes}
+          />
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-400">Auto-saves on blur</p>
+            {notesSaved && <p className="text-xs text-green-600">Saved ✓</p>}
+            {savingNotes && <p className="text-xs text-zinc-400">Saving...</p>}
+          </div>
+        </div>
+      )}
+
       {/* Generate section */}
       <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
         <h2 className="text-sm font-medium text-zinc-900">Generate content</h2>
@@ -172,7 +220,15 @@ export default function CaptureDetailPage() {
               {generating ? 'Generating...' : 'Generate →'}
             </button>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {limitError && (
+              <UpgradePrompt
+                type={limitError.type}
+                used={0}
+                limit={20}
+                onDismiss={() => setLimitError(null)}
+              />
+            )}
+            {error && !limitError && <p className="text-sm text-red-600">{error}</p>}
           </>
         )}
       </div>
