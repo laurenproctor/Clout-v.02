@@ -1,0 +1,161 @@
+/* =============================================================================
+   CLOUT DESIGN TOKENS
+   Edit this file to change global colors, typefaces, spacing, and more.
+   ============================================================================= */
+
+/* --------------------------------------------------------------------------
+   FONT STACKS
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Heading font */
+  --font-heading: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+
+  /* Body / UI font */
+  --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+
+  /* Monospace — used for code, timestamps, numeric data */
+  --font-mono: var(--font-geist-mono), "Courier New", monospace;
+}
+
+/* --------------------------------------------------------------------------
+   COLORS — Light mode
+   Edit these to retheme the entire app.
+   Uses OKLCH: oklch(lightness chroma hue)
+     lightness: 0 (black) → 1 (white)
+     chroma:    0 (grey) → ~0.4 (very saturated)
+     hue:       0–360 (color wheel)
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Brand accent — the one "color" in the palette */
+  --brand: oklch(0.55 0.18 30);          /* warm amber-red */
+  --brand-foreground: oklch(0.98 0 0);
+
+  /* Surfaces */
+  --background: oklch(0.99 0.004 80);    /* warm off-white */
+  --foreground: oklch(0.12 0.01 60);     /* near-black with warmth */
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.12 0.01 60);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.12 0.01 60);
+
+  /* UI hierarchy */
+  --primary: oklch(0.12 0.01 60);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.95 0.005 80);
+  --secondary-foreground: oklch(0.12 0.01 60);
+
+  --muted: oklch(0.95 0.005 80);
+  --muted-foreground: oklch(0.52 0.01 60);
+
+  --accent: oklch(0.55 0.18 30);         /* same as --brand */
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+
+  /* Borders & inputs */
+  --border: oklch(0.88 0.005 80);
+  --input: oklch(0.88 0.005 80);
+  --ring: oklch(0.55 0.18 30);           /* brand color for focus rings */
+
+  /* Sidebar */
+  --sidebar: oklch(0.96 0.005 80);
+  --sidebar-foreground: oklch(0.12 0.01 60);
+  --sidebar-primary: oklch(0.12 0.01 60);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.55 0.18 30);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.88 0.005 80);
+  --sidebar-ring: oklch(0.55 0.18 30);
+
+  /* Charts */
+  --chart-1: oklch(0.55 0.18 30);
+  --chart-2: oklch(0.65 0.14 60);
+  --chart-3: oklch(0.45 0.12 30);
+  --chart-4: oklch(0.75 0.08 80);
+  --chart-5: oklch(0.35 0.08 30);
+}
+
+/* --------------------------------------------------------------------------
+   COLORS — Dark mode
+   -------------------------------------------------------------------------- */
+
+.dark {
+  --background: oklch(0.11 0.01 60);
+  --foreground: oklch(0.95 0.005 80);
+
+  --card: oklch(0.16 0.01 60);
+  --card-foreground: oklch(0.95 0.005 80);
+
+  --popover: oklch(0.16 0.01 60);
+  --popover-foreground: oklch(0.95 0.005 80);
+
+  --primary: oklch(0.95 0.005 80);
+  --primary-foreground: oklch(0.16 0.01 60);
+
+  --secondary: oklch(0.22 0.01 60);
+  --secondary-foreground: oklch(0.95 0.005 80);
+
+  --muted: oklch(0.22 0.01 60);
+  --muted-foreground: oklch(0.62 0.01 60);
+
+  --accent: oklch(0.62 0.18 30);
+  --accent-foreground: oklch(0.98 0 0);
+
+  --destructive: oklch(0.704 0.191 22.216);
+
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.62 0.18 30);
+
+  --sidebar: oklch(0.16 0.01 60);
+  --sidebar-foreground: oklch(0.95 0.005 80);
+  --sidebar-primary: oklch(0.62 0.18 30);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.22 0.01 60);
+  --sidebar-accent-foreground: oklch(0.95 0.005 80);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.62 0.18 30);
+
+  --chart-1: oklch(0.62 0.18 30);
+  --chart-2: oklch(0.72 0.14 60);
+  --chart-3: oklch(0.52 0.12 30);
+  --chart-4: oklch(0.78 0.08 80);
+  --chart-5: oklch(0.42 0.08 30);
+}
+
+/* --------------------------------------------------------------------------
+   SPACING & SHAPE
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Base border radius — all radius-* utilities scale from this */
+  --radius: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   TYPOGRAPHY SCALE
+   Apply these via Tailwind classes (text-display, text-heading, etc.)
+   or reference them in component styles.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --text-display:  clamp(2.5rem, 5vw, 4.5rem);   /* hero / page titles */
+  --text-heading:  clamp(1.5rem, 2.5vw, 2.25rem); /* section headings */
+  --text-subhead:  clamp(1.1rem, 1.5vw, 1.375rem);
+  --text-body:     1rem;
+  --text-small:    0.875rem;
+  --text-xs:       0.75rem;
+
+  --leading-display: 1.05;
+  --leading-heading: 1.15;
+  --leading-body:    1.6;
+
+  --tracking-display: -0.03em;
+  --tracking-heading: -0.02em;
+  --tracking-body:     0em;
+}

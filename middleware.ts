@@ -10,10 +10,19 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 const isOperatorRoute = createRouteMatcher(['/operator(.*)'])
+const isAuthRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect()
+  }
+
+  // For homepage and auth pages, redirect already-authenticated users into the app
+  if (req.nextUrl.pathname === '/' || isAuthRoute(req)) {
+    const { userId } = await auth()
+    if (userId) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
   }
 
   if (isOperatorRoute(req)) {

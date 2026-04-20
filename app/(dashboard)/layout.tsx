@@ -1,9 +1,18 @@
+import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shell/sidebar'
 import { TopNav } from '@/components/shell/top-nav'
 import { QuickCaptureProvider } from '@/components/shell/quick-capture-provider'
 import { ErrorBoundary } from '@/components/shell/error-boundary'
+import { getSession } from '@/lib/auth/session'
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession()
+
+  // User is authenticated (middleware ensures this) but has no workspace yet
+  if (!session) {
+    redirect('/onboarding')
+  }
+
   return (
     <QuickCaptureProvider>
       <div className="flex h-screen overflow-hidden bg-zinc-50">
