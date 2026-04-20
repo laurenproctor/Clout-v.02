@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Lock, Zap } from 'lucide-react'
+import { Lock, Zap, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture } from '@/types/domain'
+
+type StatusFilter = 'all' | 'pending' | 'ready' | 'failed'
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -18,13 +20,23 @@ function timeAgo(dateStr: string): string {
 export default function CapturePage() {
   const [captures, setCaptures] = useState<Capture[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   useEffect(() => {
-    fetch('/api/capture?private=false')
+    fetch('/api/capture?private=false&limit=200')
       .then((r) => r.ok ? r.json() : [])
       .then((data) => { setCaptures(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
+
+  const filtered = captures.filter((c) => {
+    const matchesStatus = statusFilter === 'all' || c.status === statusFilter
+    const matchesSearch = !search.trim() ||
+      (c.rawContent ?? c.transcript ?? c.sourceUrl ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      c.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))
+    return matchesStatus && matchesSearch
+  })
 
   return (
     <div className="space-y-6">
@@ -50,33 +62,73 @@ export default function CapturePage() {
         </div>
       </div>
 
+      {/* Search + filter row */}
+      {!loading && captures.length > 0 && (
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            <input
+              className="w-full rounded-md border border-zinc-200 bg-white pl-9 pr-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+              placeholder="Search captures..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-1">
+            {(['all', 'pending', 'ready', 'failed'] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors',
+                  statusFilter === s ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-900'
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-20 rounded-lg border border-zinc-200 bg-white animate-pulse" />
           ))}
         </div>
-      ) : captures.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
-              <Zap className="h-5 w-5 text-zinc-400" />
+      ) : filtered.length === 0 ? (
+        captures.length === 0 ? (
+          <div className="rounded-lg border border-zinc-200 bg-white">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
+                <Zap className="h-5 w-5 text-zinc-400" />
+              </div>
+              <p className="text-sm font-medium text-zinc-900">No captures yet</p>
+              <p className="mt-1 max-w-sm text-sm text-zinc-500">
+                Paste a thought, record your voice, paste a URL, or fill out a quick form.
+              </p>
+              <Link
+                href="/capture/new"
+                className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+              >
+                New capture
+              </Link>
             </div>
-            <p className="text-sm font-medium text-zinc-900">No captures yet</p>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Paste a thought, record your voice, paste a URL, or fill out a quick form.
-            </p>
-            <Link
-              href="/capture/new"
-              className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-            >
-              New capture
-            </Link>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-lg border border-zinc-200 bg-white">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-sm text-zinc-500">No captures match your filter.</p>
+              <button onClick={() => { setSearch(''); setStatusFilter('all') }} className="mt-2 text-sm text-zinc-900 underline">
+                Clear filters
+              </button>
+            </div>
+          </div>
+        )
       ) : (
         <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
-          {captures.map((capture) => (
+          {filtered.map((capture) => (
             <Link
               key={capture.id}
               href={`/capture/${capture.id}`}
@@ -109,6 +161,12 @@ export default function CapturePage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <p className="text-xs text-zinc-400 text-right">
+          {filtered.length} of {captures.length} capture{captures.length !== 1 ? 's' : ''}
+        </p>
       )}
     </div>
   )
