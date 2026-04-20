@@ -79,6 +79,25 @@ export async function POST(req: NextRequest) {
       console.error('Failed to upsert user:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    // Dispatch welcome email only on creation
+    if (type === 'user.created') {
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('clerk_id', data.id)
+        .single()
+
+      if (user) {
+        const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
+        await dispatchEmail.trigger({
+          type: 'welcome',
+          userId: user.id,
+          email,
+          displayName: fullName ?? email.split('@')[0],
+        })
+      }
+    }
   }
 
   if (type === 'user.deleted') {
