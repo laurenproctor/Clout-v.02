@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [quickCapture, setQuickCapture] = useState('')
   const [capturing, setCapturing] = useState(false)
   const [captureSuccess, setCaptureSuccess] = useState(false)
+  const [profileIncomplete, setProfileIncomplete] = useState(false)
 
   const load = useCallback(async () => {
     const [capturesRes, allOutputsRes, draftRes] = await Promise.all([
@@ -44,6 +45,14 @@ export default function DashboardPage() {
     if (draftRes.ok) {
       const drafts: Output[] = await draftRes.json()
       setStats((prev) => ({ ...prev, draftsAwaitingReview: drafts.length }))
+    }
+
+    const profileRes = await fetch('/api/profile')
+    if (profileRes.ok) {
+      const profile = await profileRes.json()
+      const hasBasics = profile.display_name && profile.tone_notes
+      const hasContext = (profile.mental_models?.length ?? 0) > 0
+      setProfileIncomplete(!hasBasics || !hasContext)
     }
 
     setLoading(false)
@@ -129,6 +138,23 @@ export default function DashboardPage() {
           </div>
         </div>
       </form>
+
+      {profileIncomplete && (
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-900">Complete your profile</p>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Add your tone notes and mental models to get better generations.
+            </p>
+          </div>
+          <a
+            href="/settings/profile"
+            className="shrink-0 ml-4 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 transition-colors"
+          >
+            Complete profile →
+          </a>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
