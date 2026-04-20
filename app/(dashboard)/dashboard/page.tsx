@@ -201,7 +201,7 @@ export default function DashboardPage() {
                 capturing || !quickCapture.trim()
                   ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                   : captureSuccess
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-zinc-700 text-white'
                   : 'bg-zinc-900 text-white hover:bg-zinc-700'
               )}
             >
@@ -248,7 +248,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="space-y-2">
             {[1, 2].map((i) => (
-              <div key={i} className="h-14 rounded-lg border border-zinc-200 bg-white animate-pulse" />
+              <div key={i} className="h-14 rounded-lg border border-zinc-200 bg-zinc-100" />
             ))}
           </div>
         ) : recentOutputs.length === 0 ? (
@@ -281,8 +281,8 @@ export default function DashboardPage() {
                   <p className="text-xs text-zinc-400 mt-0.5">{timeAgo(output.createdAt)}</p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  output.status === 'approved' ? 'bg-green-50 text-green-700' :
-                  output.status === 'review' ? 'bg-yellow-50 text-yellow-700' :
+                  output.status === 'approved' ? 'bg-zinc-100 text-zinc-700' :
+                  output.status === 'review' ? 'bg-zinc-200 text-zinc-600' :
                   'bg-zinc-100 text-zinc-600'
                 }`}>
                   {output.status}
