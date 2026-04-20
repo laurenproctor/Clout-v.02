@@ -23,6 +23,7 @@ export default function CaptureDetailPage() {
   const [savingNotes, setSavingNotes] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   useEffect(() => {
     if (capture) setNotes(capture.notes ?? '')
@@ -53,6 +54,20 @@ export default function CaptureDetailPage() {
       router.push('/capture')
     }
     setDeleting(false)
+  }
+
+  async function handleRetry() {
+    setRetrying(true)
+    const res = await fetch(`/api/capture/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'pending' }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setCapture(updated)
+    }
+    setRetrying(false)
   }
 
   async function handleSaveNotes() {
@@ -156,6 +171,15 @@ export default function CaptureDetailPage() {
           )}>
             {capture.status}
           </span>
+          {capture.status === 'failed' && (
+            <button
+              onClick={handleRetry}
+              disabled={retrying}
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-40"
+            >
+              {retrying ? 'Retrying...' : '↻ Retry'}
+            </button>
+          )}
           {capture.tags.length > 0 && (
             <div className="flex gap-1">
               {capture.tags.map((tag) => (
