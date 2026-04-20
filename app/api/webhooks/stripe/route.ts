@@ -132,17 +132,21 @@ export async function POST(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ownerEmail = ((owner as any)?.users as { email: string } | null)?.email
       if (ownerEmail) {
-        const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
-        await dispatchEmail.trigger({
-          type: 'payment_failed',
-          workspaceId: existing.workspace_id,
-          invoiceId: invoice.id,
-          email: ownerEmail,
-          planName: existing.plan,
-          amount: invoice.amount_due,
-          currency: invoice.currency,
-          gracePeriodDays: 3,
-        })
+        try {
+          const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
+          await dispatchEmail.trigger({
+            type: 'payment_failed',
+            workspaceId: existing.workspace_id,
+            invoiceId: invoice.id!,
+            email: ownerEmail,
+            planName: existing.plan,
+            amount: invoice.amount_due,
+            currency: invoice.currency,
+            gracePeriodDays: 3,
+          })
+        } catch (err) {
+          console.error('Failed to dispatch payment_failed email:', err)
+        }
       }
       break
     }

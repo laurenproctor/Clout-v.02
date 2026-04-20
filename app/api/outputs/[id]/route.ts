@@ -80,15 +80,19 @@ export async function PATCH(
         ? result.data.content.body
         : JSON.stringify(result.data.content)
 
-      const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
-      await dispatchEmail.trigger({
-        type: 'output_ready',
-        outputId: id,
-        userId: session.userId,
-        email: user.email,
-        outputTitle,
-        outputBody,
-      })
+      try {
+        const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
+        await dispatchEmail.trigger({
+          type: 'output_ready',
+          outputId: id,
+          userId: session.userId,
+          email: user.email,
+          outputTitle,
+          outputBody,
+        })
+      } catch (err) {
+        console.error('Failed to dispatch output_ready email:', err)
+      }
     }
   }
 

@@ -89,13 +89,17 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (user) {
-        const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
-        await dispatchEmail.trigger({
-          type: 'welcome',
-          userId: user.id,
-          email,
-          displayName: fullName ?? email.split('@')[0],
-        })
+        try {
+          const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
+          await dispatchEmail.trigger({
+            type: 'welcome',
+            userId: user.id,
+            email,
+            displayName: fullName ?? email.split('@')[0],
+          })
+        } catch (err) {
+          console.error('Failed to dispatch welcome email:', err)
+        }
       }
     }
   }
