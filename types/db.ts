@@ -406,7 +406,7 @@ export interface Database {
           positioning: string | null
           post_ideas: Json
           draft_post: string | null
-          status: string
+          status: 'pending' | 'complete' | 'failed'
           created_at: string
         }
         Insert: {
@@ -415,7 +415,7 @@ export interface Database {
           positioning?: string | null
           post_ideas?: Json
           draft_post?: string | null
-          status?: string
+          status?: 'pending' | 'complete' | 'failed'
           created_at?: string
         }
         Update: {
@@ -424,7 +424,7 @@ export interface Database {
           positioning?: string | null
           post_ideas?: Json
           draft_post?: string | null
-          status?: string
+          status?: 'pending' | 'complete' | 'failed'
           created_at?: string
         }
         Relationships: []
