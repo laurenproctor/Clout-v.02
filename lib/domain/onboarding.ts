@@ -15,7 +15,13 @@ export async function updateOnboardingStep(params: {
       industry?: string
       expertise?: string
     }
-    const updateData: any = { updated_at: new Date().toISOString() }
+    const updateData: {
+      updated_at: string
+      display_name?: string
+      role?: string
+      industry?: string
+      expertise?: string
+    } = { updated_at: new Date().toISOString() }
     if (display_name !== undefined) updateData.display_name = display_name
     if (role !== undefined) updateData.role = role
     if (industry !== undefined) updateData.industry = industry
