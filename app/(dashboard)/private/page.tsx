@@ -115,7 +115,11 @@ export default function PrivatePage() {
         ) : (
           <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
             {captures.map((capture) => (
-              <div key={capture.id} className="px-5 py-4">
+              <Link
+                key={capture.id}
+                href={`/private/${capture.id}`}
+                className="block px-5 py-4 hover:bg-zinc-50 transition-colors"
+              >
                 <div className="flex items-center gap-2 mb-2">
                   {capture.tags.map((tag) => (
                     <span key={tag} className="rounded-full border border-zinc-100 px-2 py-0.5 text-xs text-zinc-400">
@@ -127,7 +131,7 @@ export default function PrivatePage() {
                 <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">
                   {capture.rawContent ?? capture.transcript ?? capture.sourceUrl ?? '—'}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         )
