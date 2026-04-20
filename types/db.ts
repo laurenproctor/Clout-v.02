@@ -563,7 +563,7 @@ export interface Database {
           recipient_email: string
           user_id: string | null
           workspace_id: string | null
-          payload: Record<string, unknown> | null
+          payload: Json | null
           status: 'pending' | 'sent' | 'failed'
           resend_id: string | null
           error: string | null
@@ -579,7 +579,7 @@ export interface Database {
           recipient_email: string
           user_id?: string | null
           workspace_id?: string | null
-          payload?: Record<string, unknown> | null
+          payload?: Json | null
           status?: 'pending' | 'sent' | 'failed'
           resend_id?: string | null
           error?: string | null
@@ -644,6 +644,8 @@ export interface Database {
       lens_scope: 'system' | 'workspace'
       job_type: 'transcribe' | 'generate' | 'summarize' | 'reformat'
       job_status: 'queued' | 'running' | 'done' | 'failed' | 'canceled'
+      email_type: 'welcome' | 'output_ready' | 'payment_failed'
+      email_status: 'pending' | 'sent' | 'failed'
     }
   }
 }

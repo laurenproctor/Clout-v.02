@@ -374,7 +374,6 @@ create table email_events (
   created_at timestamptz not null default now()
 );
 
-create index email_events_idempotency_key_idx on email_events(idempotency_key);
 create index email_events_user_id_idx on email_events(user_id);
 create index email_events_workspace_id_idx on email_events(workspace_id);
 create index email_events_type_status_idx on email_events(type, status);
