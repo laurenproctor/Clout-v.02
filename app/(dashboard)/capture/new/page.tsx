@@ -6,11 +6,13 @@ import Link from 'next/link'
 import { Lock, ArrowLeft, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
+import { VoiceRecorder } from '@/components/capture/voice-recorder'
 
 const SOURCES: { value: CaptureSource; label: string; placeholder: string }[] = [
   { value: 'text', label: 'Text', placeholder: "What's on your mind? Dump it here — raw is fine." },
   { value: 'url', label: 'URL', placeholder: 'Paste a URL to capture context from...' },
   { value: 'structured', label: 'Prompt', placeholder: 'Answer the prompt below...' },
+  { value: 'voice', label: 'Voice', placeholder: 'Use the recorder below' },
 ]
 
 export default function NewCapturePage() {
@@ -20,6 +22,7 @@ export default function NewCapturePage() {
   const [isPrivate, setIsPrivate] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [audioPath, setAudioPath] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,7 +57,8 @@ export default function NewCapturePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!content.trim()) return
+    if (source !== 'voice' && !content.trim()) return
+    if (source === 'voice' && !audioPath) return
     setSubmitting(true)
     setError(null)
 
@@ -64,8 +68,9 @@ export default function NewCapturePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           source,
-          raw_content: source !== 'url' ? content : null,
+          raw_content: source === 'url' || source === 'voice' ? null : content,
           source_url: source === 'url' ? content : null,
+          audio_path: source === 'voice' ? audioPath : undefined,
           is_private: isPrivate,
           tags,
         }),
@@ -217,15 +222,24 @@ export default function NewCapturePage() {
         </div>
 
         {/* Main input */}
-        <div className="rounded-lg border border-zinc-200 bg-white p-1">
-          <textarea
-            autoFocus
-            className="w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none min-h-[200px]"
-            placeholder={activePlaceholder}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
+        {source !== 'voice' && (
+          <div className="rounded-lg border border-zinc-200 bg-white p-1">
+            <textarea
+              autoFocus
+              className="w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none min-h-[200px]"
+              placeholder={activePlaceholder}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+            />
+          </div>
+        )}
+        {source === 'voice' && (
+          <VoiceRecorder
+            workspaceId="pending"
+            onRecorded={(path) => { setAudioPath(path); setContent('Voice memo recorded') }}
+            onError={(err) => setError(err)}
           />
-        </div>
+        )}
 
         {/* Tags */}
         <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 space-y-2">
@@ -266,10 +280,10 @@ export default function NewCapturePage() {
 
           <button
             type="submit"
-            disabled={submitting || !content.trim()}
+            disabled={submitting || (source !== 'voice' ? !content.trim() : !audioPath)}
             className={cn(
               'rounded-md px-5 py-2 text-sm font-medium transition-colors',
-              submitting || !content.trim()
+              submitting || (source !== 'voice' ? !content.trim() : !audioPath)
                 ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                 : 'bg-zinc-900 text-white hover:bg-zinc-700'
             )}
