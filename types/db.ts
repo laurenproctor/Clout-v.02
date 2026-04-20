@@ -102,6 +102,15 @@ export interface Database {
           mental_models: Json
           philosophies: Json
           sample_content: string[]
+          purpose: string | null
+          role: string | null
+          industry: string | null
+          expertise: string | null
+          profile_insights: Json | null
+          channels: string[]
+          audience_targets: string[]
+          audience_perception: string[]
+          onboarding_completed_at: string | null
           private_feed_operator_visible: boolean
           created_at: string
           updated_at: string
@@ -117,6 +126,15 @@ export interface Database {
           mental_models?: Json
           philosophies?: Json
           sample_content?: string[]
+          purpose?: string | null
+          role?: string | null
+          industry?: string | null
+          expertise?: string | null
+          profile_insights?: Json | null
+          channels?: string[]
+          audience_targets?: string[]
+          audience_perception?: string[]
+          onboarding_completed_at?: string | null
           private_feed_operator_visible?: boolean
           created_at?: string
           updated_at?: string
@@ -130,6 +148,15 @@ export interface Database {
           mental_models?: Json
           philosophies?: Json
           sample_content?: string[]
+          purpose?: string | null
+          role?: string | null
+          industry?: string | null
+          expertise?: string | null
+          profile_insights?: Json | null
+          channels?: string[]
+          audience_targets?: string[]
+          audience_perception?: string[]
+          onboarding_completed_at?: string | null
           private_feed_operator_visible?: boolean
           updated_at?: string
         }
@@ -370,6 +397,36 @@ export interface Database {
           created_at?: string
         }
         Update: never
+        Relationships: []
+      }
+      onboarding_generations: {
+        Row: {
+          id: string
+          workspace_id: string
+          positioning: string | null
+          post_ideas: Json
+          draft_post: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          positioning?: string | null
+          post_ideas?: Json
+          draft_post?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          positioning?: string | null
+          post_ideas?: Json
+          draft_post?: string | null
+          status?: string
+          created_at?: string
+        }
         Relationships: []
       }
       channels: {

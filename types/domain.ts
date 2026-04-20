@@ -56,9 +56,33 @@ export interface Profile {
   mentalModels: Array<{ name: string; description: string }>
   philosophies: Array<{ name: string; description: string }>
   sampleContent: string[]
+  purpose: string | null
+  role: string | null
+  industry: string | null
+  expertise: string | null
+  profileInsights: {
+    core_belief?: string
+    energized_by?: string
+    misconceptions?: string
+    lessons?: string
+  } | null
+  channels: string[]
+  audienceTargets: string[]
+  audiencePerception: string[]
+  onboardingCompletedAt: string | null
   privateFeedOperatorVisible: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface OnboardingGeneration {
+  id: string
+  workspaceId: string
+  positioning: string | null
+  postIdeas: Array<{ hook: string; channel: string }>
+  draftPost: string | null
+  status: 'pending' | 'complete' | 'failed'
+  createdAt: string
 }
 
 export interface Lens {
