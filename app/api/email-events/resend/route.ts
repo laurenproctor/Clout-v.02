@@ -43,19 +43,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Only failed events can be resent' }, { status: 422 })
   }
 
-  // Reset record so dispatcher can re-attempt with same idempotency key
-  await supabase
-    .from('email_events')
-    .update({ status: 'pending', error: null, attempt_count: 0 })
-    .eq('id', eventId)
+  // Validate payload before dispatching
+  if (!event.payload || typeof event.payload !== 'object' || !('type' in event.payload)) {
+    return NextResponse.json({ error: 'Event payload is malformed' }, { status: 422 })
+  }
 
+  const validTypes = ['welcome', 'output_ready', 'payment_failed'] as const
+  const payloadType = (event.payload as Record<string, unknown>).type
+  if (!validTypes.includes(payloadType as typeof validTypes[number])) {
+    return NextResponse.json({ error: 'Event payload has unknown type' }, { status: 422 })
+  }
+
+  // Dispatch — the task's own upsert handles state transitions (pending → sent/failed)
+  // No pre-emptive DB reset needed here to avoid race conditions
   try {
     await dispatchEmail.trigger(event.payload as unknown as EmailPayload)
   } catch (err) {
-    await supabase
-      .from('email_events')
-      .update({ status: 'failed', error: String(err) })
-      .eq('id', eventId)
     return NextResponse.json({ error: 'Failed to dispatch email' }, { status: 500 })
   }
 

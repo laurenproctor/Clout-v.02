@@ -31,8 +31,12 @@ export async function GET(req: NextRequest) {
     .limit(100)
 
   if (status) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    query = query.eq('status', status as any)
+    const validStatuses = ['pending', 'sent', 'failed'] as const
+    type ValidStatus = typeof validStatuses[number]
+    if (!validStatuses.includes(status as ValidStatus)) {
+      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 })
+    }
+    query = query.eq('status', status as ValidStatus)
   }
 
   const { data, error } = await query
