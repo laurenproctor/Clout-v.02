@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { getOutput, updateOutput, createOutputVersion } from '@/lib/domain/output'
 import type { OutputContent } from '@/types/domain'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: NextRequest,
@@ -64,4 +65,30 @@ export async function PATCH(
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
   return NextResponse.json(result.data)
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { id } = await params
+
+  const existing = await getOutput(id)
+  if (!existing.ok || existing.data.workspaceId !== session.workspaceId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('outputs')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

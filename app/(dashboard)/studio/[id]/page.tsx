@@ -33,6 +33,7 @@ export default function StudioEditorPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showExport, setShowExport] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -89,6 +90,16 @@ export default function StudioEditorPage() {
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [showExport])
+
+  async function handleDelete() {
+    if (!confirm('Delete this output? This cannot be undone.')) return
+    setDeleting(true)
+    const res = await fetch(`/api/outputs/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      router.push('/studio')
+    }
+    setDeleting(false)
+  }
 
   async function handleRegenerate() {
     if (!output || !regenLensId) return
@@ -246,6 +257,13 @@ export default function StudioEditorPage() {
               <span>Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             ) : null}
           </div>
+          <button
+            onClick={handleDelete}
+            disabled={deleting || isApproved}
+            className="ml-2 text-xs text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-40"
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
         <div className="flex gap-2">
           <button
