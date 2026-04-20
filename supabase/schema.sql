@@ -95,20 +95,60 @@ create index workspace_members_role_idx on workspace_members(workspace_id, role)
 -- PROFILES
 -- ============================================================
 create table profiles (
-  id                uuid primary key default gen_random_uuid(),
-  workspace_id      uuid not null references workspaces(id) on delete cascade,
-  display_name      text,
-  bio               text,
-  industries        text[]        default '{}',
-  target_audiences  text[]        default '{}',
-  tone_notes        text,
-  mental_models     jsonb         not null default '[]',
-  philosophies      jsonb         not null default '[]',
-  sample_content    text[]        default '{}',
-  created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
+  id                              uuid primary key default gen_random_uuid(),
+  workspace_id                    uuid not null references workspaces(id) on delete cascade,
+  display_name                    text,
+  bio                             text,
+  industries                      text[]        default '{}',
+  target_audiences                text[]        default '{}',
+  tone_notes                      text,
+  mental_models                   jsonb         not null default '[]',
+  philosophies                    jsonb         not null default '[]',
+  sample_content                  text[]        default '{}',
+  purpose                         text,
+  role                            text,
+  industry                        text,
+  expertise                       text,
+  profile_insights                jsonb,
+  channels                        text[]        default '{}',
+  audience_targets                text[]        default '{}',
+  audience_perception             text[]        default '{}',
+  onboarding_completed_at         timestamptz,
+  created_at                      timestamptz not null default now(),
+  updated_at                      timestamptz not null default now()
 );
 create unique index profiles_workspace_idx on profiles(workspace_id);
+
+-- ============================================================
+-- ONBOARDING GENERATIONS
+-- ============================================================
+create table onboarding_generations (
+  id            uuid primary key default gen_random_uuid(),
+  workspace_id  uuid not null references workspaces(id) on delete cascade,
+  positioning   text,
+  post_ideas    jsonb not null default '[]',
+  draft_post    text,
+  status        text not null default 'pending',
+  created_at    timestamptz not null default now()
+);
+create unique index onboarding_generations_workspace_idx on onboarding_generations(workspace_id);
+
+-- RLS
+alter table onboarding_generations enable row level security;
+create policy "workspace members can read own generation"
+  on onboarding_generations for select
+  using (
+    exists (
+      select 1 from workspace_members
+      where workspace_members.workspace_id = onboarding_generations.workspace_id
+        and workspace_members.user_id = (
+          select id from users where clerk_id = auth.jwt() ->> 'sub'
+        )
+    )
+  );
+create policy "service role can manage onboarding_generations"
+  on onboarding_generations for all
+  using (auth.role() = 'service_role');
 
 -- ============================================================
 -- SUBSCRIPTIONS
