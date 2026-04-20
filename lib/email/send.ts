@@ -37,7 +37,12 @@ export async function sendEmail({ payload, html, text, eventId }: SendEmailArgs)
   const supabase = createServiceClient()
   const from = process.env.EMAIL_FROM!
   const subject = subjectFor(payload)
-  const recipientEmail = (payload as { email: string }).email
+  let recipientEmail: string
+  switch (payload.type) {
+    case 'welcome': recipientEmail = payload.email; break
+    case 'output_ready': recipientEmail = payload.email; break
+    case 'payment_failed': recipientEmail = payload.email; break
+  }
 
   try {
     const { data, error } = await resend.emails.send({
