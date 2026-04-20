@@ -1,22 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
+import { getPrivateFeed, getEnrichedFeed } from '@/lib/domain/private'
+import { createCapture } from '@/lib/domain/capture'
+import { enrichPrivateJob } from '@/lib/trigger/jobs/enrich-private'
+import type { CaptureSource } from '@/types/domain'
 
-// GET /api/private
-// Returns private captures for the authenticated user (raw feed)
-// Query params: tags, limit, offset
 export async function GET(req: NextRequest) {
-  // TODO: authenticate via Clerk
-  // TODO: resolve workspace_id from user session
-  // TODO: call getPrivateFeed from lib/domain/private
-  return NextResponse.json({ message: 'not implemented' }, { status: 501 })
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const view = searchParams.get('view') ?? 'raw'
+  const tags = searchParams.get('tags')?.split(',').filter(Boolean)
+
+  if (view === 'enriched') {
+    const enrichments = await getEnrichedFeed({
+      workspaceId: session.workspaceId,
+      createdBy: session.userId,
+      tags,
+    })
+    return NextResponse.json(enrichments)
+  }
+
+  const captures = await getPrivateFeed({
+    workspaceId: session.workspaceId,
+    createdBy: session.userId,
+    tags,
+    limit: Number(searchParams.get('limit') ?? 50),
+  })
+  return NextResponse.json(captures)
 }
 
-// POST /api/private
-// Creates a private capture and dispatches the enrich-private Trigger.dev job
-// Body: { source, raw_content?, source_url?, tags? }
 export async function POST(req: NextRequest) {
-  // TODO: authenticate via Clerk
-  // TODO: validate body
-  // TODO: insert capture with is_private = true via lib/domain/capture
-  // TODO: dispatch enrichPrivateJob with { capture_id, workspace_id }
-  return NextResponse.json({ message: 'not implemented' }, { status: 501 })
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await req.json()
+  const source: CaptureSource = body.source ?? 'text'
+
+  if (!body.raw_content && !body.source_url) {
+    return NextResponse.json(
+      { error: 'raw_content or source_url required' },
+      { status: 400 }
+    )
+  }
+
+  const result = await createCapture({
+    workspaceId: session.workspaceId,
+    createdBy: session.userId,
+    source,
+    rawContent: body.raw_content ?? null,
+    sourceUrl: body.source_url ?? null,
+    isPrivate: true,
+    tags: body.tags ?? [],
+  })
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 500 })
+  }
+
+  // Dispatch enrichment job (best-effort — don't fail the request if this errors)
+  try {
+    await enrichPrivateJob.trigger({
+      capture_id: result.data.id,
+      workspace_id: session.workspaceId,
+    })
+  } catch {
+    // Trigger.dev not configured in local dev — enrichment will be skipped
+  }
+
+  return NextResponse.json(result.data, { status: 201 })
 }
