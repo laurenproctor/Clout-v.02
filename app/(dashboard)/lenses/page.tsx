@@ -10,6 +10,7 @@ export default function LensesPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Create form state
   const [name, setName] = useState('')
@@ -234,16 +235,39 @@ export default function LensesPage() {
               </p>
               <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
                 {workspaceLenses.map((lens) => (
-                  <LensRow
-                    key={lens.id}
-                    lens={lens}
-                    expanded={expandedId === lens.id}
-                    onToggle={() => setExpandedId(expandedId === lens.id ? null : lens.id)}
-                    onDelete={async () => {
-                      const res = await fetch(`/api/lenses/${lens.id}`, { method: 'DELETE' })
-                      if (res.ok) setLenses((prev) => prev.filter((l) => l.id !== lens.id))
-                    }}
-                  />
+                  <div key={lens.id}>
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <LensRow
+                          lens={lens}
+                          expanded={expandedId === lens.id && editingId !== lens.id}
+                          onToggle={() => { if (editingId !== lens.id) setExpandedId(expandedId === lens.id ? null : lens.id) }}
+                          onDelete={async () => {
+                            const res = await fetch(`/api/lenses/${lens.id}`, { method: 'DELETE' })
+                            if (res.ok) setLenses((prev) => prev.filter((l) => l.id !== lens.id))
+                          }}
+                        />
+                      </div>
+                      {lens.scope === 'workspace' && (
+                        <button
+                          onClick={() => setEditingId(editingId === lens.id ? null : lens.id)}
+                          className="shrink-0 mr-5 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                        >
+                          {editingId === lens.id ? 'Cancel' : 'Edit'}
+                        </button>
+                      )}
+                    </div>
+                    {editingId === lens.id && (
+                      <EditLensForm
+                        lens={lens}
+                        onSaved={(updated) => {
+                          setLenses((prev) => prev.map((l) => l.id === lens.id ? updated : l))
+                          setEditingId(null)
+                        }}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -298,6 +322,93 @@ export default function LensesPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function EditLensForm({
+  lens,
+  onSaved,
+  onCancel,
+}: {
+  lens: { id: string; name: string; description: string | null; systemPrompt: string; tags: string[] }
+  onSaved: (updated: Lens) => void
+  onCancel: () => void
+}) {
+  const [name, setName] = useState(lens.name)
+  const [description, setDescription] = useState(lens.description ?? '')
+  const [systemPrompt, setSystemPrompt] = useState(lens.systemPrompt)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || !systemPrompt.trim()) return
+    setSaving(true)
+    setError(null)
+
+    const res = await fetch(`/api/lenses/${lens.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim() || null,
+        system_prompt: systemPrompt.trim(),
+      }),
+    })
+
+    if (res.ok) {
+      onSaved(await res.json())
+    } else {
+      const data = await res.json()
+      setError(data.error ?? 'Failed to save')
+    }
+    setSaving(false)
+  }
+
+  return (
+    <form onSubmit={handleSave} className="border-t border-zinc-100 px-5 py-4 bg-zinc-50 space-y-3">
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Name</label>
+        <input
+          autoFocus
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Description</label>
+        <input
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="One-line description"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">System prompt</label>
+        <textarea
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-y min-h-[100px]"
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          required
+        />
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-40"
+        >
+          {saving ? 'Saving...' : 'Save changes'}
+        </button>
+        <button type="button" onClick={onCancel} className="text-sm text-zinc-400 hover:text-zinc-700">
+          Cancel
+        </button>
+      </div>
+    </form>
   )
 }
 
