@@ -50,6 +50,7 @@ export function buildGenerationSystemPrompt(params: {
     mentalModels: Array<{ name: string; description: string }>
     philosophies: Array<{ name: string; description: string }>
     targetAudiences: string[]
+    sampleContent: string[]
   }
 }): string {
   const { lensSystemPrompt, profileContext: p } = params
@@ -80,6 +81,13 @@ export function buildGenerationSystemPrompt(params: {
     lines.push(`\n## Philosophies`)
     p.philosophies.forEach((ph) => {
       lines.push(`- **${ph.name}:** ${ph.description}`)
+    })
+  }
+
+  if (p.sampleContent && p.sampleContent.length > 0) {
+    lines.push(`\n## Writing samples (match this voice)`)
+    p.sampleContent.slice(0, 2).forEach((sample, i) => {
+      lines.push(`\nSample ${i + 1}:\n${sample}`)
     })
   }
 

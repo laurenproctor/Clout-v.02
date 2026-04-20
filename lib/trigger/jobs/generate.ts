@@ -46,6 +46,7 @@ export const generateJob = task({
         mentalModels: (profile?.mental_models as Array<{ name: string; description: string }>) ?? [],
         philosophies: (profile?.philosophies as Array<{ name: string; description: string }>) ?? [],
         targetAudiences: (profile?.target_audiences as string[]) ?? [],
+        sampleContent: (profile?.sample_content as string[]) ?? [],
       },
     })
 

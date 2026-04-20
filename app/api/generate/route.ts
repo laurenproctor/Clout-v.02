@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, display_name, tone_notes, mental_models, philosophies, target_audiences')
+    .select('id, display_name, tone_notes, mental_models, philosophies, target_audiences, sample_content')
     .eq('workspace_id', session.workspaceId)
     .single()
 
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     mentalModels: (profile?.mental_models as Array<{ name: string; description: string }>) ?? [],
     philosophies: (profile?.philosophies as Array<{ name: string; description: string }>) ?? [],
     targetAudiences: (profile?.target_audiences as string[]) ?? [],
+    sampleContent: (profile?.sample_content as string[]) ?? [],
   }
 
   // Build prompt
