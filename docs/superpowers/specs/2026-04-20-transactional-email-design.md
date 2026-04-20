@@ -62,17 +62,22 @@ type EmailPayload =
 ## email_events Table
 
 ```sql
+create type email_type as enum ('welcome', 'output_ready', 'payment_failed');
+create type email_status as enum ('pending', 'sent', 'failed');
+
 create table email_events (
   id uuid primary key default gen_random_uuid(),
   idempotency_key text unique not null,
-  type text not null,                    -- 'welcome' | 'output_ready' | 'payment_failed'
+  type email_type not null,
   recipient_email text not null,
   user_id uuid references users(id) on delete set null,
   workspace_id uuid references workspaces(id) on delete set null,
   payload jsonb,
-  status text not null default 'pending', -- 'pending' | 'sent' | 'failed'
+  status email_status not null default 'pending',
   resend_id text,
   error text,
+  attempt_count integer not null default 0,
+  last_attempted_at timestamptz,
   sent_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -176,12 +181,30 @@ trigger.config.ts
 
 ---
 
-## Error Handling
+## Retry Lifecycle
 
-- If Resend returns an error, the task throws — Trigger.dev retries up to 3 times
-- After 3 failures, `email_events` record is updated to `failed` with the error message
-- Failed sends are visible in the operator preview route and Trigger.dev dashboard
-- Idempotency check uses `status = 'sent'` only — a `failed` record will be retried on next task dispatch
+### Automatic retries (Trigger.dev)
+
+1. Task is dispatched → `email_events` record inserted with `status = 'pending'`, `attempt_count = 1`
+2. If Resend call fails, the task throws → Trigger.dev retries with exponential backoff (attempts 2 and 3)
+3. Each retry increments `attempt_count` and updates `last_attempted_at`
+4. On success: `status = 'sent'`, `resend_id` populated, `sent_at` set
+5. After 3 failures: `status = 'failed'`, `error` populated with last error message
+
+### Idempotency during retries
+
+- Idempotency check uses `status = 'sent'` only — a `failed` record does NOT block retries
+- If the task is dispatched again for the same key after failure (e.g., manual resend), it will attempt delivery again
+
+### Manual resend (operator)
+
+The operator preview route exposes a **Resend** action on any `email_events` record with `status = 'failed'`. Clicking it:
+
+1. Resets the record: `status = 'pending'`, `error = null`, `attempt_count = 0`
+2. Dispatches `dispatch-email` task with the original `payload` (stored in `email_events.payload`)
+3. The task proceeds through the normal lifecycle — idempotency key is reused, so the same record is updated in place
+
+This means operators can recover from transient Resend outages without re-triggering the original user action.
 
 ---
 
