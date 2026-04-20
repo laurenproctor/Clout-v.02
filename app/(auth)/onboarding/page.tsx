@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
@@ -92,6 +92,16 @@ export default function OnboardingPage() {
   const [editedDraft, setEditedDraft] = useState('')
   const [generatingLabel, setGeneratingLabel] = useState('Building your strategy…')
 
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
   const [form, setForm] = useState<FormData>({
     workspaceName: '',
     displayName: '',
@@ -132,6 +142,16 @@ export default function OnboardingPage() {
 
   // ─── Step submission ─────────────────────────────────────────────────────────
 
+  function stepPayload(s: Step): { stepName: string; data: Record<string, unknown> } | null {
+    if (s === 1) return { stepName: 'workspace', data: { name: form.workspaceName } }
+    if (s === 2) return { stepName: 'identity', data: { display_name: form.displayName, role: form.role, industry: form.industry, expertise: form.expertise } }
+    if (s === 3) return { stepName: 'purpose', data: { purpose: form.purpose } }
+    if (s === 4) return { stepName: 'beliefs', data: { profile_insights: { core_belief: form.coreBelief, energized_by: form.energizedBy, misconceptions: form.misconceptions, lessons: form.lessons } } }
+    if (s === 5) return { stepName: 'channels', data: { channels: form.channels } }
+    if (s === 6) return { stepName: 'audience', data: { audience_targets: form.audienceTargets, audience_perception: form.audiencePerception } }
+    return null
+  }
+
   async function postStep(stepName: string, data: Record<string, unknown>) {
     const res = await fetch('/api/onboarding', {
       method: 'POST',
@@ -149,39 +169,13 @@ export default function OnboardingPage() {
     setError(null)
 
     try {
-      if (step === 1) {
-        await postStep('workspace', { name: form.workspaceName })
-        setStep(2)
-      } else if (step === 2) {
-        await postStep('identity', {
-          display_name: form.displayName,
-          role: form.role,
-          industry: form.industry,
-          expertise: form.expertise,
-        })
-        setStep(3)
-      } else if (step === 3) {
-        await postStep('purpose', { purpose: form.purpose })
-        setStep(4)
-      } else if (step === 4) {
-        await postStep('beliefs', {
-          profile_insights: {
-            core_belief: form.coreBelief,
-            energized_by: form.energizedBy,
-            misconceptions: form.misconceptions,
-            lessons: form.lessons,
-          },
-        })
-        setStep(5)
-      } else if (step === 5) {
-        await postStep('channels', { channels: form.channels })
-        setStep(6)
-      } else if (step === 6) {
-        await postStep('audience', {
-          audience_targets: form.audienceTargets,
-          audience_perception: form.audiencePerception,
-        })
+      const payload = stepPayload(step)
+      if (payload) await postStep(payload.stepName, payload.data)
+
+      if (step === 6) {
         await runGeneration()
+      } else {
+        setStep((s) => (s + 1) as Step)
       }
     } catch {
       setError('Something went wrong. You can skip this step.')
@@ -191,14 +185,10 @@ export default function OnboardingPage() {
   }
 
   async function skip() {
-    // Save current partial data then go to dashboard
     setLoading(true)
     try {
-      if (step === 2) await postStep('identity', { display_name: form.displayName, role: form.role, industry: form.industry, expertise: form.expertise })
-      if (step === 3) await postStep('purpose', { purpose: form.purpose })
-      if (step === 4) await postStep('beliefs', { profile_insights: { core_belief: form.coreBelief, energized_by: form.energizedBy, misconceptions: form.misconceptions, lessons: form.lessons } })
-      if (step === 5) await postStep('channels', { channels: form.channels })
-      if (step === 6) await postStep('audience', { audience_targets: form.audienceTargets, audience_perception: form.audiencePerception })
+      const payload = stepPayload(step)
+      if (payload) await postStep(payload.stepName, payload.data)
     } catch { /* non-fatal */ }
     setLoading(false)
     router.push('/dashboard')
@@ -214,21 +204,21 @@ export default function OnboardingPage() {
       'Preparing your positioning…',
     ]
     let i = 0
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       i = (i + 1) % labels.length
       setGeneratingLabel(labels[i])
     }, 2000)
 
     // 10s timeout fallback
-    const timeout = setTimeout(() => {
-      clearInterval(interval)
+    timeoutRef.current = setTimeout(() => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
       router.push('/dashboard')
     }, 10000)
 
     try {
       const res = await fetch('/api/onboarding/generate', { method: 'POST' })
-      clearInterval(interval)
-      clearTimeout(timeout)
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
       if (res.ok) {
         const data = await res.json()
@@ -239,8 +229,8 @@ export default function OnboardingPage() {
         router.push('/dashboard')
       }
     } catch {
-      clearInterval(interval)
-      clearTimeout(timeout)
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
       router.push('/dashboard')
     }
   }
@@ -306,7 +296,7 @@ export default function OnboardingPage() {
         <div className="rounded-xl border border-zinc-200 bg-white p-6 space-y-4">
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Post ideas to get you started</p>
           <div className="space-y-3">
-            {generationResult.postIdeas.map((idea, i) => (
+            {generationResult.postIdeas.slice(0, 3).map((idea, i) => (
               <div key={i} className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-medium text-zinc-500">
                   {i + 1}
