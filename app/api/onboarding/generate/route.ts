@@ -94,6 +94,13 @@ export async function POST(_req: NextRequest) {
   })
 
   if (!updateResult.ok) {
+    await updateOnboardingGeneration({
+      workspaceId,
+      positioning: '',
+      postIdeas: [],
+      draftPost: '',
+      status: 'failed',
+    })
     return NextResponse.json({ error: updateResult.error }, { status: 500 })
   }
 
