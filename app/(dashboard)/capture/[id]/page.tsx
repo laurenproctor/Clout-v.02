@@ -22,6 +22,7 @@ export default function CaptureDetailPage() {
   const [notes, setNotes] = useState('')
   const [savingNotes, setSavingNotes] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (capture) setNotes(capture.notes ?? '')
@@ -43,6 +44,16 @@ export default function CaptureDetailPage() {
     }
     load()
   }, [id])
+
+  async function handleDelete() {
+    if (!confirm('Delete this capture? This cannot be undone.')) return
+    setDeleting(true)
+    const res = await fetch(`/api/capture/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      router.push('/capture')
+    }
+    setDeleting(false)
+  }
 
   async function handleSaveNotes() {
     setSavingNotes(true)
@@ -122,6 +133,13 @@ export default function CaptureDetailPage() {
             Private
           </span>
         )}
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="ml-auto text-xs text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-40"
+        >
+          {deleting ? 'Deleting...' : 'Delete'}
+        </button>
       </div>
 
       {/* Raw content */}
