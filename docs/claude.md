@@ -92,3 +92,48 @@ No business logic in route handlers. If you're writing a DB query in a route fil
 - **Don't hardcode plan limits.** Read from `subscriptions.entitlements` JSONB.
 - **Don't create new enums without updating types/db.ts and types/domain.ts.**
 - **Don't soft-delete without filtering.** Every query on soft-deletable tables needs `deleted_at is null`.
+
+## Infrastructure Setup (required before first run)
+
+These resources must be created manually — they are not auto-provisioned:
+
+### Supabase Storage
+
+Create a bucket called `voice-captures` in the Supabase dashboard:
+
+1. Dashboard → Storage → New bucket
+2. Name: `voice-captures`
+3. Public: No (private)
+4. File size limit: 50MB
+5. Allowed MIME types: `audio/webm, audio/mp4, audio/mpeg, audio/ogg`
+
+### Clerk Webhook
+
+In the Clerk dashboard, create a webhook endpoint pointing to your deployed URL:
+
+- Endpoint URL: `https://your-domain.com/api/webhooks/clerk`
+- Events: `user.created`, `user.updated`, `user.deleted`
+- Copy the signing secret → `CLERK_WEBHOOK_SECRET` env var
+
+Without the Clerk webhook, the `users` table will never be populated and `getSession()` will always return null.
+
+### Stripe Webhook (when billing is live)
+
+- Endpoint URL: `https://your-domain.com/api/webhooks/stripe`
+- Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+- Copy the signing secret → `STRIPE_WEBHOOK_SECRET` env var
+
+### Required env vars summary
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+CLERK_WEBHOOK_SECRET=
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=           # for voice transcription (Whisper)
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
