@@ -4,12 +4,24 @@
    ============================================================================= */
 
 /* --------------------------------------------------------------------------
+   TYPEFACES — Signifier files in /public/fonts/
+   -------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Signifier";
+  src: url("/fonts/signifier.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --------------------------------------------------------------------------
    FONT STACKS
    -------------------------------------------------------------------------- */
 
 :root {
-  /* Heading font */
-  --font-heading: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  /* Heading font — Signifier files in /public/fonts/ */
+  --font-heading: "Signifier", Georgia, "Times New Roman", serif;
 
   /* Body / UI font */
   --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;

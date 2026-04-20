@@ -62,7 +62,7 @@
   html {
     @apply font-sans;
   }
-  h1, h2, h3, h4 {
+  h1, h2 {
     font-family: var(--font-heading);
     letter-spacing: var(--tracking-heading);
     line-height: var(--leading-heading);
