@@ -25,6 +25,8 @@ export default function NewCapturePage() {
   const [audioPath, setAudioPath] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [structuredReady, setStructuredReady] = useState(false)
+  const [structuredData, setStructuredData] = useState<Record<string, string> | null>(null)
 
   // Post-save state
   const [savedCaptureId, setSavedCaptureId] = useState<string | null>(null)
@@ -73,6 +75,7 @@ export default function NewCapturePage() {
           audio_path: source === 'voice' ? audioPath : undefined,
           is_private: isPrivate,
           tags,
+          structured_data: structuredData ?? undefined,
         }),
       })
 
@@ -210,7 +213,7 @@ export default function NewCapturePage() {
             <button
               key={value}
               type="button"
-              onClick={() => setSource(value)}
+              onClick={() => { setSource(value); setStructuredReady(false); setContent('') }}
               className={cn(
                 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                 source === value ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-900'
@@ -222,7 +225,21 @@ export default function NewCapturePage() {
         </div>
 
         {/* Main input */}
-        {source !== 'voice' && (
+        {source === 'structured' && !structuredReady ? (
+          <StructuredForm
+            onReady={(rawContent, structuredData) => {
+              setContent(rawContent)
+              setStructuredData(structuredData)
+              setStructuredReady(true)
+            }}
+          />
+        ) : source === 'voice' ? (
+          <VoiceRecorder
+            workspaceId="pending"
+            onRecorded={(path) => { setAudioPath(path); setContent('Voice memo recorded') }}
+            onError={(err) => setError(err)}
+          />
+        ) : (
           <div className="rounded-lg border border-zinc-200 bg-white p-1">
             <textarea
               autoFocus
@@ -232,13 +249,6 @@ export default function NewCapturePage() {
               onChange={(e) => setContent(e.target.value)}
             />
           </div>
-        )}
-        {source === 'voice' && (
-          <VoiceRecorder
-            workspaceId="pending"
-            onRecorded={(path) => { setAudioPath(path); setContent('Voice memo recorded') }}
-            onError={(err) => setError(err)}
-          />
         )}
 
         {/* Tags */}
@@ -294,6 +304,98 @@ export default function NewCapturePage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
       </form>
+    </div>
+  )
+}
+
+function StructuredForm({
+  onReady,
+}: {
+  onReady: (rawContent: string, structuredData: Record<string, string>) => void
+}) {
+  const [topic, setTopic] = useState('')
+  const [angle, setAngle] = useState('')
+  const [whyItMatters, setWhyItMatters] = useState('')
+  const [audience, setAudience] = useState('')
+
+  function handleApply() {
+    if (!topic.trim() || !angle.trim()) return
+    const structured = {
+      topic: topic.trim(),
+      angle: angle.trim(),
+      why_it_matters: whyItMatters.trim(),
+      audience: audience.trim(),
+    }
+    const rawContent = [
+      `Topic: ${structured.topic}`,
+      `My angle: ${structured.angle}`,
+      whyItMatters ? `Why it matters: ${structured.why_it_matters}` : '',
+      audience ? `Target audience: ${structured.audience}` : '',
+    ].filter(Boolean).join('\n')
+    onReady(rawContent, structured)
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-4">
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+          Topic *
+        </label>
+        <input
+          autoFocus
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+          placeholder="What is this thought about?"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+          Your angle *
+        </label>
+        <textarea
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
+          rows={3}
+          placeholder="What's your take, insight, or perspective?"
+          value={angle}
+          onChange={(e) => setAngle(e.target.value)}
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+          Why it matters
+        </label>
+        <input
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+          placeholder="So what? Why should anyone care?"
+          value={whyItMatters}
+          onChange={(e) => setWhyItMatters(e.target.value)}
+        />
+      </div>
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+          Target audience <span className="normal-case text-zinc-400">(optional)</span>
+        </label>
+        <input
+          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+          placeholder="Who is this for?"
+          value={audience}
+          onChange={(e) => setAudience(e.target.value)}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={handleApply}
+        disabled={!topic.trim() || !angle.trim()}
+        className={cn(
+          'rounded-md px-4 py-2 text-sm font-medium transition-colors',
+          !topic.trim() || !angle.trim()
+            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+            : 'bg-zinc-900 text-white hover:bg-zinc-700'
+        )}
+      >
+        Use this →
+      </button>
     </div>
   )
 }
