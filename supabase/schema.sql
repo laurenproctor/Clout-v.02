@@ -33,6 +33,8 @@ create type audit_action as enum (
   'create', 'update', 'delete', 'publish',
   'approve', 'assign', 'restore', 'soft_delete'
 );
+create type email_type as enum ('welcome', 'output_ready', 'payment_failed');
+create type email_status as enum ('pending', 'sent', 'failed');
 
 -- ============================================================
 -- USERS  (Clerk mirror — synced via webhook)
@@ -351,6 +353,43 @@ create table audit_logs (
 create index audit_logs_workspace_idx on audit_logs(workspace_id, created_at desc);
 create index audit_logs_actor_idx on audit_logs(actor_id);
 create index audit_logs_resource_idx on audit_logs(resource_type, resource_id);
+
+-- ============================================================
+-- EMAIL EVENTS  (observability + idempotency for transactional email)
+-- ============================================================
+create table email_events (
+  id uuid primary key default gen_random_uuid(),
+  idempotency_key text unique not null,
+  type email_type not null,
+  recipient_email text not null,
+  user_id uuid references users(id) on delete set null,
+  workspace_id uuid references workspaces(id) on delete set null,
+  payload jsonb,
+  status email_status not null default 'pending',
+  resend_id text,
+  error text,
+  attempt_count integer not null default 0,
+  last_attempted_at timestamptz,
+  sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index email_events_idempotency_key_idx on email_events(idempotency_key);
+create index email_events_user_id_idx on email_events(user_id);
+create index email_events_workspace_id_idx on email_events(workspace_id);
+create index email_events_type_status_idx on email_events(type, status);
+
+alter table email_events enable row level security;
+
+create policy "super_admin can read email_events"
+  on email_events for select
+  using (
+    exists (
+      select 1 from users
+      where users.clerk_id = (auth.jwt() ->> 'sub')
+      and users.operator_role = 'super_admin'
+    )
+  );
 
 -- ============================================================
 -- ROW LEVEL SECURITY

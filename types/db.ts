@@ -555,6 +555,49 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      email_events: {
+        Row: {
+          id: string
+          idempotency_key: string
+          type: 'welcome' | 'output_ready' | 'payment_failed'
+          recipient_email: string
+          user_id: string | null
+          workspace_id: string | null
+          payload: Record<string, unknown> | null
+          status: 'pending' | 'sent' | 'failed'
+          resend_id: string | null
+          error: string | null
+          attempt_count: number
+          last_attempted_at: string | null
+          sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          idempotency_key: string
+          type: 'welcome' | 'output_ready' | 'payment_failed'
+          recipient_email: string
+          user_id?: string | null
+          workspace_id?: string | null
+          payload?: Record<string, unknown> | null
+          status?: 'pending' | 'sent' | 'failed'
+          resend_id?: string | null
+          error?: string | null
+          attempt_count?: number
+          last_attempted_at?: string | null
+          sent_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          status?: 'pending' | 'sent' | 'failed'
+          resend_id?: string | null
+          error?: string | null
+          attempt_count?: number
+          last_attempted_at?: string | null
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           id: string

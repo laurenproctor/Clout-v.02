@@ -13,6 +13,30 @@ export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'published' | 'archived'
 export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter'
 export type LensScope = 'system' | 'workspace'
+export type EmailType = 'welcome' | 'output_ready' | 'payment_failed'
+export type EmailStatus = 'pending' | 'sent' | 'failed'
+
+export type EmailPayload =
+  | { type: 'welcome'; userId: string; email: string; displayName: string }
+  | { type: 'output_ready'; outputId: string; userId: string; email: string; outputTitle: string; outputBody: string }
+  | { type: 'payment_failed'; workspaceId: string; invoiceId: string; email: string; planName: string; amount: number; currency: string; gracePeriodDays: number }
+
+export interface EmailEvent {
+  id: string
+  idempotencyKey: string
+  type: EmailType
+  recipientEmail: string
+  userId: string | null
+  workspaceId: string | null
+  payload: EmailPayload | null
+  status: EmailStatus
+  resendId: string | null
+  error: string | null
+  attemptCount: number
+  lastAttemptedAt: string | null
+  sentAt: string | null
+  createdAt: string
+}
 
 // ─── Core Entities ────────────────────────────────────────────────────────────
 
