@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Layers, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Layers, Plus, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
 
@@ -239,6 +239,10 @@ export default function LensesPage() {
                     lens={lens}
                     expanded={expandedId === lens.id}
                     onToggle={() => setExpandedId(expandedId === lens.id ? null : lens.id)}
+                    onDelete={async () => {
+                      const res = await fetch(`/api/lenses/${lens.id}`, { method: 'DELETE' })
+                      if (res.ok) setLenses((prev) => prev.filter((l) => l.id !== lens.id))
+                    }}
                   />
                 ))}
               </div>
@@ -301,10 +305,12 @@ function LensRow({
   lens,
   expanded,
   onToggle,
+  onDelete,
 }: {
   lens: Lens
   expanded: boolean
   onToggle: () => void
+  onDelete?: () => void
 }) {
   return (
     <div>
@@ -334,6 +340,14 @@ function LensRow({
             <p className="mt-0.5 text-xs text-zinc-400 line-clamp-1">{lens.description}</p>
           )}
         </div>
+        {lens.scope === 'workspace' && onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete() }}
+            className="shrink-0 text-zinc-300 hover:text-red-500 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
         {expanded ? (
           <ChevronUp className="h-4 w-4 shrink-0 text-zinc-400" />
         ) : (
