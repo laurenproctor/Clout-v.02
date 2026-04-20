@@ -73,6 +73,9 @@ export async function POST(_req: NextRequest) {
     })
 
     aiResponse = JSON.parse(result.content)
+    if (!aiResponse.positioning || !Array.isArray(aiResponse.postIdeas) || !aiResponse.draftPost) {
+      throw new Error('Unexpected AI response shape')
+    }
   } catch {
     await updateOnboardingGeneration({
       workspaceId,
@@ -94,13 +97,6 @@ export async function POST(_req: NextRequest) {
   })
 
   if (!updateResult.ok) {
-    await updateOnboardingGeneration({
-      workspaceId,
-      positioning: '',
-      postIdeas: [],
-      draftPost: '',
-      status: 'failed',
-    })
     return NextResponse.json({ error: updateResult.error }, { status: 500 })
   }
 
