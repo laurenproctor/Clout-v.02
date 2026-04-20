@@ -14,16 +14,60 @@ export default function OnboardingPage() {
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
   const [operatorVisible, setOperatorVisible] = useState(false)
-
-  function next() {
-    if (step < 3) setStep((s) => (s + 1) as Step)
-    else router.push('/dashboard')
-  }
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const canAdvance =
     step === 1 ? workspaceName.trim().length > 0 :
     step === 2 ? displayName.trim().length > 0 :
     true
+
+  async function next() {
+    setLoading(true)
+    setError(null)
+
+    try {
+      if (step === 1) {
+        const res = await fetch('/api/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 'workspace', data: { name: workspaceName } }),
+        })
+        if (!res.ok) {
+          const d = await res.json()
+          // Non-fatal: workspace may already exist if user refreshes onboarding
+          console.warn('Workspace creation:', d.error)
+        }
+        setStep(2)
+      } else if (step === 2) {
+        const res = await fetch('/api/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 'profile', data: { display_name: displayName, bio } }),
+        })
+        if (!res.ok) {
+          const d = await res.json()
+          console.warn('Profile update:', d.error)
+        }
+        setStep(3)
+      } else {
+        const res = await fetch('/api/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 'privacy', data: { operator_visible: operatorVisible } }),
+        })
+        if (!res.ok) {
+          const d = await res.json()
+          console.warn('Privacy update:', d.error)
+        }
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      setError('Something went wrong. You can skip this step.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="w-full max-w-md space-y-6">
@@ -59,6 +103,7 @@ export default function OnboardingPage() {
                 placeholder="e.g. Lauren's Workspace"
                 value={workspaceName}
                 onChange={(e) => setWorkspaceName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && canAdvance && !loading && next()}
               />
             </div>
           </div>
@@ -158,10 +203,15 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {error && (
+          <p className="mt-3 text-xs text-red-600">{error}</p>
+        )}
+
         <div className="mt-6 flex items-center justify-between">
           {step > 1 ? (
             <button
               onClick={() => setStep((s) => (s - 1) as Step)}
+              disabled={loading}
               className="text-sm text-zinc-400 hover:text-zinc-700 transition-colors"
             >
               Back
@@ -171,15 +221,15 @@ export default function OnboardingPage() {
           )}
           <button
             onClick={next}
-            disabled={!canAdvance}
+            disabled={!canAdvance || loading}
             className={cn(
               'rounded-md px-5 py-2 text-sm font-medium transition-colors',
-              canAdvance
-                ? 'bg-zinc-900 text-white hover:bg-zinc-700'
-                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              !canAdvance || loading
+                ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                : 'bg-zinc-900 text-white hover:bg-zinc-700'
             )}
           >
-            {step === 3 ? 'Get started →' : 'Continue →'}
+            {loading ? 'Saving...' : step === 3 ? 'Get started →' : 'Continue →'}
           </button>
         </div>
       </div>
