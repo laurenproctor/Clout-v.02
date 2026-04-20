@@ -40,7 +40,7 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { content, title, status, approve } = body
+  const { content, title, status, approve, channel_id } = body
 
   if (content) {
     await createOutputVersion({
@@ -57,6 +57,7 @@ export async function PATCH(
     ...(title !== undefined && { title }),
     ...(status && { status }),
     ...(approve && { status: 'approved', approvedBy: session.userId }),
+    ...(channel_id !== undefined && { channelId: channel_id === null ? null : channel_id }),
   })
 
   if (!result.ok) {

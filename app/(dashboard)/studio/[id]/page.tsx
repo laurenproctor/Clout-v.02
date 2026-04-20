@@ -13,6 +13,8 @@ export default function StudioEditorPage() {
   const [output, setOutput] = useState<Output | null>(null)
   const [body, setBody] = useState('')
   const [title, setTitle] = useState('')
+  const [channels, setChannels] = useState<Array<{id: string; platform: string; label: string | null}>>([])
+  const [channelId, setChannelId] = useState<string | null | 'none'>('none')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [approving, setApproving] = useState(false)
@@ -21,13 +23,18 @@ export default function StudioEditorPage() {
 
   useEffect(() => {
     async function load() {
-      const res = await fetch(`/api/outputs/${id}`)
+      const [res, channelsRes] = await Promise.all([
+        fetch(`/api/outputs/${id}`),
+        fetch('/api/channels'),
+      ])
       if (res.ok) {
         const data: Output = await res.json()
         setOutput(data)
         setBody((data.content as OutputContent).body ?? '')
         setTitle(data.title ?? '')
+        setChannelId(data.channelId ?? 'none')
       }
+      if (channelsRes.ok) setChannels(await channelsRes.json())
       setLoading(false)
     }
     load()
@@ -40,7 +47,7 @@ export default function StudioEditorPage() {
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, title }),
+      body: JSON.stringify({ content, title, channel_id: channelId === 'none' ? null : channelId }),
     })
     if (res.ok) {
       const updated: Output = await res.json()
@@ -61,7 +68,7 @@ export default function StudioEditorPage() {
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, title, approve: true }),
+      body: JSON.stringify({ content, title, approve: true, channel_id: channelId === 'none' ? null : channelId }),
     })
     if (res.ok) {
       const updated: Output = await res.json()
@@ -147,6 +154,26 @@ export default function StudioEditorPage() {
 
       {/* Editor */}
       <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+        {channels.length > 0 && (
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+              Channel
+            </label>
+            <select
+              className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              value={channelId ?? 'none'}
+              onChange={(e) => setChannelId(e.target.value)}
+              disabled={isApproved}
+            >
+              <option value="none">No channel</option>
+              {channels.map((ch) => (
+                <option key={ch.id} value={ch.id}>
+                  {ch.label ?? ch.platform}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
             Title / Hook

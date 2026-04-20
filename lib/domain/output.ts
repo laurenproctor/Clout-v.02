@@ -74,6 +74,7 @@ export async function updateOutput(params: {
   title?: string
   status?: OutputStatus
   approvedBy?: string
+  channelId?: string | null
 }): Promise<DomainResult<Output>> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -86,6 +87,7 @@ export async function updateOutput(params: {
         approved_by: params.approvedBy,
         approved_at: new Date().toISOString(),
       }),
+      ...(params.channelId !== undefined && { channel_id: params.channelId }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.outputId)
