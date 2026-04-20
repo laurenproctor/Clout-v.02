@@ -27,6 +27,8 @@ export default function StudioEditorPage() {
   const [regenLensId, setRegenLensId] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [sendingReview, setSendingReview] = useState(false)
+  const [hashtags, setHashtags] = useState<string[]>([])
+  const [hashtagInput, setHashtagInput] = useState('')
   const [autoSaving, setAutoSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -44,6 +46,7 @@ export default function StudioEditorPage() {
         setBody((data.content as OutputContent).body ?? '')
         setTitle(data.title ?? '')
         setChannelId(data.channelId ?? 'none')
+        setHashtags(((data.content as OutputContent).hashtags as string[] ?? []).map((h) => h.replace(/^#/, '')))
       }
       if (channelsRes.ok) setChannels(await channelsRes.json())
       const lensesRes = await fetch('/api/lenses')
@@ -63,7 +66,7 @@ export default function StudioEditorPage() {
 
     autoSaveRef.current = setTimeout(async () => {
       setAutoSaving(true)
-      const content: OutputContent = { ...(output.content ?? {}), body }
+      const content: OutputContent = { ...(output.content ?? {}), body, hashtags }
       const res = await fetch(`/api/outputs/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -78,7 +81,7 @@ export default function StudioEditorPage() {
     }, 2000)
 
     return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current) }
-  }, [body, title]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [body, title, hashtags]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!showExport) return
@@ -131,7 +134,7 @@ export default function StudioEditorPage() {
   async function handleSave() {
     setSaving(true)
     setError(null)
-    const content: OutputContent = { ...(output?.content ?? {}), body }
+    const content: OutputContent = { ...(output?.content ?? {}), body, hashtags }
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -152,7 +155,7 @@ export default function StudioEditorPage() {
   async function handleApprove() {
     setApproving(true)
     setError(null)
-    const content: OutputContent = { ...(output?.content ?? {}), body }
+    const content: OutputContent = { ...(output?.content ?? {}), body, hashtags }
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -415,24 +418,72 @@ export default function StudioEditorPage() {
           />
         </div>
 
-        {/* Hashtags */}
-        {Array.isArray((output.content as OutputContent).hashtags) && (
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">
-              Hashtags
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {((output.content as OutputContent).hashtags as string[]).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs text-zinc-500"
-                >
-                  #{tag.replace(/^#/, '')}
-                </span>
-              ))}
-            </div>
+        {/* Word/char count */}
+        {body && (
+          <div className="flex items-center gap-4 text-xs text-zinc-400">
+            <span>{body.trim().split(/\s+/).filter(Boolean).length} words</span>
+            <span>{body.length} characters</span>
+            {body.length > 2800 && (
+              <span className="text-amber-600 font-medium">
+                LinkedIn limit: {3000 - body.length} remaining
+              </span>
+            )}
+            {body.length > 250 && body.length <= 280 && (
+              <span className="text-amber-600 font-medium">
+                Twitter limit: {280 - body.length} remaining
+              </span>
+            )}
+            {body.length > 280 && (
+              <span className="text-red-600 font-medium">
+                Over Twitter limit by {body.length - 280}
+              </span>
+            )}
           </div>
         )}
+
+        {/* Hashtags */}
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+            Hashtags
+          </label>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 min-h-[42px]">
+            {hashtags.map((tag) => (
+              <span key={tag} className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-0.5 text-xs text-zinc-700">
+                #{tag}
+                {!isApproved && (
+                  <button
+                    type="button"
+                    onClick={() => setHashtags((prev) => prev.filter((t) => t !== tag))}
+                    className="ml-0.5 text-zinc-400 hover:text-zinc-700"
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
+            {!isApproved && (
+              <input
+                className="flex-1 min-w-[80px] text-xs text-zinc-700 placeholder:text-zinc-300 focus:outline-none bg-transparent"
+                placeholder="Add hashtag..."
+                value={hashtagInput}
+                onChange={(e) => setHashtagInput(e.target.value.replace(/^#/, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+                    e.preventDefault()
+                    const tag = hashtagInput.trim().replace(/^#/, '')
+                    if (tag && !hashtags.includes(tag)) setHashtags((prev) => [...prev, tag])
+                    setHashtagInput('')
+                  }
+                }}
+                onBlur={() => {
+                  const tag = hashtagInput.trim().replace(/^#/, '')
+                  if (tag && !hashtags.includes(tag)) setHashtags((prev) => [...prev, tag])
+                  setHashtagInput('')
+                }}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Version history */}
