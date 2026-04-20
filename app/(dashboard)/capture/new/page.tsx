@@ -28,6 +28,8 @@ export default function NewCapturePage() {
   const [structuredReady, setStructuredReady] = useState(false)
   const [structuredData, setStructuredData] = useState<Record<string, string> | null>(null)
 
+  const [urlMeta, setUrlMeta] = useState<{ title: string | null; description: string | null } | null>(null)
+
   // Post-save state
   const [savedCaptureId, setSavedCaptureId] = useState<string | null>(null)
   const [lenses, setLenses] = useState<Lens[]>([])
@@ -44,6 +46,24 @@ export default function NewCapturePage() {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (source !== 'url' || !content.trim()) {
+      setUrlMeta(null)
+      return
+    }
+    // Basic URL check
+    try { new URL(content.trim()) } catch { setUrlMeta(null); return }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/capture/url-meta?url=${encodeURIComponent(content.trim())}`)
+        if (res.ok) setUrlMeta(await res.json())
+      } catch {}
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [content, source])
 
   const activePlaceholder = SOURCES.find((s) => s.value === source)?.placeholder ?? ''
 
@@ -240,15 +260,24 @@ export default function NewCapturePage() {
             onError={(err) => setError(err)}
           />
         ) : (
-          <div className="rounded-lg border border-zinc-200 bg-white p-1">
-            <textarea
-              autoFocus
-              className="w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none min-h-[200px]"
-              placeholder={activePlaceholder}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </div>
+          <>
+            <div className="rounded-lg border border-zinc-200 bg-white p-1">
+              <textarea
+                autoFocus
+                className="w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none min-h-[200px]"
+                placeholder={activePlaceholder}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </div>
+            {source === 'url' && urlMeta && (urlMeta.title || urlMeta.description) && (
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Page preview</p>
+                {urlMeta.title && <p className="text-sm font-medium text-zinc-900 line-clamp-1">{urlMeta.title}</p>}
+                {urlMeta.description && <p className="text-sm text-zinc-500 line-clamp-2">{urlMeta.description}</p>}
+              </div>
+            )}
+          </>
         )}
 
         {/* Tags */}
