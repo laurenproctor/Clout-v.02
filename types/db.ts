@@ -111,6 +111,7 @@ export interface Database {
           audience_targets: string[]
           audience_perception: string[]
           onboarding_completed_at: string | null
+          first_session_dismissed_at: string | null
           private_feed_operator_visible: boolean
           created_at: string
           updated_at: string
@@ -135,6 +136,7 @@ export interface Database {
           audience_targets?: string[]
           audience_perception?: string[]
           onboarding_completed_at?: string | null
+          first_session_dismissed_at?: string | null
           private_feed_operator_visible?: boolean
           created_at?: string
           updated_at?: string
@@ -157,6 +159,7 @@ export interface Database {
           audience_targets?: string[]
           audience_perception?: string[]
           onboarding_completed_at?: string | null
+          first_session_dismissed_at?: string | null
           private_feed_operator_visible?: boolean
           updated_at?: string
         }

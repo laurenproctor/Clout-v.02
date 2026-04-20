@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
   const { capture_id, lens_id } = body
   const channelId = body.channel_id ?? null
 
-  if (!capture_id || !lens_id) {
+  if (!capture_id) {
     return NextResponse.json(
-      { error: 'capture_id and lens_id are required' },
+      { error: 'capture_id is required' },
       { status: 400 }
     )
   }
@@ -33,15 +33,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // Load lens
-  const lensResult = await getLensById(lens_id)
+  // Resolve lens — use provided id or fall back to first system lens
+  const supabase = await createClient()
+  let resolvedLensId = lens_id
+  if (!resolvedLensId) {
+    const { data: systemLens } = await supabase
+      .from('lenses')
+      .select('id')
+      .is('workspace_id', null)
+      .limit(1)
+      .single()
+    if (!systemLens) {
+      return NextResponse.json({ error: 'No lens available' }, { status: 400 })
+    }
+    resolvedLensId = systemLens.id
+  }
+
+  const lensResult = await getLensById(resolvedLensId)
   if (!lensResult.ok) {
     return NextResponse.json({ error: 'Lens not found' }, { status: 404 })
   }
   const lens = lensResult.data
 
   // Load profile for context
-  const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, display_name, tone_notes, mental_models, philosophies, target_audiences, sample_content')
@@ -105,7 +119,7 @@ export async function POST(req: NextRequest) {
     .insert({
       workspace_id: session.workspaceId,
       capture_id: capture.id,
-      lens_id: lens.id,
+      lens_id: resolvedLensId,
       profile_id: profile?.id ?? session.userId,
       status: 'generating',
       model: 'claude-sonnet-4-6',

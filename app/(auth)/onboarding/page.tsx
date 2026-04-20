@@ -357,14 +357,18 @@ export default function OnboardingPage() {
         <div className="mb-7 space-y-1.5">
           <div className="flex gap-1">
             {([1, 2, 3, 4, 5, 6] as Step[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setStep(s)}
-                className={cn(
-                  'h-0.5 flex-1 rounded-full transition-colors',
-                  s <= step ? 'bg-zinc-900' : 'bg-zinc-200'
-                )}
-              />
+              <div key={s} className="relative flex-1 group">
+                <button
+                  onClick={() => setStep(s)}
+                  className={cn(
+                    'h-0.5 w-full rounded-full transition-colors',
+                    s <= step ? 'bg-zinc-900' : 'bg-zinc-200 group-hover:bg-zinc-400'
+                  )}
+                />
+                <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  {STEP_LABELS[s]}
+                </div>
+              </div>
             ))}
           </div>
           <div className="flex items-baseline justify-between">

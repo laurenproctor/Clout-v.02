@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, ArrowLeft, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,9 +17,18 @@ const SOURCES: { value: CaptureSource; label: string; placeholder: string }[] = 
 ]
 
 export default function NewCapturePage() {
+  return (
+    <Suspense>
+      <NewCaptureInner />
+    </Suspense>
+  )
+}
+
+function NewCaptureInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [source, setSource] = useState<CaptureSource>('text')
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState(searchParams.get('content') ?? '')
   const [isPrivate, setIsPrivate] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
