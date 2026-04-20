@@ -7,6 +7,7 @@ import { Lock, ArrowLeft, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceRecorder } from '@/components/capture/voice-recorder'
+import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 
 const SOURCES: { value: CaptureSource; label: string; placeholder: string }[] = [
   { value: 'text', label: 'Text', placeholder: "What's on your mind? Dump it here — raw is fine." },
@@ -25,6 +26,7 @@ export default function NewCapturePage() {
   const [audioPath, setAudioPath] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [limitError, setLimitError] = useState<{ type: 'capture' | 'generation'; used: number; limit: number } | null>(null)
   const [structuredReady, setStructuredReady] = useState(false)
   const [structuredData, setStructuredData] = useState<Record<string, string> | null>(null)
 
@@ -83,6 +85,7 @@ export default function NewCapturePage() {
     if (source === 'voice' && !audioPath) return
     setSubmitting(true)
     setError(null)
+    setLimitError(null)
 
     try {
       const res = await fetch('/api/capture', {
@@ -101,6 +104,10 @@ export default function NewCapturePage() {
 
       if (!res.ok) {
         const data = await res.json()
+        if (data.code === 'CAPTURE_LIMIT_EXCEEDED') {
+          setLimitError({ type: 'capture', used: 0, limit: 10 })
+          return
+        }
         setError(data.error ?? 'Failed to save capture')
         return
       }
@@ -331,7 +338,15 @@ export default function NewCapturePage() {
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {limitError && (
+          <UpgradePrompt
+            type={limitError.type}
+            used={limitError.used}
+            limit={limitError.limit}
+            onDismiss={() => setLimitError(null)}
+          />
+        )}
+        {error && !limitError && <p className="text-sm text-red-600">{error}</p>}
       </form>
     </div>
   )
