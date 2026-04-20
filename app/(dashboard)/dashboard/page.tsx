@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const [capturing, setCapturing] = useState(false)
   const [captureSuccess, setCaptureSuccess] = useState(false)
   const [profileIncomplete, setProfileIncomplete] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [welcomeName, setWelcomeName] = useState('')
+  const [onboardingDraft, setOnboardingDraft] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const [capturesRes, allOutputsRes, draftRes] = await Promise.all([
@@ -53,6 +56,21 @@ export default function DashboardPage() {
       const hasBasics = profile.display_name && profile.tone_notes
       const hasContext = (profile.mental_models?.length ?? 0) > 0
       setProfileIncomplete(!hasBasics || !hasContext)
+
+      if (profile.onboarding_completed_at) {
+        const completedAt = new Date(profile.onboarding_completed_at).getTime()
+        const isFirstVisit = Date.now() - completedAt < 5 * 60 * 1000
+        if (isFirstVisit) {
+          setShowWelcome(true)
+          setWelcomeName(profile.display_name ?? '')
+        }
+      }
+    }
+
+    const genRes = await fetch('/api/onboarding/generation')
+    if (genRes.ok) {
+      const gen = await genRes.json()
+      if (gen?.draft_post) setOnboardingDraft(gen.draft_post)
     }
 
     setLoading(false)
@@ -95,6 +113,60 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {showWelcome && (
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-900">
+                {welcomeName ? `Welcome, ${welcomeName.split(' ')[0]}. Here's where we start.` : "Welcome. Here's where we start."}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Clout has built your initial strategy. Your workspace is ready.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowWelcome(false)}
+              className="text-zinc-300 hover:text-zinc-500 transition-colors text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <a
+              href="/capture/new"
+              className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors text-center"
+            >
+              Capture your first idea
+            </a>
+            <a
+              href="/settings/profile"
+              className="rounded-md border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors text-center"
+            >
+              Complete your profile
+            </a>
+            <a
+              href="/capture/new"
+              className="rounded-md bg-zinc-900 px-4 py-3 text-sm font-medium text-white hover:bg-zinc-700 transition-colors text-center"
+            >
+              Start writing →
+            </a>
+          </div>
+
+          {onboardingDraft && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Your first draft — from onboarding</p>
+              <div className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                {onboardingDraft}
+              </div>
+              <a href="/studio" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
+                Open in Studio →
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">Dashboard</h1>
