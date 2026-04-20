@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
+import { checkGenerationLimit } from '@/lib/auth/entitlements'
 import { getCapture } from '@/lib/domain/capture'
 import { getLensById } from '@/lib/domain/lens'
 import { callClaude, buildGenerationSystemPrompt } from '@/lib/ai/generate'
@@ -64,6 +65,18 @@ export async function POST(req: NextRequest) {
 
   if (!userMessage.trim()) {
     return NextResponse.json({ error: 'Capture has no content to generate from' }, { status: 400 })
+  }
+
+  // Check generation limit
+  const genLimit = await checkGenerationLimit(session.workspaceId)
+  if (!genLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: `Monthly generation limit reached (${genLimit.used}/${genLimit.limit}). Upgrade your plan for more generations.`,
+        code: 'GENERATION_LIMIT_EXCEEDED',
+      },
+      { status: 402 }
+    )
   }
 
   // Create generation record

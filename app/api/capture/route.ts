@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
+import { checkCaptureLimit } from '@/lib/auth/entitlements'
 import { createCapture, listCaptures } from '@/lib/domain/capture'
 import type { CaptureSource } from '@/types/domain'
 
@@ -20,6 +21,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'raw_content or source_url required' },
       { status: 400 }
+    )
+  }
+
+  // Check capture limit
+  const captureLimit = await checkCaptureLimit(session.workspaceId)
+  if (!captureLimit.allowed) {
+    return NextResponse.json(
+      {
+        error: `Monthly capture limit reached (${captureLimit.used}/${captureLimit.limit}). Upgrade your plan for more captures.`,
+        code: 'CAPTURE_LIMIT_EXCEEDED',
+      },
+      { status: 402 }
     )
   }
 
