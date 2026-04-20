@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest) {
       ...(body.target_audiences !== undefined && { target_audiences: body.target_audiences }),
       ...(body.mental_models !== undefined && { mental_models: body.mental_models }),
       ...(body.philosophies !== undefined && { philosophies: body.philosophies }),
+      ...(body.sample_content !== undefined && { sample_content: body.sample_content }),
       ...(body.private_feed_operator_visible !== undefined && {
         private_feed_operator_visible: body.private_feed_operator_visible,
       }),

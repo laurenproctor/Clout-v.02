@@ -17,6 +17,7 @@ interface Profile {
   target_audiences: string[]
   mental_models: NamedItem[]
   philosophies: NamedItem[]
+  sample_content: string[]
   private_feed_operator_visible: boolean
 }
 
@@ -143,6 +144,7 @@ export default function ProfileSettingsPage() {
     target_audiences: [],
     mental_models: [],
     philosophies: [],
+    sample_content: [],
     private_feed_operator_visible: false,
   })
   const [loading, setLoading] = useState(true)
@@ -162,6 +164,7 @@ export default function ProfileSettingsPage() {
           target_audiences: data.target_audiences ?? [],
           mental_models: (data.mental_models as NamedItem[]) ?? [],
           philosophies: (data.philosophies as NamedItem[]) ?? [],
+          sample_content: data.sample_content ?? [],
           private_feed_operator_visible: data.private_feed_operator_visible ?? false,
         })
         setLoading(false)
@@ -187,6 +190,7 @@ export default function ProfileSettingsPage() {
         target_audiences: profile.target_audiences,
         mental_models: cleanModels,
         philosophies: cleanPhilosophies,
+        sample_content: profile.sample_content,
         private_feed_operator_visible: profile.private_feed_operator_visible,
       }),
     })
@@ -285,6 +289,53 @@ export default function ProfileSettingsPage() {
           namePlaceholder="e.g. Simplicity over complexity"
           descriptionPlaceholder="The best solutions are often the simplest ones. Complexity is a sign of unfinished thinking."
         />
+      </div>
+
+      {/* Sample content */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-medium text-zinc-900">Writing samples</h2>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            Paste examples of your best writing. Clout uses these to match your voice.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {profile.sample_content.map((sample, index) => (
+            <div key={index} className="relative">
+              <textarea
+                className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none pr-8"
+                rows={4}
+                placeholder="Paste a writing sample here..."
+                value={sample}
+                onChange={(e) => {
+                  const updated = [...profile.sample_content]
+                  updated[index] = e.target.value
+                  setProfile((p) => ({ ...p, sample_content: updated }))
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = profile.sample_content.filter((_, i) => i !== index)
+                  setProfile((p) => ({ ...p, sample_content: updated }))
+                }}
+                className="absolute top-2 right-2 text-zinc-300 hover:text-red-500 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {profile.sample_content.length < 3 && (
+            <button
+              type="button"
+              onClick={() => setProfile((p) => ({ ...p, sample_content: [...p.sample_content, ''] }))}
+              className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors w-full justify-center"
+            >
+              + Add writing sample
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Private feed */}
