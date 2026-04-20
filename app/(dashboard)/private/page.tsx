@@ -8,8 +8,6 @@ import type { Capture, PrivateEnrichment } from '@/types/domain'
 
 type Tab = 'raw' | 'enriched'
 
-const SAMPLE_TAGS = ['All', 'Work', 'Passions', 'Love', 'Health', 'Growth']
-
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -24,6 +22,7 @@ export default function PrivatePage() {
   const [activeTag, setActiveTag] = useState('All')
   const [captures, setCaptures] = useState<Capture[]>([])
   const [enrichments, setEnrichments] = useState<PrivateEnrichment[]>([])
+  const [availableTags, setAvailableTags] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -34,7 +33,13 @@ export default function PrivatePage() {
         fetch(`/api/private?view=raw${tagParam}`),
         fetch(`/api/private?view=enriched${tagParam}`),
       ])
-      if (rawRes.ok) setCaptures(await rawRes.json())
+      if (rawRes.ok) {
+        const data: Capture[] = await rawRes.json()
+        setCaptures(data)
+        // Extract unique tags from all captures
+        const allTags = Array.from(new Set(data.flatMap((c) => c.tags))).sort()
+        setAvailableTags(allTags)
+      }
       if (enrichedRes.ok) setEnrichments(await enrichedRes.json())
       setLoading(false)
     }
@@ -85,22 +90,24 @@ export default function PrivatePage() {
       </div>
 
       {/* Tag filters */}
-      <div className="flex flex-wrap gap-2">
-        {SAMPLE_TAGS.map((tag) => (
-          <button
-            key={tag}
-            onClick={() => setActiveTag(tag)}
-            className={cn(
-              'rounded-full px-3 py-1 text-xs font-medium transition-colors',
-              activeTag === tag
-                ? 'bg-zinc-900 text-white'
-                : 'border border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700'
-            )}
-          >
-            {tag}
-          </button>
-        ))}
-      </div>
+      {availableTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {['All', ...availableTags].map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setActiveTag(tag)}
+              className={cn(
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                activeTag === tag
+                  ? 'bg-zinc-900 text-white'
+                  : 'border border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:text-zinc-700'
+              )}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (
