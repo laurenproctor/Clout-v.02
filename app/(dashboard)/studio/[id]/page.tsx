@@ -26,6 +26,7 @@ export default function StudioEditorPage() {
   const [lenses, setLenses] = useState<Array<{id: string; name: string; description: string | null; scope: string}>>([])
   const [regenLensId, setRegenLensId] = useState('')
   const [regenerating, setRegenerating] = useState(false)
+  const [sendingReview, setSendingReview] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -111,6 +112,20 @@ export default function StudioEditorPage() {
       router.push(`/studio/${data.output_id}`)
     }
     setRegenerating(false)
+  }
+
+  async function handleSendForReview() {
+    setSendingReview(true)
+    const res = await fetch(`/api/outputs/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'review' }),
+    })
+    if (res.ok) {
+      const updated: Output = await res.json()
+      setOutput(updated)
+    }
+    setSendingReview(false)
   }
 
   async function handleSave() {
@@ -272,6 +287,20 @@ export default function StudioEditorPage() {
               </div>
             )}
           </div>
+          {output.status === 'draft' && (
+            <button
+              onClick={handleSendForReview}
+              disabled={sendingReview}
+              className={cn(
+                'rounded-md border px-4 py-2 text-sm font-medium transition-colors',
+                sendingReview
+                  ? 'border-zinc-200 text-zinc-300 cursor-not-allowed'
+                  : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+              )}
+            >
+              {sendingReview ? 'Sending...' : 'Send for review'}
+            </button>
+          )}
           <button
             onClick={handleSave}
             disabled={saving || isApproved}
