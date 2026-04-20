@@ -342,10 +342,10 @@ export default function OnboardingPage() {
   // ─── Render: Form (6 steps) ──────────────────────────────────────────────────
 
   return (
-    <div className="flex w-full max-w-3xl gap-0 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+    <div className="fixed inset-0 flex overflow-hidden">
 
       {/* LEFT: Form panel */}
-      <div className="flex flex-1 flex-col p-8 min-w-0">
+      <div className="flex flex-1 flex-col p-12 min-w-0 overflow-y-auto bg-white">
 
         {/* Logo + time expectation */}
         <div className="mb-6">
@@ -357,8 +357,9 @@ export default function OnboardingPage() {
         <div className="mb-7 space-y-1.5">
           <div className="flex gap-1">
             {([1, 2, 3, 4, 5, 6] as Step[]).map((s) => (
-              <div
+              <button
                 key={s}
+                onClick={() => setStep(s)}
                 className={cn(
                   'h-0.5 flex-1 rounded-full transition-colors',
                   s <= step ? 'bg-zinc-900' : 'bg-zinc-200'
@@ -586,6 +587,12 @@ export default function OnboardingPage() {
                     />
                   ))}
                 </div>
+                <WriteInInput
+                  placeholder="Write in your own…"
+                  onAdd={(value) => {
+                    if (!form.audienceTargets.includes(value)) toggleArray('audienceTargets', value)
+                  }}
+                />
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">What should they think of you?</p>
@@ -599,6 +606,12 @@ export default function OnboardingPage() {
                     />
                   ))}
                 </div>
+                <WriteInInput
+                  placeholder="Write in your own…"
+                  onAdd={(value) => {
+                    if (!form.audiencePerception.includes(value)) toggleArray('audiencePerception', value)
+                  }}
+                />
               </div>
             </>
           )}
@@ -646,7 +659,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* RIGHT: Summary panel (hidden on mobile) */}
-      <div className="hidden md:flex w-64 shrink-0 flex-col bg-zinc-900 p-7 gap-0">
+      <div className="hidden md:flex w-2/5 shrink-0 flex-col bg-zinc-900 p-12 gap-0 overflow-y-auto">
         <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-4">Your Clout profile</p>
 
         {/* Profile card */}
@@ -740,6 +753,34 @@ function RadioCard({
         {label}
       </span>
     </button>
+  )
+}
+
+function WriteInInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value: string) => void }) {
+  const [value, setValue] = useState('')
+  const submit = () => {
+    const trimmed = value.trim()
+    if (!trimmed) return
+    onAdd(trimmed)
+    setValue('')
+  }
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder={placeholder}
+        className="flex-1 rounded-full border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+      />
+      <button
+        onClick={submit}
+        className="rounded-full border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:border-zinc-400 transition-colors"
+      >
+        Add
+      </button>
+    </div>
   )
 }
 
