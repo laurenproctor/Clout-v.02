@@ -15,6 +15,8 @@ export default function CaptureDetailPage() {
   const [capture, setCapture] = useState<Capture | null>(null)
   const [lenses, setLenses] = useState<Lens[]>([])
   const [selectedLensId, setSelectedLensId] = useState<string>('')
+  const [channels, setChannels] = useState<Array<{id: string; platform: string; label: string | null}>>([])
+  const [selectedChannelId, setSelectedChannelId] = useState<string>('')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [limitError, setLimitError] = useState<{ type: 'capture' | 'generation' } | null>(null)
@@ -31,9 +33,10 @@ export default function CaptureDetailPage() {
 
   useEffect(() => {
     async function load() {
-      const [captureRes, lensesRes] = await Promise.all([
+      const [captureRes, lensesRes, channelsRes] = await Promise.all([
         fetch(`/api/capture/${id}`),
         fetch('/api/lenses'),
+        fetch('/api/channels'),
       ])
       if (captureRes.ok) setCapture(await captureRes.json())
       if (lensesRes.ok) {
@@ -41,6 +44,7 @@ export default function CaptureDetailPage() {
         setLenses(data)
         if (data.length > 0) setSelectedLensId(data[0].id)
       }
+      if (channelsRes.ok) setChannels(await channelsRes.json())
       setLoading(false)
     }
     load()
@@ -94,7 +98,11 @@ export default function CaptureDetailPage() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ capture_id: id, lens_id: selectedLensId }),
+        body: JSON.stringify({
+          capture_id: id,
+          lens_id: selectedLensId,
+          ...(selectedChannelId && { channel_id: selectedChannelId }),
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -228,6 +236,26 @@ export default function CaptureDetailPage() {
           />
         ) : (
           <>
+            {channels.length > 0 && (
+              <div>
+                <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                  Channel (optional)
+                </label>
+                <select
+                  className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                  value={selectedChannelId}
+                  onChange={(e) => setSelectedChannelId(e.target.value)}
+                >
+                  <option value="">No specific channel</option>
+                  {channels.map((ch) => (
+                    <option key={ch.id} value={ch.id}>
+                      {ch.label ?? ch.platform}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
                 Choose a lens

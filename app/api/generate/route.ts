@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { capture_id, lens_id } = body
+  const channelId = body.channel_id ?? null
 
   if (!capture_id || !lens_id) {
     return NextResponse.json(
@@ -47,6 +48,24 @@ export async function POST(req: NextRequest) {
     .eq('workspace_id', session.workspaceId)
     .single()
 
+  // Load channel config if specified
+  let channelConfig: { platform: string; config: Record<string, unknown> } | null = null
+
+  if (channelId) {
+    const { data: channel } = await supabase
+      .from('channels')
+      .select('platform, config')
+      .eq('id', channelId)
+      .single()
+
+    if (channel) {
+      channelConfig = {
+        platform: channel.platform as string,
+        config: channel.config as Record<string, unknown>,
+      }
+    }
+  }
+
   const profileContext = {
     displayName: profile?.display_name ?? null,
     toneNotes: profile?.tone_notes ?? null,
@@ -54,6 +73,7 @@ export async function POST(req: NextRequest) {
     philosophies: (profile?.philosophies as Array<{ name: string; description: string }>) ?? [],
     targetAudiences: (profile?.target_audiences as string[]) ?? [],
     sampleContent: (profile?.sample_content as string[]) ?? [],
+    channelConfig,
   }
 
   // Build prompt

@@ -51,6 +51,10 @@ export function buildGenerationSystemPrompt(params: {
     philosophies: Array<{ name: string; description: string }>
     targetAudiences: string[]
     sampleContent: string[]
+    channelConfig?: {
+      platform: string
+      config: Record<string, unknown>
+    } | null
   }
 }): string {
   const { lensSystemPrompt, profileContext: p } = params
@@ -96,6 +100,27 @@ export function buildGenerationSystemPrompt(params: {
     'Respond with a JSON object: { "body": "...", "hook": "...", "hashtags": ["..."] }'
   )
   lines.push('body: the main content (markdown ok). hook: the opening line. hashtags: 3-5 tags.')
+
+  if (p.channelConfig) {
+    const { platform, config } = p.channelConfig
+    lines.push(`\n## Target channel: ${platform}`)
+
+    if (platform === 'linkedin') {
+      const charLimit = (config.char_limit as number) ?? 3000
+      const hashtags = (config.hashtag_count as number) ?? 5
+      lines.push(`- Character limit: ${charLimit}`)
+      lines.push(`- Include ${hashtags} relevant hashtags`)
+      if (config.include_hook) lines.push('- Start with a strong hook line')
+    } else if (platform === 'newsletter') {
+      const wordLimit = (config.word_limit as number) ?? 800
+      lines.push(`- Word limit: approximately ${wordLimit} words`)
+      if (config.include_subject) lines.push('- Include a subject line in the "hook" field')
+    } else if (platform === 'twitter') {
+      const charLimit = (config.char_limit as number) ?? 280
+      lines.push(`- Character limit: ${charLimit} per tweet`)
+      if (config.thread_max) lines.push(`- If a thread, max ${config.thread_max} tweets`)
+    }
+  }
 
   return lines.join('\n')
 }
