@@ -111,14 +111,39 @@ export async function POST(req: NextRequest) {
       const invoice = event.data.object as Stripe.Invoice
       const { data: existing } = await supabase
         .from('subscriptions')
-        .select('workspace_id')
+        .select('workspace_id, plan')
         .eq('stripe_customer_id', invoice.customer as string)
         .single()
       if (!existing) break
+
       await supabase
         .from('subscriptions')
         .update({ status: 'past_due', updated_at: new Date().toISOString() })
         .eq('workspace_id', existing.workspace_id)
+
+      // Look up workspace owner email
+      const { data: owner } = await supabase
+        .from('workspace_members')
+        .select('users(email)')
+        .eq('workspace_id', existing.workspace_id)
+        .eq('role', 'owner')
+        .single()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ownerEmail = ((owner as any)?.users as { email: string } | null)?.email
+      if (ownerEmail) {
+        const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
+        await dispatchEmail.trigger({
+          type: 'payment_failed',
+          workspaceId: existing.workspace_id,
+          invoiceId: invoice.id,
+          email: ownerEmail,
+          planName: existing.plan,
+          amount: invoice.amount_due,
+          currency: invoice.currency,
+          gracePeriodDays: 3,
+        })
+      }
       break
     }
   }
