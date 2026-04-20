@@ -51,6 +51,13 @@ export async function createWorkspaceForUser(params: {
   // Create empty profile for the workspace
   await supabase.from('profiles').insert({ workspace_id: workspace.id })
 
+  // Create free subscription for the workspace
+  await supabase.from('subscriptions').insert({
+    workspace_id: workspace.id,
+    plan: 'free',
+    status: 'trialing',
+  })
+
   return {
     ok: true,
     data: {
