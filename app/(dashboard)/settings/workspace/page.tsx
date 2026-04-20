@@ -142,6 +142,128 @@ export default function WorkspaceSettingsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Members */}
+      <MembersSection workspaceId={data?.workspace?.id ?? ''} userRole={data?.userRole ?? 'viewer'} />
+    </div>
+  )
+}
+
+function MembersSection({ workspaceId, userRole }: { workspaceId: string; userRole: string }) {
+  const [members, setMembers] = useState<Array<{
+    user_id: string
+    role: string
+    joined_at: string
+    users: { email: string; full_name: string | null } | null
+  }>>([])
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('editor')
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+  const [inviteSuccess, setInviteSuccess] = useState(false)
+
+  const canInvite = userRole === 'owner' || userRole === 'admin'
+
+  useEffect(() => {
+    fetch('/api/workspace/members')
+      .then((r) => r.ok ? r.json() : [])
+      .then(setMembers)
+      .catch(() => {})
+  }, [])
+
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setInviting(true)
+    setInviteError(null)
+
+    const res = await fetch('/api/workspace/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), role }),
+    })
+
+    if (res.ok) {
+      setEmail('')
+      setInviteSuccess(true)
+      setTimeout(() => setInviteSuccess(false), 3000)
+      // Reload members
+      const updated = await fetch('/api/workspace/members')
+      if (updated.ok) setMembers(await updated.json())
+    } else {
+      const data = await res.json()
+      setInviteError(data.error ?? 'Failed to add member')
+    }
+    setInviting(false)
+  }
+
+  function timeAgo(dateStr: string): string {
+    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+    if (days === 0) return 'Today'
+    if (days < 30) return `${days}d ago`
+    return `${Math.floor(days / 30)}mo ago`
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
+      <h2 className="text-sm font-medium text-zinc-900">Team members</h2>
+
+      {/* Member list */}
+      <div className="divide-y divide-zinc-100">
+        {members.map((m) => (
+          <div key={m.user_id} className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium text-zinc-900">
+                {m.users?.full_name ?? m.users?.email ?? m.user_id.slice(0, 8)}
+              </p>
+              <p className="text-xs text-zinc-400">{m.users?.email}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-400">{timeAgo(m.joined_at)}</span>
+              <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-600 capitalize">
+                {m.role}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Invite form */}
+      {canInvite && (
+        <form onSubmit={handleInvite} className="space-y-3 border-t border-zinc-100 pt-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Add member</p>
+          <p className="text-xs text-zinc-400">
+            They must already have a Clout account. Enter their email address.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              className="flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              placeholder="colleague@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <select
+              className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="editor">Editor</option>
+              <option value="admin">Admin</option>
+              <option value="viewer">Viewer</option>
+            </select>
+            <button
+              type="submit"
+              disabled={inviting || !email.trim()}
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-40"
+            >
+              {inviting ? 'Adding...' : inviteSuccess ? 'Added ✓' : 'Add'}
+            </button>
+          </div>
+          {inviteError && <p className="text-xs text-red-600">{inviteError}</p>}
+        </form>
+      )}
     </div>
   )
 }
