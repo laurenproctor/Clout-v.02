@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,7 @@ import type { Output, OutputContent } from '@/types/domain'
 
 export default function StudioEditorPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
 
   const [output, setOutput] = useState<Output | null>(null)
   const [body, setBody] = useState('')
@@ -21,6 +22,10 @@ export default function StudioEditorPage() {
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showRegenerate, setShowRegenerate] = useState(false)
+  const [lenses, setLenses] = useState<Array<{id: string; name: string; description: string | null; scope: string}>>([])
+  const [regenLensId, setRegenLensId] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -36,10 +41,43 @@ export default function StudioEditorPage() {
         setChannelId(data.channelId ?? 'none')
       }
       if (channelsRes.ok) setChannels(await channelsRes.json())
+      const lensesRes = await fetch('/api/lenses')
+      if (lensesRes.ok) {
+        const data = await lensesRes.json()
+        setLenses(data)
+        if (data.length > 0) setRegenLensId(data[0].id)
+      }
       setLoading(false)
     }
     load()
   }, [id])
+
+  async function handleRegenerate() {
+    if (!output || !regenLensId) return
+    setRegenerating(true)
+
+    // Get the capture_id from the generation
+    const genRes = await fetch(`/api/generate/context?generation_id=${output.generationId}`)
+    if (!genRes.ok) {
+      // Fallback: just go to capture page if we can't find generation
+      setRegenerating(false)
+      setShowRegenerate(false)
+      return
+    }
+    const { capture_id } = await genRes.json()
+
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ capture_id, lens_id: regenLensId }),
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      router.push(`/studio/${data.output_id}`)
+    }
+    setRegenerating(false)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -128,6 +166,13 @@ export default function StudioEditorPage() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => setShowRegenerate((v) => !v)}
+            disabled={isApproved}
+            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-40"
+          >
+            ↻ Regenerate
+          </button>
+          <button
             onClick={handleCopy}
             disabled={!body}
             className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-40"
@@ -165,6 +210,41 @@ export default function StudioEditorPage() {
         <p className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600">
           {error}
         </p>
+      )}
+
+      {showRegenerate && lenses.length > 0 && (
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 space-y-3">
+          <p className="text-sm font-medium text-zinc-900">Generate a new version with a different lens</p>
+          <select
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+            value={regenLensId}
+            onChange={(e) => setRegenLensId(e.target.value)}
+          >
+            {lenses.map((lens) => (
+              <option key={lens.id} value={lens.id}>
+                {lens.name}{lens.scope === 'system' ? ' ✦' : ''}
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className={cn(
+                'rounded-md px-4 py-2 text-sm font-medium transition-colors',
+                regenerating ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-700'
+              )}
+            >
+              {regenerating ? 'Generating...' : 'Generate new version →'}
+            </button>
+            <button
+              onClick={() => setShowRegenerate(false)}
+              className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Editor */}
