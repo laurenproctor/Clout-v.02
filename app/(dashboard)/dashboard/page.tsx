@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Circle, Loader2, Pencil, Shuffle, BookMarked, X } from 'lucide-react'
+import { Check, Circle, Loader2, RotateCcw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, Output } from '@/types/domain'
 
@@ -71,6 +71,9 @@ export default function DashboardPage() {
 
   // Dismiss animation
   const [exiting, setExiting] = useState(false)
+
+  // Draft card click-outside ref
+  const draftRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     const [profileRes, genRes, captureRes, outputsRes, allCaptureRes, allOutputsRes, draftRes] = await Promise.all([
@@ -145,6 +148,17 @@ export default function DashboardPage() {
       return () => clearTimeout(t)
     }
   }, [allComplete, isFirstSession])
+
+  useEffect(() => {
+    if (!draftEditing) return
+    function handleClickOutside(e: MouseEvent) {
+      if (draftRef.current && !draftRef.current.contains(e.target as Node)) {
+        setDraftEditing(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [draftEditing])
 
   async function handleDismiss() {
     setExiting(true)
@@ -226,231 +240,229 @@ export default function DashboardPage() {
   // ── First-session view ─────────────────────────────────────────────────────
   if (isFirstSession) {
     const firstName = profile?.display_name?.split(' ')[0] ?? null
-    const role = profile?.role ?? profile?.industry ?? null
-    const channels = profile?.channels ?? []
     const positioningFull = generation?.positioning ?? ''
-    const positioningIntro = positioningFull.split('. ')[0] ?? positioningFull
-    const draft = generation?.draft_post ?? ''
-    const channel = generation?.post_ideas?.[0]?.channel ?? channels[0] ?? null
+    const draft = draftText || generation?.draft_post || ''
 
     return (
-      <div
-        className={cn(
-          'space-y-8 transition-opacity duration-400',
-          exiting && 'opacity-0'
-        )}
-      >
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 max-w-2xl">
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-              {firstName
-                ? `Welcome, ${firstName}. Your${role ? ` ${role}` : ''} content strategy is ready.`
-                : 'Your content strategy is ready.'}
-            </h1>
-            {positioningIntro && (
-              <p className="text-sm text-zinc-500 leading-relaxed">{positioningIntro}.</p>
-            )}
-          </div>
-          <button
-            onClick={handleDismiss}
-            className="shrink-0 ml-6 mt-0.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors flex items-center gap-1"
-          >
-            <X className="h-3 w-3" />
-            Skip
-          </button>
-        </div>
+      <div className={cn('space-y-8 transition-opacity duration-400', exiting && 'opacity-0')}>
 
-        {/* ── Strategy cards ── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* Positioning */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Your Positioning</p>
-            {positioningFull ? (
-              <p className="text-sm text-zinc-700 leading-relaxed line-clamp-4">{positioningFull}</p>
-            ) : (
-              <p className="text-sm text-zinc-400 italic">Complete your profile to generate positioning.</p>
-            )}
-          </div>
-
-          {/* Channels */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Recommended Channels</p>
-            {channels.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {channels.map((ch) => (
-                  <span
-                    key={ch}
-                    className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs text-zinc-700"
-                  >
-                    {ch}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-zinc-400 italic">No channels selected yet.</p>
-            )}
-          </div>
-
-          {/* Cadence */}
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Publishing Cadence</p>
-            {channels.length > 0 ? (
-              <div className="space-y-1">
-                {channels.map((ch) => (
-                  <div key={ch} className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-700">{ch}</span>
-                    <span className="text-xs text-zinc-400">{CADENCE[ch] ?? '2× per week'}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-zinc-400">{getCadence([])}</p>
-            )}
-          </div>
-        </div>
-
-        {/* ── Primary CTA ── */}
-        <div className="rounded-lg border border-zinc-200 bg-zinc-900 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <p className="text-base font-semibold text-white">Capture a thought</p>
-            <p className="text-sm text-zinc-400 mt-0.5">Raw, half-formed, doesn't matter. Clout will shape it.</p>
-          </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <Link
-              href="/capture/new"
-              className="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors"
+        {/* 1. Hero + Positioning */}
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+                {firstName ? `${firstName}, your audience is waiting.` : 'Your audience is waiting.'}
+              </h1>
+              <p className="mt-2 text-base text-zinc-500 leading-relaxed max-w-xl">
+                The founders who build authority post before they feel ready. You have a strong draft. Use it.
+              </p>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="shrink-0 ml-6 mt-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors flex items-center gap-1"
             >
-              Capture now →
-            </Link>
-            <span className="text-xs text-zinc-500 hidden sm:block">
-              or <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-zinc-300">⌘K</kbd>
-            </span>
+              <X className="h-3 w-3" />
+              Skip
+            </button>
           </div>
+          {positioningFull && (
+            <div className="rounded-xl border border-zinc-200 bg-white p-5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">Your market positioning</p>
+              <p className="text-sm text-zinc-700 leading-relaxed italic">"{positioningFull}"</p>
+              <Link href="/settings/profile" className="mt-3 inline-block text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
+                Edit in Settings →
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* ── Draft post ── */}
+        {/* 2. Featured draft card */}
         {draft && (
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
-            <div className="border-b border-zinc-100 px-5 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Your first draft</p>
-                {channel && (
-                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500">
-                    {channel}
-                  </span>
-                )}
+          <div ref={draftRef} className="rounded-xl border border-zinc-200 bg-white shadow-md overflow-hidden">
+            <div className="border-b border-zinc-100 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-zinc-900">Suggested first draft</p>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600">X</span>
+                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600">LinkedIn</span>
+                </div>
               </div>
-              <button
-                onClick={() => setDraftExpanded((v) => !v)}
-                className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+              <p className="mt-1 text-[11px] text-zinc-400">Generated from your profile and positioning</p>
+            </div>
+
+            <div className="px-6 py-6">
+              {draftEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="w-full resize-none text-[17px] leading-[1.75] text-zinc-800 bg-zinc-50 rounded-lg border border-zinc-200 px-4 py-3 focus:outline-none focus:border-zinc-400 min-h-[200px]"
+                    value={draftText}
+                    onChange={(e) => setDraftText(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex gap-4 text-xs text-zinc-400">
+                    <span className={cn(draftText.length > 280 ? 'text-red-500' : '')}>{draftText.length}/280 X</span>
+                    <span className={cn(draftText.length > 3000 ? 'text-red-500' : '')}>{draftText.length}/3000 LinkedIn</span>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="cursor-text"
+                  onClick={() => { setDraftEditing(true); setDraftText(draft) }}
+                >
+                  {draft.split('\n\n').map((para, i, arr) => (
+                    <p
+                      key={i}
+                      className={cn(
+                        'text-[18px] leading-[1.8] text-zinc-800',
+                        i > 0 && 'mt-4',
+                        i === arr.length - 1 && 'font-semibold'
+                      )}
+                    >
+                      {para}
+                    </p>
+                  ))}
+                  <p className="mt-4 text-xs text-zinc-400">Click to edit</p>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-zinc-100 bg-zinc-50/60 px-6 py-4 space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleSaveToStudio}
+                  disabled={savingToStudio}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors',
+                    savingToStudio
+                      ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                      : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                  )}
+                >
+                  {savingToStudio && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {savingToStudio ? 'Extracting signal...' : 'Open in Studio →'}
+                </button>
+                <button
+                  onClick={handleSaveToStudio}
+                  disabled={savingToStudio}
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Generate another angle
+                </button>
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigator.clipboard.writeText(draftEditing ? draftText : draft)}
+                  className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                >
+                  Copy for X
+                </button>
+                <button
+                  onClick={() => navigator.clipboard.writeText(draftEditing ? draftText : draft)}
+                  className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                >
+                  Copy for LinkedIn
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-100 px-6 py-4">
+              <details className="group">
+                <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-800 transition-colors list-none flex items-center gap-1.5">
+                  <span className="transition-transform group-open:rotate-90 inline-block">▶</span>
+                  Why this works
+                </summary>
+                <div className="mt-3 text-sm text-zinc-500 leading-relaxed space-y-2">
+                  <p>This draft opens with a specific, relatable scenario rather than a broad claim — which earns attention before making a point.</p>
+                  <p>The final paragraph delivers the takeaway your audience will remember and share. It's calibrated to your positioning, so it sounds like you — not a template.</p>
+                </div>
+              </details>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Quick capture bar */}
+        <form onSubmit={handleQuickCapture} className="rounded-xl border border-zinc-200 bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">Quick capture</p>
+          <div className="flex gap-3 items-end">
+            <textarea
+              className="flex-1 resize-none rounded-lg bg-zinc-50 border border-zinc-200 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none min-h-[80px]"
+              placeholder="What's been living rent-free in your head?"
+              value={quickCapture}
+              onChange={(e) => setQuickCapture(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuickCapture(e as unknown as React.FormEvent)
+              }}
+            />
+            <div className="flex flex-col gap-2 shrink-0">
+              <Link
+                href="/capture/new?mode=voice"
+                className="flex items-center justify-center h-10 w-10 rounded-lg border border-zinc-200 text-lg text-zinc-500 hover:border-zinc-400 transition-colors"
+                title="Voice capture"
               >
-                {draftExpanded ? 'Collapse' : 'Expand'}
+                🎙
+              </Link>
+              <button
+                type="submit"
+                disabled={capturing || !quickCapture.trim()}
+                className={cn(
+                  'rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors whitespace-nowrap',
+                  capturing || !quickCapture.trim()
+                    ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                    : captureSuccess
+                    ? 'bg-zinc-700 text-white'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                )}
+              >
+                {capturing ? 'Saving...' : captureSuccess ? 'Saved ✓' : 'Capture →'}
               </button>
             </div>
+          </div>
+        </form>
 
-            <div className="px-5 py-4">
-              {draftEditing ? (
-                <textarea
-                  className="w-full resize-none text-sm text-zinc-800 leading-relaxed bg-zinc-50 rounded-md border border-zinc-200 px-3 py-2.5 focus:outline-none focus:border-zinc-400 min-h-[140px]"
-                  value={draftText}
-                  onChange={(e) => setDraftText(e.target.value)}
-                  autoFocus
+        {/* 4. Build momentum */}
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-zinc-900">Build momentum</p>
+            <div className="flex gap-1.5">
+              {[profileComplete, hasCapture, hasOutput].map((done, i) => (
+                <span
+                  key={i}
+                  className={cn('h-2 w-7 rounded-full transition-colors duration-300', done ? 'bg-zinc-900' : 'bg-zinc-200')}
                 />
-              ) : (
-                <p className={cn(
-                  'text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap',
-                  !draftExpanded && 'line-clamp-4'
-                )}>
-                  {draft}
-                </p>
-              )}
-            </div>
-
-            <div className="border-t border-zinc-100 px-5 py-3 flex items-center gap-2 bg-zinc-50">
-              {draftEditing ? (
-                <>
-                  <button
-                    onClick={handleSaveToStudio}
-                    disabled={savingToStudio || !draftText.trim()}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                      savingToStudio || !draftText.trim()
-                        ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                        : 'bg-zinc-900 text-white hover:bg-zinc-700'
-                    )}
-                  >
-                    {savingToStudio && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                    <BookMarked className="h-3.5 w-3.5" />
-                    {savingToStudio ? 'Saving...' : 'Save to Studio'}
-                  </button>
-                  <button
-                    onClick={() => { setDraftEditing(false); setDraftText(draft) }}
-                    className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => { setDraftEditing(true); setDraftText(draft) }}
-                    className="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={handleSaveToStudio}
-                    disabled={savingToStudio}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                      savingToStudio
-                        ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                        : 'bg-zinc-900 text-white hover:bg-zinc-700'
-                    )}
-                  >
-                    {savingToStudio && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                    <BookMarked className="h-3.5 w-3.5" />
-                    {savingToStudio ? 'Saving...' : 'Save to Studio'}
-                  </button>
-                  <button
-                    onClick={() => router.push(`/capture/new?content=${encodeURIComponent(draft)}`)}
-                    className="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-                  >
-                    <Shuffle className="h-3.5 w-3.5" />
-                    Remix
-                  </button>
-                </>
-              )}
+              ))}
             </div>
           </div>
-        )}
+          <div className="space-y-1">
+            <ChecklistItem done={profileComplete} label="Complete your profile" href="/settings/profile" />
+            <ChecklistItem done={hasCapture} label="Capture your first idea" href="/capture/new" />
+            <ChecklistItem done={hasOutput} label="Publish your first post" href="/channels" />
+          </div>
+          <p className="text-xs text-zinc-400">
+            {allComplete
+              ? 'All done — Clout will now recommend a publishing cadence tailored to your channels.'
+              : 'Complete all three and Clout will recommend a publishing cadence for your channels.'}
+          </p>
+        </div>
 
-        {/* ── Activation checklist ── */}
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-3">Getting started</p>
-          <ChecklistItem
-            done={profileComplete}
-            label="Complete your profile"
-            href="/settings/profile"
-          />
-          <ChecklistItem
-            done={hasCapture}
-            label="Capture your first thought"
-            href="/capture/new"
-          />
-          <ChecklistItem
-            done={hasOutput}
-            label="Save your first post"
-            href="/studio"
-          />
-          <ChecklistItem
-            done={false}
-            label="Connect your first channel"
-            href="/channels"
-            locked={!hasOutput}
-          />
+        {/* 5. Connect channels */}
+        <div className="rounded-xl border border-zinc-200 bg-white p-5">
+          <p className="text-sm font-medium text-zinc-900 mb-1">Connect your channels</p>
+          <p className="text-sm text-zinc-500 mb-4">Publish directly to LinkedIn and X without leaving Clout.</p>
+          <div className="flex gap-2 flex-wrap">
+            <Link
+              href="/channels"
+              className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              Connect LinkedIn
+            </Link>
+            <Link
+              href="/channels"
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+            >
+              Connect X
+            </Link>
+          </div>
         </div>
       </div>
     )

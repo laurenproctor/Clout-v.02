@@ -1,19 +1,23 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Lock, ArrowLeft, Zap } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceRecorder } from '@/components/capture/voice-recorder'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 
-const SOURCES: { value: CaptureSource; label: string; placeholder: string }[] = [
-  { value: 'text', label: 'Text', placeholder: "What's on your mind? Dump it here — raw is fine." },
-  { value: 'url', label: 'URL', placeholder: 'Paste a URL to capture context from...' },
-  { value: 'structured', label: 'Prompt', placeholder: 'Answer the prompt below...' },
-  { value: 'voice', label: 'Voice', placeholder: 'Use the recorder below' },
+const ROTATING_PROMPTS = [
+  "What's a lesson you keep having to relearn?",
+  "What did you change your mind about recently?",
+  "What does your industry get consistently wrong?",
+  "What's the advice you give in private but never post?",
+  "What's a decision that felt risky but paid off?",
+  "What's something obvious to you that surprises everyone else?",
+  "What would you tell yourself five years ago?",
+  "What's the thing you wish more people understood about your work?",
 ]
 
 export default function NewCapturePage() {
@@ -24,30 +28,42 @@ export default function NewCapturePage() {
   )
 }
 
+type CaptureMode = 'write' | 'voice' | 'paste' | 'upload' | 'more'
+
 function NewCaptureInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // ── Existing state (unchanged) ──
   const [source, setSource] = useState<CaptureSource>('text')
   const [content, setContent] = useState(searchParams.get('content') ?? '')
   const [isPrivate, setIsPrivate] = useState(false)
-  const [tags, setTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState('')
+  const [tags] = useState<string[]>([])
   const [audioPath, setAudioPath] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [limitError, setLimitError] = useState<{ type: 'capture' | 'generation'; used: number; limit: number } | null>(null)
-  const [structuredReady, setStructuredReady] = useState(false)
   const [structuredData, setStructuredData] = useState<Record<string, string> | null>(null)
-
-  const [urlMeta, setUrlMeta] = useState<{ title: string | null; description: string | null } | null>(null)
-
-  // Post-save state
   const [savedCaptureId, setSavedCaptureId] = useState<string | null>(null)
   const [lenses, setLenses] = useState<Lens[]>([])
   const [selectedLensId, setSelectedLensId] = useState('')
   const [generating, setGenerating] = useState(false)
 
-  // Load lenses in background so they're ready
+  // ── New UI state ──
+  const [captureMode, setCaptureMode] = useState<CaptureMode>(() => {
+    const mode = searchParams.get('mode')
+    if (mode === 'voice') return 'voice'
+    return 'write'
+  })
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false)
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([])
+  const [promptIndex, setPromptIndex] = useState(0)
+  const [promptVisible, setPromptVisible] = useState(true)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const moreRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load lenses
   useEffect(() => {
     fetch('/api/lenses')
       .then((r) => r.ok ? r.json() : [])
@@ -58,39 +74,50 @@ function NewCaptureInner() {
       .catch(() => {})
   }, [])
 
+  // Rotating prompts
   useEffect(() => {
-    if (source !== 'url' || !content.trim()) {
-      setUrlMeta(null)
-      return
+    if (captureMode !== 'write' || content.trim()) return
+    const interval = setInterval(() => {
+      setPromptVisible(false)
+      setTimeout(() => {
+        setPromptIndex((i) => (i + 1) % ROTATING_PROMPTS.length)
+        setPromptVisible(true)
+      }, 400)
+    }, 3800)
+    return () => clearInterval(interval)
+  }, [captureMode, content])
+
+  // Click-outside for More dropdown
+  useEffect(() => {
+    if (!showMoreDropdown) return
+    function handleClick(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setShowMoreDropdown(false)
+      }
     }
-    // Basic URL check
-    try { new URL(content.trim()) } catch { setUrlMeta(null); return }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showMoreDropdown])
 
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/capture/url-meta?url=${encodeURIComponent(content.trim())}`)
-        if (res.ok) setUrlMeta(await res.json())
-      } catch {}
-    }, 600)
-
-    return () => clearTimeout(timer)
-  }, [content, source])
-
-  const activePlaceholder = SOURCES.find((s) => s.value === source)?.placeholder ?? ''
-
-  function addTag(value: string) {
-    const tag = value.trim().toLowerCase()
-    if (tag && !tags.includes(tag)) setTags((prev) => [...prev, tag])
-    setTagInput('')
+  // Sync source with captureMode
+  function switchMode(mode: CaptureMode) {
+    setCaptureMode(mode)
+    setContent('')
+    setUploadedFile(null)
+    setStructuredData(null)
+    if (mode === 'write' || mode === 'paste') setSource('text')
+    else if (mode === 'voice') setSource('voice')
+    else if (mode === 'upload') setSource('structured')
+    if (mode === 'more') setShowMoreDropdown((v) => !v)
   }
 
-  function removeTag(tag: string) {
-    setTags((prev) => prev.filter((t) => t !== tag))
+  function toggleTarget(t: string) {
+    setSelectedTargets((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (source !== 'voice' && !content.trim()) return
+    if (source !== 'voice' && !content.trim() && !uploadedFile) return
     if (source === 'voice' && !audioPath) return
     setSubmitting(true)
     setError(null)
@@ -102,12 +129,11 @@ function NewCaptureInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           source,
-          raw_content: source === 'url' || source === 'voice' ? null : content,
-          source_url: source === 'url' ? content : null,
+          raw_content: source === 'voice' ? null : content || (uploadedFile ? `File: ${uploadedFile.name}` : null),
           audio_path: source === 'voice' ? audioPath : undefined,
           is_private: isPrivate,
           tags,
-          structured_data: structuredData ?? undefined,
+          structured_data: structuredData ?? (uploadedFile ? { filename: uploadedFile.name, type: uploadedFile.type } : undefined),
         }),
       })
 
@@ -124,13 +150,11 @@ function NewCaptureInner() {
       const capture = await res.json()
 
       if (isPrivate) {
-        // Private captures go straight to private feed
         router.push('/private')
         return
       }
 
       if (lenses.length > 0) {
-        // Show inline generate prompt
         setSavedCaptureId(capture.id)
       } else {
         router.push(`/capture/${capture.id}`)
@@ -156,7 +180,6 @@ function NewCaptureInner() {
       if (res.ok) {
         router.push(`/studio/${data.output_id}`)
       } else {
-        // Fall back to capture detail
         router.push(`/capture/${savedCaptureId}`)
       }
     } catch {
@@ -164,7 +187,7 @@ function NewCaptureInner() {
     }
   }
 
-  // Post-save: offer immediate generation
+  // ── Post-save screen (unchanged) ──────────────────────────────────────────
   if (savedCaptureId) {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
@@ -218,7 +241,7 @@ function NewCaptureInner() {
                 )}
               >
                 <Zap className="h-3.5 w-3.5" />
-                {generating ? 'Generating...' : 'Generate →'}
+                {generating ? 'Extracting signal...' : 'Generate →'}
               </button>
               <Link
                 href={`/capture/${savedCaptureId}`}
@@ -233,222 +256,276 @@ function NewCaptureInner() {
     )
   }
 
+  // ── Main capture screen ────────────────────────────────────────────────────
+  const canSubmit = source === 'voice' ? !!audioPath : (content.trim().length > 0 || !!uploadedFile)
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {/* Page header */}
       <div className="flex items-center gap-3">
         <Link href="/capture" className="text-zinc-400 hover:text-zinc-700 transition-colors">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <h1 className="text-xl font-semibold text-zinc-900">New capture</h1>
+        <div>
+          <h1 className="text-xl font-bold text-zinc-900">Turn a rough thought into something strong.</h1>
+          <p className="text-sm text-zinc-400 mt-0.5">Fragments are enough.</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Source type */}
-        <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-1 w-fit">
-          {SOURCES.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => { setSource(value); setStructuredReady(false); setContent('') }}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                source === value ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-900'
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-0">
+        {/* Composer card */}
+        <div className="rounded-[22px] border border-zinc-200 bg-white shadow-md overflow-hidden">
 
-        {/* Main input */}
-        {source === 'structured' && !structuredReady ? (
-          <StructuredForm
-            onReady={(rawContent, structuredData) => {
-              setContent(rawContent)
-              setStructuredData(structuredData)
-              setStructuredReady(true)
-            }}
-          />
-        ) : source === 'voice' ? (
-          <VoiceRecorder
-            workspaceId="pending"
-            onRecorded={(path) => { setAudioPath(path); setContent('Voice memo recorded') }}
-            onError={(err) => setError(err)}
-          />
-        ) : (
-          <>
-            <div className="rounded-lg border border-zinc-200 bg-white p-1">
-              <textarea
-                autoFocus
-                className="w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none min-h-[200px]"
-                placeholder={activePlaceholder}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
+          {/* Mode bar */}
+          <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0">
+            {(['write', 'voice', 'paste', 'upload'] as CaptureMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => switchMode(mode)}
+                className={cn(
+                  'pb-3 px-3 text-sm font-medium transition-colors capitalize border-b-2 -mb-px',
+                  captureMode === mode
+                    ? 'border-zinc-900 text-zinc-900'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-700'
+                )}
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+            <div ref={moreRef} className="relative ml-1 pb-3 -mb-px">
+              <button
+                type="button"
+                onClick={() => switchMode('more')}
+                className={cn(
+                  'flex items-center gap-0.5 px-3 text-sm font-medium transition-colors border-b-2',
+                  showMoreDropdown ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-700'
+                )}
+              >
+                More
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              {showMoreDropdown && (
+                <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-zinc-200 bg-white shadow-lg p-4 space-y-4 z-10">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Email in</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-700 truncate">
+                        captures@capture.clout.so
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText('captures@capture.clout.so')}
+                        className="shrink-0 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="mt-1.5 text-xs text-zinc-400">Forward anything — articles, emails, newsletters.</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Call or text</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-700">
+                        Coming soon
+                      </code>
+                    </div>
+                    <p className="mt-1.5 text-xs text-zinc-400">Leave a voice message or text any thought to your Clout number.</p>
+                  </div>
+                </div>
+              )}
             </div>
-            {source === 'url' && urlMeta && (urlMeta.title || urlMeta.description) && (
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Page preview</p>
-                {urlMeta.title && <p className="text-sm font-medium text-zinc-900 line-clamp-1">{urlMeta.title}</p>}
-                {urlMeta.description && <p className="text-sm text-zinc-500 line-clamp-2">{urlMeta.description}</p>}
+          </div>
+
+          {/* Panel content */}
+          <div className="px-6 py-5 min-h-[220px]">
+            {captureMode === 'write' && (
+              <div className="relative">
+                <textarea
+                  autoFocus
+                  className="w-full resize-none bg-transparent text-[18px] leading-[1.75] text-zinc-900 placeholder:text-transparent focus:outline-none min-h-[180px]"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+                {!content && (
+                  <p
+                    className={cn(
+                      'pointer-events-none absolute top-0 left-0 text-[18px] leading-[1.75] text-zinc-300 transition-opacity duration-300',
+                      promptVisible ? 'opacity-100' : 'opacity-0'
+                    )}
+                  >
+                    {ROTATING_PROMPTS[promptIndex]}
+                  </p>
+                )}
               </div>
             )}
-          </>
-        )}
 
-        {/* Tags */}
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Life sections</p>
-          <div className="flex flex-wrap items-center gap-2">
-            {tags.map((tag) => (
-              <span key={tag} className="flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs text-zinc-700">
-                {tag}
-                <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 text-zinc-400 hover:text-zinc-700">×</button>
-              </span>
-            ))}
-            <input
-              className="text-sm text-zinc-700 placeholder:text-zinc-300 focus:outline-none bg-transparent min-w-[120px]"
-              placeholder="work, passions, love..."
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput) }
-              }}
-              onBlur={() => tagInput.trim() && addTag(tagInput)}
-            />
+            {captureMode === 'voice' && (
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-400">Record anything — a story, a rant, a hot take. Clout extracts the signal.</p>
+                <VoiceRecorder
+                  workspaceId="pending"
+                  onRecorded={(path) => { setAudioPath(path); setContent('Voice memo recorded') }}
+                  onError={(err) => setError(err)}
+                />
+              </div>
+            )}
+
+            {captureMode === 'paste' && (
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-400">Paste a tweet thread, an email draft, a Notion doc — anything with ideas in it.</p>
+                <textarea
+                  autoFocus
+                  className="w-full resize-none rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-4 text-[17px] leading-[1.75] text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-400 min-h-[140px] transition-colors"
+                  placeholder="Paste anything here..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+              </div>
+            )}
+
+            {captureMode === 'upload' && (
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-400">Drop a PDF, slide deck, audio file, or image. Clout will find what's worth saying.</p>
+                <div
+                  className={cn(
+                    'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 px-6 py-10 text-center transition-colors cursor-pointer hover:border-zinc-400',
+                    uploadedFile && 'border-zinc-400 bg-zinc-50'
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    const file = e.dataTransfer.files[0]
+                    if (file) {
+                      setUploadedFile(file)
+                      setStructuredData({ filename: file.name, type: file.type })
+                      setContent(`File: ${file.name}`)
+                    }
+                  }}
+                >
+                  {uploadedFile ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-zinc-900">{uploadedFile.name}</p>
+                      <p className="text-xs text-zinc-400">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setContent(''); setStructuredData(null) }}
+                        className="mt-2 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-3xl mb-3">📎</p>
+                      <p className="text-sm font-medium text-zinc-700">Drop a file here or click to browse</p>
+                      <p className="mt-1 text-xs text-zinc-400">PDF, Word, TXT, CSV, images, audio, video</p>
+                    </>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.csv,image/*,audio/*,video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setUploadedFile(file)
+                        setStructuredData({ filename: file.name, type: file.type })
+                        setContent(`File: ${file.name}`)
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {captureMode === 'more' && (
+              <div className="flex items-center justify-center h-full text-sm text-zinc-400 py-8">
+                Select an option from the More menu above.
+              </div>
+            )}
+          </div>
+
+          {/* Bottom bar */}
+          <div className="border-t border-zinc-100 bg-zinc-50/60 px-6 py-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Lens picker */}
+              {lenses.length > 0 && (
+                <select
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:border-zinc-400"
+                  value={selectedLensId}
+                  onChange={(e) => setSelectedLensId(e.target.value)}
+                >
+                  {lenses.map((lens) => (
+                    <option key={lens.id} value={lens.id}>
+                      {lens.name}{lens.scope === 'system' ? ' ✦' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* Output target chips */}
+              <div className="flex items-center gap-1.5">
+                {['LinkedIn', 'X', 'Email', 'Blog'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleTarget(t)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                      selectedTargets.includes(t)
+                        ? 'border-zinc-900 bg-zinc-900 text-white'
+                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="ml-auto">
+                <button
+                  type="submit"
+                  disabled={submitting || !canSubmit}
+                  className={cn(
+                    'flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors',
+                    submitting || !canSubmit
+                      ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                      : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                  )}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Extracting signal...
+                    </>
+                  ) : (
+                    <>✦ Make it →</>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Private toggle + submit */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setIsPrivate((v) => !v)}
-            className={cn(
-              'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
-              isPrivate ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
-            )}
-          >
-            <Lock className="h-3.5 w-3.5" />
-            {isPrivate ? 'Private' : 'Keep private'}
-          </button>
-
-          <button
-            type="submit"
-            disabled={submitting || (source !== 'voice' ? !content.trim() : !audioPath)}
-            className={cn(
-              'rounded-md px-5 py-2 text-sm font-medium transition-colors',
-              submitting || (source !== 'voice' ? !content.trim() : !audioPath)
-                ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                : 'bg-zinc-900 text-white hover:bg-zinc-700'
-            )}
-          >
-            {submitting ? 'Saving...' : 'Save capture →'}
-          </button>
-        </div>
-
         {limitError && (
-          <UpgradePrompt
-            type={limitError.type}
-            used={limitError.used}
-            limit={limitError.limit}
-            onDismiss={() => setLimitError(null)}
-          />
+          <div className="pt-4">
+            <UpgradePrompt
+              type={limitError.type}
+              used={limitError.used}
+              limit={limitError.limit}
+              onDismiss={() => setLimitError(null)}
+            />
+          </div>
         )}
-        {error && !limitError && <p className="text-sm text-red-600">{error}</p>}
+        {error && !limitError && <p className="pt-3 text-sm text-red-600">{error}</p>}
       </form>
-    </div>
-  )
-}
 
-function StructuredForm({
-  onReady,
-}: {
-  onReady: (rawContent: string, structuredData: Record<string, string>) => void
-}) {
-  const [topic, setTopic] = useState('')
-  const [angle, setAngle] = useState('')
-  const [whyItMatters, setWhyItMatters] = useState('')
-  const [audience, setAudience] = useState('')
-
-  function handleApply() {
-    if (!topic.trim() || !angle.trim()) return
-    const structured = {
-      topic: topic.trim(),
-      angle: angle.trim(),
-      why_it_matters: whyItMatters.trim(),
-      audience: audience.trim(),
-    }
-    const rawContent = [
-      `Topic: ${structured.topic}`,
-      `My angle: ${structured.angle}`,
-      whyItMatters ? `Why it matters: ${structured.why_it_matters}` : '',
-      audience ? `Target audience: ${structured.audience}` : '',
-    ].filter(Boolean).join('\n')
-    onReady(rawContent, structured)
-  }
-
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-4">
-      <div>
-        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Topic *
-        </label>
-        <input
-          autoFocus
-          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-          placeholder="What is this thought about?"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-        />
-      </div>
-      <div>
-        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Your angle *
-        </label>
-        <textarea
-          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
-          rows={3}
-          placeholder="What's your take, insight, or perspective?"
-          value={angle}
-          onChange={(e) => setAngle(e.target.value)}
-        />
-      </div>
-      <div>
-        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Why it matters
-        </label>
-        <input
-          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-          placeholder="So what? Why should anyone care?"
-          value={whyItMatters}
-          onChange={(e) => setWhyItMatters(e.target.value)}
-        />
-      </div>
-      <div>
-        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          Target audience <span className="normal-case text-zinc-400">(optional)</span>
-        </label>
-        <input
-          className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-          placeholder="Who is this for?"
-          value={audience}
-          onChange={(e) => setAudience(e.target.value)}
-        />
-      </div>
-      <button
-        type="button"
-        onClick={handleApply}
-        disabled={!topic.trim() || !angle.trim()}
-        className={cn(
-          'rounded-md px-4 py-2 text-sm font-medium transition-colors',
-          !topic.trim() || !angle.trim()
-            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-            : 'bg-zinc-900 text-white hover:bg-zinc-700'
-        )}
-      >
-        Use this →
-      </button>
+      <p className="text-center text-sm text-zinc-400">
+        The best posts start as half-formed thoughts. Drop yours here.
+      </p>
     </div>
   )
 }
