@@ -15,6 +15,7 @@ function toOutput(row: Record<string, unknown>): Output {
     approvedAt: row.approved_at as string | null,
     providerPostId: (row.provider_post_id as string | null) ?? null,
     publishedAt: (row.published_at as string | null) ?? null,
+    scheduledAt: (row.scheduled_at as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
@@ -65,7 +66,7 @@ export async function listOutputs(params: {
   const supabase = await createClient()
   let query = supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, created_at, updated_at, channels(platform, label)')
+    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, scheduled_at, created_at, updated_at, channels(platform, label)')
     .eq('workspace_id', params.workspaceId)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
@@ -88,7 +89,7 @@ export async function listOutputsByGenerationId(params: {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, created_at, updated_at, channels(platform, label)')
+    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, scheduled_at, created_at, updated_at, channels(platform, label)')
     .eq('generation_id', params.generationId)
     .eq('workspace_id', params.workspaceId)
     .is('deleted_at', null)
@@ -108,6 +109,7 @@ export async function updateOutput(params: {
   channelId?: string | null
   providerPostId?: string | null
   publishedAt?: string | null
+  scheduledAt?: string | null
 }): Promise<DomainResult<Output>> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -123,6 +125,7 @@ export async function updateOutput(params: {
       ...(params.channelId !== undefined && { channel_id: params.channelId }),
       ...(params.providerPostId !== undefined && { provider_post_id: params.providerPostId }),
       ...(params.publishedAt !== undefined && { published_at: params.publishedAt }),
+      ...(params.scheduledAt !== undefined && { scheduled_at: params.scheduledAt }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.outputId)
