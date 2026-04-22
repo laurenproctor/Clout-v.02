@@ -235,9 +235,9 @@ export function UploadCaptureFlow({ lensId, onComplete, onError }: UploadCapture
     return (
       <div className="flex flex-col gap-5">
         <div>
-          <p className="text-[15px] font-semibold text-zinc-900 mb-1">Turn files into content in your voice.</p>
+          <p className="text-[15px] font-semibold text-zinc-900 mb-1">Add notes, transcripts, decks, or documents</p>
           <p className="text-[13px] text-zinc-400 leading-relaxed">
-            Upload notes, transcripts, PDFs, screenshots, docs, or recordings. Clout finds the strongest angles and writes 3 drafts.
+            Upload material worth turning into content. Clout finds the strongest angles and writes 3 drafts.
           </p>
         </div>
         <div

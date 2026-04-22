@@ -14,6 +14,25 @@ import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 
 const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
+const HEADLINES: { heading: string; subheading: string }[] = [
+  {
+    heading: 'Turn raw thinking into publishable influence.',
+    subheading: 'Fragments, links, notes, and voice become clear content in your voice.',
+  },
+  {
+    heading: 'Turn unfinished thoughts into marketable ideas.',
+    subheading: 'Capture anything. Clout shapes it into content people remember.',
+  },
+  {
+    heading: 'Your best ideas deserve better than drafts.',
+    subheading: 'Turn notes, links, and voice memos into polished content instantly.',
+  },
+  {
+    heading: 'From signal to statement.',
+    subheading: 'Bring fragments. Leave with finished content.',
+  },
+]
+
 const ROTATING_PROMPTS = [
   "What's a lesson you keep having to relearn?",
   "What did you change your mind about recently?",
@@ -58,6 +77,8 @@ function NewCaptureInner() {
   const [transcribeError, setTranscribeError] = useState<string | null>(null)
 
   // ── New UI state ──
+  const [headline] = useState(() => HEADLINES[Math.floor(Math.random() * HEADLINES.length)])
+
   const [captureMode, setCaptureMode] = useState<CaptureMode>(() => {
     const mode = searchParams.get('mode')
     if (mode === 'voice') return 'voice'
@@ -331,8 +352,8 @@ function NewCaptureInner() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-zinc-900">Turn a rough thought into something strong.</h1>
-          <p className="text-sm text-zinc-400 mt-0.5">Fragments are enough.</p>
+          <h1 className="text-xl font-bold text-zinc-900">{headline.heading}</h1>
+          <p className="text-sm text-zinc-400 mt-0.5">{headline.subheading}</p>
         </div>
       </div>
 
@@ -449,10 +470,10 @@ function NewCaptureInner() {
                   <>
                     <div>
                       <p className="text-[15px] font-semibold text-zinc-900 mb-1">
-                        Turn anything into content in your voice.
+                        Paste an article, thread, or page
                       </p>
                       <p className="text-[13px] text-zinc-400">
-                        Paste a link and Clout writes 3 drafts from it — each a different angle, all in your voice.
+                        Drop something worth reacting to. Share a source to build from.
                       </p>
                     </div>
                     <textarea
@@ -576,7 +597,7 @@ function NewCaptureInner() {
                       Extracting signal...
                     </>
                   ) : (
-                    <>✦ Make it →</>
+                    <>✦ Generate Post Draft →</>
                   )}
                 </button>
               </div>
@@ -598,7 +619,7 @@ function NewCaptureInner() {
       </form>
 
       <p className="text-center text-sm text-zinc-400">
-        The best posts start as half-formed thoughts. Drop yours here.
+        Strong content rarely starts polished.
       </p>
     </div>
   )

@@ -251,8 +251,8 @@ export function VoiceCaptureFlow({
       {flowState === 'idle' && (
         <div className="flex flex-col items-center py-8 gap-4 text-center px-6">
           <div>
-            <p className="text-[15px] font-semibold text-zinc-900">Say it messy. We'll find the signal.</p>
-            <p className="text-[13px] text-zinc-400 mt-1">Record anything — a story, a rant, a hot take.</p>
+            <p className="text-[15px] font-semibold text-zinc-900">Record a quick thought</p>
+            <p className="text-[13px] text-zinc-400 mt-1">Talk naturally. We'll structure it.</p>
           </div>
           <button
             type="button"
@@ -263,7 +263,7 @@ export function VoiceCaptureFlow({
               <MicIcon />
             </span>
           </button>
-          <p className="text-[13px] text-zinc-400">Tap to record your thought</p>
+          <p className="text-[13px] text-zinc-400">Speak freely. We'll find the signal.</p>
         </div>
       )}
 
