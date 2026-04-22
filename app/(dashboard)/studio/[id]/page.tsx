@@ -20,6 +20,7 @@ const STATUS_DOT: Record<OutputStatus, string> = {
   draft:     'bg-zinc-600',
   review:    'bg-amber-500',
   approved:  'bg-emerald-500',
+  queued:    'bg-violet-500',
   published: 'bg-blue-500',
   archived:  'bg-zinc-700',
 }
