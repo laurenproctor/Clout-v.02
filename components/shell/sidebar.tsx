@@ -13,13 +13,19 @@ import {
   BarChart2,
   CreditCard,
   Settings,
+  Inbox,
+  CalendarClock,
+  ListOrdered,
 } from 'lucide-react'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Inbox', href: '/inbox', icon: Inbox },
+  { label: 'Queue', href: '/queue', icon: ListOrdered },
   { label: 'Capture', href: '/capture', icon: Zap },
   { label: 'Private', href: '/private', icon: Lock },
   { label: 'Studio', href: '/studio', icon: PenSquare },
+  { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
   { label: 'Channels', href: '/channels', icon: Radio },
   { label: 'Analytics', href: '/analytics', icon: BarChart2 },
