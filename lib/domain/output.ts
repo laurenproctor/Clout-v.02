@@ -3,7 +3,7 @@ import type { Output, OutputVersion, OutputContent, OutputStatus, DomainResult }
 import type { Json } from '@/types/db'
 
 function toOutput(row: Record<string, unknown>): Output {
-  return {
+  const output: Output = {
     id: row.id as string,
     workspaceId: row.workspace_id as string,
     generationId: row.generation_id as string,
@@ -18,6 +18,17 @@ function toOutput(row: Record<string, unknown>): Output {
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
+
+  // Add channel info if present from joined query
+  if (row.channels && typeof row.channels === 'object') {
+    const channelRow = row.channels as Record<string, unknown>
+    output.channels = {
+      platform: channelRow.platform as any,
+      label: (channelRow.label as string | null) ?? null,
+    }
+  }
+
+  return output
 }
 
 function toOutputVersion(row: Record<string, unknown>): OutputVersion {
@@ -54,10 +65,10 @@ export async function listOutputs(params: {
   const supabase = await createClient()
   let query = supabase
     .from('outputs')
-    .select()
+    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, created_at, updated_at, channels(platform, label)')
     .eq('workspace_id', params.workspaceId)
     .is('deleted_at', null)
-    .order('created_at', { ascending: false })
+    .order('updated_at', { ascending: false })
     .limit(params.limit ?? 50)
 
   if (params.status) query = query.eq('status', params.status)
@@ -77,7 +88,7 @@ export async function listOutputsByGenerationId(params: {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('outputs')
-    .select()
+    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, created_at, updated_at, channels(platform, label)')
     .eq('generation_id', params.generationId)
     .eq('workspace_id', params.workspaceId)
     .is('deleted_at', null)

@@ -142,6 +142,21 @@ export interface OutputContent {
   [key: string]: unknown
 }
 
+export interface Channel {
+  id: string
+  workspaceId: string
+  platform: ChannelPlatform
+  label: string | null
+  config: Record<string, unknown>
+  isActive: boolean
+  createdAt: string
+}
+
+export interface OutputChannel {
+  platform: ChannelPlatform
+  label: string | null
+}
+
 export interface Output {
   id: string
   workspaceId: string
@@ -156,6 +171,7 @@ export interface Output {
   publishedAt: string | null      // wall-clock publish time
   createdAt: string
   updatedAt: string
+  channels?: OutputChannel
 }
 
 export interface OutputVersion {
@@ -165,16 +181,6 @@ export interface OutputVersion {
   content: OutputContent
   changeSummary: string | null
   editedBy: string | null
-  createdAt: string
-}
-
-export interface Channel {
-  id: string
-  workspaceId: string
-  platform: ChannelPlatform
-  label: string | null
-  config: Record<string, unknown>
-  isActive: boolean
   createdAt: string
 }
 
