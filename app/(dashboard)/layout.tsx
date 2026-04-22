@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <QuickCaptureProvider>
-      <div className="flex h-screen overflow-hidden bg-zinc-50">
+      <div className="flex h-screen overflow-hidden bg-zinc-50 text-[120%]">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <TopNav />
