@@ -49,6 +49,10 @@ export default function StudioEditorPage() {
   const [saving,        setSaving]        = useState(false)
   const [sendingReview, setSendingReview] = useState(false)
   const [publishing,    setPublishing]    = useState(false)
+  const [postingToLinkedIn, setPostingToLinkedIn] = useState(false)
+  const [linkedInPosted,    setLinkedInPosted]    = useState(false)
+  const [linkedInPostUrn,   setLinkedInPostUrn]   = useState<string | null>(null)
+  const [publishError,      setPublishError]      = useState<string | null>(null)
 
   const bodyRef = useRef<HTMLTextAreaElement>(null)
 
@@ -76,6 +80,10 @@ export default function StudioEditorPage() {
       if (!oRes.ok) { setLoading(false); return }
       const data: Output = await oRes.json()
       setOutput(data)
+      if (data.providerPostId) {
+        setLinkedInPosted(true)
+        setLinkedInPostUrn(data.providerPostId)
+      }
       const content = data.content as OutputContent
       setBody(content.body ?? '')
       setTitle(data.title ?? '')
@@ -153,6 +161,26 @@ export default function StudioEditorPage() {
     setPublishing(false)
   }
 
+  async function handlePostToLinkedIn() {
+    setPostingToLinkedIn(true)
+    setPublishError(null)
+    const res = await fetch('/api/channels/linkedin/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outputId: id }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setLinkedInPosted(true)
+      setLinkedInPostUrn(data.postUrn ?? null)
+      const refreshed = await fetch(`/api/outputs/${id}`)
+      if (refreshed.ok) setOutput(await refreshed.json())
+    } else {
+      setPublishError(data.error ?? 'Something went wrong. Please try again.')
+    }
+    setPostingToLinkedIn(false)
+  }
+
   function handleCopy(format: 'plain' | 'markdown' | 'linkedin') {
     const tags = hashtags.map(h => `#${h}`).join(' ')
     let text = ''
@@ -198,6 +226,9 @@ export default function StudioEditorPage() {
     if (s < 60) return 'Saved'
     return `Saved ${Math.floor(s / 60)}m ago`
   }
+
+  const assignedChannel = channelId ? channels.find(ch => ch.id === channelId) : null
+  const isLinkedInAssigned = assignedChannel?.platform === 'linkedin'
 
   if (loading) {
     return (
@@ -428,19 +459,59 @@ export default function StudioEditorPage() {
               In review
             </span>
           )}
-          {output.status === 'approved' && (
-            <button
-              onClick={() => void handlePublish()}
-              disabled={publishing}
-              className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
-            >
-              {publishing ? 'Publishing…' : 'Publish →'}
-            </button>
+          {output.status === 'approved' && !linkedInPosted && (
+            <div className="flex items-center gap-2">
+              {publishError && (
+                <span className="max-w-[220px] text-right text-xs leading-tight text-red-400">
+                  {publishError}
+                </span>
+              )}
+              {isLinkedInAssigned ? (
+                <button
+                  onClick={() => void handlePostToLinkedIn()}
+                  disabled={postingToLinkedIn}
+                  className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
+                >
+                  {postingToLinkedIn ? 'Posting…' : 'Post to LinkedIn →'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => void handlePublish()}
+                  disabled={publishing}
+                  className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
+                >
+                  {publishing ? 'Publishing…' : 'Publish →'}
+                </button>
+              )}
+            </div>
           )}
-          {output.status === 'published' && (
+
+          {output.status === 'published' && !linkedInPosted && (
             <span className="rounded-md border border-blue-800/50 bg-blue-950/50 px-3 py-1.5 text-xs text-blue-400">
               Published ✓
             </span>
+          )}
+
+          {linkedInPosted && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-md border border-emerald-800/50 bg-emerald-950/50 px-3 py-1.5 text-xs text-emerald-400">
+                Posted to LinkedIn ✓
+              </span>
+              <a
+                href="https://www.linkedin.com/feed/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
+                View on LinkedIn ↗
+              </a>
+              <Link
+                href="/channels"
+                className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
+                Back to Publishing
+              </Link>
+            </div>
           )}
         </div>
       </div>
