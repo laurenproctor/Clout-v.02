@@ -600,6 +600,79 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      channel_credentials: {
+        Row: {
+          id: string
+          channel_id: string
+          workspace_id: string
+          access_token: string
+          refresh_token: string | null
+          expires_at: number | null
+          account_id: string | null
+          account_name: string | null
+          account_email: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          channel_id: string
+          workspace_id: string
+          access_token: string
+          refresh_token?: string | null
+          expires_at?: number | null
+          account_id?: string | null
+          account_name?: string | null
+          account_email?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          channel_id?: string
+          workspace_id?: string
+          access_token?: string
+          refresh_token?: string | null
+          expires_at?: number | null
+          account_id?: string | null
+          account_name?: string | null
+          account_email?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      publish_logs: {
+        Row: {
+          id: string
+          workspace_id: string
+          output_id: string
+          channel_id: string | null
+          platform: string
+          status: 'success' | 'failed'
+          provider_post_id: string | null
+          error_code: string | null
+          error_message: string | null
+          was_retry: boolean
+          duration_ms: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          output_id: string
+          channel_id?: string | null
+          platform: string
+          status: 'success' | 'failed'
+          provider_post_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          was_retry?: boolean
+          duration_ms?: number | null
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
