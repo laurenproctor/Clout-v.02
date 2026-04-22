@@ -152,6 +152,8 @@ export interface Output {
   content: OutputContent
   approvedBy: string | null
   approvedAt: string | null
+  providerPostId: string | null   // idempotency key
+  publishedAt: string | null      // wall-clock publish time
   createdAt: string
   updatedAt: string
 }
