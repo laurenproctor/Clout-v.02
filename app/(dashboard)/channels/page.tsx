@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Radio, Trash2 } from 'lucide-react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Share2, Mail, Globe, ExternalLink, RefreshCw, Unlink, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Platform = 'linkedin' | 'newsletter' | 'twitter'
@@ -10,235 +11,274 @@ interface Channel {
   id: string
   platform: Platform
   label: string | null
-  config: Record<string, unknown>
   is_active: boolean
-  created_at: string
 }
 
-const PLATFORM_INFO: Record<Platform, { label: string; icon: string; defaultConfig: Record<string, unknown> }> = {
-  linkedin: {
-    label: 'LinkedIn',
-    icon: 'in',
-    defaultConfig: { char_limit: 3000, hashtag_count: 5, include_hook: true },
-  },
-  newsletter: {
-    label: 'Newsletter',
-    icon: '✉',
-    defaultConfig: { word_limit: 800, include_subject: true, include_preview: true },
-  },
-  twitter: {
-    label: 'X / Twitter',
-    icon: '𝕏',
-    defaultConfig: { char_limit: 280, thread_max: 10 },
-  },
+interface ReadyOutput {
+  id: string
+  title: string | null
+  status: string
+  updated_at: string
+  channels: { platform: Platform; label: string | null } | null
 }
 
-const ALL_PLATFORMS: Platform[] = ['linkedin', 'newsletter', 'twitter']
+const PLATFORMS = [
+  {
+    key: 'linkedin' as const,
+    name: 'LinkedIn',
+    Icon: Share2,
+    tagline: 'Publish directly to your profile.',
+    available: true,
+  },
+  {
+    key: 'newsletter' as const,
+    name: 'Email',
+    Icon: Mail,
+    tagline: 'Newsletter export — Phase 2.',
+    available: false,
+  },
+  {
+    key: 'blog' as const,
+    name: 'Blog',
+    Icon: Globe,
+    tagline: 'Markdown export — Phase 2.',
+    available: false,
+  },
+]
 
-export default function ChannelsPage() {
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+function PublishingContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [channels, setChannels] = useState<Channel[]>([])
+  const [ready, setReady] = useState<ReadyOutput[]>([])
+  const [totalPublished, setTotalPublished] = useState(0)
+  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState<Platform | null>(null)
-  const [labelInput, setLabelInput] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+
+  useEffect(() => {
+    const connected = searchParams.get('connected')
+    const error     = searchParams.get('error')
+    if (connected === 'linkedin')         flash('LinkedIn connected.', true)
+    else if (error === 'linkedin_denied') flash('Connection cancelled.', false)
+    else if (error === 'session_expired') flash('Session expired — please try again.', false)
+    else if (error === 'connect_failed')  flash('Connection failed. Please try again.', false)
+    if (connected || error) router.replace('/channels')
+  }, [])
+
+  function flash(msg: string, ok: boolean) {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 4000)
+  }
 
   async function load() {
-    const res = await fetch('/api/channels')
-    if (res.ok) setChannels(await res.json())
+    const [cRes, approvedRes, publishedRes] = await Promise.all([
+      fetch('/api/channels'),
+      fetch('/api/outputs?status=approved'),
+      fetch('/api/outputs?status=published'),
+    ])
+    if (cRes.ok) setChannels(await cRes.json())
+    const approvedOutputs: ReadyOutput[] = approvedRes.ok ? await approvedRes.json() : []
+    const publishedOutputs: ReadyOutput[] = publishedRes.ok ? await publishedRes.json() : []
+    setReady(approvedOutputs.slice(0, 10))
+    setTotalPublished(publishedOutputs.length)
+    setLastPublishedAt(publishedOutputs[0]?.updated_at ?? null)
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
 
-  const activePlatforms = new Set(channels.map((c) => c.platform))
-  const availablePlatforms = ALL_PLATFORMS.filter((p) => !activePlatforms.has(p))
+  async function handleDisconnect(channelId: string) {
+    if (!confirm('Disconnect this account?')) return
+    await fetch(`/api/channels/${channelId}`, { method: 'DELETE' })
+    setChannels(prev => prev.filter(c => c.id !== channelId))
+    flash('Account disconnected.', true)
+  }
 
-  async function handleAdd(platform: Platform) {
-    setCreating(true)
-    setError(null)
-    const info = PLATFORM_INFO[platform]
-    const res = await fetch('/api/channels', {
+  async function handlePublishNow(outputId: string) {
+    setPublishing(outputId)
+    const res = await fetch('/api/channels/linkedin/post', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        platform,
-        label: labelInput.trim() || info.label,
-        config: info.defaultConfig,
-      }),
+      body: JSON.stringify({ outputId }),
     })
+    const data = await res.json()
     if (res.ok) {
-      const newChannel = await res.json()
-      setChannels((prev) => [...prev, newChannel])
-      setAdding(null)
-      setLabelInput('')
+      if (!data.alreadyPublished) {
+        setTotalPublished(n => n + 1)
+        setLastPublishedAt(new Date().toISOString())
+      }
+      flash(data.alreadyPublished ? 'Already posted to LinkedIn.' : 'Posted to LinkedIn.', true)
+      setReady(prev => prev.filter(o => o.id !== outputId))
     } else {
-      const data = await res.json()
-      setError(data.error ?? 'Failed to add channel')
+      flash(data.error ?? 'Publish failed.', false)
     }
-    setCreating(false)
+    setPublishing(null)
   }
 
-  async function handleToggle(channel: Channel) {
-    const res = await fetch(`/api/channels/${channel.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_active: !channel.is_active }),
-    })
-    if (res.ok) {
-      const updated = await res.json()
-      setChannels((prev) => prev.map((c) => c.id === channel.id ? updated : c))
-    }
-  }
-
-  async function handleDelete(id: string) {
-    const res = await fetch(`/api/channels/${id}`, { method: 'DELETE' })
-    if (res.ok) setChannels((prev) => prev.filter((c) => c.id !== id))
-  }
+  const linkedInChannel = channels.find(c => c.platform === 'linkedin' && c.is_active)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-900">Channels</h1>
-          <p className="mt-0.5 text-sm text-zinc-500">
-            Configure your publishing destinations. Publishing will be enabled in a future release.
-          </p>
+    <div className="max-w-xl space-y-10">
+
+      {/* Toast */}
+      {toast && (
+        <div className={cn(
+          'fixed top-5 right-5 z-50 rounded-xl border px-4 py-3 text-sm shadow-lg transition-all',
+          toast.ok
+            ? 'border-zinc-200 bg-white text-zinc-900'
+            : 'border-red-100 bg-red-50 text-red-800'
+        )}>
+          {toast.msg}
         </div>
+      )}
+
+      {/* Header + momentum */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-zinc-900">Publishing</h1>
+          <p className="mt-0.5 text-sm text-zinc-500">Connect accounts. Publish approved drafts.</p>
+        </div>
+        {!loading && totalPublished > 0 && (
+          <div className="text-right">
+            <p className="text-2xl font-semibold tabular-nums text-zinc-900">{totalPublished}</p>
+            <p className="text-xs text-zinc-400">posts published</p>
+            {lastPublishedAt && (
+              <p className="mt-0.5 text-xs text-zinc-300">last {relativeTime(lastPublishedAt)}</p>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Active channels */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => <div key={i} className="h-16 rounded-lg border border-zinc-200 bg-white animate-pulse" />)}
-        </div>
-      ) : channels.length > 0 && (
-        <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
-          {channels.map((channel) => {
-            const info = PLATFORM_INFO[channel.platform]
+      {/* Accounts */}
+      <section className="space-y-3">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-zinc-400">Accounts</h2>
+        <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+          {PLATFORMS.map(({ key, name, Icon, tagline, available }) => {
+            const ch = channels.find(c => c.platform === key)
+            const isConnected = ch?.is_active ?? false
             return (
-              <div key={channel.id} className="flex items-center gap-4 px-5 py-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
-                  {info.icon}
+              <div key={key} className="flex items-center gap-4 px-5 py-4">
+                <div className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                  isConnected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-400'
+                )}>
+                  <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-900">{channel.label ?? info.label}</p>
-                  <p className="text-xs text-zinc-400 capitalize">{channel.platform}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-zinc-900">{name}</p>
+                    {isConnected && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+                  </div>
+                  <p className="text-xs text-zinc-400 truncate">
+                    {isConnected && ch?.label ? ch.label : tagline}
+                  </p>
                 </div>
-                <button
-                  onClick={() => handleToggle(channel)}
-                  className={cn(
-                    'rounded-full px-3 py-1 text-xs font-medium transition-colors',
-                    channel.is_active
-                      ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                      : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {isConnected ? (
+                    available && ch && (
+                      <>
+                        <a href="/api/channels/linkedin/connect" className="text-zinc-300 hover:text-zinc-600 transition-colors" title="Reconnect">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </a>
+                        <button onClick={() => handleDisconnect(ch.id)} className="text-zinc-300 hover:text-red-400 transition-colors" title="Disconnect">
+                          <Unlink className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )
+                  ) : available ? (
+                    <a
+                      href="/api/channels/linkedin/connect"
+                      className="rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
+                    >
+                      Connect
+                    </a>
+                  ) : (
+                    <span className="text-xs text-zinc-300">Soon</span>
                   )}
-                >
-                  {channel.is_active ? 'Active' : 'Inactive'}
-                </button>
-                <button
-                  onClick={() => handleDelete(channel.id)}
-                  className="text-zinc-300 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                </div>
               </div>
             )
           })}
         </div>
-      )}
+      </section>
 
-      {/* Add channel */}
-      {availablePlatforms.length > 0 && (
-        <div>
-          {adding ? (
-            <div className="rounded-lg border border-zinc-900 bg-white p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-zinc-900">
-                  Add {PLATFORM_INFO[adding].label}
-                </p>
-                <button
-                  onClick={() => { setAdding(null); setLabelInput(''); setError(null) }}
-                  className="text-zinc-400 hover:text-zinc-700 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-              <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-                  Label (optional)
-                </label>
-                <input
-                  autoFocus
-                  className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-                  placeholder={`e.g. My ${PLATFORM_INFO[adding].label}`}
-                  value={labelInput}
-                  onChange={(e) => setLabelInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdd(adding)}
-                />
-              </div>
-              <div className="rounded-md bg-zinc-50 border border-zinc-100 px-3 py-2">
-                <p className="text-xs font-medium text-zinc-400 mb-1">Default config</p>
-                {Object.entries(PLATFORM_INFO[adding].defaultConfig).map(([k, v]) => (
-                  <p key={k} className="text-xs text-zinc-500">
-                    <span className="font-mono">{k}:</span> {String(v)}
-                  </p>
-                ))}
-              </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <button
-                onClick={() => handleAdd(adding)}
-                disabled={creating}
-                className={cn(
-                  'rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                  creating ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-700'
-                )}
-              >
-                {creating ? 'Adding...' : `Add ${PLATFORM_INFO[adding].label}`}
-              </button>
-            </div>
-          ) : (
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">
-                Add a channel
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {availablePlatforms.map((platform) => {
-                  const info = PLATFORM_INFO[platform]
-                  return (
-                    <button
-                      key={platform}
-                      onClick={() => setAdding(platform)}
-                      className="flex items-center gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors"
-                    >
-                      <span className="text-base">{info.icon}</span>
-                      {info.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+      {/* Ready to Publish */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-medium uppercase tracking-widest text-zinc-400">Ready to Publish</h2>
+          {ready.length > 0 && (
+            <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-medium text-white tabular-nums">
+              {ready.length}
+            </span>
           )}
         </div>
-      )}
-
-      {!loading && channels.length === 0 && !adding && (
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
-              <Radio className="h-5 w-5 text-zinc-400" />
-            </div>
-            <p className="text-sm font-medium text-zinc-900">No channels configured</p>
-            <p className="mt-1 max-w-sm text-sm text-zinc-500">
-              Add a channel below to tell Clout where your content is headed. Format-aware generation coming soon.
-            </p>
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => <div key={i} className="h-[60px] rounded-xl border border-zinc-100 bg-white animate-pulse" />)}
           </div>
-        </div>
-      )}
+        ) : ready.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-6 py-10 text-center">
+            <p className="text-sm font-medium text-zinc-900">Nothing approved yet</p>
+            <p className="mt-1 text-sm text-zinc-400">Approve a draft in Studio to queue it here.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+            {ready.map(output => {
+              const canPost = linkedInChannel && output.channels?.platform === 'linkedin'
+              return (
+                <div key={output.id} className="flex items-center gap-4 px-5 py-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-zinc-900 truncate">
+                      {output.title ?? 'Untitled draft'}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-400">
+                      {output.channels?.label ?? output.channels?.platform ?? 'No channel'}
+                      {' · '}
+                      {relativeTime(output.updated_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {canPost && (
+                      <button
+                        onClick={() => handlePublishNow(output.id)}
+                        disabled={!!publishing}
+                        className={cn(
+                          'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                          publishing === output.id
+                            ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                            : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                        )}
+                      >
+                        {publishing === output.id ? 'Posting…' : 'Post now'}
+                      </button>
+                    )}
+                    <a href={`/studio/${output.id}`} className="text-zinc-300 hover:text-zinc-500 transition-colors" title="Open in Studio">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
-      <p className="text-xs text-zinc-400">
-        Publishing connections (OAuth) will be added in a future release. Channels currently inform content formatting only.
-      </p>
     </div>
   )
+}
+
+export default function ChannelsPage() {
+  return <Suspense><PublishingContent /></Suspense>
 }
