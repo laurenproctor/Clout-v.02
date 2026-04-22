@@ -8,7 +8,11 @@ import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceRecorder } from '@/components/capture/voice-recorder'
 import { VoiceCaptureFlow } from '@/components/capture/voice-capture-flow'
+import { LinkCaptureFlow } from '@/components/capture/link-capture-flow'
+import { UploadCaptureFlow } from '@/components/capture/upload-capture-flow'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
+
+const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
 const ROTATING_PROMPTS = [
   "What's a lesson you keep having to relearn?",
@@ -64,6 +68,8 @@ function NewCaptureInner() {
   const [promptIndex, setPromptIndex] = useState(0)
   const [promptVisible, setPromptVisible] = useState(true)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [detectedUrl, setDetectedUrl] = useState<string | null>(null)
+  const urlDetectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const moreRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -114,10 +120,21 @@ function NewCaptureInner() {
     setContent('')
     setUploadedFile(null)
     setStructuredData(null)
+    setDetectedUrl(null)
     if (mode === 'write' || mode === 'paste') setSource('text')
     else if (mode === 'voice') setSource('voice')
     else if (mode === 'upload') setSource('structured')
     if (mode === 'more') setShowMoreDropdown((v) => !v)
+  }
+
+  function handlePasteInput(value: string) {
+    setContent(value)
+    setDetectedUrl(null)
+    if (urlDetectTimer.current) clearTimeout(urlDetectTimer.current)
+    const trimmed = value.trim()
+    if (URL_REGEX.test(trimmed)) {
+      urlDetectTimer.current = setTimeout(() => setDetectedUrl(trimmed), 400)
+    }
   }
 
   function toggleTarget(t: string) {
@@ -419,73 +436,68 @@ function NewCaptureInner() {
             )}
 
             {captureMode === 'paste' && (
-              <div className="space-y-3">
-                <p className="text-sm text-zinc-400">Paste a tweet thread, an email draft, a Notion doc — anything with ideas in it.</p>
-                <textarea
-                  autoFocus
-                  className="w-full resize-none rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 px-5 py-4 text-[17px] leading-[1.75] text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-zinc-400 min-h-[140px] transition-colors"
-                  placeholder="Paste anything here..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                />
+              <div className="space-y-4">
+                {detectedUrl ? (
+                  <LinkCaptureFlow
+                    url={detectedUrl}
+                    lensId={selectedLensId}
+                    onComplete={(outputId) => router.push(`/studio/${outputId}`)}
+                    onError={(err) => setError(err)}
+                    onReset={() => { setDetectedUrl(null); setContent('') }}
+                  />
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-[15px] font-semibold text-zinc-900 mb-1">
+                        Turn anything into content in your voice.
+                      </p>
+                      <p className="text-[13px] text-zinc-400">
+                        Paste a link and Clout writes 3 drafts from it — each a different angle, all in your voice.
+                      </p>
+                    </div>
+                    <textarea
+                      autoFocus
+                      className="w-full resize-none bg-transparent text-[17px] leading-[1.75] text-zinc-900 placeholder:text-zinc-300 focus:outline-none min-h-[160px]"
+                      placeholder="Paste a link, thread, article, or any text…"
+                      value={content}
+                      onChange={(e) => handlePasteInput(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Paul Graham essay', url: 'https://paulgraham.com/startupideas.html' },
+                        { label: 'LinkedIn thread', url: 'https://www.linkedin.com/pulse/' },
+                        { label: 'Substack post', url: 'https://substack.com' },
+                        { label: 'Podcast transcript', url: '' },
+                        { label: 'Your own notes', url: '' },
+                      ].map(({ label, url: exUrl }) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            if (exUrl) {
+                              setContent(exUrl)
+                              handlePasteInput(exUrl)
+                            } else {
+                              setContent('')
+                            }
+                          }}
+                          className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 transition-colors"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
             {captureMode === 'upload' && (
-              <div className="space-y-3">
-                <p className="text-sm text-zinc-400">Drop a PDF, slide deck, audio file, or image. Clout will find what's worth saying.</p>
-                <div
-                  className={cn(
-                    'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 px-6 py-10 text-center transition-colors cursor-pointer hover:border-zinc-400',
-                    uploadedFile && 'border-zinc-400 bg-zinc-50'
-                  )}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    const file = e.dataTransfer.files[0]
-                    if (file) {
-                      setUploadedFile(file)
-                      setStructuredData({ filename: file.name, type: file.type })
-                      setContent(`File: ${file.name}`)
-                    }
-                  }}
-                >
-                  {uploadedFile ? (
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-zinc-900">{uploadedFile.name}</p>
-                      <p className="text-xs text-zinc-400">{(uploadedFile.size / 1024).toFixed(0)} KB</p>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setUploadedFile(null); setContent(''); setStructuredData(null) }}
-                        className="mt-2 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-3xl mb-3">📎</p>
-                      <p className="text-sm font-medium text-zinc-700">Drop a file here or click to browse</p>
-                      <p className="mt-1 text-xs text-zinc-400">PDF, Word, TXT, CSV, images, audio, video</p>
-                    </>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.doc,.docx,.txt,.csv,image/*,audio/*,video/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setUploadedFile(file)
-                        setStructuredData({ filename: file.name, type: file.type })
-                        setContent(`File: ${file.name}`)
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+              <UploadCaptureFlow
+                lensId={selectedLensId}
+                onComplete={(outputId) => router.push(`/studio/${outputId}`)}
+                onError={(err) => setError(err)}
+              />
             )}
 
             {captureMode === 'more' && (

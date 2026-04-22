@@ -59,6 +59,35 @@ const CHANNEL_OPTIONS = [
   'Substack',
 ]
 
+const BELIEF_EXAMPLES = [
+  'Most brands underestimate the staying power of physical retail.',
+  'Cold outreach still works — most people just do it wrong.',
+  'The best leaders I\'ve met read more than they talk.',
+  'Speed beats perfection in early-stage companies.',
+  'Culture is the product. Everything else is a feature.',
+]
+
+const ENERGIZED_EXAMPLES = [
+  'Consumer psychology, behavior change, retail design',
+  'Systems thinking, team dynamics, first principles',
+  'Product strategy, growth loops, distribution',
+  'Storytelling, brand positioning, founder narratives',
+]
+
+const MISCONCEPTION_EXAMPLES = [
+  'That e-commerce has killed brick-and-mortar.',
+  'That AI will replace human creativity.',
+  'That you need a big audience to build influence.',
+  'That hustle culture is the only path to success.',
+]
+
+const LESSON_EXAMPLES = [
+  'Invest in fundamentals before chasing trends.',
+  'The best salespeople don\'t pitch — they listen.',
+  'Clarity beats cleverness every time.',
+  'Your network is your leverage. Protect it.',
+]
+
 const AUDIENCE_WHO_OPTIONS = [
   'Executives',
   'Founders',
@@ -502,6 +531,7 @@ export default function OnboardingPage() {
                   value={form.coreBelief}
                   onChange={(e) => set('coreBelief', e.target.value)}
                 />
+                <ExampleChips examples={BELIEF_EXAMPLES} onSelect={(v) => set('coreBelief', v)} />
               </div>
 
               {!beliefsExpanded ? (
@@ -522,6 +552,7 @@ export default function OnboardingPage() {
                       value={form.energizedBy}
                       onChange={(e) => set('energizedBy', e.target.value)}
                     />
+                    <ExampleChips examples={ENERGIZED_EXAMPLES} onSelect={(v) => set('energizedBy', v)} />
                   </div>
                   <div>
                     <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Misconceptions you challenge</label>
@@ -532,6 +563,7 @@ export default function OnboardingPage() {
                       value={form.misconceptions}
                       onChange={(e) => set('misconceptions', e.target.value)}
                     />
+                    <ExampleChips examples={MISCONCEPTION_EXAMPLES} onSelect={(v) => set('misconceptions', v)} />
                   </div>
                   <div>
                     <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Lessons you repeat often</label>
@@ -542,6 +574,7 @@ export default function OnboardingPage() {
                       value={form.lessons}
                       onChange={(e) => set('lessons', e.target.value)}
                     />
+                    <ExampleChips examples={LESSON_EXAMPLES} onSelect={(v) => set('lessons', v)} />
                   </div>
                 </div>
               )}
@@ -567,6 +600,10 @@ export default function OnboardingPage() {
                   />
                 ))}
               </div>
+              <PrivateFeedCard
+                selected={form.channels.includes('Private Feed')}
+                onToggle={() => toggleArray('channels', 'Private Feed')}
+              />
             </>
           )}
 
@@ -808,6 +845,53 @@ function ChipButton({
       )}
     >
       {label}
+    </button>
+  )
+}
+
+function ExampleChips({ examples, onSelect }: { examples: string[]; onSelect: (v: string) => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {examples.map((ex) => (
+        <button
+          key={ex}
+          type="button"
+          onClick={() => onSelect(ex)}
+          className="rounded border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-600 transition-colors text-left"
+        >
+          {ex}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PrivateFeedCard({ selected, onToggle }: { selected: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        'mt-2 w-full rounded-xl border-2 px-5 py-4 text-left transition-colors',
+        selected
+          ? 'border-zinc-900 bg-zinc-900'
+          : 'border-dashed border-zinc-300 hover:border-zinc-500'
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className={cn(
+          'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors',
+          selected ? 'border-white bg-white' : 'border-zinc-400'
+        )} />
+        <div>
+          <p className={cn('text-sm font-semibold', selected ? 'text-white' : 'text-zinc-800')}>
+            Private Feed
+          </p>
+          <p className={cn('mt-0.5 text-xs leading-relaxed', selected ? 'text-zinc-300' : 'text-zinc-500')}>
+            A personal log only you can see — for raw thoughts, reflections, and ideas not ready to share. Think of it as an astronaut&rsquo;s mission log, only the mission is life.
+          </p>
+        </div>
+      </div>
     </button>
   )
 }

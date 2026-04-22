@@ -124,3 +124,25 @@ export function buildGenerationSystemPrompt(params: {
 
   return lines.join('\n')
 }
+
+export function buildMultiDraftSystemPrompt(params: Parameters<typeof buildGenerationSystemPrompt>[0]): string {
+  const base = buildGenerationSystemPrompt(params)
+  return base.replace(
+    /## Output format[\s\S]*/,
+    `## Output format
+Respond with a JSON array of exactly 3 post drafts, each from a genuinely distinct angle.
+
+[
+  { "angle": "Personal story", "body": "...", "hook": "...", "hashtags": ["..."] },
+  { "angle": "Contrarian take", "body": "...", "hook": "...", "hashtags": ["..."] },
+  { "angle": "Practical insight", "body": "...", "hook": "...", "hashtags": ["..."] }
+]
+
+Rules:
+- Each draft must feel different — different structure, emotional register, entry point.
+- body: the full post (markdown ok). hook: the opening line. hashtags: 3-5 tags.
+- Write in the author's voice as defined above. Do not break character.
+- Do not repeat the same opening phrase or structural pattern across drafts.
+- Output ONLY the JSON array. No explanation, no wrapper object.`
+  )
+}
