@@ -356,6 +356,8 @@ export interface Database {
           content: Json
           approved_by: string | null
           approved_at: string | null
+          provider_post_id: string | null
+          published_at: string | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -370,6 +372,8 @@ export interface Database {
           content?: Json
           approved_by?: string | null
           approved_at?: string | null
+          provider_post_id?: string | null
+          published_at?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -381,6 +385,8 @@ export interface Database {
           content?: Json
           approved_by?: string | null
           approved_at?: string | null
+          provider_post_id?: string | null
+          published_at?: string | null
           updated_at?: string
           deleted_at?: string | null
         }
