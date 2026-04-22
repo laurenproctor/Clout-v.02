@@ -984,32 +984,3 @@ function ExampleChips({ label, examples, onSelect }: { label?: string; examples:
   )
 }
 
-function PrivateFeedCard({ selected, onToggle }: { selected: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn(
-        'mt-2 w-full rounded-xl border-2 px-5 py-4 text-left transition-colors',
-        selected
-          ? 'border-zinc-900 bg-zinc-900'
-          : 'border-dashed border-zinc-300 hover:border-zinc-500'
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div className={cn(
-          'mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 transition-colors',
-          selected ? 'border-white bg-white' : 'border-zinc-400'
-        )} />
-        <div>
-          <p className={cn('text-sm font-semibold', selected ? 'text-white' : 'text-zinc-800')}>
-            Private Feed
-          </p>
-          <p className={cn('mt-0.5 text-xs leading-relaxed', selected ? 'text-zinc-300' : 'text-zinc-500')}>
-            A personal log only you can see — for raw thoughts, reflections, and ideas not ready to share. Think of it as an astronaut&rsquo;s mission log, only the mission is life.
-          </p>
-        </div>
-      </div>
-    </button>
-  )
-}
