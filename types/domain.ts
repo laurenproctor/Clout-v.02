@@ -10,7 +10,7 @@ export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled'
 export type CaptureSource = 'text' | 'voice' | 'structured' | 'url'
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
-export type OutputStatus = 'draft' | 'review' | 'approved' | 'published' | 'archived'
+export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'published' | 'archived'
 export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter'
 export type LensScope = 'system' | 'workspace'
 
@@ -169,6 +169,7 @@ export interface Output {
   approvedAt: string | null
   providerPostId: string | null   // idempotency key
   publishedAt: string | null      // wall-clock publish time
+  scheduledAt: string | null      // assigned queue slot
   createdAt: string
   updatedAt: string
   channels?: OutputChannel
@@ -193,6 +194,17 @@ export interface PrivateEnrichment {
   insights: Array<{ title: string; body: string }>
   model: string
   createdAt: string
+}
+
+export interface SchedulingPreferences {
+  id: string
+  workspaceId: string
+  postsPerWeek: number
+  preferredDays: number[]   // ISO weekday: 1=Mon … 7=Sun
+  preferredTimes: string[]  // HH:MM in workspace timezone
+  timezone: string
+  createdAt: string
+  updatedAt: string
 }
 
 // ─── Input / Command Types ────────────────────────────────────────────────────
