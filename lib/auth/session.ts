@@ -1,5 +1,6 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Database } from '@/types/db'
 
 export interface AuthSession {
@@ -19,8 +20,28 @@ export async function getAuthenticatedUserId(): Promise<{ clerkId: string; userI
     .select('id')
     .eq('clerk_id', clerkId)
     .single()) as { data: { id: string } | null }
-  if (!user) return null
-  return { clerkId, userId: user.id }
+  if (user) return { clerkId, userId: user.id }
+
+  // Webhook hasn't fired yet — provision the user row now using Clerk data
+  const clerkUser = await currentUser()
+  if (!clerkUser) return null
+  const email =
+    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
+      ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress ?? ''
+  const fullName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null
+
+  const serviceClient = createServiceClient()
+  const { data: created } = (await serviceClient
+    .from('users')
+    .upsert(
+      { clerk_id: clerkId, email, full_name: fullName, avatar_url: clerkUser.imageUrl ?? null, updated_at: new Date().toISOString() },
+      { onConflict: 'clerk_id' }
+    )
+    .select('id')
+    .single()) as { data: { id: string } | null }
+
+  if (!created) return null
+  return { clerkId, userId: created.id }
 }
 
 export async function getSession(): Promise<AuthSession | null> {
