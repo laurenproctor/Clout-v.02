@@ -249,6 +249,14 @@ create table channels (
 create index channels_workspace_idx on channels(workspace_id) where is_active = true;
 
 -- ============================================================
+-- PUBLISHING FOUNDATIONS (credentials, logs, idempotency)
+-- ============================================================
+-- channel_credentials: OAuth tokens per channel, service role only, RLS blocks client access
+-- publish_logs: operational audit — queryable for failure analysis by workspace/output/platform/status
+-- outputs.provider_post_id: LinkedIn post URN (idempotency key, prevents double-posting)
+-- outputs.published_at: wall-clock timestamp of successful publish
+
+-- ============================================================
 -- OUTPUTS
 -- ============================================================
 create table outputs (
