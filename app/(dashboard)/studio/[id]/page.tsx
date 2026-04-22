@@ -497,14 +497,16 @@ export default function StudioEditorPage() {
               <span className="rounded-md border border-emerald-800/50 bg-emerald-950/50 px-3 py-1.5 text-xs text-emerald-400">
                 Posted to LinkedIn ✓
               </span>
-              <a
-                href="https://www.linkedin.com/feed/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
-              >
-                View on LinkedIn ↗
-              </a>
+              {linkedInPostUrn && (
+                <a
+                  href={`https://www.linkedin.com/feed/update/${encodeURIComponent(linkedInPostUrn)}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+                >
+                  View on LinkedIn ↗
+                </a>
+              )}
               <Link
                 href="/channels"
                 className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
