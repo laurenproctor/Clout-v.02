@@ -3,14 +3,19 @@ import { Sidebar } from '@/components/shell/sidebar'
 import { TopNav } from '@/components/shell/top-nav'
 import { QuickCaptureProvider } from '@/components/shell/quick-capture-provider'
 import { ErrorBoundary } from '@/components/shell/error-boundary'
-import { getSession } from '@/lib/auth/session'
+import { getSession, getAuthenticatedUserId } from '@/lib/auth/session'
+import { createWorkspaceForUser } from '@/lib/domain/workspace'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession()
+  let session = await getSession()
 
-  // User is authenticated (middleware ensures this) but has no workspace yet
+  // Auto-provision a workspace so users can skip onboarding
   if (!session) {
-    redirect('/onboarding')
+    const user = await getAuthenticatedUserId()
+    if (!user) redirect('/sign-in')
+    await createWorkspaceForUser({ userId: user.userId, name: 'My Workspace' })
+    session = await getSession()
+    if (!session) redirect('/sign-in')
   }
 
   return (

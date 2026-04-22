@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type {
   Workspace,
   WorkspaceMember,
@@ -14,7 +14,7 @@ export async function createWorkspaceForUser(params: {
   userId: string
   name: string
 }): Promise<DomainResult<{ workspace: Workspace; memberId: string }>> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Generate a URL-safe slug from the workspace name
   const slug =
@@ -81,7 +81,7 @@ export async function updateProfile(params: {
   bio?: string
   privateFeedOperatorVisible?: boolean
 }): Promise<DomainResult<void>> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('profiles')
     .update({

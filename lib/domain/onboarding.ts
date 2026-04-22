@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { DomainResult, OnboardingGeneration } from '@/types/domain'
 
 export async function updateOnboardingStep(params: {
@@ -6,7 +6,7 @@ export async function updateOnboardingStep(params: {
   step: 'identity' | 'purpose' | 'beliefs' | 'channels' | 'audience'
   data: Record<string, unknown>
 }): Promise<DomainResult<void>> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   if (params.step === 'identity') {
     const { first_name, last_name, display_name, role, industry, expertise } = params.data as {
@@ -122,7 +122,7 @@ export async function updateOnboardingStep(params: {
 export async function createOnboardingGeneration(params: {
   workspaceId: string
 }): Promise<DomainResult<{ id: string }>> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Upsert so retries are safe
   const { data, error } = await supabase
@@ -145,7 +145,7 @@ export async function updateOnboardingGeneration(params: {
   draftPost: string
   status: 'complete' | 'failed'
 }): Promise<DomainResult<void>> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { error } = await supabase
     .from('onboarding_generations')
@@ -164,7 +164,7 @@ export async function updateOnboardingGeneration(params: {
 export async function getOnboardingGeneration(params: {
   workspaceId: string
 }): Promise<DomainResult<OnboardingGeneration | null>> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data, error } = await supabase
     .from('onboarding_generations')
@@ -204,7 +204,7 @@ export async function getProfileForGeneration(params: {
     audiencePerception: string[]
   }>
 > {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data, error } = await supabase
     .from('profiles')

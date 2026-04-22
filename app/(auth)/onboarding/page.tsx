@@ -587,7 +587,7 @@ export default function OnboardingPage() {
               {!beliefsExpanded ? (
                 <button
                   onClick={() => setBeliefsExpanded(true)}
-                  className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                  className="w-full rounded-md border border-zinc-200 py-2.5 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900 transition-colors"
                 >
                   + Add more context (optional)
                 </button>

@@ -1,7 +1,5 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import type { Database } from '@/types/db'
 
 export interface AuthSession {
   clerkId: string
@@ -14,7 +12,7 @@ export interface AuthSession {
 export async function getAuthenticatedUserId(): Promise<{ clerkId: string; userId: string } | null> {
   const { userId: clerkId } = await auth()
   if (!clerkId) return null
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data: user } = (await supabase
     .from('users')
     .select('id')
@@ -48,7 +46,7 @@ export async function getSession(): Promise<AuthSession | null> {
   const { userId: clerkId } = await auth()
   if (!clerkId) return null
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // Look up internal user by Clerk ID
   const { data: user } = (await supabase
