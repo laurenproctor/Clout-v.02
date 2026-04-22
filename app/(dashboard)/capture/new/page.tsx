@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ChevronDown, Loader2, Zap } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, Lock, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceRecorder } from '@/components/capture/voice-recorder'
@@ -544,7 +544,22 @@ function NewCaptureInner() {
                 ))}
               </div>
 
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
+                {/* Private toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsPrivate((v) => !v)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    isPrivate
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'
+                  )}
+                >
+                  <Lock className="h-3 w-3" />
+                  {isPrivate ? 'Private' : 'Make private'}
+                </button>
+
                 <button
                   type="submit"
                   disabled={submitting || !canSubmit}
