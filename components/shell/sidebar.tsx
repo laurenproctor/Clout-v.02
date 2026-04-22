@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -16,7 +17,9 @@ import {
   Inbox,
   CalendarClock,
   ListOrdered,
+  HelpCircle,
 } from 'lucide-react'
+import { SupportModal } from '@/components/shell/support-modal'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -34,6 +37,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const [supportOpen, setSupportOpen] = useState(false)
 
   return (
     <aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-zinc-200 bg-white">
@@ -64,14 +68,22 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom: settings */}
-      <div className="border-t border-zinc-200 p-2">
+      {/* Bottom: help + settings */}
+      <div className="border-t border-zinc-200 p-2 space-y-0.5">
         <div className="px-3 py-2">
           <p className="text-xs text-zinc-300">
             <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 text-zinc-400">⌘K</kbd>
             {' '}Quick capture
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setSupportOpen(true)}
+          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+        >
+          <HelpCircle className="h-4 w-4 shrink-0" />
+          Help
+        </button>
         <Link
           href="/settings/workspace"
           className={cn(
@@ -85,6 +97,8 @@ export function Sidebar() {
           Settings
         </Link>
       </div>
+
+      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
     </aside>
   )
 }
