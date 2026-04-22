@@ -9,7 +9,7 @@ alter table outputs
 
 create index if not exists outputs_workspace_scheduled_idx
   on outputs (workspace_id, scheduled_at)
-  where deleted_at is null and status = 'queued';
+  where deleted_at is null;
 
 -- 3. Scheduling preferences (one row per workspace)
 create table if not exists scheduling_preferences (
