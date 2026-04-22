@@ -20,7 +20,7 @@ create type subscription_status as enum ('active', 'trialing', 'past_due', 'canc
 create type capture_source as enum ('text', 'voice', 'structured', 'url');
 create type capture_status as enum ('pending', 'processing', 'ready', 'failed');
 create type generation_status as enum ('pending', 'generating', 'complete', 'failed');
-create type output_status as enum ('draft', 'review', 'approved', 'queued', 'published', 'archived');
+create type output_status as enum ('draft', 'review', 'approved', 'queued', 'publishing', 'published', 'failed', 'archived');
 create type channel_platform as enum ('linkedin', 'newsletter', 'twitter');
 create type lens_scope as enum ('system', 'workspace');
 create type job_type as enum ('transcribe', 'generate', 'summarize', 'reformat');
@@ -285,10 +285,11 @@ create table outputs (
   content        jsonb not null default '{}'::jsonb,
   approved_by    uuid references users(id) on delete set null,
   approved_at    timestamptz,
-  scheduled_at   timestamptz,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now(),
-  deleted_at     timestamptz
+  scheduled_at        timestamptz,
+  last_publish_error  text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz
 );
 create index outputs_workspace_status_idx on outputs(workspace_id, status)
   where deleted_at is null;
