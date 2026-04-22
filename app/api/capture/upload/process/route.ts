@@ -38,7 +38,8 @@ async function extractText(file: File): Promise<string> {
       const buf = await file.arrayBuffer()
       const base64 = Buffer.from(buf).toString('base64')
       try {
-        const res = await client.messages.create({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = await (client.messages.create as any)({
           model: 'claude-sonnet-4-6',
           max_tokens: 2000,
           messages: [{
@@ -47,12 +48,13 @@ async function extractText(file: File): Promise<string> {
               {
                 type: 'document',
                 source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-              } as Parameters<typeof client.messages.create>[0]['messages'][0]['content'][0],
+              },
               { type: 'text', text: 'Extract the key ideas, arguments, data points, and notable content from this document. Be thorough. Focus on content valuable for creating thought leadership posts.' },
             ],
           }],
         })
-        return res.content.filter((b) => b.type === 'text').map((b) => (b as { type: 'text'; text: string }).text).join('')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (res as any).content.filter((b: any) => b.type === 'text').map((b: any) => b.text as string).join('')
       } catch {
         return `PDF document: ${file.name}`
       }
@@ -84,7 +86,7 @@ async function extractText(file: File): Promise<string> {
             ],
           }],
         })
-        return res.content.filter((b) => b.type === 'text').map((b) => (b as { type: 'text'; text: string }).text).join('')
+        return res.content.filter((b) => b.type === 'text').map((b) => (b as { type: 'text'; text: string }).text as string).join('')
       } catch {
         return `Image: ${file.name}`
       }
@@ -205,7 +207,7 @@ export async function POST(req: NextRequest) {
     .insert({
       workspace_id: session.workspaceId,
       capture_id: capture.id,
-      lens_id: resolvedLensId ?? null,
+      lens_id: resolvedLensId ?? '',
       profile_id: profile?.id ?? session.userId,
       status: 'generating',
       model: 'claude-sonnet-4-6',

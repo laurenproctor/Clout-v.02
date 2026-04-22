@@ -186,7 +186,7 @@ export default function OnboardingPage() {
     })
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
-      console.warn(`Onboarding step ${stepName}:`, d.error)
+      throw new Error(d.error ?? `Failed to save step ${stepName}`)
     }
   }
 
