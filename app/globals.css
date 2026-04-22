@@ -3,6 +3,10 @@
 @import "shadcn/tailwind.css";
 @import "../styles/tokens.css";
 
+html {
+  font-size: 120%;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
