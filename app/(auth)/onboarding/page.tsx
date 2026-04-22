@@ -49,10 +49,32 @@ const PURPOSE_OPTIONS = [
   'Something new',
 ]
 
-const CHANNEL_GROUPS: Array<{ label: string; options: string[] }> = [
-  { label: 'Social', options: ['LinkedIn', 'X / Twitter', 'Instagram', 'YouTube'] },
-  { label: 'Written', options: ['Newsletter', 'Blog', 'Substack'] },
-  { label: 'Internal', options: ['Internal comms'] },
+interface ChannelDef { label: string; bg: string; text: string; icon: string }
+
+const CHANNEL_GROUPS: Array<{ label: string; channels: ChannelDef[] }> = [
+  {
+    label: 'Social',
+    channels: [
+      { label: 'LinkedIn',    bg: '#0A66C2', text: '#fff', icon: 'in' },
+      { label: 'X / Twitter', bg: '#000',    text: '#fff', icon: '𝕏' },
+      { label: 'Instagram',   bg: '#E1306C', text: '#fff', icon: '◈' },
+      { label: 'YouTube',     bg: '#FF0000', text: '#fff', icon: '▶' },
+    ],
+  },
+  {
+    label: 'Written',
+    channels: [
+      { label: 'Newsletter', bg: '#F59E0B', text: '#fff', icon: '✉' },
+      { label: 'Blog',       bg: '#6366F1', text: '#fff', icon: '✍' },
+      { label: 'Substack',   bg: '#FF6719', text: '#fff', icon: 'S' },
+    ],
+  },
+  {
+    label: 'Internal',
+    channels: [
+      { label: 'Internal comms', bg: '#475569', text: '#fff', icon: '🔒' },
+    ],
+  },
 ]
 
 const BELIEF_EXAMPLES = [
@@ -186,7 +208,7 @@ export default function OnboardingPage() {
     })
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
-      throw new Error(d.error ?? `Failed to save step ${stepName}`)
+      console.warn(`Onboarding step ${stepName}:`, d.error)
     }
   }
 
@@ -623,14 +645,23 @@ export default function OnboardingPage() {
                   <div key={group.label}>
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">{group.label}</p>
                     <div className="flex flex-wrap gap-2">
-                      {group.options.map((ch) => (
-                        <ChipButton
-                          key={ch}
-                          label={ch}
-                          selected={form.channels.includes(ch)}
-                          onClick={() => toggleArray('channels', ch)}
-                        />
-                      ))}
+                      {group.channels.map((ch) => {
+                        const selected = form.channels.includes(ch.label)
+                        return (
+                          <button
+                            key={ch.label}
+                            onClick={() => toggleArray('channels', ch.label)}
+                            className={cn(
+                              'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all',
+                              selected ? 'border-transparent shadow-sm' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+                            )}
+                            style={selected ? { backgroundColor: ch.bg, color: ch.text, borderColor: ch.bg } : {}}
+                          >
+                            <span className="text-[11px] leading-none">{ch.icon}</span>
+                            {ch.label}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}
