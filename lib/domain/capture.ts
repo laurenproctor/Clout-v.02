@@ -34,6 +34,7 @@ export async function createCapture(
       source: input.source,
       raw_content: input.rawContent ?? null,
       source_url: input.sourceUrl ?? null,
+      audio_path: input.audioPath ?? null,
       structured_data: (input.structuredData ?? null) as Json | null,
       is_private: input.isPrivate ?? false,
       tags: input.tags ?? [],

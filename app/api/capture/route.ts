@@ -17,9 +17,10 @@ export async function POST(req: NextRequest) {
   if (!validSources.includes(source)) {
     return NextResponse.json({ error: 'Invalid source type' }, { status: 400 })
   }
-  if (!body.raw_content && !body.source_url) {
+  const isVoice = source === 'voice'
+  if (!body.raw_content && !body.source_url && !(isVoice && body.audio_path)) {
     return NextResponse.json(
-      { error: 'raw_content or source_url required' },
+      { error: 'raw_content, source_url, or audio_path required' },
       { status: 400 }
     )
   }
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
     source,
     rawContent: body.raw_content ?? null,
     sourceUrl: body.source_url ?? null,
+    audioPath: body.audio_path ?? null,
     structuredData: body.structured_data ?? null,
     isPrivate: body.is_private ?? false,
     tags: body.tags ?? [],

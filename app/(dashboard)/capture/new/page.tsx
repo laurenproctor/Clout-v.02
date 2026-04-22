@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronDown, Loader2, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceRecorder } from '@/components/capture/voice-recorder'
+import { VoiceCaptureFlow } from '@/components/capture/voice-capture-flow'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 
 const ROTATING_PROMPTS = [
@@ -48,6 +49,9 @@ function NewCaptureInner() {
   const [lenses, setLenses] = useState<Lens[]>([])
   const [selectedLensId, setSelectedLensId] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [workspaceId, setWorkspaceId] = useState('pending')
+  const [transcribing, setTranscribing] = useState(false)
+  const [transcribeError, setTranscribeError] = useState<string | null>(null)
 
   // ── New UI state ──
   const [captureMode, setCaptureMode] = useState<CaptureMode>(() => {
@@ -63,7 +67,7 @@ function NewCaptureInner() {
   const moreRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load lenses
+  // Load lenses + workspace ID
   useEffect(() => {
     fetch('/api/lenses')
       .then((r) => r.ok ? r.json() : [])
@@ -71,6 +75,11 @@ function NewCaptureInner() {
         setLenses(data)
         if (data.length > 0) setSelectedLensId(data[0].id)
       })
+      .catch(() => {})
+
+    fetch('/api/workspace')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.workspace?.id) setWorkspaceId(data.workspace.id) })
       .catch(() => {})
   }, [])
 
@@ -154,6 +163,25 @@ function NewCaptureInner() {
         return
       }
 
+      // For voice captures, transcribe before offering generation
+      if (source === 'voice' && audioPath) {
+        setSavedCaptureId(capture.id)
+        setTranscribing(true)
+        setTranscribeError(null)
+        try {
+          const tRes = await fetch(`/api/capture/${capture.id}/transcribe`, { method: 'POST' })
+          if (!tRes.ok) {
+            const tData = await tRes.json()
+            setTranscribeError(tData.error ?? 'Transcription failed')
+          }
+        } catch {
+          setTranscribeError('Transcription failed. You can still generate from this capture.')
+        } finally {
+          setTranscribing(false)
+        }
+        return
+      }
+
       if (lenses.length > 0) {
         setSavedCaptureId(capture.id)
       } else {
@@ -187,7 +215,7 @@ function NewCaptureInner() {
     }
   }
 
-  // ── Post-save screen (unchanged) ──────────────────────────────────────────
+  // ── Post-save screen ──────────────────────────────────────────────────────
   if (savedCaptureId) {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
@@ -199,13 +227,31 @@ function NewCaptureInner() {
         </div>
 
         <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
-              <span className="text-green-600 text-sm">✓</span>
+          {transcribing ? (
+            <div className="flex flex-col items-center justify-center py-6 gap-3">
+              <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+              <p className="text-sm font-medium text-zinc-900">Transcribing your recording…</p>
+              <p className="text-xs text-zinc-400">This usually takes 5–15 seconds.</p>
             </div>
-            <p className="text-sm font-medium text-zinc-900">Your thought is captured. Generate content now?</p>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
+                  <span className="text-green-600 text-sm">✓</span>
+                </div>
+                <p className="text-sm font-medium text-zinc-900">
+                  {transcribeError
+                    ? 'Capture saved. Transcription had an issue — you can still generate.'
+                    : 'Your thought is captured. Generate content now?'}
+                </p>
+              </div>
+              {transcribeError && (
+                <p className="text-xs text-red-500">{transcribeError}</p>
+              )}
+            </>
+          )}
 
+          {!transcribing && (
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
@@ -251,6 +297,7 @@ function NewCaptureInner() {
               </Link>
             </div>
           </div>
+          )}
         </div>
       </div>
     )
@@ -361,14 +408,14 @@ function NewCaptureInner() {
             )}
 
             {captureMode === 'voice' && (
-              <div className="space-y-3">
-                <p className="text-sm text-zinc-400">Record anything — a story, a rant, a hot take. Clout extracts the signal.</p>
-                <VoiceRecorder
-                  workspaceId="pending"
-                  onRecorded={(path) => { setAudioPath(path); setContent('Voice memo recorded') }}
-                  onError={(err) => setError(err)}
-                />
-              </div>
+              <VoiceCaptureFlow
+                workspaceId={workspaceId}
+                lenses={lenses}
+                selectedLensId={selectedLensId}
+                onLensChange={setSelectedLensId}
+                onComplete={(outputId) => router.push(`/studio/${outputId}`)}
+                onError={(err) => setError(err)}
+              />
             )}
 
             {captureMode === 'paste' && (

@@ -195,6 +195,7 @@ export interface CreateCaptureInput {
   source: CaptureSource
   rawContent?: string
   sourceUrl?: string
+  audioPath?: string | null
   structuredData?: Record<string, unknown>
   isPrivate?: boolean
   tags?: string[]
