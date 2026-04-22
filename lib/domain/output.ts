@@ -68,6 +68,24 @@ export async function listOutputs(params: {
   return { ok: true, data: (data as Record<string, unknown>[]).map(toOutput) }
 }
 
+export async function listOutputsByGenerationId(params: {
+  generationId: string
+  workspaceId: string
+}): Promise<DomainResult<Output[]>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('outputs')
+    .select()
+    .eq('generation_id', params.generationId)
+    .eq('workspace_id', params.workspaceId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+    .limit(5)
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: (data as Record<string, unknown>[]).map(toOutput) }
+}
+
 export async function updateOutput(params: {
   outputId: string
   content?: OutputContent
