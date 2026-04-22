@@ -8,6 +8,21 @@ export interface AuthSession {
   workspaceId: string  // first workspace the user belongs to
 }
 
+// Lighter auth check — only needs user row, no workspace required.
+// Used for the onboarding workspace-creation step.
+export async function getAuthenticatedUserId(): Promise<{ clerkId: string; userId: string } | null> {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) return null
+  const supabase = await createClient()
+  const { data: user } = (await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', clerkId)
+    .single()) as { data: { id: string } | null }
+  if (!user) return null
+  return { clerkId, userId: user.id }
+}
+
 export async function getSession(): Promise<AuthSession | null> {
   const { userId: clerkId } = await auth()
   if (!clerkId) return null

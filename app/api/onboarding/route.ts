@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth/session'
+import { getSession, getAuthenticatedUserId } from '@/lib/auth/session'
 import { createWorkspaceForUser, updateProfile } from '@/lib/domain/workspace'
 import { updateOnboardingStep } from '@/lib/domain/onboarding'
 
@@ -8,20 +8,20 @@ import { updateOnboardingStep } from '@/lib/domain/onboarding'
 // Called step-by-step from the onboarding form.
 // Body: { step: 'workspace' | 'profile' | 'privacy' | 'identity' | 'purpose' | 'beliefs' | 'channels' | 'audience', data: {...} }
 export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const body = await req.json()
   const { step, data } = body
 
+  // Workspace creation is the first step — no workspace exists yet, so we use
+  // the lighter auth that only needs the user row (not a workspace member).
   if (step === 'workspace') {
+    const user = await getAuthenticatedUserId()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     if (!data?.name?.trim()) {
       return NextResponse.json({ error: 'Workspace name required' }, { status: 400 })
     }
     const result = await createWorkspaceForUser({
-      userId: session.userId,
+      userId: user.userId,
       name: data.name.trim(),
     })
     if (!result.ok) {
@@ -29,6 +29,10 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(result.data, { status: 201 })
   }
+
+  // All subsequent steps require a full session (workspace must already exist)
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   if (step === 'profile') {
     const result = await updateProfile({

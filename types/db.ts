@@ -95,6 +95,8 @@ export interface Database {
           id: string
           workspace_id: string
           display_name: string | null
+          first_name: string | null
+          last_name: string | null
           bio: string | null
           industries: string[]
           target_audiences: string[]
@@ -120,6 +122,8 @@ export interface Database {
           id?: string
           workspace_id: string
           display_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           bio?: string | null
           industries?: string[]
           target_audiences?: string[]
@@ -143,6 +147,8 @@ export interface Database {
         }
         Update: {
           display_name?: string | null
+          first_name?: string | null
+          last_name?: string | null
           bio?: string | null
           industries?: string[]
           target_audiences?: string[]

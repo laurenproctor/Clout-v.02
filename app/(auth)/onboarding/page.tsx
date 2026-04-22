@@ -11,7 +11,8 @@ type PageState = 'form' | 'generating' | 'results'
 
 interface FormData {
   workspaceName: string
-  displayName: string
+  firstName: string
+  lastName: string
   role: string
   industry: string
   expertise: string
@@ -48,15 +49,10 @@ const PURPOSE_OPTIONS = [
   'Something new',
 ]
 
-const CHANNEL_OPTIONS = [
-  'LinkedIn',
-  'X / Twitter',
-  'Newsletter',
-  'Blog',
-  'Instagram',
-  'YouTube',
-  'Internal comms',
-  'Substack',
+const CHANNEL_GROUPS: Array<{ label: string; options: string[] }> = [
+  { label: 'Social', options: ['LinkedIn', 'X / Twitter', 'Instagram', 'YouTube'] },
+  { label: 'Written', options: ['Newsletter', 'Blog', 'Substack'] },
+  { label: 'Internal', options: ['Internal comms'] },
 ]
 
 const BELIEF_EXAMPLES = [
@@ -133,7 +129,8 @@ export default function OnboardingPage() {
 
   const [form, setForm] = useState<FormData>({
     workspaceName: '',
-    displayName: '',
+    firstName: '',
+    lastName: '',
     role: '',
     industry: '',
     expertise: '',
@@ -165,7 +162,7 @@ export default function OnboardingPage() {
 
   const canAdvance =
     step === 1 ? form.workspaceName.trim().length > 0 :
-    step === 2 ? form.displayName.trim().length > 0 :
+    step === 2 ? form.firstName.trim().length > 0 :
     step === 3 ? form.purpose.length > 0 :
     true // steps 4-6 can advance without required fields
 
@@ -173,7 +170,7 @@ export default function OnboardingPage() {
 
   function stepPayload(s: Step): { stepName: string; data: Record<string, unknown> } | null {
     if (s === 1) return { stepName: 'workspace', data: { name: form.workspaceName } }
-    if (s === 2) return { stepName: 'identity', data: { display_name: form.displayName, role: form.role, industry: form.industry, expertise: form.expertise } }
+    if (s === 2) return { stepName: 'identity', data: { first_name: form.firstName.trim(), last_name: form.lastName.trim(), display_name: [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' '), role: form.role, industry: form.industry, expertise: form.expertise } }
     if (s === 3) return { stepName: 'purpose', data: { purpose: form.purpose } }
     if (s === 4) return { stepName: 'beliefs', data: { profile_insights: { core_belief: form.coreBelief, energized_by: form.energizedBy, misconceptions: form.misconceptions, lessons: form.lessons } } }
     if (s === 5) return { stepName: 'channels', data: { channels: form.channels } }
@@ -266,26 +263,46 @@ export default function OnboardingPage() {
 
   // ─── Summary panel helpers ───────────────────────────────────────────────────
 
-  const summaryBrief = (() => {
-    const parts: string[] = []
-    if (form.purpose) parts.push(`Building ${form.purpose.toLowerCase()}`)
-    if (form.role) parts.push(`as ${form.role}`)
-    if (form.channels.length > 0) parts.push(`publishing on ${form.channels.slice(0, 2).join(' & ')}`)
-    if (form.audienceTargets.length > 0) parts.push(`reaching ${form.audienceTargets.slice(0, 2).join(', ')}`)
-    if (form.audiencePerception.length > 0) parts.push(`known as ${form.audiencePerception[0]}`)
-    if (parts.length === 0) return 'Complete each step to see your tailored strategy.'
-    return parts.join(' · ') + '.'
+  const briefObjective = (() => {
+    if (!form.purpose && !form.role) return null
+    const who = form.firstName || form.workspaceName || 'The client'
+    const role = form.role ? `${form.role}${form.industry ? ` in ${form.industry}` : ''}` : form.industry || null
+    const purpose = form.purpose ? form.purpose.toLowerCase() : 'thought leadership'
+    if (role) return `${who} is a ${role} building influence for ${purpose}.`
+    return `${who} is building influence for ${purpose}.`
   })()
 
-  const summaryTags = [
-    form.purpose && { label: form.purpose, filled: true },
-    form.role && { label: form.role, filled: true },
-    form.channels[0] && { label: form.channels[0], filled: true },
-    form.audienceTargets[0] && { label: form.audienceTargets[0], filled: true },
-    !form.purpose && { label: 'Purpose ···', filled: false },
-    !form.channels[0] && { label: 'Channels ···', filled: false },
-    !form.audienceTargets[0] && { label: 'Audience ···', filled: false },
-  ].filter(Boolean) as Array<{ label: string; filled: boolean }>
+  const briefPositioning = (() => {
+    if (!form.expertise && !form.coreBelief) return null
+    const lines: string[] = []
+    if (form.expertise) lines.push(form.expertise)
+    if (form.coreBelief) lines.push(`Core conviction: "${form.coreBelief.replace(/^"/, '').replace(/"$/, '')}"`)
+    return lines.join(' ')
+  })()
+
+  const briefThemes = (() => {
+    const themes: string[] = []
+    if (form.energizedBy) themes.push(...form.energizedBy.split(/[,;]+/).map((s) => s.trim()).filter(Boolean).slice(0, 3))
+    if (form.misconceptions) themes.push(`Challenging: ${form.misconceptions.split(/[.!?]/)[0].replace(/^That\s/i, '').trim()}`)
+    if (form.lessons) themes.push(form.lessons.split(/[.!?]/)[0].trim())
+    return themes.slice(0, 4)
+  })()
+
+  const briefDistribution = (() => {
+    if (!form.channels.length) return null
+    const primary = form.channels.slice(0, 2)
+    const rest = form.channels.length > 2 ? `+${form.channels.length - 2} more` : null
+    return { primary, rest }
+  })()
+
+  const briefAudience = (() => {
+    if (!form.audienceTargets.length && !form.audiencePerception.length) return null
+    const who = form.audienceTargets.slice(0, 3).join(', ')
+    const perception = form.audiencePerception.slice(0, 2).join(' & ')
+    if (who && perception) return `Reaching ${who} — positioning as ${perception}.`
+    if (who) return `Reaching ${who}.`
+    return `Positioning as ${perception}.`
+  })()
 
   // ─── Render: Generating ──────────────────────────────────────────────────────
 
@@ -310,7 +327,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-xl space-y-6">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">
-            {form.displayName ? `Here's your start, ${form.displayName.split(' ')[0]}.` : "Here's your start."}
+            {form.firstName ? `Here's your start, ${form.firstName}.` : "Here's your start."}
           </h1>
           <p className="mt-1 text-sm text-zinc-500">Clout built this from your profile. Edit anything before you go.</p>
         </div>
@@ -382,7 +399,7 @@ export default function OnboardingPage() {
           <p className="text-xs text-zinc-400">Takes about 2 minutes</p>
         </div>
 
-        {/* Progress */}
+        {/* Progress — all steps clickable */}
         <div className="mb-7 space-y-1.5">
           <div className="flex gap-1">
             {([1, 2, 3, 4, 5, 6] as Step[]).map((s) => (
@@ -391,7 +408,7 @@ export default function OnboardingPage() {
                   onClick={() => setStep(s)}
                   className={cn(
                     'h-0.5 w-full rounded-full transition-colors',
-                    s <= step ? 'bg-zinc-900' : 'bg-zinc-200 group-hover:bg-zinc-400'
+                    s === step ? 'bg-zinc-900' : s < step ? 'bg-zinc-400' : 'bg-zinc-200 group-hover:bg-zinc-400'
                   )}
                 />
                 <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
@@ -418,7 +435,7 @@ export default function OnboardingPage() {
                 title="Create your workspace"
                 subtitle="Your workspace stores your ideas, lenses, drafts, publishing settings, and audience strategy. Use your name for a personal brand, or a company name for a team account."
                 why={null}
-                reassurance="You can rename it anytime in Settings → Profile."
+                reassurance="You can rename it anytime in Settings → Profile. You can create multiple workspaces — one for you, one for a brand, one for a client."
               />
               <div>
                 <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
@@ -445,15 +462,26 @@ export default function OnboardingPage() {
                 why="We use this to build sharper positioning."
                 reassurance="You can add to or edit this anytime in Settings → Profile."
               />
-              <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Name</label>
-                <input
-                  autoFocus
-                  className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-                  placeholder="James Dean"
-                  value={form.displayName}
-                  onChange={(e) => set('displayName', e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">First name</label>
+                  <input
+                    autoFocus
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    placeholder="James"
+                    value={form.firstName}
+                    onChange={(e) => set('firstName', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Last name</label>
+                  <input
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    placeholder="Dean"
+                    value={form.lastName}
+                    onChange={(e) => set('lastName', e.target.value)}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -531,7 +559,7 @@ export default function OnboardingPage() {
                   value={form.coreBelief}
                   onChange={(e) => set('coreBelief', e.target.value)}
                 />
-                <ExampleChips examples={BELIEF_EXAMPLES} onSelect={(v) => set('coreBelief', v)} />
+                <ExampleChips label="Examples — click to try one:" examples={BELIEF_EXAMPLES} onSelect={(v) => set('coreBelief', v)} />
               </div>
 
               {!beliefsExpanded ? (
@@ -552,7 +580,7 @@ export default function OnboardingPage() {
                       value={form.energizedBy}
                       onChange={(e) => set('energizedBy', e.target.value)}
                     />
-                    <ExampleChips examples={ENERGIZED_EXAMPLES} onSelect={(v) => set('energizedBy', v)} />
+                    <ExampleChips label="Examples:" examples={ENERGIZED_EXAMPLES} onSelect={(v) => set('energizedBy', v)} />
                   </div>
                   <div>
                     <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Misconceptions you challenge</label>
@@ -563,7 +591,7 @@ export default function OnboardingPage() {
                       value={form.misconceptions}
                       onChange={(e) => set('misconceptions', e.target.value)}
                     />
-                    <ExampleChips examples={MISCONCEPTION_EXAMPLES} onSelect={(v) => set('misconceptions', v)} />
+                    <ExampleChips label="Examples:" examples={MISCONCEPTION_EXAMPLES} onSelect={(v) => set('misconceptions', v)} />
                   </div>
                   <div>
                     <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Lessons you repeat often</label>
@@ -574,7 +602,7 @@ export default function OnboardingPage() {
                       value={form.lessons}
                       onChange={(e) => set('lessons', e.target.value)}
                     />
-                    <ExampleChips examples={LESSON_EXAMPLES} onSelect={(v) => set('lessons', v)} />
+                    <ExampleChips label="Examples:" examples={LESSON_EXAMPLES} onSelect={(v) => set('lessons', v)} />
                   </div>
                 </div>
               )}
@@ -590,20 +618,36 @@ export default function OnboardingPage() {
                 why="We tailor formats and cadence by platform."
                 reassurance="You can add to or edit this anytime in Settings → Profile."
               />
-              <div className="flex flex-wrap gap-2">
-                {CHANNEL_OPTIONS.map((ch) => (
-                  <ChipButton
-                    key={ch}
-                    label={ch}
-                    selected={form.channels.includes(ch)}
-                    onClick={() => toggleArray('channels', ch)}
-                  />
+              <div className="space-y-4">
+                {CHANNEL_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">{group.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map((ch) => (
+                        <ChipButton
+                          key={ch}
+                          label={ch}
+                          selected={form.channels.includes(ch)}
+                          onClick={() => toggleArray('channels', ch)}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">Private</p>
+                  <ChipButton
+                    label="Private Feed"
+                    selected={form.channels.includes('Private Feed')}
+                    onClick={() => toggleArray('channels', 'Private Feed')}
+                  />
+                  {form.channels.includes('Private Feed') && (
+                    <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+                      A personal log only you can see — for raw thoughts, reflections, and ideas not ready to share. An astronaut&rsquo;s mission log, only the mission is life.
+                    </p>
+                  )}
+                </div>
               </div>
-              <PrivateFeedCard
-                selected={form.channels.includes('Private Feed')}
-                onToggle={() => toggleArray('channels', 'Private Feed')}
-              />
             </>
           )}
 
@@ -627,6 +671,14 @@ export default function OnboardingPage() {
                       onClick={() => toggleArray('audienceTargets', opt)}
                     />
                   ))}
+                  {form.audienceTargets.filter((v) => !AUDIENCE_WHO_OPTIONS.includes(v)).map((opt) => (
+                    <ChipButton
+                      key={opt}
+                      label={opt}
+                      selected
+                      onClick={() => toggleArray('audienceTargets', opt)}
+                    />
+                  ))}
                 </div>
                 <WriteInInput
                   placeholder="Write in your own…"
@@ -643,6 +695,14 @@ export default function OnboardingPage() {
                       key={opt}
                       label={opt}
                       selected={form.audiencePerception.includes(opt)}
+                      onClick={() => toggleArray('audiencePerception', opt)}
+                    />
+                  ))}
+                  {form.audiencePerception.filter((v) => !AUDIENCE_PERCEPTION_OPTIONS.includes(v)).map((opt) => (
+                    <ChipButton
+                      key={opt}
+                      label={opt}
+                      selected
                       onClick={() => toggleArray('audiencePerception', opt)}
                     />
                   ))}
@@ -699,46 +759,101 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      {/* RIGHT: Summary panel (hidden on mobile) */}
-      <div className="hidden md:flex w-2/5 shrink-0 flex-col bg-zinc-900 p-12 gap-0 overflow-y-auto">
-        <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-4">Your Clout profile</p>
+      {/* RIGHT: Agency brief panel (hidden on mobile) */}
+      <div className="hidden md:flex w-2/5 shrink-0 flex-col bg-zinc-900 p-12 overflow-y-auto">
 
-        {/* Profile card */}
-        <div className="rounded-lg bg-zinc-800 p-4 mb-4">
-          <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-700 text-xs font-semibold text-zinc-100">
-            {form.displayName ? form.displayName.charAt(0).toUpperCase() : form.workspaceName.charAt(0).toUpperCase() || 'C'}
-          </div>
-          <p className="text-sm font-semibold text-white leading-tight">
-            {form.workspaceName || 'Your workspace'}
-          </p>
-          {form.role && (
-            <p className="mt-0.5 text-xs text-zinc-500">{form.role}{form.industry ? ` · ${form.industry}` : ''}</p>
-          )}
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {summaryTags.slice(0, 5).map((t) => (
-              <span
-                key={t.label}
-                className={cn(
-                  'rounded px-1.5 py-0.5 text-xs font-medium',
-                  t.filled
-                    ? 'bg-zinc-700 text-zinc-200'
-                    : 'border border-dashed border-zinc-700 text-zinc-600'
-                )}
-              >
-                {t.label}
-              </span>
-            ))}
-          </div>
+        {/* Header */}
+        <div className="mb-8">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 mb-1">Strategy Brief</p>
+          <p className="text-xs text-zinc-700">Builds as you answer. Complete by Step 6.</p>
         </div>
 
-        {/* Divider */}
-        <div className="mb-4 h-px bg-zinc-800" />
+        {/* Client block */}
+        <div className="mb-7">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Client</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-sm font-semibold text-zinc-100">
+              {(form.firstName || form.workspaceName || 'C').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white leading-tight">
+                {[form.firstName, form.lastName].filter(Boolean).join(' ') || form.workspaceName || <span className="text-zinc-600 italic">Name pending</span>}
+              </p>
+              {(form.role || form.industry) && (
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {[form.role, form.industry].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+          </div>
+          {briefObjective && (
+            <p className="text-xs text-zinc-400 leading-relaxed">{briefObjective}</p>
+          )}
+        </div>
 
-        {/* Strategy brief */}
-        <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-2">Strategy brief</p>
-        <p className="text-xs text-zinc-500 leading-relaxed italic">{summaryBrief}</p>
+        <div className="mb-7 h-px bg-zinc-800" />
 
-        <div className="mt-auto pt-4 text-center text-xs text-zinc-700">Builds as you answer ↑</div>
+        {/* Positioning */}
+        <div className="mb-7">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Positioning</p>
+          {briefPositioning ? (
+            <p className="text-xs text-zinc-300 leading-relaxed">{briefPositioning}</p>
+          ) : (
+            <p className="text-xs text-zinc-700 italic">Defined in Steps 2 &amp; 4.</p>
+          )}
+        </div>
+
+        {/* Content themes */}
+        {briefThemes.length > 0 && (
+          <>
+            <div className="mb-7">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-3">Content Themes</p>
+              <div className="space-y-2">
+                {briefThemes.map((theme, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-zinc-500" />
+                    <p className="text-xs text-zinc-400 leading-relaxed">{theme}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mb-7 h-px bg-zinc-800" />
+          </>
+        )}
+
+        {/* Distribution */}
+        <div className="mb-7">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Distribution</p>
+          {briefDistribution ? (
+            <div className="flex flex-wrap gap-1.5">
+              {briefDistribution.primary.map((ch) => (
+                <span key={ch} className="rounded bg-zinc-700 px-2 py-0.5 text-xs font-medium text-zinc-200">{ch}</span>
+              ))}
+              {briefDistribution.rest && (
+                <span className="rounded border border-dashed border-zinc-700 px-2 py-0.5 text-xs text-zinc-600">{briefDistribution.rest}</span>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-700 italic">Selected in Step 5.</p>
+          )}
+        </div>
+
+        {/* Target audience */}
+        <div className="mb-7">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Target Audience</p>
+          {briefAudience ? (
+            <p className="text-xs text-zinc-400 leading-relaxed">{briefAudience}</p>
+          ) : (
+            <p className="text-xs text-zinc-700 italic">Defined in Step 6.</p>
+          )}
+        </div>
+
+        <div className="mt-auto pt-4">
+          <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-3 text-center">
+            <p className="text-[10px] text-zinc-700 uppercase tracking-widest">Clout Content Strategy</p>
+            <p className="mt-0.5 text-xs text-zinc-800">Generated on completion</p>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -849,19 +964,22 @@ function ChipButton({
   )
 }
 
-function ExampleChips({ examples, onSelect }: { examples: string[]; onSelect: (v: string) => void }) {
+function ExampleChips({ label, examples, onSelect }: { label?: string; examples: string[]; onSelect: (v: string) => void }) {
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {examples.map((ex) => (
-        <button
-          key={ex}
-          type="button"
-          onClick={() => onSelect(ex)}
-          className="rounded border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-600 transition-colors text-left"
-        >
-          {ex}
-        </button>
-      ))}
+    <div className="mt-2">
+      {label && <p className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-zinc-400">{label}</p>}
+      <div className="flex flex-wrap gap-1.5">
+        {examples.map((ex) => (
+          <button
+            key={ex}
+            type="button"
+            onClick={() => onSelect(ex)}
+            className="rounded border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-600 transition-colors text-left"
+          >
+            {ex}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

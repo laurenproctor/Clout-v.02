@@ -9,7 +9,9 @@ export async function updateOnboardingStep(params: {
   const supabase = await createClient()
 
   if (params.step === 'identity') {
-    const { display_name, role, industry, expertise } = params.data as {
+    const { first_name, last_name, display_name, role, industry, expertise } = params.data as {
+      first_name?: string
+      last_name?: string
       display_name?: string
       role?: string
       industry?: string
@@ -17,11 +19,15 @@ export async function updateOnboardingStep(params: {
     }
     const updateData: {
       updated_at: string
+      first_name?: string
+      last_name?: string
       display_name?: string
       role?: string
       industry?: string
       expertise?: string
     } = { updated_at: new Date().toISOString() }
+    if (first_name !== undefined) updateData.first_name = first_name
+    if (last_name !== undefined) updateData.last_name = last_name
     if (display_name !== undefined) updateData.display_name = display_name
     if (role !== undefined) updateData.role = role
     if (industry !== undefined) updateData.industry = industry
