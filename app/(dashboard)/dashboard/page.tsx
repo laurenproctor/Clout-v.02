@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Check, Circle, Loader2, RotateCcw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, Output } from '@/types/domain'
+import { PublishingEngine } from '@/components/dashboard/PublishingEngine'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -528,6 +529,9 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Publishing Engine */}
+      <PublishingEngine />
 
       {/* Recent outputs */}
       <div>
