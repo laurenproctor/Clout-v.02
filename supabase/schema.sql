@@ -20,7 +20,7 @@ create type subscription_status as enum ('active', 'trialing', 'past_due', 'canc
 create type capture_source as enum ('text', 'voice', 'structured', 'url');
 create type capture_status as enum ('pending', 'processing', 'ready', 'failed');
 create type generation_status as enum ('pending', 'generating', 'complete', 'failed');
-create type output_status as enum ('draft', 'review', 'approved', 'published', 'archived');
+create type output_status as enum ('draft', 'review', 'approved', 'queued', 'published', 'archived');
 create type channel_platform as enum ('linkedin', 'newsletter', 'twitter');
 create type lens_scope as enum ('system', 'workspace');
 create type job_type as enum ('transcribe', 'generate', 'summarize', 'reformat');
@@ -249,6 +249,22 @@ create table channels (
 create index channels_workspace_idx on channels(workspace_id) where is_active = true;
 
 -- ============================================================
+-- SCHEDULING PREFERENCES
+-- ============================================================
+create table scheduling_preferences (
+  id               uuid primary key default gen_random_uuid(),
+  workspace_id     uuid not null references workspaces(id) on delete cascade,
+  posts_per_week   int not null default 3 check (posts_per_week between 1 and 14),
+  preferred_days   int[] not null default '{1,3,5}',   -- ISO weekday: 1=Mon … 7=Sun
+  preferred_times  text[] not null default '{"09:00","12:00","17:00"}',  -- HH:MM
+  timezone         text not null default 'America/New_York',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  unique (workspace_id)
+);
+create index scheduling_preferences_workspace_idx on scheduling_preferences(workspace_id);
+
+-- ============================================================
 -- PUBLISHING FOUNDATIONS (credentials, logs, idempotency)
 -- ============================================================
 -- channel_credentials: OAuth tokens per channel, service role only, RLS blocks client access
@@ -269,6 +285,7 @@ create table outputs (
   content        jsonb not null default '{}'::jsonb,
   approved_by    uuid references users(id) on delete set null,
   approved_at    timestamptz,
+  scheduled_at   timestamptz,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
   deleted_at     timestamptz
