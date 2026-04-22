@@ -10,7 +10,7 @@ export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled'
 export type CaptureSource = 'text' | 'voice' | 'structured' | 'url'
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
-export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'published' | 'archived'
+export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
 export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter'
 export type LensScope = 'system' | 'workspace'
 
@@ -170,6 +170,7 @@ export interface Output {
   providerPostId: string | null   // idempotency key
   publishedAt: string | null      // wall-clock publish time
   scheduledAt: string | null      // assigned queue slot
+  lastPublishError: string | null // set on failed publish attempt
   createdAt: string
   updatedAt: string
   channels?: OutputChannel

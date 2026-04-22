@@ -16,6 +16,7 @@ function toOutput(row: Record<string, unknown>): Output {
     providerPostId: (row.provider_post_id as string | null) ?? null,
     publishedAt: (row.published_at as string | null) ?? null,
     scheduledAt: (row.scheduled_at as string | null) ?? null,
+    lastPublishError: (row.last_publish_error as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }

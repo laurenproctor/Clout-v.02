@@ -351,7 +351,7 @@ export interface Database {
           workspace_id: string
           generation_id: string
           channel_id: string | null
-          status: 'draft' | 'review' | 'approved' | 'queued' | 'published' | 'archived'
+          status: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
           title: string | null
           content: Json
           approved_by: string | null
@@ -359,6 +359,7 @@ export interface Database {
           provider_post_id: string | null
           published_at: string | null
           scheduled_at: string | null
+          last_publish_error: string | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -368,7 +369,7 @@ export interface Database {
           workspace_id: string
           generation_id: string
           channel_id?: string | null
-          status?: 'draft' | 'review' | 'approved' | 'queued' | 'published' | 'archived'
+          status?: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
           title?: string | null
           content?: Json
           approved_by?: string | null
@@ -376,13 +377,14 @@ export interface Database {
           provider_post_id?: string | null
           published_at?: string | null
           scheduled_at?: string | null
+          last_publish_error?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
         }
         Update: {
           channel_id?: string | null
-          status?: 'draft' | 'review' | 'approved' | 'queued' | 'published' | 'archived'
+          status?: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
           title?: string | null
           content?: Json
           approved_by?: string | null
@@ -390,6 +392,7 @@ export interface Database {
           provider_post_id?: string | null
           published_at?: string | null
           scheduled_at?: string | null
+          last_publish_error?: string | null
           updated_at?: string
           deleted_at?: string | null
         }
@@ -717,7 +720,7 @@ export interface Database {
       capture_source: 'text' | 'voice' | 'structured' | 'url'
       capture_status: 'pending' | 'processing' | 'ready' | 'failed'
       generation_status: 'pending' | 'generating' | 'complete' | 'failed'
-      output_status: 'draft' | 'review' | 'approved' | 'queued' | 'published' | 'archived'
+      output_status: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
       channel_platform: 'linkedin' | 'newsletter' | 'twitter'
       lens_scope: 'system' | 'workspace'
       job_type: 'transcribe' | 'generate' | 'summarize' | 'reformat'

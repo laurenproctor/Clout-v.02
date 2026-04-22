@@ -17,12 +17,14 @@ interface Channel { id: string; platform: string; label: string | null }
 interface Variant  { id: string; label: string; isCurrent: boolean }
 
 const STATUS_DOT: Record<OutputStatus, string> = {
-  draft:     'bg-zinc-600',
-  review:    'bg-amber-500',
-  approved:  'bg-emerald-500',
-  queued:    'bg-violet-500',
-  published: 'bg-blue-500',
-  archived:  'bg-zinc-700',
+  draft:      'bg-zinc-600',
+  review:     'bg-amber-500',
+  approved:   'bg-emerald-500',
+  queued:     'bg-violet-500',
+  publishing: 'bg-blue-400',
+  published:  'bg-blue-500',
+  failed:     'bg-red-400',
+  archived:   'bg-zinc-700',
 }
 
 function deriveLabel(angle: string | undefined | null, idx: number): string {
