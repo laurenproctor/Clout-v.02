@@ -3,9 +3,17 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Share2, Mail, Globe, ExternalLink, RefreshCw, Unlink, CheckCircle2 } from 'lucide-react'
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.252 5.628 5.912-5.628zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  )
+}
 import { cn } from '@/lib/utils'
 
-type Platform = 'linkedin' | 'newsletter' | 'twitter'
+type Platform = 'linkedin' | 'x' | 'newsletter' | 'blog'
 
 interface Channel {
   id: string
@@ -24,25 +32,36 @@ interface ReadyOutput {
 
 const PLATFORMS = [
   {
-    key: 'linkedin' as const,
-    name: 'LinkedIn',
-    Icon: Share2,
-    tagline: 'Publish directly to your profile.',
-    available: true,
+    key:         'linkedin' as const,
+    name:        'LinkedIn',
+    Icon:        Share2,
+    tagline:     'Publish directly to your profile.',
+    available:   true,
+    connectHref: '/api/channels/linkedin/connect',
   },
   {
-    key: 'newsletter' as const,
-    name: 'Email',
-    Icon: Mail,
-    tagline: 'Newsletter export — Phase 2.',
-    available: false,
+    key:         'x' as const,
+    name:        'X',
+    Icon:        XIcon,
+    tagline:     'Ship ideas daily and grow reach.',
+    available:   process.env.NEXT_PUBLIC_ENABLE_X_CHANNEL === 'true',
+    connectHref: '/api/channels/x/connect',
   },
   {
-    key: 'blog' as const,
-    name: 'Blog',
-    Icon: Globe,
-    tagline: 'Markdown export — Phase 2.',
-    available: false,
+    key:         'newsletter' as const,
+    name:        'Email',
+    Icon:        Mail,
+    tagline:     'Newsletter export — Phase 2.',
+    available:   false,
+    connectHref: '',
+  },
+  {
+    key:         'blog' as const,
+    name:        'Blog',
+    Icon:        Globe,
+    tagline:     'Markdown export — Phase 2.',
+    available:   false,
+    connectHref: '',
   },
 ]
 
@@ -71,10 +90,12 @@ function PublishingContent() {
     const connected = searchParams.get('connected')
     const error     = searchParams.get('error')
     if (connected === 'linkedin')                flash('LinkedIn connected.', true)
+    else if (connected === 'x')                  flash('X connected.', true)
     else if (error === 'linkedin_denied')        flash('Connection cancelled.', false)
+    else if (error === 'x_denied')               flash('Connection cancelled.', false)
     else if (error === 'session_expired')        flash('Session expired — please try again.', false)
-    else if (error === 'token_exchange_failed')  flash('LinkedIn rejected the connection. Check your app credentials.', false)
-    else if (error === 'profile_fetch_failed')   flash('Connected but couldn\'t fetch your LinkedIn profile. Try again.', false)
+    else if (error === 'token_exchange_failed')  flash('Connection rejected. Check your app credentials.', false)
+    else if (error === 'profile_fetch_failed')   flash('Connected but couldn\'t fetch your profile. Try again.', false)
     else if (error === 'channel_db_failed')      flash('Database error saving channel. Try again.', false)
     else if (error === 'credential_db_failed')   flash('Database error saving credentials. Try again.', false)
     else if (error === 'connect_failed')         flash('Connection failed. Please try again.', false)
@@ -110,9 +131,10 @@ function PublishingContent() {
     flash('Account disconnected.', true)
   }
 
-  async function handlePublishNow(outputId: string) {
+  async function handlePublishNow(outputId: string, platform: string) {
     setPublishing(outputId)
-    const res = await fetch('/api/channels/linkedin/post', {
+    const endpoint = platform === 'x' ? '/api/channels/x/post' : '/api/channels/linkedin/post'
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ outputId }),
@@ -123,7 +145,8 @@ function PublishingContent() {
         setTotalPublished(n => n + 1)
         setLastPublishedAt(new Date().toISOString())
       }
-      flash(data.alreadyPublished ? 'Already posted to LinkedIn.' : 'Posted to LinkedIn.', true)
+      const label = platform === 'x' ? 'X' : 'LinkedIn'
+      flash(data.alreadyPublished ? `Already posted to ${label}.` : `Posted to ${label}.`, true)
       setReady(prev => prev.filter(o => o.id !== outputId))
     } else {
       flash(data.error ?? 'Publish failed.', false)
@@ -132,6 +155,7 @@ function PublishingContent() {
   }
 
   const linkedInChannel = channels.find(c => c.platform === 'linkedin' && c.is_active)
+  const xChannel        = channels.find(c => c.platform === 'x'        && c.is_active)
 
   return (
     <div className="max-w-xl space-y-10">
@@ -169,7 +193,7 @@ function PublishingContent() {
       <section className="space-y-3">
         <h2 className="text-xs font-medium uppercase tracking-widest text-zinc-400">Accounts</h2>
         <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
-          {PLATFORMS.map(({ key, name, Icon, tagline, available }) => {
+          {PLATFORMS.map(({ key, name, Icon, tagline, available, connectHref }) => {
             const ch = channels.find(c => c.platform === key)
             const isConnected = ch?.is_active ?? false
             return (
@@ -193,7 +217,7 @@ function PublishingContent() {
                   {isConnected ? (
                     available && ch && (
                       <>
-                        <a href="/api/channels/linkedin/connect" className="text-zinc-300 hover:text-zinc-600 transition-colors" title="Reconnect">
+                        <a href={connectHref} className="text-zinc-300 hover:text-zinc-600 transition-colors" title="Reconnect">
                           <RefreshCw className="h-3.5 w-3.5" />
                         </a>
                         <button onClick={() => handleDisconnect(ch.id)} className="text-zinc-300 hover:text-red-400 transition-colors" title="Disconnect">
@@ -203,7 +227,7 @@ function PublishingContent() {
                     )
                   ) : available ? (
                     <a
-                      href="/api/channels/linkedin/connect"
+                      href={connectHref}
                       className="rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
                     >
                       Connect
@@ -240,7 +264,8 @@ function PublishingContent() {
         ) : (
           <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
             {ready.map(output => {
-              const canPost = linkedInChannel && output.channels?.platform === 'linkedin'
+              const canPost = (linkedInChannel && output.channels?.platform === 'linkedin') ||
+                             (xChannel && output.channels?.platform === 'x')
               return (
                 <div key={output.id} className="flex items-center gap-4 px-5 py-4">
                   <div className="flex-1 min-w-0">
@@ -256,7 +281,7 @@ function PublishingContent() {
                   <div className="flex items-center gap-2 shrink-0">
                     {canPost && (
                       <button
-                        onClick={() => handlePublishNow(output.id)}
+                        onClick={() => handlePublishNow(output.id, output.channels?.platform ?? 'linkedin')}
                         disabled={!!publishing}
                         className={cn(
                           'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',

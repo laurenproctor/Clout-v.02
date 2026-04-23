@@ -659,6 +659,32 @@ export interface Database {
         }
         Relationships: []
       }
+      provider_health_logs: {
+        Row: {
+          id: string
+          workspace_id: string
+          channel_id: string | null
+          platform: string
+          event_type: string
+          error_code: string | null
+          error_message: string | null
+          metadata: Record<string, unknown>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          channel_id?: string | null
+          platform: string
+          event_type: string
+          error_code?: string | null
+          error_message?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
       publish_logs: {
         Row: {
           id: string
