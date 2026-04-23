@@ -2,7 +2,7 @@ import { schedules, logger } from '@trigger.dev/sdk/v3'
 import {
   recoverStuckPublishing,
   getDueQueuedPosts,
-  publishLinkedInOutput,
+  publishOutput,
   markPublishing,
   markPublished,
   markFailed,
@@ -47,6 +47,7 @@ export const publishScheduledPostsTask = schedules.task({
 
       let lastError: unknown = null
       let postUrn: string | null = null
+      let postUrl: string | null = null
 
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         if (attempt > 0) {
@@ -54,8 +55,9 @@ export const publishScheduledPostsTask = schedules.task({
         }
 
         try {
-          const result = await publishLinkedInOutput(post, { wasRetry: attempt > 0 })
+          const result = await publishOutput(post, { wasRetry: attempt > 0 })
           postUrn = result.postUrn
+          postUrl = result.postUrl
           lastError = null
           break
         } catch (err) {
@@ -72,7 +74,7 @@ export const publishScheduledPostsTask = schedules.task({
       }
 
       if (postUrn) {
-        await markPublished(post.id, postUrn)
+        await markPublished(post.id, postUrn, postUrl ?? undefined)
         published++
         await logger.info('publish-scheduled: published', { outputId: post.id, postUrn })
       } else {
