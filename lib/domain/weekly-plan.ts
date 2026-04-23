@@ -217,6 +217,7 @@ export async function getPerformanceSummary(
   const hourCounts: Record<number, number> = {}
 
   for (const log of logs ?? []) {
+    if (!log.created_at) continue
     const dt = DateTime.fromISO(log.created_at).toLocal()
     dayCounts[dt.weekday] = (dayCounts[dt.weekday] ?? 0) + 1
     hourCounts[dt.hour]   = (hourCounts[dt.hour]   ?? 0) + 1
