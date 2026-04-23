@@ -70,20 +70,22 @@ function PublishingContent() {
   useEffect(() => {
     const connected = searchParams.get('connected')
     const error     = searchParams.get('error')
+    const detail    = searchParams.get('detail')
+    const suffix    = detail ? ` (${detail})` : ''
     if (connected === 'linkedin')                flash('LinkedIn connected.', true)
     else if (error === 'linkedin_denied')        flash('Connection cancelled.', false)
     else if (error === 'session_expired')        flash('Session expired — please try again.', false)
-    else if (error === 'token_exchange_failed')  flash('LinkedIn rejected the connection. Check your app credentials.', false)
-    else if (error === 'profile_fetch_failed')   flash('Connected but couldn\'t fetch your LinkedIn profile. Try again.', false)
-    else if (error === 'channel_db_failed')      flash('Database error saving channel. Try again.', false)
-    else if (error === 'credential_db_failed')   flash('Database error saving credentials. Try again.', false)
-    else if (error === 'connect_failed')         flash('Connection failed. Please try again.', false)
+    else if (error === 'token_exchange_failed')  flash(`LinkedIn rejected the token exchange.${suffix}`, false)
+    else if (error === 'profile_fetch_failed')   flash(`Couldn't fetch LinkedIn profile.${suffix}`, false)
+    else if (error === 'channel_db_failed')      flash(`Database error saving channel.${suffix}`, false)
+    else if (error === 'credential_db_failed')   flash(`Database error saving credentials.${suffix}`, false)
+    else if (error === 'connect_failed')         flash(`Connection failed.${suffix}`, false)
     if (connected || error) router.replace('/channels')
   }, [])
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
-    setTimeout(() => setToast(null), 4000)
+    setTimeout(() => setToast(null), 10000)
   }
 
   async function load() {
