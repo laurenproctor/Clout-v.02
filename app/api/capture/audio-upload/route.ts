@@ -25,9 +25,10 @@ export async function POST(req: NextRequest) {
     })
 
   if (error || !data) {
-    console.error('Audio upload error:', error)
+    console.error('[api/capture/audio-upload] upload failed', { error: error?.message, workspaceId: session.workspaceId })
     return NextResponse.json({ error: 'Upload failed', detail: error?.message }, { status: 500 })
   }
 
+  console.log('[api/capture/audio-upload] success', { path: data.path, sizeBytes: file.size })
   return NextResponse.json({ path: data.path })
 }

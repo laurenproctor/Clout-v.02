@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  console.log('[api/capture] creating', { source, workspaceId: session.workspaceId })
+
   const result = await createCapture({
     workspaceId: session.workspaceId,
     createdBy: session.userId,
@@ -50,8 +52,10 @@ export async function POST(req: NextRequest) {
   })
 
   if (!result.ok) {
+    console.error('[api/capture] failed', { source, error: result.error })
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
+  console.log('[api/capture] created', { capture_id: result.data.id, source })
   return NextResponse.json(result.data, { status: 201 })
 }
 

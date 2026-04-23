@@ -122,8 +122,11 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const files = formData.getAll('files') as File[]
   const lensId = formData.get('lens_id') as string | null
+  const t0 = Date.now()
 
   if (!files.length) return NextResponse.json({ error: 'No files provided' }, { status: 400 })
+
+  console.log('[api/capture/upload/process] start', { fileCount: files.length, files: files.map(f => f.name) })
   if (files.length > MAX_FILES) return NextResponse.json({ error: `Maximum ${MAX_FILES} files allowed` }, { status: 400 })
 
   for (const file of files) {
@@ -154,9 +157,11 @@ export async function POST(req: NextRequest) {
     }
   }
   if (!texts.length) {
+    console.error('[api/capture/upload/process] extraction failed for all files')
     return NextResponse.json({ error: 'Could not extract content from any of the uploaded files' }, { status: 422 })
   }
   const combinedContent = texts.join('\n\n---\n\n').slice(0, 20000)
+  console.log('[api/capture/upload/process] extracted', { chars: combinedContent.length, filesExtracted: texts.length })
 
   // Save capture
   const captureResult = await createCapture({
@@ -244,11 +249,15 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
+    console.error('[api/capture/upload/process] generation error', { error: err instanceof Error ? err.message : String(err) })
     await supabase.from('generations').update({ status: 'failed', error_message: String(err) }).eq('id', generation.id)
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
   }
 
-  if (!drafts.length) return NextResponse.json({ error: 'No drafts generated' }, { status: 500 })
+  if (!drafts.length) {
+    console.error('[api/capture/upload/process] no drafts parsed')
+    return NextResponse.json({ error: 'No drafts generated' }, { status: 500 })
+  }
 
   const { data: outputs, error: outputError } = await supabase
     .from('outputs')
@@ -262,6 +271,8 @@ export async function POST(req: NextRequest) {
     .select('id, title, content')
 
   if (outputError || !outputs?.length) return NextResponse.json({ error: 'Failed to save drafts' }, { status: 500 })
+
+  console.log('[api/capture/upload/process] success', { capture_id: capture.id, draft_count: outputs.length, duration_ms: Date.now() - t0 })
 
   return NextResponse.json({
     capture_id: capture.id,

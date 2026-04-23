@@ -13,8 +13,11 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { url, lens_id } = body
+  const t0 = Date.now()
 
   if (!url) return NextResponse.json({ error: 'url required' }, { status: 400 })
+
+  console.log('[api/capture/url/process] start', { url })
 
   // Validate URL
   let parsedUrl: URL
@@ -89,8 +92,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!scrapedText.trim()) {
+    console.error('[api/capture/url/process] no content', { url })
     return NextResponse.json({ error: 'Could not extract content from this URL' }, { status: 422 })
   }
+  console.log('[api/capture/url/process] scraped', { url, chars: scrapedText.length })
 
   // ── Save capture ───────────────────────────────────────────────────────────
   const captureResult = await createCapture({
@@ -201,6 +206,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
+    console.error('[api/capture/url/process] generation error', { url, error: err instanceof Error ? err.message : String(err) })
     await supabase
       .from('generations')
       .update({ status: 'failed', error_message: String(err) })
@@ -209,6 +215,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (drafts.length === 0) {
+    console.error('[api/capture/url/process] no drafts parsed', { url })
     return NextResponse.json({ error: 'No drafts generated' }, { status: 500 })
   }
 
@@ -229,6 +236,8 @@ export async function POST(req: NextRequest) {
   if (outputError || !outputs || outputs.length === 0) {
     return NextResponse.json({ error: 'Failed to save drafts' }, { status: 500 })
   }
+
+  console.log('[api/capture/url/process] success', { url, draft_count: outputs.length, duration_ms: Date.now() - t0 })
 
   return NextResponse.json({
     capture_id: capture.id,
