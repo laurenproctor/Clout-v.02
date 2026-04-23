@@ -186,8 +186,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create output' }, { status: 500 })
   }
 
+  const rawContent =
+    typeof output.content === 'string'
+      ? output.content
+      : ((output.content as Record<string, unknown>)?.body as string) ?? ''
+
   return NextResponse.json(
-    { output_id: output.id, generation_id: generation.id },
+    {
+      output_id: output.id,
+      generation_id: generation.id,
+      content: output.content,
+      raw_content: rawContent,
+    },
     { status: 201 }
   )
 }

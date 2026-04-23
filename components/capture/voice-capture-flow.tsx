@@ -158,11 +158,14 @@ export function VoiceCaptureFlow({
       })
       if (!gRes.ok) throw new Error('Generation failed')
       const gen = await gRes.json()
-      setOutputId(gen.id ?? gen.output_id ?? null)
+      setOutputId(gen.output_id ?? null)
 
-      const content = gen.content ?? gen.raw_content ?? ''
-      const lines = content.split('\n\n').filter(Boolean)
-      setDraftLines(lines.length > 0 ? lines : [content])
+      const body =
+        (gen.content as Record<string, unknown> | null)?.body as string | undefined ??
+        gen.raw_content ??
+        ''
+      const lines = body.split('\n\n').filter(Boolean)
+      setDraftLines(lines.length > 0 ? lines : body ? [body] : ['Draft ready — open in Studio to view.'])
       setFlowState('draft_ready')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong')
