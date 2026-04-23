@@ -8,7 +8,8 @@ export async function GET() {
 
   const supabase = await createClient()
   const { data, error } = await supabase
-    .from('brand_profiles')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .from('brand_profiles' as any)
     .select('*')
     .eq('workspace_id', session.workspaceId)
     .single()
@@ -35,7 +36,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { data, error } = await supabase
-    .from('brand_profiles')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .from('brand_profiles' as any)
     .update(update)
     .eq('workspace_id', session.workspaceId)
     .select()
