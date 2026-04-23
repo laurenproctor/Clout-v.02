@@ -257,7 +257,10 @@ create table scheduling_preferences (
   posts_per_week   int not null default 3 check (posts_per_week between 1 and 14),
   preferred_days   int[] not null default '{1,3,5}',   -- ISO weekday: 1=Mon … 7=Sun
   preferred_times  text[] not null default '{"09:00","12:00","17:00"}',  -- HH:MM
-  timezone         text not null default 'America/New_York',
+  timezone              text not null default 'America/New_York',
+  weekly_digest_enabled boolean not null default true,
+  weekly_digest_day     smallint default 1,  -- 1=Monday
+  weekly_digest_hour    smallint default 8,  -- 8am workspace tz
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   unique (workspace_id)
@@ -287,6 +290,9 @@ create table outputs (
   approved_at    timestamptz,
   scheduled_at        timestamptz,
   last_publish_error  text,
+  approved_for_week   boolean not null default false,
+  week_bucket         date,
+  performance_snapshot jsonb,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
