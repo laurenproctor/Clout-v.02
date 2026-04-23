@@ -129,10 +129,16 @@ export function VoiceCaptureFlow({
       })
       if (!uploadRes.ok) {
         const uploadErr = await uploadRes.json().catch(() => ({}))
-        throw new Error(uploadErr.error ?? 'Upload failed')
+        const detail = uploadErr.error ?? `HTTP ${uploadRes.status}`
+        console.error('[voice-capture] audio upload failed:', detail)
+        throw new Error(detail)
       }
-      const { path: audioPath } = await uploadRes.json()
-      if (!audioPath) throw new Error('Upload failed')
+      const uploadData = await uploadRes.json()
+      const audioPath = uploadData.path
+      if (!audioPath) {
+        console.error('[voice-capture] upload response missing path:', uploadData)
+        throw new Error('Upload succeeded but path missing — contact support')
+      }
 
       // Create capture record
       const captureRes = await fetch('/api/capture', {
@@ -428,7 +434,9 @@ export function VoiceCaptureFlow({
             {errorMsg || 'Something went wrong'}
           </p>
           <p className="text-[13px] text-zinc-400">
-            Your recording was saved. Try again or continue without transcription.
+            {errorMsg.startsWith('Upload failed') || errorMsg.startsWith('HTTP ')
+              ? 'Could not save the recording. Try again.'
+              : 'Your recording was saved. Try again or continue without transcription.'}
           </p>
           <button
             type="button"
