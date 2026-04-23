@@ -44,6 +44,15 @@ html {
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Brand marketing colors */
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-red: var(--brand-red);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-sage: var(--brand-sage);
+  --color-brand-deep-navy: var(--brand-deep-navy);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-muted-text: var(--brand-muted-text);
+  --color-brand-border-light: var(--brand-border-light);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -56,6 +65,10 @@ html {
 /* All color, font, and radius tokens live in styles/tokens.css */
 
 @layer base {
+  .marketing {
+    --radius: 0;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

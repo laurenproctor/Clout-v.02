@@ -4,6 +4,24 @@
    ============================================================================= */
 
 /* --------------------------------------------------------------------------
+   BRAND NAMED COLORS — used by marketing site; do not override semantic vars
+   -------------------------------------------------------------------------- */
+
+:root {
+  --brand-ink: #1A1A1A;
+  --brand-paper: #FFFFFF;
+  --brand-border-light: #E8E8E8;
+  --brand-muted-text: #6B6B6B;
+  --brand-surface: #F7F7F5;
+  --brand-blue: #2B4C7E;
+  --brand-red: #C84B31;
+  --brand-gold: #D4A574;
+  --brand-sage: #8B9B88;
+  --brand-warm-grey: #B3A598;
+  --brand-deep-navy: #1E2A3A;
+}
+
+/* --------------------------------------------------------------------------
    TYPEFACES — Signifier files in /public/fonts/
    -------------------------------------------------------------------------- */
 
