@@ -11,6 +11,8 @@ export async function POST(
 
   const { id: captureId } = await params
   const supabase = await createClient()
+  const t0 = Date.now()
+  console.log('[api/capture/transcribe] start', { captureId })
 
   // Load capture — must belong to this workspace
   const { data: capture, error: fetchError } = await supabase
@@ -69,6 +71,7 @@ export async function POST(
 
   if (!whisperRes.ok) {
     const text = await whisperRes.text()
+    console.error('[api/capture/transcribe] whisper error', { captureId, status: whisperRes.status })
     await supabase.from('captures').update({ status: 'failed' }).eq('id', captureId)
     return NextResponse.json(
       { error: `Transcription failed: ${whisperRes.status} ${text}` },
@@ -89,5 +92,6 @@ export async function POST(
     })
     .eq('id', captureId)
 
+  console.log('[api/capture/transcribe] success', { captureId, transcriptChars: transcript.length, duration_ms: Date.now() - t0 })
   return NextResponse.json({ status: 'ready', transcript })
 }

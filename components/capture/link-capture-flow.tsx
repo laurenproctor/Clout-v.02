@@ -99,6 +99,7 @@ export function LinkCaptureFlow({ url, lensId, onComplete, onError, onReset }: L
       })
       .catch((err) => {
         if (stepTimer.current) clearInterval(stepTimer.current)
+        didProcess.current = false // allow retry
         const msg = err instanceof Error ? err.message : 'Something went wrong'
         setErrorMsg(msg)
         setFlowState('error')
@@ -413,14 +414,23 @@ export function LinkCaptureFlow({ url, lensId, onComplete, onError, onReset }: L
         <div className="flex flex-col items-center gap-3 py-4 text-center">
           <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-lg">⚠</div>
           <p className="text-[14px] font-medium text-zinc-900">{errorMsg || 'Could not process this URL'}</p>
-          <p className="text-[12px] text-zinc-400">Try a different link, or paste the text directly.</p>
-          <button
-            type="button"
-            onClick={onReset}
-            className="text-[13px] font-medium text-zinc-900 border border-zinc-200 rounded-[10px] px-4 py-2 hover:border-zinc-400 transition-colors"
-          >
-            Try another link
-          </button>
+          <p className="text-[12px] text-zinc-400">Try again or paste a different link.</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setFlowState('preview')}
+              className="text-[13px] font-semibold text-white bg-zinc-900 rounded-[10px] px-4 py-2 hover:bg-zinc-700 transition-colors"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-[13px] font-medium text-zinc-900 border border-zinc-200 rounded-[10px] px-4 py-2 hover:border-zinc-400 transition-colors"
+            >
+              Different link
+            </button>
+          </div>
         </div>
       </div>
     )

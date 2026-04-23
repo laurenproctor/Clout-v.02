@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { capture_id, lens_id } = body
   const channelId = body.channel_id ?? null
+  const t0 = Date.now()
+  console.log('[api/generate] start', { capture_id, lens_id })
 
   if (!capture_id) {
     return NextResponse.json(
@@ -141,6 +143,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-6',
     })
   } catch (err) {
+    console.error('[api/generate] claude error', { capture_id, error: err instanceof Error ? err.message : String(err) })
     await supabase
       .from('generations')
       .update({ status: 'failed', error_message: String(err) })
@@ -186,8 +189,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to create output' }, { status: 500 })
   }
 
+  const rawContent =
+    typeof output.content === 'string'
+      ? output.content
+      : ((output.content as Record<string, unknown>)?.body as string) ?? ''
+
+  console.log('[api/generate] success', { output_id: output.id, generation_id: generation.id, duration_ms: Date.now() - t0 })
+
   return NextResponse.json(
-    { output_id: output.id, generation_id: generation.id },
+    {
+      output_id: output.id,
+      generation_id: generation.id,
+      content: output.content,
+      raw_content: rawContent,
+    },
     { status: 201 }
   )
 }

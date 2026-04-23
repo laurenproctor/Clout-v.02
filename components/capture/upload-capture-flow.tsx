@@ -81,6 +81,7 @@ export function UploadCaptureFlow({ lensId, onComplete, onError }: UploadCapture
   const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [regenLoading, setRegenLoading] = useState<string | null>(null)
+  const [regenErrorId, setRegenErrorId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const stepTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const captureIdRef = useRef<string | null>(null)
@@ -170,6 +171,7 @@ export function UploadCaptureFlow({ lensId, onComplete, onError }: UploadCapture
   async function handleRegen(draft: Draft, idx: number) {
     if (!captureIdRef.current) return
     setRegenLoading(draft.output_id)
+    setRegenErrorId(null)
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -188,8 +190,9 @@ export function UploadCaptureFlow({ lensId, onComplete, onError }: UploadCapture
           i === idx ? { ...d, output_id: data.output_id, hook: newHook, body: newBody, preview: newBody.slice(0, 300) } : d
         ))
       }
-    } catch {
-      // silently fail regen — don't wipe existing card
+    } catch (err) {
+      console.error('[upload-compose] regen failed:', err)
+      setRegenErrorId(draft.output_id)
     } finally {
       setRegenLoading(null)
     }
@@ -387,6 +390,7 @@ export function UploadCaptureFlow({ lensId, onComplete, onError }: UploadCapture
               isCopied={copiedIds.has(draft.output_id)}
               isSaved={savedIds.has(draft.output_id)}
               isRegening={regenLoading === draft.output_id}
+              regenFailed={regenErrorId === draft.output_id}
               onOpen={() => onComplete(draft.output_id)}
               onCopy={() => handleCopy(draft)}
               onSave={() => handleSave(draft)}
@@ -466,10 +470,10 @@ function SourceStrip({ files, onReset }: { files: UploadedFile[]; onReset: () =>
 }
 
 function DraftCard({
-  draft, index, isCopied, isSaved, isRegening,
+  draft, index, isCopied, isSaved, isRegening, regenFailed,
   onOpen, onCopy, onSave, onRegen,
 }: {
-  draft: Draft; index: number; isCopied: boolean; isSaved: boolean; isRegening: boolean
+  draft: Draft; index: number; isCopied: boolean; isSaved: boolean; isRegening: boolean; regenFailed: boolean
   onOpen: () => void; onCopy: () => void; onSave: () => void; onRegen: () => void
 }) {
   return (
@@ -488,9 +492,14 @@ function DraftCard({
             Writing a new angle…
           </div>
         ) : (
-          <p className="text-[13px] leading-[1.7] text-zinc-800 line-clamp-5 whitespace-pre-line">
-            {draft.hook || draft.preview}
-          </p>
+          <>
+            <p className="text-[13px] leading-[1.7] text-zinc-800 line-clamp-5 whitespace-pre-line">
+              {draft.hook || draft.preview}
+            </p>
+            {regenFailed && (
+              <p className="mt-2 text-[12px] text-red-500">Regeneration failed. Try again.</p>
+            )}
+          </>
         )}
       </div>
       <div className="flex items-center border-t border-zinc-100">

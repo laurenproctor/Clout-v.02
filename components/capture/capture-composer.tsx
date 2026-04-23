@@ -66,6 +66,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
   const [selectedLensId, setSelectedLensId] = useState('')
   const [generating, setGenerating] = useState(false)
   const [workspaceId, setWorkspaceId] = useState('pending')
+  const [lensLoadError, setLensLoadError] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [transcribeError, setTranscribeError] = useState<string | null>(null)
   const [captureMode, setCaptureMode] = useState<CaptureMode>(initialMode)
@@ -86,17 +87,20 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
         setLenses(data)
         if (data.length > 0) setSelectedLensId(data[0].id)
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.warn('[capture-composer] lenses fetch failed:', err)
+        setLensLoadError(true)
+      })
 
     fetch('/api/workspace')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.workspace?.id) setWorkspaceId(data.workspace.id) })
-      .catch(() => {})
+      .catch((err) => console.warn('[capture-composer] workspace fetch failed:', err))
 
     fetch('/api/profile')
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { setRotatingPrompts(buildPersonalizedPrompts(data)) })
-      .catch(() => {})
+      .catch((err) => console.warn('[capture-composer] profile fetch failed:', err))
   }, [])
 
   useEffect(() => {
@@ -288,6 +292,11 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
                   </option>
                 ))}
               </select>
+              {lensLoadError && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Could not load lenses. Refresh to retry.
+                </p>
+              )}
               {selectedLensId && (
                 <p className="mt-1 text-xs text-zinc-400">
                   {lenses.find((l) => l.id === selectedLensId)?.description}
