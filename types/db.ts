@@ -71,6 +71,56 @@ export type Database = {
           },
         ]
       }
+      brand_imagery_profiles: {
+        Row: {
+          composition: string | null
+          created_at: string
+          example_board: string[]
+          id: string
+          imagery_type: string | null
+          mood_traits: string[]
+          negative_rules: string[]
+          overlay_text_style: string | null
+          updated_at: string
+          visual_styles: string[]
+          workspace_id: string
+        }
+        Insert: {
+          composition?: string | null
+          created_at?: string
+          example_board?: string[]
+          id?: string
+          imagery_type?: string | null
+          mood_traits?: string[]
+          negative_rules?: string[]
+          overlay_text_style?: string | null
+          updated_at?: string
+          visual_styles?: string[]
+          workspace_id: string
+        }
+        Update: {
+          composition?: string | null
+          created_at?: string
+          example_board?: string[]
+          id?: string
+          imagery_type?: string | null
+          mood_traits?: string[]
+          negative_rules?: string[]
+          overlay_text_style?: string | null
+          updated_at?: string
+          visual_styles?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_imagery_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_profiles: {
         Row: {
           accent_color: string
