@@ -34,6 +34,8 @@ alter table onboarding_generations enable row level security;
 
 drop policy if exists "workspace members can read own generation" on onboarding_generations;
 drop policy if exists "service role can manage onboarding_generations" on onboarding_generations;
+drop policy if exists "onboarding_gen_select" on onboarding_generations;
+drop policy if exists "onboarding_gen_write" on onboarding_generations;
 create policy "onboarding_gen_select" on onboarding_generations for select
   using (is_workspace_member(workspace_id));
 create policy "onboarding_gen_write" on onboarding_generations for all

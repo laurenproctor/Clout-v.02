@@ -114,6 +114,7 @@ export async function updateOutput(params: {
   providerPostId?: string | null
   publishedAt?: string | null
   scheduledAt?: string | null
+  lastPublishError?: string | null
 }): Promise<DomainResult<Output>> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -130,6 +131,7 @@ export async function updateOutput(params: {
       ...(params.providerPostId !== undefined && { provider_post_id: params.providerPostId }),
       ...(params.publishedAt !== undefined && { published_at: params.publishedAt }),
       ...(params.scheduledAt !== undefined && { scheduled_at: params.scheduledAt }),
+      ...('lastPublishError' in params && { last_publish_error: params.lastPublishError }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.outputId)

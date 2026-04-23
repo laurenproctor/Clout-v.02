@@ -41,7 +41,7 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { content, title, status, approve, channel_id, scheduled_at } = body
+  const { content, title, status, approve, channel_id, scheduled_at, last_publish_error } = body
 
   if (content) {
     await createOutputVersion({
@@ -60,6 +60,7 @@ export async function PATCH(
     ...(approve && { status: 'approved', approvedBy: session.userId }),
     ...(channel_id !== undefined && { channelId: channel_id === null ? null : channel_id }),
     ...(scheduled_at !== undefined && { scheduledAt: scheduled_at }),
+    ...('last_publish_error' in body && { lastPublishError: last_publish_error }),
   })
 
   if (!result.ok) {

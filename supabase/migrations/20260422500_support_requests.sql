@@ -1,4 +1,4 @@
-create table support_requests (
+create table if not exists support_requests (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid references users(id) on delete set null,
   workspace_id  uuid references workspaces(id) on delete set null,

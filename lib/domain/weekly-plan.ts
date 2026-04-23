@@ -208,6 +208,11 @@ export async function getPerformanceSummary(
 
   const count = logs?.length ?? 0
 
+  // Require at least 3 publishes before surfacing timing insights
+  if (count < 3) {
+    return { publishedLast30Days: count, topPostingDay: null, topPostingHour: null, weekBucket }
+  }
+
   const dayCounts: Record<number, number> = {}
   const hourCounts: Record<number, number> = {}
 
