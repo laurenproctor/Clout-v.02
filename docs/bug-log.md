@@ -13,6 +13,7 @@ _Updated: 2026-04-23_
 | Upload regen failure silent — empty catch block | Medium | `components/capture/upload-capture-flow.tsx:191` | Fixed |
 | URL compose retry blocked — `didProcess.current` never reset on error | Medium | `components/capture/link-capture-flow.tsx:79` | Fixed |
 | Error boundary missing `componentDidCatch` logging | Low | `components/shell/error-boundary.tsx` | Fixed |
+| Voice upload failing — `voice-captures` bucket never created in production | Critical | `supabase/migrations/20260423_voice_captures_bucket.sql` | Fixed |
 
 ## Findings (No Change Needed — Already Correct)
 
