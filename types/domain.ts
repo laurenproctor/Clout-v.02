@@ -11,7 +11,7 @@ export type CaptureSource = 'text' | 'voice' | 'structured' | 'url'
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x'
 export type LensScope = 'system' | 'workspace'
 
 // ─── Core Entities ────────────────────────────────────────────────────────────
@@ -167,8 +167,9 @@ export interface Output {
   content: OutputContent
   approvedBy: string | null
   approvedAt: string | null
-  providerPostId: string | null   // idempotency key
-  publishedAt: string | null      // wall-clock publish time
+  providerPostId:  string | null   // idempotency key
+  providerPostUrl: string | null   // human-readable link to the published post
+  publishedAt:     string | null   // wall-clock publish time
   scheduledAt: string | null      // assigned queue slot
   lastPublishError: string | null  // set on failed publish attempt
   approvedForWeek:      boolean
