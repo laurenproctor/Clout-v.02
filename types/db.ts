@@ -360,6 +360,9 @@ export interface Database {
           published_at: string | null
           scheduled_at: string | null
           last_publish_error: string | null
+          approved_for_week: boolean
+          week_bucket: string | null
+          performance_snapshot: Json | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -378,6 +381,9 @@ export interface Database {
           published_at?: string | null
           scheduled_at?: string | null
           last_publish_error?: string | null
+          approved_for_week?: boolean
+          week_bucket?: string | null
+          performance_snapshot?: Json | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -393,6 +399,9 @@ export interface Database {
           published_at?: string | null
           scheduled_at?: string | null
           last_publish_error?: string | null
+          approved_for_week?: boolean
+          week_bucket?: string | null
+          performance_snapshot?: Json | null
           updated_at?: string
           deleted_at?: string | null
         }

@@ -46,9 +46,12 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     providerPostId:   row.provider_post_id,
     publishedAt:      row.published_at,
     scheduledAt:      row.scheduled_at,
-    lastPublishError: row.last_publish_error,
-    createdAt:        row.created_at,
-    updatedAt:        row.updated_at,
+    lastPublishError:    row.last_publish_error,
+    approvedForWeek:     false,
+    weekBucket:          null,
+    performanceSnapshot: null,
+    createdAt:           row.created_at,
+    updatedAt:           row.updated_at,
   }))
 }
 

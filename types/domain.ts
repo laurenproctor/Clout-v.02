@@ -170,10 +170,26 @@ export interface Output {
   providerPostId: string | null   // idempotency key
   publishedAt: string | null      // wall-clock publish time
   scheduledAt: string | null      // assigned queue slot
-  lastPublishError: string | null // set on failed publish attempt
+  lastPublishError: string | null  // set on failed publish attempt
+  approvedForWeek:      boolean
+  weekBucket:           string | null
+  performanceSnapshot:  Record<string, unknown> | null
   createdAt: string
   updatedAt: string
   channels?: OutputChannel
+}
+
+export interface WeeklyPlanItem {
+  output: Output
+  suggestedSlot: string | null  // ISO UTC — a preview, not committed until approved
+  rank: number
+}
+
+export interface PerformanceSummary {
+  publishedLast30Days: number
+  topPostingDay: string | null   // e.g. "Tuesday" — day most posts are published
+  topPostingHour: number | null  // e.g. 9 — hour (0-23) most posts are published
+  weekBucket: string             // ISO date of current Monday
 }
 
 export interface OutputVersion {
