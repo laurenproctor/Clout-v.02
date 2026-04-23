@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/db'
+
+type BrandProfileUpdate = Database['public']['Tables']['brand_profiles']['Update']
 
 export async function GET() {
   const session = await getSession()
@@ -8,8 +11,7 @@ export async function GET() {
 
   const supabase = await createClient()
   const { data, error } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from('brand_profiles' as any)
+    .from('brand_profiles')
     .select('*')
     .eq('workspace_id', session.workspaceId)
     .single()
@@ -25,19 +27,18 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json()
   const supabase = await createClient()
 
-  const allowed = [
+  const allowed: (keyof BrandProfileUpdate)[] = [
     'brand_name', 'logo_url', 'primary_color', 'secondary_color', 'accent_color',
     'font_heading', 'font_body', 'font_heading_url', 'font_body_url',
     'tone_traits', 'style_traits',
   ]
-  const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  const update: BrandProfileUpdate = { updated_at: new Date().toISOString() }
   for (const key of allowed) {
-    if (key in body) update[key] = body[key]
+    if (key in body) (update as Record<string, unknown>)[key] = body[key]
   }
 
   const { data, error } = await supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from('brand_profiles' as any)
+    .from('brand_profiles')
     .update(update)
     .eq('workspace_id', session.workspaceId)
     .select()
