@@ -30,20 +30,24 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = `${APP_URL()}/api/channels/linkedin/callback`
 
+  const detail = (msg: string) => `&detail=${encodeURIComponent(msg)}`
+
   let tokens: { access_token: string; refresh_token?: string; expires_in: number }
   try {
     tokens = await exchangeLinkedInCode(code, redirectUri)
   } catch (err) {
-    console.error('LinkedIn token exchange failed:', err)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed`)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('LinkedIn token exchange failed:', msg)
+    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
   }
 
   let profile: { sub: string; name: string; email?: string }
   try {
     profile = await fetchLinkedInProfile(tokens.access_token)
   } catch (err) {
-    console.error('LinkedIn profile fetch failed:', err)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed`)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('LinkedIn profile fetch failed:', msg)
+    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
   }
 
   try {
@@ -78,13 +82,13 @@ export async function GET(req: NextRequest) {
         .single()
 
       if (error || !newCh) {
-        console.error('LinkedIn channel insert error:', error)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed`)
+        const msg = error?.message ?? 'no data returned'
+        console.error('LinkedIn channel insert error:', msg)
+        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed${detail(msg)}`)
       }
       channelId = newCh.id
     }
 
-    // Store credentials — service role, never exposed to client
     const credResult = await upsertChannelCredential({
       channelId,
       workspaceId,
@@ -98,16 +102,16 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('LinkedIn credential upsert error:', credResult.error)
-      // Clean up newly-created channel to avoid orphan
       if (!existing) {
         await supabase.from('channels').delete().eq('id', channelId)
       }
-      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed`)
+      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
     }
 
     return NextResponse.redirect(`${APP_URL()}/channels?connected=linkedin`)
   } catch (err) {
-    console.error('LinkedIn OAuth callback error:', err)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed`)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('LinkedIn OAuth callback error:', msg)
+    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
   }
 }
