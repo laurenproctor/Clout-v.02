@@ -18,6 +18,7 @@ import {
   CalendarClock,
   ListOrdered,
   HelpCircle,
+  Palette,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 
@@ -84,6 +85,18 @@ export function Sidebar() {
           <HelpCircle className="h-4 w-4 shrink-0" />
           Help
         </button>
+        <Link
+          href="/settings/brand"
+          className={cn(
+            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+            pathname.startsWith('/settings/brand')
+              ? 'bg-zinc-100 font-medium text-zinc-900'
+              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
+          )}
+        >
+          <Palette className="h-4 w-4 shrink-0" />
+          Brand
+        </Link>
         <Link
           href="/settings/workspace"
           className={cn(
