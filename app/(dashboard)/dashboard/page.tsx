@@ -7,6 +7,7 @@ import { Check, Circle, Loader2, RotateCcw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, Output } from '@/types/domain'
 import { PublishingEngine } from '@/components/dashboard/PublishingEngine'
+import { Momentum } from '@/components/dashboard/Momentum'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -530,8 +531,11 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Publishing Engine */}
-      <PublishingEngine />
+      {/* Widgets */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Momentum />
+        <PublishingEngine />
+      </div>
 
       {/* Recent outputs */}
       <div>
