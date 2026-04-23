@@ -457,7 +457,7 @@ export default function OnboardingPage() {
                 title="Create your workspace"
                 subtitle="Your workspace stores your ideas, lenses, drafts, publishing settings, and audience strategy. Use your name for a personal brand, or a company name for a team account."
                 why={null}
-                reassurance="You can rename it anytime in Settings → Profile. You can create multiple workspaces — one for you, one for a brand, one for a client."
+                reassurance={null}
               />
               <div>
                 <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
@@ -471,6 +471,7 @@ export default function OnboardingPage() {
                   onChange={(e) => set('workspaceName', e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && canAdvance && !loading && next()}
                 />
+                <p className="mt-1.5 text-xs text-zinc-400">You can rename it anytime in Settings → Profile. You can create multiple workspaces — one for you, one for a brand, one for a client.</p>
               </div>
             </>
           )}
@@ -795,13 +796,13 @@ export default function OnboardingPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 mb-1">Strategy Brief</p>
-          <p className="text-xs text-zinc-700">Builds as you answer. Complete by Step 6.</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 mb-1">Strategy Brief</p>
+          <p className="text-xs text-zinc-500">Builds as you answer. Complete by Step 6.</p>
         </div>
 
         {/* Client block */}
         <div className="mb-7">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Client</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 mb-2">Client</p>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-sm font-semibold text-zinc-100">
               {(form.firstName || form.workspaceName || 'C').charAt(0).toUpperCase()}
@@ -826,11 +827,11 @@ export default function OnboardingPage() {
 
         {/* Positioning */}
         <div className="mb-7">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Positioning</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 mb-2">Positioning</p>
           {briefPositioning ? (
             <p className="text-xs text-zinc-300 leading-relaxed">{briefPositioning}</p>
           ) : (
-            <p className="text-xs text-zinc-700 italic">Defined in Steps 2 &amp; 4.</p>
+            <p className="text-xs text-zinc-500 italic">Defined in Steps 2 &amp; 4.</p>
           )}
         </div>
 
@@ -838,7 +839,7 @@ export default function OnboardingPage() {
         {briefThemes.length > 0 && (
           <>
             <div className="mb-7">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-3">Content Themes</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 mb-3">Content Themes</p>
               <div className="space-y-2">
                 {briefThemes.map((theme, i) => (
                   <div key={i} className="flex items-start gap-2">
@@ -854,35 +855,35 @@ export default function OnboardingPage() {
 
         {/* Distribution */}
         <div className="mb-7">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Distribution</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 mb-2">Distribution</p>
           {briefDistribution ? (
             <div className="flex flex-wrap gap-1.5">
               {briefDistribution.primary.map((ch) => (
                 <span key={ch} className="rounded bg-zinc-700 px-2 py-0.5 text-xs font-medium text-zinc-200">{ch}</span>
               ))}
               {briefDistribution.rest && (
-                <span className="rounded border border-dashed border-zinc-700 px-2 py-0.5 text-xs text-zinc-600">{briefDistribution.rest}</span>
+                <span className="rounded border border-dashed border-zinc-600 px-2 py-0.5 text-xs text-zinc-400">{briefDistribution.rest}</span>
               )}
             </div>
           ) : (
-            <p className="text-xs text-zinc-700 italic">Selected in Step 5.</p>
+            <p className="text-xs text-zinc-500 italic">Selected in Step 5.</p>
           )}
         </div>
 
         {/* Target audience */}
         <div className="mb-7">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600 mb-2">Target Audience</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 mb-2">Target Audience</p>
           {briefAudience ? (
             <p className="text-xs text-zinc-400 leading-relaxed">{briefAudience}</p>
           ) : (
-            <p className="text-xs text-zinc-700 italic">Defined in Step 6.</p>
+            <p className="text-xs text-zinc-500 italic">Defined in Step 6.</p>
           )}
         </div>
 
         <div className="mt-auto pt-4">
-          <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-3 text-center">
-            <p className="text-[10px] text-zinc-700 uppercase tracking-widest">Clout Content Strategy</p>
-            <p className="mt-0.5 text-xs text-zinc-800">Generated on completion</p>
+          <div className="rounded-lg border border-dashed border-zinc-700 px-4 py-3 text-center">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Clout Content Strategy</p>
+            <p className="mt-0.5 text-xs text-zinc-600">Generated on completion</p>
           </div>
         </div>
       </div>
@@ -901,14 +902,14 @@ function StepHeader({
   title: string
   subtitle: string
   why: string | null
-  reassurance: string
+  reassurance: string | null
 }) {
   return (
     <div className="space-y-1">
       <h1 className="text-lg font-semibold text-zinc-900">{title}</h1>
       <p className="text-sm text-zinc-500">{subtitle}</p>
       {why && <p className="text-xs text-zinc-400">{why}</p>}
-      <p className="text-xs text-zinc-400">{reassurance}</p>
+      {reassurance && <p className="text-xs text-zinc-400">{reassurance}</p>}
     </div>
   )
 }

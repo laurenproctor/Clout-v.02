@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import type { Lens } from '@/types/domain'
 
 // Set to false in production once real API is wired
@@ -121,20 +120,25 @@ export function VoiceCaptureFlow({
     setMicrostateIdx(0)
 
     try {
-      // Upload to Supabase Storage
-      const supabase = createClient()
-      const filename = `${workspaceId}/${Date.now()}.webm`
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('voice-captures')
-        .upload(filename, blob, { contentType: 'audio/webm' })
-
-      if (uploadError || !uploadData) throw new Error('Upload failed')
+      // Upload audio via server-side API (uses service role, bypasses RLS)
+      const uploadForm = new FormData()
+      uploadForm.append('file', blob, 'recording.webm')
+      const uploadRes = await fetch('/api/capture/audio-upload', {
+        method: 'POST',
+        body: uploadForm,
+      })
+      if (!uploadRes.ok) {
+        const uploadErr = await uploadRes.json().catch(() => ({}))
+        throw new Error(uploadErr.error ?? 'Upload failed')
+      }
+      const { path: audioPath } = await uploadRes.json()
+      if (!audioPath) throw new Error('Upload failed')
 
       // Create capture record
       const captureRes = await fetch('/api/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'voice', audio_path: uploadData.path }),
+        body: JSON.stringify({ source: 'voice', audio_path: audioPath }),
       })
       if (!captureRes.ok) throw new Error('Failed to save capture')
       const capture = await captureRes.json()

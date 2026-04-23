@@ -124,8 +124,8 @@ export function SupportModal({ open, onClose }: SupportModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
           <div>
-            <p className="text-sm font-semibold text-zinc-900">Get help</p>
-            <p className="text-xs text-zinc-400 mt-0.5">We're real people. We read every message.</p>
+            <p className="text-sm font-semibold text-zinc-900">Get help or request a feature</p>
+            <p className="text-xs text-zinc-400 mt-0.5">The founder, Lauren Proctor, reads every message.</p>
           </div>
           <button
             type="button"

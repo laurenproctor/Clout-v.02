@@ -30,10 +30,23 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = `${APP_URL()}/api/channels/linkedin/callback`
 
+  let tokens: { access_token: string; refresh_token?: string; expires_in: number }
   try {
-    const tokens  = await exchangeLinkedInCode(code, redirectUri)
-    const profile = await fetchLinkedInProfile(tokens.access_token)
+    tokens = await exchangeLinkedInCode(code, redirectUri)
+  } catch (err) {
+    console.error('LinkedIn token exchange failed:', err)
+    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed`)
+  }
 
+  let profile: { sub: string; name: string; email?: string }
+  try {
+    profile = await fetchLinkedInProfile(tokens.access_token)
+  } catch (err) {
+    console.error('LinkedIn profile fetch failed:', err)
+    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed`)
+  }
+
+  try {
     const supabase = await createClient()
 
     const { data: existing } = await supabase
@@ -66,7 +79,7 @@ export async function GET(req: NextRequest) {
 
       if (error || !newCh) {
         console.error('LinkedIn channel insert error:', error)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed`)
+        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed`)
       }
       channelId = newCh.id
     }
@@ -89,7 +102,7 @@ export async function GET(req: NextRequest) {
       if (!existing) {
         await supabase.from('channels').delete().eq('id', channelId)
       }
-      return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed`)
+      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed`)
     }
 
     return NextResponse.redirect(`${APP_URL()}/channels?connected=linkedin`)

@@ -1,0 +1,587 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { ChevronDown, Loader2, Lock, Zap } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { CaptureSource, Lens } from '@/types/domain'
+import { VoiceCaptureFlow } from '@/components/capture/voice-capture-flow'
+import { LinkCaptureFlow } from '@/components/capture/link-capture-flow'
+import { UploadCaptureFlow } from '@/components/capture/upload-capture-flow'
+import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
+
+const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
+
+const DEFAULT_PROMPTS = [
+  "What's a lesson you keep having to relearn?",
+  "What did you change your mind about recently?",
+  "What does your industry get consistently wrong?",
+  "What's the advice you give in private but never post?",
+  "What's a decision that felt risky but paid off?",
+  "What's something obvious to you that surprises everyone else?",
+  "What would you tell yourself five years ago?",
+  "What's the thing you wish more people understood about your work?",
+]
+
+function buildPersonalizedPrompts(profile: { role?: string; industry?: string; expertise?: string; audience_targets?: string[] } | null) {
+  if (!profile) return DEFAULT_PROMPTS
+  const { role, industry, expertise, audience_targets } = profile
+  const domain = industry || expertise || role
+  const audience = audience_targets?.length ? audience_targets[0] : null
+  const prompts = [...DEFAULT_PROMPTS]
+  if (domain) {
+    prompts.splice(2, 1, `What does the ${domain} world get consistently wrong?`)
+  }
+  if (role) {
+    prompts.splice(6, 1, `What would you tell someone just starting out as a ${role}?`)
+  }
+  if (audience) {
+    prompts.splice(3, 1, `What do you wish your ${audience} audience understood that you haven't said publicly?`)
+  }
+  return prompts
+}
+
+type CaptureMode = 'write' | 'voice' | 'paste' | 'upload' | 'more'
+
+interface CaptureComposerProps {
+  initialContent?: string
+  initialMode?: CaptureMode
+  onClose?: () => void
+}
+
+export function CaptureComposer({ initialContent = '', initialMode = 'write', onClose }: CaptureComposerProps) {
+  const router = useRouter()
+
+  const [source, setSource] = useState<CaptureSource>('text')
+  const [content, setContent] = useState(initialContent)
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [tags] = useState<string[]>([])
+  const [audioPath, setAudioPath] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [limitError, setLimitError] = useState<{ type: 'capture' | 'generation'; used: number; limit: number } | null>(null)
+  const [structuredData, setStructuredData] = useState<Record<string, string> | null>(null)
+  const [savedCaptureId, setSavedCaptureId] = useState<string | null>(null)
+  const [lenses, setLenses] = useState<Lens[]>([])
+  const [selectedLensId, setSelectedLensId] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [workspaceId, setWorkspaceId] = useState('pending')
+  const [transcribing, setTranscribing] = useState(false)
+  const [transcribeError, setTranscribeError] = useState<string | null>(null)
+  const [captureMode, setCaptureMode] = useState<CaptureMode>(initialMode)
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false)
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([])
+  const [promptIndex, setPromptIndex] = useState(0)
+  const [promptVisible, setPromptVisible] = useState(true)
+  const [rotatingPrompts, setRotatingPrompts] = useState(DEFAULT_PROMPTS)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [detectedUrl, setDetectedUrl] = useState<string | null>(null)
+  const urlDetectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const moreRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch('/api/lenses')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: Lens[]) => {
+        setLenses(data)
+        if (data.length > 0) setSelectedLensId(data[0].id)
+      })
+      .catch(() => {})
+
+    fetch('/api/workspace')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.workspace?.id) setWorkspaceId(data.workspace.id) })
+      .catch(() => {})
+
+    fetch('/api/profile')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { setRotatingPrompts(buildPersonalizedPrompts(data)) })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (captureMode !== 'write' || content.trim()) return
+    const interval = setInterval(() => {
+      setPromptVisible(false)
+      setTimeout(() => {
+        setPromptIndex((i) => (i + 1) % rotatingPrompts.length)
+        setPromptVisible(true)
+      }, 400)
+    }, 3800)
+    return () => clearInterval(interval)
+  }, [captureMode, content, rotatingPrompts])
+
+  useEffect(() => {
+    if (!showMoreDropdown) return
+    function handleClick(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setShowMoreDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showMoreDropdown])
+
+  function switchMode(mode: CaptureMode) {
+    setCaptureMode(mode)
+    setContent('')
+    setUploadedFile(null)
+    setStructuredData(null)
+    setDetectedUrl(null)
+    if (mode === 'write' || mode === 'paste') setSource('text')
+    else if (mode === 'voice') setSource('voice')
+    else if (mode === 'upload') setSource('structured')
+    if (mode === 'more') setShowMoreDropdown((v) => !v)
+  }
+
+  function handlePasteInput(value: string) {
+    setContent(value)
+    setDetectedUrl(null)
+    if (urlDetectTimer.current) clearTimeout(urlDetectTimer.current)
+    const trimmed = value.trim()
+    if (URL_REGEX.test(trimmed)) {
+      urlDetectTimer.current = setTimeout(() => setDetectedUrl(trimmed), 400)
+    }
+  }
+
+  function toggleTarget(t: string) {
+    setSelectedTargets((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
+  }
+
+  function navigate(path: string) {
+    onClose?.()
+    router.push(path)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (source !== 'voice' && !content.trim() && !uploadedFile) return
+    if (source === 'voice' && !audioPath) return
+    setSubmitting(true)
+    setError(null)
+    setLimitError(null)
+
+    try {
+      const res = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source,
+          raw_content: source === 'voice' ? null : content || (uploadedFile ? `File: ${uploadedFile.name}` : null),
+          audio_path: source === 'voice' ? audioPath : undefined,
+          is_private: isPrivate,
+          tags,
+          structured_data: structuredData ?? (uploadedFile ? { filename: uploadedFile.name, type: uploadedFile.type } : undefined),
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        if (data.code === 'CAPTURE_LIMIT_EXCEEDED') {
+          setLimitError({ type: 'capture', used: 0, limit: 10 })
+          return
+        }
+        setError(data.error ?? 'Failed to save capture')
+        return
+      }
+
+      const capture = await res.json()
+
+      if (isPrivate) {
+        navigate('/private')
+        return
+      }
+
+      if (source === 'voice' && audioPath) {
+        setSavedCaptureId(capture.id)
+        setTranscribing(true)
+        setTranscribeError(null)
+        try {
+          const tRes = await fetch(`/api/capture/${capture.id}/transcribe`, { method: 'POST' })
+          if (!tRes.ok) {
+            const tData = await tRes.json()
+            setTranscribeError(tData.error ?? 'Transcription failed')
+          }
+        } catch {
+          setTranscribeError('Transcription failed. You can still generate from this capture.')
+        } finally {
+          setTranscribing(false)
+        }
+        return
+      }
+
+      if (lenses.length > 0) {
+        setSavedCaptureId(capture.id)
+      } else {
+        navigate(`/capture/${capture.id}`)
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleGenerate() {
+    if (!savedCaptureId || !selectedLensId) return
+    setGenerating(true)
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capture_id: savedCaptureId, lens_id: selectedLensId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        navigate(`/studio/${data.output_id}`)
+      } else {
+        navigate(`/capture/${savedCaptureId}`)
+      }
+    } catch {
+      navigate(`/capture/${savedCaptureId}`)
+    }
+  }
+
+  // ── Post-save screen ──────────────────────────────────────────────────────
+  if (savedCaptureId) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
+        {transcribing ? (
+          <div className="flex flex-col items-center justify-center py-6 gap-3">
+            <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+            <p className="text-sm font-medium text-zinc-900">Transcribing your recording…</p>
+            <p className="text-xs text-zinc-400">This usually takes 5–15 seconds.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
+                <span className="text-green-600 text-sm">✓</span>
+              </div>
+              <p className="text-sm font-medium text-zinc-900">
+                {transcribeError
+                  ? 'Capture saved. Transcription had an issue — you can still generate.'
+                  : 'Your thought is captured. Generate content now?'}
+              </p>
+            </div>
+            {transcribeError && (
+              <p className="text-xs text-red-500">{transcribeError}</p>
+            )}
+          </>
+        )}
+
+        {!transcribing && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                Choose a lens
+              </label>
+              <select
+                className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                value={selectedLensId}
+                onChange={(e) => setSelectedLensId(e.target.value)}
+              >
+                {lenses.map((lens) => (
+                  <option key={lens.id} value={lens.id}>
+                    {lens.name}{lens.scope === 'system' ? ' ✦' : ''}
+                  </option>
+                ))}
+              </select>
+              {selectedLensId && (
+                <p className="mt-1 text-xs text-zinc-400">
+                  {lenses.find((l) => l.id === selectedLensId)?.description}
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleGenerate}
+                disabled={generating || !selectedLensId}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-5 py-2 text-sm font-medium transition-colors',
+                  generating || !selectedLensId
+                    ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                )}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {generating ? 'Extracting signal...' : 'Generate →'}
+              </button>
+              <button
+                onClick={() => navigate(`/capture/${savedCaptureId}`)}
+                className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Composer card ──────────────────────────────────────────────────────────
+  const canSubmit = source === 'voice' ? !!audioPath : (content.trim().length > 0 || !!uploadedFile)
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-0">
+      <div className="rounded-[22px] border border-zinc-200 bg-white shadow-md overflow-hidden">
+
+        {/* Mode bar */}
+        <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0">
+          {(['write', 'voice', 'paste', 'upload'] as CaptureMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => switchMode(mode)}
+              className={cn(
+                'pb-3 px-3 text-sm font-medium transition-colors capitalize border-b-2 -mb-px',
+                captureMode === mode
+                  ? 'border-zinc-900 text-zinc-900'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-700'
+              )}
+            >
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+          <div ref={moreRef} className="relative ml-1 pb-3 -mb-px">
+            <button
+              type="button"
+              onClick={() => switchMode('more')}
+              className={cn(
+                'flex items-center gap-0.5 px-3 text-sm font-medium transition-colors border-b-2',
+                showMoreDropdown ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-700'
+              )}
+            >
+              More
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {showMoreDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-zinc-200 bg-white shadow-lg p-4 space-y-4 z-10">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Email in</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-700 truncate">
+                      captures@capture.clout.so
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText('captures@capture.clout.so')}
+                      className="shrink-0 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-xs text-zinc-400">Forward anything — articles, emails, newsletters.</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Call or text</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-700">
+                      Coming soon
+                    </code>
+                  </div>
+                  <p className="mt-1.5 text-xs text-zinc-400">Leave a voice message or text any thought to your Clout number.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Panel content */}
+        <div className="px-6 py-5 min-h-[220px]">
+          {captureMode === 'write' && (
+            <div className="relative">
+              <textarea
+                autoFocus
+                className="w-full resize-none bg-transparent text-[18px] leading-[1.75] text-zinc-900 placeholder:text-transparent focus:outline-none min-h-[180px]"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+              {!content && (
+                <p
+                  className={cn(
+                    'pointer-events-none absolute top-0 left-0 text-[18px] leading-[1.75] text-zinc-300 transition-opacity duration-300',
+                    promptVisible ? 'opacity-100' : 'opacity-0'
+                  )}
+                >
+                  <span className="text-zinc-400 font-medium">Ideas &amp; Inspiration: </span>
+                  {rotatingPrompts[promptIndex]}
+                </p>
+              )}
+            </div>
+          )}
+
+          {captureMode === 'voice' && (
+            <VoiceCaptureFlow
+              workspaceId={workspaceId}
+              lenses={lenses}
+              selectedLensId={selectedLensId}
+              onLensChange={setSelectedLensId}
+              onComplete={(outputId) => navigate(`/studio/${outputId}`)}
+              onError={(err) => setError(err)}
+            />
+          )}
+
+          {captureMode === 'paste' && (
+            <div className="space-y-4">
+              {detectedUrl ? (
+                <LinkCaptureFlow
+                  url={detectedUrl}
+                  lensId={selectedLensId}
+                  onComplete={(outputId) => navigate(`/studio/${outputId}`)}
+                  onError={(err) => setError(err)}
+                  onReset={() => { setDetectedUrl(null); setContent('') }}
+                />
+              ) : (
+                <>
+                  <div>
+                    <p className="text-[15px] font-semibold text-zinc-900 mb-1">
+                      Paste an article, thread, or page
+                    </p>
+                    <p className="text-[13px] text-zinc-400">
+                      Drop something worth reacting to. Share a source to build from.
+                    </p>
+                  </div>
+                  <textarea
+                    autoFocus
+                    className="w-full resize-none bg-transparent text-[17px] leading-[1.75] text-zinc-900 placeholder:text-zinc-300 focus:outline-none min-h-[160px]"
+                    placeholder="Paste a link, thread, article, or any text…"
+                    value={content}
+                    onChange={(e) => handlePasteInput(e.target.value)}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: 'Paul Graham essay', url: 'https://paulgraham.com/startupideas.html' },
+                      { label: 'LinkedIn thread', url: 'https://www.linkedin.com/pulse/' },
+                      { label: 'Substack post', url: 'https://substack.com' },
+                      { label: 'Podcast transcript', url: '' },
+                      { label: 'Your own notes', url: '' },
+                    ].map(({ label, url: exUrl }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          if (exUrl) {
+                            setContent(exUrl)
+                            handlePasteInput(exUrl)
+                          } else {
+                            setContent('')
+                          }
+                        }}
+                        className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 transition-colors"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {captureMode === 'upload' && (
+            <UploadCaptureFlow
+              lensId={selectedLensId}
+              onComplete={(outputId) => navigate(`/studio/${outputId}`)}
+              onError={(err) => setError(err)}
+            />
+          )}
+
+          {captureMode === 'more' && (
+            <div className="flex items-center justify-center h-full text-sm text-zinc-400 py-8">
+              Select an option from the More menu above.
+            </div>
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-zinc-100 bg-zinc-50/60 px-6 py-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            {lenses.length > 0 && (
+              <select
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:border-zinc-400"
+                value={selectedLensId}
+                onChange={(e) => setSelectedLensId(e.target.value)}
+              >
+                {lenses.map((lens) => (
+                  <option key={lens.id} value={lens.id}>
+                    {lens.name}{lens.scope === 'system' ? ' ✦' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <div className="flex items-center gap-1.5">
+              {['LinkedIn', 'X', 'Email', 'Blog'].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTarget(t)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    selectedTargets.includes(t)
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPrivate((v) => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  isPrivate
+                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                    : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'
+                )}
+              >
+                <Lock className="h-3 w-3" />
+                {isPrivate ? 'Private' : 'Make private'}
+              </button>
+
+              <button
+                type="submit"
+                disabled={submitting || !canSubmit}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors',
+                  submitting || !canSubmit
+                    ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                )}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Extracting signal...
+                  </>
+                ) : (
+                  <>✦ Generate Post Draft →</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {limitError && (
+        <div className="pt-4">
+          <UpgradePrompt
+            type={limitError.type}
+            used={limitError.used}
+            limit={limitError.limit}
+            onDismiss={() => setLimitError(null)}
+          />
+        </div>
+      )}
+      {error && !limitError && <p className="pt-3 text-sm text-red-600">{error}</p>}
+    </form>
+  )
+}
