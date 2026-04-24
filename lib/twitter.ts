@@ -13,7 +13,7 @@ export function buildTwitterAuthUrl(
 ): string {
   const params = new URLSearchParams({
     response_type:         'code',
-    client_id:             process.env.TWITTER_CLIENT_ID!,
+    client_id:             process.env.X_CLIENT_ID!,
     redirect_uri:          redirectUri,
     scope:                 TWITTER_SCOPES,
     state,
@@ -29,7 +29,7 @@ export async function exchangeTwitterCode(
   codeVerifier: string,
 ): Promise<{ access_token: string; refresh_token?: string; expires_in: number }> {
   const credentials = Buffer.from(
-    `${process.env.TWITTER_CLIENT_ID!}:${process.env.TWITTER_CLIENT_SECRET!}`
+    `${process.env.X_CLIENT_ID!}:${process.env.X_CLIENT_SECRET!}`
   ).toString('base64')
 
   const res = await fetch(`${OAUTH_BASE}/token`, {
