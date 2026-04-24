@@ -67,9 +67,9 @@ const PLATFORMS = [
     key: 'twitter' as const,
     name: 'X (Twitter)',
     Icon: XIcon,
-    tagline: 'Post threads and tweets.',
-    available: true,
-    connectHref: '/api/channels/twitter/connect',
+    tagline: 'Coming soon.',
+    available: false,
+    connectHref: null,
   },
   {
     key: 'instagram' as const,
