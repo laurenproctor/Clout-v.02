@@ -11,6 +11,7 @@ import { UploadCaptureFlow } from '@/components/capture/upload-capture-flow'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
 import { LensPicker } from '@/components/shared/lens-picker'
+import { TopicCaptureFlow } from '@/components/capture/topic-capture-flow'
 
 const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
@@ -43,7 +44,7 @@ function buildPersonalizedPrompts(profile: { role?: string; industry?: string; e
   return prompts
 }
 
-type CaptureMode = 'write' | 'voice' | 'paste' | 'upload' | 'more'
+type CaptureMode = 'write' | 'voice' | 'paste' | 'upload' | 'topic' | 'more'
 
 interface CaptureComposerProps {
   initialContent?: string
@@ -141,6 +142,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
     if (mode === 'write' || mode === 'paste') setSource('text')
     else if (mode === 'voice') setSource('voice')
     else if (mode === 'upload') setSource('structured')
+    else if (mode === 'topic') setSource('topic')
     if (mode === 'more') setShowMoreDropdown((v) => !v)
   }
 
@@ -352,7 +354,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
 
         {/* Mode bar */}
         <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0">
-          {(['write', 'voice', 'paste', 'upload'] as CaptureMode[]).map((mode) => (
+          {(['write', 'paste', 'upload', 'voice', 'topic'] as CaptureMode[]).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -540,6 +542,17 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
             </div>
           )}
 
+          {captureMode === 'topic' && (
+            <TopicCaptureFlow
+              lenses={lenses}
+              selectedLensId={selectedLensId}
+              onLensChange={setSelectedLensId}
+              profileName={profileName}
+              onComplete={(outputId) => navigate(`/studio/${outputId}`)}
+              onError={(err) => setError(err)}
+            />
+          )}
+
           {captureMode === 'more' && (
             <div className="flex items-center justify-center h-full text-sm text-zinc-400 py-8">
               Select an option from the More menu above.
@@ -547,8 +560,8 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
           )}
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-zinc-100 bg-zinc-50/60 px-6 py-4">
+        {/* Bottom bar — hidden for self-managing modes */}
+        <div className={cn('border-t border-zinc-100 bg-zinc-50/60 px-6 py-4', (captureMode === 'topic' || captureMode === 'voice') && 'hidden')}>
           <div className="flex items-center gap-3 flex-wrap">
 
             <div className="flex items-center gap-1.5">

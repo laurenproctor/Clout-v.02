@@ -7,7 +7,14 @@ export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'viewer'
 export type OperatorRole = 'super_admin' | 'agency_operator'
 export type SubscriptionPlan = 'free' | 'pro' | 'business' | 'enterprise'
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused'
-export type CaptureSource = 'text' | 'voice' | 'structured' | 'url'
+export type CaptureSource = 'text' | 'voice' | 'structured' | 'url' | 'topic'
+
+export interface ResearchSource {
+  title: string
+  url: string
+  snippet?: string
+  score?: number
+}
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
@@ -113,6 +120,8 @@ export interface Capture {
   notes: string | null
   isPrivate: boolean
   tags: string[]
+  researchSources: ResearchSource[] | null
+  researchSummary: string | null
   createdAt: string
   updatedAt: string
 }

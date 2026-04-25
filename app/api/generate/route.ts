@@ -97,7 +97,12 @@ export async function POST(req: NextRequest) {
     lensSystemPrompt: lens.systemPrompt,
     profileContext,
   })
-  const userMessage = capture.transcript ?? capture.rawContent ?? ''
+  let userMessage = capture.transcript ?? capture.rawContent ?? ''
+
+  // For topic captures, prepend research brief when available
+  if (capture.source === 'topic' && capture.researchSummary) {
+    userMessage = `## Research context\n${capture.researchSummary}\n\n## Topic instruction\n${userMessage}`
+  }
 
   if (!userMessage.trim()) {
     return NextResponse.json({ error: 'Capture has no content to generate from' }, { status: 400 })

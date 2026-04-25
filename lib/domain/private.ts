@@ -16,6 +16,8 @@ function toCapture(row: Record<string, unknown>): Capture {
     notes: row.notes as string | null,
     isPrivate: row.is_private as boolean,
     tags: row.tags as string[],
+    researchSources: null,
+    researchSummary: null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }

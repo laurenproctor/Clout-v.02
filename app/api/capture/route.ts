@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const source: CaptureSource = body.source ?? 'text'
-  const validSources: CaptureSource[] = ['text', 'voice', 'structured', 'url']
+  const validSources: CaptureSource[] = ['text', 'voice', 'structured', 'url', 'topic']
 
   if (!validSources.includes(source)) {
     return NextResponse.json({ error: 'Invalid source type' }, { status: 400 })

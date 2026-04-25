@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Capture, CreateCaptureInput, UpdateCaptureInput, DomainResult } from '@/types/domain'
+import type { Capture, CreateCaptureInput, UpdateCaptureInput, DomainResult, ResearchSource } from '@/types/domain'
 import type { Json } from '@/types/db'
 
 function toCapture(row: Record<string, unknown>): Capture {
@@ -17,6 +17,8 @@ function toCapture(row: Record<string, unknown>): Capture {
     notes: row.notes as string | null,
     isPrivate: row.is_private as boolean,
     tags: row.tags as string[],
+    researchSources: (row.research_sources as ResearchSource[] | null) ?? null,
+    researchSummary: (row.research_summary as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
@@ -31,7 +33,8 @@ export async function createCapture(
     .insert({
       workspace_id: input.workspaceId,
       created_by: input.createdBy,
-      source: input.source,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      source: input.source as any,
       raw_content: input.rawContent ?? null,
       source_url: input.sourceUrl ?? null,
       audio_path: input.audioPath ?? null,
