@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
+import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
 
 // Set to false in production once real API is wired
 const DEMO_MODE = false
@@ -34,6 +35,7 @@ interface VoiceCaptureFlowProps {
   lenses: Lens[]
   selectedLensId: string
   onLensChange: (id: string) => void
+  profileName: string | null
   onComplete: (outputId: string) => void
   onError: (msg: string) => void
 }
@@ -43,6 +45,7 @@ export function VoiceCaptureFlow({
   lenses,
   selectedLensId,
   onLensChange,
+  profileName,
   onComplete,
   onError,
 }: VoiceCaptureFlowProps) {
@@ -277,6 +280,14 @@ export function VoiceCaptureFlow({
             </span>
           </button>
           <p className="text-[13px] text-zinc-400">Speak freely. We'll find the signal.</p>
+          {lenses.length > 0 && (
+            <GeneratingAsBar
+              profileName={profileName}
+              lenses={lenses}
+              selectedLensId={selectedLensId}
+              onLensChange={onLensChange}
+            />
+          )}
         </div>
       )}
 
@@ -365,12 +376,15 @@ export function VoiceCaptureFlow({
           </div>
           <div>
             <p className="text-[12px] font-semibold text-zinc-400 tracking-wide mb-2">Here's your first draft.</p>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-zinc-200 bg-zinc-50 text-[12px] font-medium text-zinc-600 hover:border-zinc-400 transition-colors"
-            >
-              ✦ {lenses.find((l) => l.id === selectedLensId)?.name ?? 'Thought Leader'} ↓
-            </button>
+            {lenses.length > 0 && (
+              <GeneratingAsBar
+                profileName={profileName}
+                lenses={lenses}
+                selectedLensId={selectedLensId}
+                onLensChange={onLensChange}
+                readOnly
+              />
+            )}
           </div>
           <div className="text-[16px] leading-[1.75] text-zinc-900 space-y-3">
             {draftLines.map((line, i) => (

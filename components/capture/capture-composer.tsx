@@ -9,6 +9,8 @@ import { VoiceCaptureFlow } from '@/components/capture/voice-capture-flow'
 import { LinkCaptureFlow } from '@/components/capture/link-capture-flow'
 import { UploadCaptureFlow } from '@/components/capture/upload-capture-flow'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
+import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
+import { LensPicker } from '@/components/shared/lens-picker'
 
 const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
@@ -77,6 +79,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
   const [rotatingPrompts, setRotatingPrompts] = useState(DEFAULT_PROMPTS)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [detectedUrl, setDetectedUrl] = useState<string | null>(null)
+  const [profileName, setProfileName] = useState<string | null>(null)
   const urlDetectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const moreRef = useRef<HTMLDivElement>(null)
 
@@ -99,7 +102,10 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
 
     fetch('/api/profile')
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { setRotatingPrompts(buildPersonalizedPrompts(data)) })
+      .then((data) => {
+        setRotatingPrompts(buildPersonalizedPrompts(data))
+        if (data?.display_name) setProfileName(data.display_name)
+      })
       .catch((err) => console.warn('[capture-composer] profile fetch failed:', err))
   }, [])
 
@@ -281,17 +287,13 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
                 Choose a lens
               </label>
-              <select
-                className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-                value={selectedLensId}
-                onChange={(e) => setSelectedLensId(e.target.value)}
-              >
-                {lenses.map((lens) => (
-                  <option key={lens.id} value={lens.id}>
-                    {lens.name}{lens.scope === 'system' ? ' ✦' : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1.5">
+                <LensPicker
+                  lenses={lenses}
+                  selectedLensId={selectedLensId}
+                  onChange={setSelectedLensId}
+                />
+              </div>
               {lensLoadError && (
                 <p className="mt-1 text-xs text-amber-600">
                   Could not load lenses. Refresh to retry.
@@ -303,6 +305,16 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
                 </p>
               )}
             </div>
+
+            {lenses.length > 0 && (
+              <GeneratingAsBar
+                profileName={profileName}
+                lenses={lenses}
+                selectedLensId={selectedLensId}
+                onLensChange={setSelectedLensId}
+                readOnly
+              />
+            )}
 
             <div className="flex gap-2">
               <button
@@ -402,23 +414,33 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
         {/* Panel content */}
         <div className="px-6 py-5 min-h-[220px]">
           {captureMode === 'write' && (
-            <div className="relative">
-              <textarea
-                autoFocus
-                className="w-full resize-none bg-transparent text-[18px] leading-[1.75] text-zinc-900 placeholder:text-transparent focus:outline-none min-h-[180px]"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
-              {!content && (
-                <p
-                  className={cn(
-                    'pointer-events-none absolute top-0 left-0 text-[18px] leading-[1.75] text-zinc-300 transition-opacity duration-300',
-                    promptVisible ? 'opacity-100' : 'opacity-0'
-                  )}
-                >
-                  <span className="text-zinc-400 font-medium">Ideas &amp; Inspiration: </span>
-                  {rotatingPrompts[promptIndex]}
-                </p>
+            <div className="flex flex-col gap-4">
+              <div className="relative">
+                <textarea
+                  autoFocus
+                  className="w-full resize-none bg-transparent text-[18px] leading-[1.75] text-zinc-900 placeholder:text-transparent focus:outline-none min-h-[140px]"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+                {!content && (
+                  <p
+                    className={cn(
+                      'pointer-events-none absolute top-0 left-0 text-[18px] leading-[1.75] text-zinc-300 transition-opacity duration-300',
+                      promptVisible ? 'opacity-100' : 'opacity-0'
+                    )}
+                  >
+                    <span className="text-zinc-400 font-medium">Ideas &amp; Inspiration: </span>
+                    {rotatingPrompts[promptIndex]}
+                  </p>
+                )}
+              </div>
+              {lenses.length > 0 && (
+                <GeneratingAsBar
+                  profileName={profileName}
+                  lenses={lenses}
+                  selectedLensId={selectedLensId}
+                  onLensChange={setSelectedLensId}
+                />
               )}
             </div>
           )}
@@ -429,6 +451,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
               lenses={lenses}
               selectedLensId={selectedLensId}
               onLensChange={setSelectedLensId}
+              profileName={profileName}
               onComplete={(outputId) => navigate(`/studio/${outputId}`)}
               onError={(err) => setError(err)}
             />
@@ -486,17 +509,35 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
                       </button>
                     ))}
                   </div>
+                  {lenses.length > 0 && (
+                    <GeneratingAsBar
+                      profileName={profileName}
+                      lenses={lenses}
+                      selectedLensId={selectedLensId}
+                      onLensChange={setSelectedLensId}
+                    />
+                  )}
                 </>
               )}
             </div>
           )}
 
           {captureMode === 'upload' && (
-            <UploadCaptureFlow
-              lensId={selectedLensId}
-              onComplete={(outputId) => navigate(`/studio/${outputId}`)}
-              onError={(err) => setError(err)}
-            />
+            <div className="flex flex-col gap-4">
+              <UploadCaptureFlow
+                lensId={selectedLensId}
+                onComplete={(outputId) => navigate(`/studio/${outputId}`)}
+                onError={(err) => setError(err)}
+              />
+              {lenses.length > 0 && (
+                <GeneratingAsBar
+                  profileName={profileName}
+                  lenses={lenses}
+                  selectedLensId={selectedLensId}
+                  onLensChange={setSelectedLensId}
+                />
+              )}
+            </div>
           )}
 
           {captureMode === 'more' && (
@@ -509,19 +550,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
         {/* Bottom bar */}
         <div className="border-t border-zinc-100 bg-zinc-50/60 px-6 py-4">
           <div className="flex items-center gap-3 flex-wrap">
-            {lenses.length > 0 && (
-              <select
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:border-zinc-400"
-                value={selectedLensId}
-                onChange={(e) => setSelectedLensId(e.target.value)}
-              >
-                {lenses.map((lens) => (
-                  <option key={lens.id} value={lens.id}>
-                    {lens.name}{lens.scope === 'system' ? ' ✦' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
 
             <div className="flex items-center gap-1.5">
               {['LinkedIn', 'X', 'Email', 'Blog'].map((t) => (
