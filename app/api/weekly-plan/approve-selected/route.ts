@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await approveSelected(session.workspaceId, approvals)
+    await approveSelected(session.workspaceId, approvals, session.userId)
     return NextResponse.json({ ok: true, count: approvals.length })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Approval failed'

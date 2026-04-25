@@ -132,8 +132,8 @@ export async function buildWeeklyPlan(
 
   const taken = [...takenSlots]
   return ranked.map((output, i) => {
-    const suggestedSlot = mappedPrefs ? assignNextSlot(mappedPrefs, taken) : null
-    if (suggestedSlot) taken.push(suggestedSlot)
+    const suggestedSlot = assignNextSlot(mappedPrefs, taken)
+    taken.push(suggestedSlot)
     return { output, suggestedSlot, rank: i + 1 }
   })
 }
@@ -143,6 +143,7 @@ export async function buildWeeklyPlan(
 export async function approveSelected(
   workspaceId: string,
   approvals: Array<{ outputId: string; scheduledAt: string | null }>,
+  approvedBy?: string,
 ): Promise<void> {
   const supabase = createServiceClient()
   const weekBucket = getWeekBucket()
@@ -157,6 +158,8 @@ export async function approveSelected(
         scheduled_at:      scheduledAt,
         approved_for_week: true,
         week_bucket:       weekBucket,
+        approved_by:       approvedBy ?? null,
+        approved_at:       now,
         updated_at:        now,
       })
       .eq('id', outputId)
@@ -186,8 +189,9 @@ export async function approveSelected(
 export async function approveWeek(
   workspaceId: string,
   approvals: Array<{ outputId: string; scheduledAt: string | null }>,
+  approvedBy?: string,
 ): Promise<void> {
-  return approveSelected(workspaceId, approvals)
+  return approveSelected(workspaceId, approvals, approvedBy)
 }
 
 // ─── Performance summary ──────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import type { Capture, Output } from '@/types/domain'
 import { PublishingEngine } from '@/components/dashboard/PublishingEngine'
 import { Momentum } from '@/components/dashboard/Momentum'
+import { WeeklyPlanWidget } from '@/components/dashboard/WeeklyPlanWidget'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -530,6 +531,9 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Weekly plan */}
+      <WeeklyPlanWidget />
 
       {/* Widgets */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
