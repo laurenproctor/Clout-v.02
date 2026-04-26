@@ -193,6 +193,8 @@ export type Database = {
           is_private: boolean
           notes: string | null
           raw_content: string | null
+          research_sources: Json | null
+          research_summary: string | null
           source: Database["public"]["Enums"]["capture_source"]
           source_url: string | null
           status: Database["public"]["Enums"]["capture_status"]
@@ -211,6 +213,8 @@ export type Database = {
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          research_sources?: Json | null
+          research_summary?: string | null
           source: Database["public"]["Enums"]["capture_source"]
           source_url?: string | null
           status?: Database["public"]["Enums"]["capture_status"]
@@ -229,6 +233,8 @@ export type Database = {
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          research_sources?: Json | null
+          research_summary?: string | null
           source?: Database["public"]["Enums"]["capture_source"]
           source_url?: string | null
           status?: Database["public"]["Enums"]["capture_status"]
@@ -1305,7 +1311,7 @@ export type Database = {
         | "assign"
         | "restore"
         | "soft_delete"
-      capture_source: "text" | "voice" | "structured" | "url"
+      capture_source: "text" | "voice" | "structured" | "url" | "topic"
       capture_status: "pending" | "processing" | "ready" | "failed"
       channel_platform: "linkedin" | "newsletter" | "twitter"
       generation_status: "pending" | "generating" | "complete" | "failed"
@@ -1474,7 +1480,7 @@ export const Constants = {
         "restore",
         "soft_delete",
       ],
-      capture_source: ["text", "voice", "structured", "url"],
+      capture_source: ["text", "voice", "structured", "url", "topic"],
       capture_status: ["pending", "processing", "ready", "failed"],
       channel_platform: ["linkedin", "newsletter", "twitter"],
       generation_status: ["pending", "generating", "complete", "failed"],

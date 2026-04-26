@@ -200,6 +200,9 @@ export async function POST(req: NextRequest) {
       : ((output.content as Record<string, unknown>)?.body as string) ?? ''
 
   console.log('[api/generate] success', { output_id: output.id, generation_id: generation.id, duration_ms: Date.now() - t0 })
+  if (capture.source === 'topic') {
+    console.log('[topic] generate_complete', { capture_id: capture.id, output_id: output.id })
+  }
 
   return NextResponse.json(
     {

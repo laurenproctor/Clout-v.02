@@ -33,8 +33,7 @@ export async function createCapture(
     .insert({
       workspace_id: input.workspaceId,
       created_by: input.createdBy,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      source: input.source as any,
+      source: input.source,
       raw_content: input.rawContent ?? null,
       source_url: input.sourceUrl ?? null,
       audio_path: input.audioPath ?? null,

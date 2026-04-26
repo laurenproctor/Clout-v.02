@@ -28,6 +28,8 @@ export async function POST(
   let summary = ''
   let researchFailed = false
 
+  console.log('[topic] research_started', { capture_id: captureId })
+
   try {
     const result = await researchTopic(topic)
     sources = result.sources
@@ -37,12 +39,14 @@ export async function POST(
     researchFailed = true
   }
 
+  console.log('[topic] research_complete', { capture_id: captureId, sources: sources.length, research_failed: researchFailed })
+
   // Persist research to capture even if empty (marks research as attempted)
   const supabase = await createClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('captures') as any)
+  await supabase
+    .from('captures')
     .update({
-      research_sources: sources.length > 0 ? sources : null,
+      research_sources: sources.length > 0 ? (sources as unknown as import('@/types/db').Json) : null,
       research_summary: summary || null,
       status: 'ready',
       updated_at: new Date().toISOString(),
