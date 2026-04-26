@@ -56,6 +56,7 @@ export function rankWeeklyCandidates(outputs: Output[]): Output[] {
 }
 
 function mapOutputRow(row: Record<string, unknown>): Output {
+  const ch = row.channels as { platform: string; label: string | null } | null
   return {
     id:                  row.id as string,
     workspaceId:         row.workspace_id as string,
@@ -75,6 +76,7 @@ function mapOutputRow(row: Record<string, unknown>): Output {
     performanceSnapshot: row.performance_snapshot as Record<string, unknown> | null,
     createdAt:           row.created_at as string,
     updatedAt:           row.updated_at as string,
+    channels:            ch ? { platform: ch.platform as import('@/types/domain').ChannelPlatform, label: ch.label } : undefined,
   }
 }
 
@@ -106,7 +108,7 @@ export async function buildWeeklyPlan(
 
   const { data: rows, error } = await supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, channel_id, title, content, status, approved_by, approved_at, provider_post_id, published_at, scheduled_at, last_publish_error, approved_for_week, week_bucket, performance_snapshot, created_at, updated_at')
+    .select('id, workspace_id, generation_id, channel_id, title, content, status, approved_by, approved_at, provider_post_id, published_at, scheduled_at, last_publish_error, approved_for_week, week_bucket, performance_snapshot, created_at, updated_at, channels(platform, label)')
     .eq('workspace_id', workspaceId)
     .in('status', ['draft', 'review', 'approved'])
     .eq('approved_for_week', false)

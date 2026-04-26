@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { DateTime } from 'luxon'
 import { Loader2, CheckCircle2, CalendarClock, X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { WeeklyPlanItem, Output, OutputContent } from '@/types/domain'
+import type { WeeklyPlanItem, Output, OutputContent, ChannelPlatform } from '@/types/domain'
 
 function excerpt(output: Output): string {
   const body = (output.content as OutputContent).body ?? ''
@@ -18,6 +19,7 @@ function formatSlotPreview(iso: string | null): string {
 
 function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
   const o = raw.output as Record<string, unknown>
+  const ch = o.channels as { platform: string; label: string | null } | undefined
   return {
     suggestedSlot: raw.suggestedSlot as string | null,
     rank: raw.rank as number,
@@ -40,11 +42,13 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
       performanceSnapshot: o.performanceSnapshot as Record<string, unknown> | null,
       createdAt:           o.createdAt as string,
       updatedAt:           o.updatedAt as string,
+      channels:            ch ? { platform: ch.platform as ChannelPlatform, label: ch.label } : undefined,
     },
   }
 }
 
 export default function InboxPage() {
+  const router = useRouter()
   const [items, setItems] = useState<WeeklyPlanItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -52,6 +56,8 @@ export default function InboxPage() {
   const [skipped, setSkipped] = useState<Set<string>>(new Set())
   const [successCount, setSuccessCount] = useState<number | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
+  const cardRefs = useRef<Map<string, HTMLLIElement>>(new Map())
 
   const anyActing = approvingIds.size > 0
 
@@ -66,6 +72,69 @@ export default function InboxPage() {
   useEffect(() => { load() }, [load])
 
   const visible = items.filter((i) => !skipped.has(i.output.id))
+
+  // Clamp focus when visible list shrinks
+  useEffect(() => {
+    if (focusedIndex === null) return
+    if (visible.length === 0) { setFocusedIndex(null); return }
+    if (focusedIndex >= visible.length) setFocusedIndex(visible.length - 1)
+  }, [visible.length, focusedIndex])
+
+  // Keyboard shortcuts — no dependency array so always captures fresh state
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // Don't fire when user is typing
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) return
+
+      const len = visible.length
+      if (len === 0) return
+
+      if (e.key === 'j' || e.key === 'J') {
+        e.preventDefault()
+        setFocusedIndex((cur) => {
+          const next = cur === null ? 0 : Math.min(cur + 1, len - 1)
+          cardRefs.current.get(visible[next].output.id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          return next
+        })
+      }
+
+      if (e.key === 'k' || e.key === 'K') {
+        e.preventDefault()
+        setFocusedIndex((cur) => {
+          const next = cur === null ? 0 : Math.max(cur - 1, 0)
+          cardRefs.current.get(visible[next].output.id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          return next
+        })
+      }
+
+      if ((e.key === 'a' || e.key === 'A') && focusedIndex !== null && !anyActing) {
+        e.preventDefault()
+        const item = visible[focusedIndex]
+        if (item) void handleApproveSelected([item.output.id])
+      }
+
+      if ((e.key === 's' || e.key === 'S') && focusedIndex !== null) {
+        e.preventDefault()
+        const item = visible[focusedIndex]
+        if (item) setSkipped((s) => new Set([...s, item.output.id]))
+        // focus stays at same index; useEffect above clamps if needed
+      }
+
+      if ((e.key === 'e' || e.key === 'E') && focusedIndex !== null) {
+        e.preventDefault()
+        const item = visible[focusedIndex]
+        if (item) router.push(`/studio/${item.output.id}`)
+      }
+    }
+
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  })
 
   function toggleSelect(id: string) {
     if (anyActing) return
@@ -198,48 +267,71 @@ export default function InboxPage() {
           <p className="mt-1 text-sm text-zinc-500">No drafts are ready for this week.</p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {visible.map((item) => (
-            <PlanCard
-              key={item.output.id}
-              item={item}
-              isSelected={selected.has(item.output.id)}
-              isActing={approvingIds.has(item.output.id)}
-              anyActing={anyActing}
-              onToggle={() => toggleSelect(item.output.id)}
-              onApprove={() => handleApproveSelected([item.output.id])}
-              onSkip={() => setSkipped((s) => new Set([...s, item.output.id]))}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-3">
+            {visible.map((item, idx) => (
+              <PlanCard
+                key={item.output.id}
+                item={item}
+                isSelected={selected.has(item.output.id)}
+                isActing={approvingIds.has(item.output.id)}
+                isFocused={focusedIndex === idx}
+                anyActing={anyActing}
+                cardRef={(el) => {
+                  if (el) cardRefs.current.set(item.output.id, el)
+                  else cardRefs.current.delete(item.output.id)
+                }}
+                onToggle={() => toggleSelect(item.output.id)}
+                onApprove={() => handleApproveSelected([item.output.id])}
+                onSkip={() => setSkipped((s) => new Set([...s, item.output.id]))}
+                onFocus={() => setFocusedIndex(idx)}
+              />
+            ))}
+          </ul>
+
+          {/* Keyboard shortcut legend */}
+          <p className="select-none pb-2 pt-4 text-center text-[11px] text-zinc-400">
+            <kbd className="font-sans">J</kbd> · <kbd className="font-sans">K</kbd>{' '}
+            navigate&nbsp;&nbsp;
+            <kbd className="font-sans">A</kbd> approve&nbsp;&nbsp;
+            <kbd className="font-sans">S</kbd> skip&nbsp;&nbsp;
+            <kbd className="font-sans">E</kbd> edit in studio
+          </p>
+        </>
       )}
     </div>
   )
 }
 
 function PlanCard({
-  item, isSelected, isActing, anyActing, onToggle, onApprove, onSkip,
+  item, isSelected, isActing, isFocused, anyActing, cardRef, onToggle, onApprove, onSkip, onFocus,
 }: {
   item: WeeklyPlanItem
   isSelected: boolean
   isActing: boolean
+  isFocused: boolean
   anyActing: boolean
+  cardRef: (el: HTMLLIElement | null) => void
   onToggle: () => void
   onApprove: () => void
   onSkip: () => void
+  onFocus: () => void
 }) {
   const { output, suggestedSlot } = item
   return (
     <li
+      ref={cardRef}
+      onClick={onFocus}
       className={cn(
-        'rounded-xl border bg-white px-5 py-4 transition-shadow hover:shadow-sm',
+        'rounded-xl border bg-white px-5 py-4 transition-all hover:shadow-sm cursor-default',
         isSelected ? 'border-zinc-400' : 'border-zinc-200',
+        isFocused && 'ring-2 ring-zinc-900 ring-offset-1',
       )}
     >
       <div className="flex items-start gap-3">
         {/* Checkbox */}
         <button
-          onClick={onToggle}
+          onClick={(e) => { e.stopPropagation(); onToggle() }}
           disabled={anyActing}
           className={cn(
             'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
@@ -268,14 +360,14 @@ function PlanCard({
         {/* Actions */}
         <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
           <button
-            onClick={onSkip}
+            onClick={(e) => { e.stopPropagation(); onSkip() }}
             disabled={anyActing}
             className="flex h-8 items-center rounded-lg border border-zinc-200 px-2.5 text-xs font-medium text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-700 disabled:opacity-40"
           >
             Skip
           </button>
           <button
-            onClick={onApprove}
+            onClick={(e) => { e.stopPropagation(); onApprove() }}
             disabled={anyActing}
             className="flex h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
           >
