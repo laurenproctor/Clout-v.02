@@ -50,3 +50,23 @@ const suggestedSlot = assignNextSlot(mappedPrefs, taken)
 - `app/(dashboard)/dashboard/page.tsx` — imports and renders `WeeklyPlanWidget` above the Momentum/PublishingEngine widget grid
 
 **Confidence:** HIGH
+
+---
+
+## Feature: Topic Mode (Release B)
+
+**What:** Users can start a capture with a subject line. Clout searches for credible sources via Tavily, distils a research brief with Claude Haiku, then generates a voiced post with the selected lens via Sonnet. Sources are shown in an expandable chip. Step logging: `research_started`, `research_complete`, `generate_complete`.
+
+**Files:**
+
+- `supabase/migrations/20260425_topic_mode.sql` — DB migration (pre-existing)
+- `types/domain.ts` — CaptureSource, ResearchSource, Capture (pre-existing)
+- `lib/ai/research.ts` — searchTavily + summariseSources + researchTopic (pre-existing)
+- `app/api/capture/[id]/research/route.ts` — research endpoint + step logging (fixed: removed as-any cast)
+- `app/api/generate/route.ts` — research context injection + generate_complete log (pre-existing + logging added)
+- `components/capture/topic-capture-flow.tsx` — full state machine UI (pre-existing)
+- `components/capture/capture-composer.tsx` — Topic tab + wiring (pre-existing)
+- `types/db.ts` — added 'topic' to enum, research columns to captures shape (fixed)
+- `lib/domain/capture.ts` — removed as-any cast on source field (fixed)
+
+**Confidence:** HIGH

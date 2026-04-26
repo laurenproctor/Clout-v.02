@@ -23,3 +23,4 @@ Updated: 2026-04-25
 | Approval inbox | GREEN | Fixed: new users now get real slot suggestions (was returning null). Approve & Queue correctly transitions to queued with scheduled_at and approved_by. |
 | Queue | GREEN | Backend worker has retry logic, idempotency, crash recovery. Queue page shows live status. |
 | Weekly Plan widget | GREEN | Dashboard now shows upcoming plan items with inline approve. |
+| Topic mode | GREEN | Full pipeline: Tavily search → Haiku summarise → Sonnet generate. Research failure gracefully degrades. Step logging: research_started, research_complete, generate_complete. |
