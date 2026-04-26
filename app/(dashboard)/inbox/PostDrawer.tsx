@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { DateTime } from 'luxon'
 import { ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { WeeklyPlanItem } from '@/types/domain'
 
 interface PostDrawerProps {
@@ -47,6 +46,7 @@ export function PostDrawer({
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (!item) return
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'Escape') { onClose(); return }
