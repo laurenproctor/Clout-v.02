@@ -82,11 +82,11 @@ export default function InboxPage() {
       if (visible.length === 0) return
       if (e.key === 'j' || e.key === 'J') {
         e.preventDefault()
-        setDrawerIndex(0)
+        setDrawerIndex((prev) => Math.min((prev ?? -1) + 1, visible.length - 1))
       }
       if (e.key === 'k' || e.key === 'K') {
         e.preventDefault()
-        setDrawerIndex(0)
+        setDrawerIndex((prev) => Math.max((prev ?? 1) - 1, 0))
       }
     }
     window.addEventListener('keydown', handleKey)
