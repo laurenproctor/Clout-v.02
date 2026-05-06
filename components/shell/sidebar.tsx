@@ -19,6 +19,7 @@ import {
   ListOrdered,
   HelpCircle,
   Palette,
+  Network,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 
@@ -28,6 +29,7 @@ const navItems = [
   { label: 'Queue', href: '/queue', icon: ListOrdered },
   { label: 'Capture', href: '/capture', icon: Zap },
   { label: 'Private', href: '/private', icon: Lock },
+  { label: 'Syndicate', href: '/syndicate', icon: Network },
   { label: 'Studio', href: '/studio', icon: PenSquare },
   { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
