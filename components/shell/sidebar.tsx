@@ -33,7 +33,7 @@ const navItems = [
   { label: 'Create', href: '/create', icon: Sparkles },
   { label: 'Private', href: '/private', icon: Lock },
   { label: 'Content Analyzer', href: '/analyze', icon: Network },
-  { label: 'Syndication', href: '/syndication', icon: Share2 },
+  { label: 'Syndicate', href: '/syndicate', icon: Share2 },
   { label: 'Studio', href: '/studio', icon: PenSquare },
   { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
