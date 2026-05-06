@@ -100,6 +100,7 @@ export interface Lens {
   name: string
   description: string | null
   systemPrompt: string
+  lensType: string | null  // null = standard; 'framework' = Framework Lens pipeline
   tags: string[]
   isActive: boolean
   createdAt: string

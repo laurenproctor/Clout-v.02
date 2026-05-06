@@ -54,6 +54,10 @@ export async function POST(req: NextRequest) {
           code = 'EXTRACTION_FAILED'
           userMessage = "We couldn't extract readable content — the page may be paywalled or bot-protected."
           status = 422
+        } else if (message.startsWith('LOW_SIGNAL')) {
+          code = 'LOW_SIGNAL'
+          userMessage = 'LOW_SIGNAL'
+          status = 422
         }
 
         send({ type: 'error', success: false, error: { code, message: userMessage }, status })

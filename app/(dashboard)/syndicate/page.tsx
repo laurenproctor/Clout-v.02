@@ -13,10 +13,7 @@ type UIState =
   | { status: 'error'; message: string }
 
 const PLACEHOLDER_EXAMPLES = [
-  'Paste a Substack post…',
-  'Paste a long-form essay…',
-  'Paste a blog post or article…',
-  'Paste a podcast transcript…',
+  'Link to post',
 ]
 
 export default function SyndicatePage() {
@@ -99,14 +96,11 @@ export default function SyndicatePage() {
         {/* Header */}
         {!isDone && (
           <div className="mb-10">
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-300 mb-3">
-              Syndicate
-            </p>
             <h1 className="text-2xl font-medium text-zinc-900 leading-tight mb-2">
-              Understand why content works.
+              Analyze Narrative Structure
             </h1>
             <p className="text-sm text-zinc-500 leading-relaxed max-w-md">
-              Paste a URL. Clout extracts the psychological and structural mechanics that make content spread.
+              Understand why content resonates through persuasion mechanics, audience psychology, narrative flow, and structural analysis.
             </p>
           </div>
         )}
@@ -151,9 +145,29 @@ export default function SyndicatePage() {
             )}
 
             {/* Error */}
-            {ui.status === 'error' && (
+            {ui.status === 'error' && ui.message === 'LOW_SIGNAL' ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+                <p className="text-sm font-medium text-amber-900">Not enough content to syndicate.</p>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Syndicate works best with substantive long-form content — articles, essays, blog posts, newsletters, or transcripts. For best results, your content should:
+                </p>
+                <ul className="space-y-1">
+                  {[
+                    'Be at least 300–500 words',
+                    'Contain a clear idea, argument, or narrative',
+                    'Be publicly accessible (not paywalled or login-gated)',
+                    'Live at a direct URL to the full piece',
+                  ].map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-amber-800">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : ui.status === 'error' ? (
               <p className="text-xs text-red-500 pl-0.5">{ui.message}</p>
-            )}
+            ) : null}
           </div>
         )}
 

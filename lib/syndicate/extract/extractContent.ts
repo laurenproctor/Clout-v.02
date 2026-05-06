@@ -96,6 +96,11 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
     throw new Error('EXTRACTION_FAILED: Readability could not parse readable content')
   }
 
+  const wordCount = (article.textContent.match(/\S+/g) ?? []).length
+  if (wordCount < 150) {
+    throw new Error('LOW_SIGNAL: Content too short for syndication')
+  }
+
   // Parse sections from the article DOM for structure-aware chunking
   const articleDom = new JSDOM(`<div>${article.content}</div>`)
   const root = articleDom.window.document.querySelector('div')!
