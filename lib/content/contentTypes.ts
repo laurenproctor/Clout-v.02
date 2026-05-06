@@ -2,6 +2,13 @@
 import type { LucideIcon } from 'lucide-react'
 import { FileText, MessageSquare, Mail } from 'lucide-react'
 
+/**
+ * Lifecycle status of a content type.
+ * - active: fully available, linked to a route
+ * - coming_soon: visible but not yet functional
+ * - beta / experimental: reserved for future gated rollouts
+ * - internal: reserved for operator-only types
+ */
 export type ContentTypeStatus =
   | 'active'
   | 'coming_soon'
@@ -54,5 +61,6 @@ export const CONTENT_TYPES: ContentType[] = [
   },
 ]
 
+/** Pre-filtered slices used by the Create hub page. Add new slices here when new statuses are promoted. */
 export const activeTypes = CONTENT_TYPES.filter((t) => t.status === 'active')
 export const comingSoonTypes = CONTENT_TYPES.filter((t) => t.status === 'coming_soon')
