@@ -19,6 +19,8 @@ import { AuthorityPreviewPanel } from '@/components/lenses/authority/authority-p
 import type { AuthorityOutput } from '@/lib/lenses/authority/authorityTypes'
 import { ContrarianPreviewPanel } from '@/components/lenses/contrarian/contrarian-preview-panel'
 import type { ContrarianOutput } from '@/lib/lenses/contrarian/contrarianTypes'
+import { SignalPreviewPanel } from '@/components/lenses/signal/signal-preview-panel'
+import type { SignalOutput } from '@/lib/lenses/signal/signalTypes'
 
 const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
@@ -81,6 +83,8 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
   const [authorityOutputId, setAuthorityOutputId] = useState<string | null>(null)
   const [contrarianOutput, setContrarianOutput] = useState<ContrarianOutput | null>(null)
   const [contrarianOutputId, setContrarianOutputId] = useState<string | null>(null)
+  const [signalOutput, setSignalOutput] = useState<SignalOutput | null>(null)
+  const [signalOutputId, setSignalOutputId] = useState<string | null>(null)
   const [workspaceId, setWorkspaceId] = useState('pending')
   const [lensLoadError, setLensLoadError] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
@@ -256,6 +260,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
     const isFrameworkLens = selectedLens?.lensType === 'framework'
     const isAuthorityLens = selectedLens?.lensType === 'authority'
     const isContrarianLens = selectedLens?.lensType === 'contrarian'
+    const isSignalLens = selectedLens?.lensType === 'signal'
 
     try {
       if (isFrameworkLens) {
@@ -297,6 +302,19 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
         } else {
           navigate(`/capture/${savedCaptureId}`)
         }
+      } else if (isSignalLens) {
+        const res = await fetch('/api/lenses/signal/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ capture_id: savedCaptureId }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setSignalOutput(data.signal as SignalOutput)
+          setSignalOutputId(data.output_id as string)
+        } else {
+          navigate(`/capture/${savedCaptureId}`)
+        }
       } else {
         const res = await fetch('/api/generate', {
           method: 'POST',
@@ -315,6 +333,35 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
     } finally {
       setGenerating(false)
     }
+  }
+
+  // ── Signal result screen ───────────────────────────────────────────────────
+  if (signalOutput && signalOutputId) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
+            <span className="text-green-600 text-sm">✓</span>
+          </div>
+          <p className="text-sm font-medium text-zinc-900">Signal analysis complete.</p>
+        </div>
+        <SignalPreviewPanel output={signalOutput} />
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/studio/${signalOutputId}`)}
+            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            View in Studio
+          </button>
+          <button
+            onClick={() => navigate(`/capture/${savedCaptureId}`)}
+            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            Back to capture
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ── Contrarian result screen ───────────────────────────────────────────────
