@@ -41,13 +41,23 @@ CREATE INDEX IF NOT EXISTS publish_logs_status_platform_idx ON publish_logs (sta
 
 ALTER TABLE publish_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "workspace members can read publish logs"
-  ON publish_logs FOR SELECT
-  USING (
-    workspace_id IN (
-      SELECT workspace_id FROM workspace_members WHERE user_id = auth_user_id()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'publish_logs'
+      AND policyname = 'workspace members can read publish logs'
+  ) THEN
+    CREATE POLICY "workspace members can read publish logs"
+      ON publish_logs FOR SELECT
+      USING (
+        workspace_id IN (
+          SELECT workspace_id FROM workspace_members WHERE user_id = auth_user_id()
+        )
+      );
+  END IF;
+END $$;
 
 -- 3. Idempotency columns on outputs
 ALTER TABLE outputs

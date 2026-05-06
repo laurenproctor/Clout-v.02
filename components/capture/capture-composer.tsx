@@ -13,6 +13,12 @@ import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
 import { LensPicker } from '@/components/shared/lens-picker'
 import { TopicCaptureFlow } from '@/components/capture/topic-capture-flow'
 import { AssistantCaptureFlow } from '@/components/capture/assistant-capture-flow'
+import { FrameworkPreviewPanel } from '@/components/lenses/framework/framework-preview-panel'
+import type { FrameworkOutput } from '@/lib/lenses/framework/frameworkTypes'
+import { AuthorityPreviewPanel } from '@/components/lenses/authority/authority-preview-panel'
+import type { AuthorityOutput } from '@/lib/lenses/authority/authorityTypes'
+import { ContrarianPreviewPanel } from '@/components/lenses/contrarian/contrarian-preview-panel'
+import type { ContrarianOutput } from '@/lib/lenses/contrarian/contrarianTypes'
 
 const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
@@ -69,6 +75,12 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
   const [lenses, setLenses] = useState<Lens[]>([])
   const [selectedLensId, setSelectedLensId] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [frameworkOutput, setFrameworkOutput] = useState<FrameworkOutput | null>(null)
+  const [frameworkOutputId, setFrameworkOutputId] = useState<string | null>(null)
+  const [authorityOutput, setAuthorityOutput] = useState<AuthorityOutput | null>(null)
+  const [authorityOutputId, setAuthorityOutputId] = useState<string | null>(null)
+  const [contrarianOutput, setContrarianOutput] = useState<ContrarianOutput | null>(null)
+  const [contrarianOutputId, setContrarianOutputId] = useState<string | null>(null)
   const [workspaceId, setWorkspaceId] = useState('pending')
   const [lensLoadError, setLensLoadError] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
@@ -240,21 +252,156 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
     if (!savedCaptureId || !selectedLensId) return
     setGenerating(true)
 
+    const selectedLens = lenses.find((l) => l.id === selectedLensId)
+    const isFrameworkLens = selectedLens?.lensType === 'framework'
+    const isAuthorityLens = selectedLens?.lensType === 'authority'
+    const isContrarianLens = selectedLens?.lensType === 'contrarian'
+
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ capture_id: savedCaptureId, lens_id: selectedLensId }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        navigate(`/studio/${data.output_id}`)
+      if (isFrameworkLens) {
+        const res = await fetch('/api/lenses/framework/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ capture_id: savedCaptureId }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setFrameworkOutput(data.framework as FrameworkOutput)
+          setFrameworkOutputId(data.output_id as string)
+        } else {
+          navigate(`/capture/${savedCaptureId}`)
+        }
+      } else if (isAuthorityLens) {
+        const res = await fetch('/api/lenses/authority/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ capture_id: savedCaptureId }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setAuthorityOutput(data.authority as AuthorityOutput)
+          setAuthorityOutputId(data.output_id as string)
+        } else {
+          navigate(`/capture/${savedCaptureId}`)
+        }
+      } else if (isContrarianLens) {
+        const res = await fetch('/api/lenses/contrarian/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ capture_id: savedCaptureId }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setContrarianOutput(data.contrarian as ContrarianOutput)
+          setContrarianOutputId(data.output_id as string)
+        } else {
+          navigate(`/capture/${savedCaptureId}`)
+        }
       } else {
-        navigate(`/capture/${savedCaptureId}`)
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ capture_id: savedCaptureId, lens_id: selectedLensId }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          navigate(`/studio/${data.output_id}`)
+        } else {
+          navigate(`/capture/${savedCaptureId}`)
+        }
       }
     } catch {
       navigate(`/capture/${savedCaptureId}`)
+    } finally {
+      setGenerating(false)
     }
+  }
+
+  // ── Contrarian result screen ───────────────────────────────────────────────
+  if (contrarianOutput && contrarianOutputId) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
+            <span className="text-green-600 text-sm">✓</span>
+          </div>
+          <p className="text-sm font-medium text-zinc-900">Contrarian analysis complete.</p>
+        </div>
+        <ContrarianPreviewPanel output={contrarianOutput} />
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/studio/${contrarianOutputId}`)}
+            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            View in Studio
+          </button>
+          <button
+            onClick={() => navigate(`/capture/${savedCaptureId}`)}
+            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            Back to capture
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Authority result screen ────────────────────────────────────────────────
+  if (authorityOutput && authorityOutputId) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
+            <span className="text-green-600 text-sm">✓</span>
+          </div>
+          <p className="text-sm font-medium text-zinc-900">Authority analysis complete.</p>
+        </div>
+        <AuthorityPreviewPanel output={authorityOutput} />
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/studio/${authorityOutputId}`)}
+            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            View in Studio
+          </button>
+          <button
+            onClick={() => navigate(`/capture/${savedCaptureId}`)}
+            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            Back to capture
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Framework result screen ────────────────────────────────────────────────
+  if (frameworkOutput && frameworkOutputId) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50">
+            <span className="text-green-600 text-sm">✓</span>
+          </div>
+          <p className="text-sm font-medium text-zinc-900">Framework extracted.</p>
+        </div>
+        <FrameworkPreviewPanel output={frameworkOutput} />
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/studio/${frameworkOutputId}`)}
+            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            View in Studio
+          </button>
+          <button
+            onClick={() => navigate(`/capture/${savedCaptureId}`)}
+            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            Back to capture
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ── Post-save screen ──────────────────────────────────────────────────────
@@ -332,7 +479,10 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
                 )}
               >
                 <Zap className="h-3.5 w-3.5" />
-                {generating ? 'Extracting signal...' : 'Generate →'}
+                {generating
+                  ? (lenses.find((l) => l.id === selectedLensId)?.lensType === 'framework' ? 'Extracting framework...' : 'Extracting signal...')
+                  : 'Generate →'
+                }
               </button>
               <button
                 onClick={() => navigate(`/capture/${savedCaptureId}`)}

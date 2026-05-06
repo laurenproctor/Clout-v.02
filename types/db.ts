@@ -674,6 +674,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          lens_type: string | null
           name: string
           scope: Database["public"]["Enums"]["lens_scope"]
           system_prompt: string
@@ -688,9 +689,10 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          lens_type?: string | null
           name: string
           scope?: Database["public"]["Enums"]["lens_scope"]
-          system_prompt: string
+          system_prompt?: string
           tags?: string[] | null
           updated_at?: string
           workspace_id?: string | null
@@ -702,6 +704,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          lens_type?: string | null
           name?: string
           scope?: Database["public"]["Enums"]["lens_scope"]
           system_prompt?: string
@@ -816,6 +819,7 @@ export type Database = {
           approved_for_week: boolean
           channel_id: string | null
           content: Json
+          content_type: string
           created_at: string
           deleted_at: string | null
           generation_id: string
@@ -837,6 +841,7 @@ export type Database = {
           approved_for_week?: boolean
           channel_id?: string | null
           content?: Json
+          content_type?: string
           created_at?: string
           deleted_at?: string | null
           generation_id: string
@@ -858,6 +863,7 @@ export type Database = {
           approved_for_week?: boolean
           channel_id?: string | null
           content?: Json
+          content_type?: string
           created_at?: string
           deleted_at?: string | null
           generation_id?: string

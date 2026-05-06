@@ -10,6 +10,7 @@ function toLens(row: Record<string, unknown>): Lens {
     name: row.name as string,
     description: row.description as string | null,
     systemPrompt: row.system_prompt as string,
+    lensType: (row.lens_type as string | null) ?? null,
     tags: row.tags as string[],
     isActive: row.is_active as boolean,
     createdAt: row.created_at as string,

@@ -17,6 +17,7 @@ export async function callClaude(params: {
   userMessage: string
   model?: string
   maxTokens?: number
+  temperature?: number
 }): Promise<GenerateResult> {
   const model = params.model ?? 'claude-sonnet-4-6'
   const start = Date.now()
@@ -24,6 +25,7 @@ export async function callClaude(params: {
   const response = await client.messages.create({
     model,
     max_tokens: params.maxTokens ?? 2048,
+    ...(params.temperature !== undefined ? { temperature: params.temperature } : {}),
     system: params.systemPrompt,
     messages: [{ role: 'user', content: params.userMessage }],
   })
