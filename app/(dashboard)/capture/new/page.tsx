@@ -38,7 +38,8 @@ function NewCaptureInner() {
   const [headline] = useState(() => HEADLINES[Math.floor(Math.random() * HEADLINES.length)])
 
   const initialContent = searchParams.get('content') ?? ''
-  const initialMode = searchParams.get('mode') === 'voice' ? 'voice' as const : 'write' as const
+  const modeParam = searchParams.get('mode')
+  const initialMode = modeParam === 'voice' ? 'voice' as const : modeParam === 'write' ? 'write' as const : 'assistant' as const
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
