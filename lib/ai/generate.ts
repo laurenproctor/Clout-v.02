@@ -42,6 +42,21 @@ export async function callClaude(params: {
   }
 }
 
+export function callClaudeStream(params: {
+  systemPrompt: string
+  userMessage: string
+  model?: string
+  maxTokens?: number
+}) {
+  const model = params.model ?? 'claude-sonnet-4-6'
+  return client.messages.stream({
+    model,
+    max_tokens: params.maxTokens ?? 2048,
+    system: params.systemPrompt,
+    messages: [{ role: 'user', content: params.userMessage }],
+  })
+}
+
 export function buildGenerationSystemPrompt(params: {
   lensSystemPrompt: string
   profileContext: {

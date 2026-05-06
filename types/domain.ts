@@ -309,3 +309,61 @@ export interface PublishOutputInput {
 export type DomainResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; code?: string }
+
+// ─── Assistant System ─────────────────────────────────────────────────────────
+
+// What structural form the output takes
+export type OutputFormat = 'post' | 'thread' | 'newsletter' | 'article' | 'note'
+
+// What the user is trying to do (orthogonal to format)
+export type IntentClass =
+  | 'publish'
+  | 'reflect'
+  | 'brainstorm'
+  | 'educate'
+  | 'summarize'
+  | 'document'
+  | 'debate'
+
+export type AssistantTone =
+  | 'professional'
+  | 'casual'
+  | 'educational'
+  | 'personal'
+  | 'reflective'
+  | 'contrarian'
+
+export interface InferredIntent {
+  intentClass: IntentClass
+  outputFormat: OutputFormat
+  isPrivate: boolean
+  publishIntent: boolean
+  tone: AssistantTone
+  suggestedChannel: 'linkedin' | 'twitter' | 'newsletter' | null
+  confidence: {
+    format: number
+    privacy: number
+    publishIntent: number
+    tone: number
+  }
+}
+
+export interface NormalizedGoal {
+  intentClass: IntentClass
+  outputFormat: OutputFormat
+  tone: AssistantTone
+  isPrivate: boolean
+  suggestedChannel: InferredIntent['suggestedChannel']
+  generationHint: string
+}
+
+export interface AssistantSession {
+  id: string
+  workspaceId: string
+  captureId: string | null
+  userId: string | null
+  status: 'active' | 'completed' | 'failed'
+  metadata: Record<string, unknown>
+  createdAt: string
+  completedAt: string | null
+}

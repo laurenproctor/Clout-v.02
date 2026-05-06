@@ -647,3 +647,115 @@ select
 where not exists (
   select 1 from lenses where name = 'Extract the Gold' and scope = 'system'
 );
+
+
+-- ─────────────────────────────────────────
+-- Assistant Tables
+-- ─────────────────────────────────────────
+
+create table if not exists assistant_sessions (
+  id           uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  capture_id   uuid references captures(id) on delete set null,
+  user_id      uuid references users(id) on delete set null,
+  status       text not null default 'active',
+  metadata     jsonb not null default '{}',
+  created_at   timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+create index on assistant_sessions (workspace_id);
+create index on assistant_sessions (capture_id);
+
+alter table assistant_sessions enable row level security;
+
+create policy "assistant_sessions_select" on assistant_sessions
+  for select using (is_workspace_member(workspace_id) or is_assigned_operator(workspace_id) or is_super_admin());
+create policy "assistant_sessions_insert" on assistant_sessions
+  for insert with check (is_workspace_member(workspace_id));
+create policy "assistant_sessions_update" on assistant_sessions
+  for update using (is_workspace_member(workspace_id));
+
+
+create table if not exists assistant_messages (
+  id           uuid primary key default gen_random_uuid(),
+  session_id   uuid not null references assistant_sessions(id) on delete cascade,
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  role         text not null,
+  content      text not null,
+  model        text,
+  tokens_used  int,
+  created_at   timestamptz not null default now()
+);
+
+create index on assistant_messages (session_id);
+
+alter table assistant_messages enable row level security;
+
+create policy "assistant_messages_select" on assistant_messages
+  for select using (is_workspace_member(workspace_id) or is_assigned_operator(workspace_id) or is_super_admin());
+create policy "assistant_messages_insert" on assistant_messages
+  for insert with check (is_workspace_member(workspace_id));
+
+
+-- status lifecycle: queued -> inferring -> planning -> generating -> streaming -> persisting -> completed | failed | cancelled | retrying
+create table if not exists assistant_generations (
+  id                   uuid primary key default gen_random_uuid(),
+  session_id           uuid not null references assistant_sessions(id) on delete cascade,
+  workspace_id         uuid not null references workspaces(id) on delete cascade,
+  output_id            uuid references outputs(id) on delete set null,
+  parent_generation_id uuid references assistant_generations(id) on delete set null,
+  status               text not null default 'queued',
+  inferred_intent      jsonb,
+  output_format        text,
+  provider             text,
+  model                text,
+  prompt_version       text,
+  generation_config    jsonb,
+  retry_count          int not null default 0,
+  failure_reason       text,
+  latency_ms           int,
+  tokens_input         int,
+  tokens_output        int,
+  stream_state         text,
+  created_at           timestamptz not null default now(),
+  completed_at         timestamptz
+);
+
+create index on assistant_generations (session_id);
+create index on assistant_generations (parent_generation_id);
+
+alter table assistant_generations enable row level security;
+
+create policy "assistant_generations_select" on assistant_generations
+  for select using (is_workspace_member(workspace_id) or is_assigned_operator(workspace_id) or is_super_admin());
+create policy "assistant_generations_insert" on assistant_generations
+  for insert with check (is_workspace_member(workspace_id));
+create policy "assistant_generations_update" on assistant_generations
+  for update using (is_workspace_member(workspace_id));
+
+
+-- Event ledger for observability, replayability, and future agent workflows
+-- event_type values: intent_inferred | generation_started | generation_streaming |
+--   generation_completed | generation_failed | revision_requested | output_saved |
+--   output_published | retry_started | retry_completed | stream_disconnected | stream_resumed
+create table if not exists assistant_events (
+  id            uuid primary key default gen_random_uuid(),
+  workspace_id  uuid not null references workspaces(id) on delete cascade,
+  session_id    uuid references assistant_sessions(id) on delete cascade,
+  generation_id uuid references assistant_generations(id) on delete set null,
+  event_type    text not null,
+  payload       jsonb not null default '{}',
+  created_at    timestamptz not null default now()
+);
+
+create index on assistant_events (session_id);
+create index on assistant_events (generation_id);
+create index on assistant_events (workspace_id, event_type);
+
+alter table assistant_events enable row level security;
+
+create policy "assistant_events_select" on assistant_events
+  for select using (is_workspace_member(workspace_id) or is_assigned_operator(workspace_id) or is_super_admin());
+create policy "assistant_events_insert" on assistant_events
+  for insert with check (is_workspace_member(workspace_id));

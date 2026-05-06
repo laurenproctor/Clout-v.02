@@ -12,6 +12,7 @@ import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
 import { LensPicker } from '@/components/shared/lens-picker'
 import { TopicCaptureFlow } from '@/components/capture/topic-capture-flow'
+import { AssistantCaptureFlow } from '@/components/capture/assistant-capture-flow'
 
 const URL_REGEX = /^https?:\/\/[^\s]{4,}$/
 
@@ -44,7 +45,7 @@ function buildPersonalizedPrompts(profile: { role?: string; industry?: string; e
   return prompts
 }
 
-type CaptureMode = 'write' | 'voice' | 'paste' | 'upload' | 'topic' | 'more'
+type CaptureMode = 'assistant' | 'write' | 'voice' | 'paste' | 'upload' | 'topic' | 'more'
 
 interface CaptureComposerProps {
   initialContent?: string
@@ -52,7 +53,7 @@ interface CaptureComposerProps {
   onClose?: () => void
 }
 
-export function CaptureComposer({ initialContent = '', initialMode = 'write', onClose }: CaptureComposerProps) {
+export function CaptureComposer({ initialContent = '', initialMode = 'assistant', onClose }: CaptureComposerProps) {
   const router = useRouter()
 
   const [source, setSource] = useState<CaptureSource>('text')
@@ -139,7 +140,8 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
     setUploadedFile(null)
     setStructuredData(null)
     setDetectedUrl(null)
-    if (mode === 'write' || mode === 'paste') setSource('text')
+    if (mode === 'assistant') setSource('text')
+    else if (mode === 'write' || mode === 'paste') setSource('text')
     else if (mode === 'voice') setSource('voice')
     else if (mode === 'upload') setSource('structured')
     else if (mode === 'topic') setSource('topic')
@@ -354,7 +356,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
 
         {/* Mode bar */}
         <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0">
-          {(['write', 'paste', 'upload', 'voice', 'topic'] as CaptureMode[]).map((mode) => (
+          {(['assistant', 'write', 'paste', 'upload', 'voice', 'topic'] as CaptureMode[]).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -542,6 +544,17 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
             </div>
           )}
 
+          {captureMode === 'assistant' && (
+            <AssistantCaptureFlow
+              lenses={lenses}
+              selectedLensId={selectedLensId}
+              onLensChange={setSelectedLensId}
+              profileName={profileName}
+              onComplete={(outputId) => navigate(`/studio/${outputId}`)}
+              onError={(err) => setError(err)}
+            />
+          )}
+
           {captureMode === 'topic' && (
             <TopicCaptureFlow
               lenses={lenses}
@@ -561,7 +574,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'write', on
         </div>
 
         {/* Bottom bar — hidden for self-managing modes */}
-        <div className={cn('border-t border-zinc-100 bg-zinc-50/60 px-6 py-4', (captureMode === 'topic' || captureMode === 'voice') && 'hidden')}>
+        <div className={cn('border-t border-zinc-100 bg-zinc-50/60 px-6 py-4', (captureMode === 'assistant' || captureMode === 'topic' || captureMode === 'voice') && 'hidden')}>
           <div className="flex items-center gap-3 flex-wrap">
 
             <div className="flex items-center gap-1.5">

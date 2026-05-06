@@ -14,6 +14,171 @@ export type Database = {
   }
   public: {
     Tables: {
+      assistant_events: {
+        Row: {
+          id: string
+          workspace_id: string
+          session_id: string | null
+          generation_id: string | null
+          event_type: string
+          payload: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          session_id?: string | null
+          generation_id?: string | null
+          event_type: string
+          payload?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          session_id?: string | null
+          generation_id?: string | null
+          event_type?: string
+          payload?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      assistant_generations: {
+        Row: {
+          id: string
+          session_id: string
+          workspace_id: string
+          output_id: string | null
+          parent_generation_id: string | null
+          status: string
+          inferred_intent: Json | null
+          output_format: string | null
+          provider: string | null
+          model: string | null
+          prompt_version: string | null
+          generation_config: Json | null
+          retry_count: number
+          failure_reason: string | null
+          latency_ms: number | null
+          tokens_input: number | null
+          tokens_output: number | null
+          stream_state: string | null
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          workspace_id: string
+          output_id?: string | null
+          parent_generation_id?: string | null
+          status?: string
+          inferred_intent?: Json | null
+          output_format?: string | null
+          provider?: string | null
+          model?: string | null
+          prompt_version?: string | null
+          generation_config?: Json | null
+          retry_count?: number
+          failure_reason?: string | null
+          latency_ms?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          stream_state?: string | null
+          created_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          workspace_id?: string
+          output_id?: string | null
+          parent_generation_id?: string | null
+          status?: string
+          inferred_intent?: Json | null
+          output_format?: string | null
+          provider?: string | null
+          model?: string | null
+          prompt_version?: string | null
+          generation_config?: Json | null
+          retry_count?: number
+          failure_reason?: string | null
+          latency_ms?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          stream_state?: string | null
+          created_at?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+      assistant_messages: {
+        Row: {
+          id: string
+          session_id: string
+          workspace_id: string
+          role: string
+          content: string
+          model: string | null
+          tokens_used: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          workspace_id: string
+          role: string
+          content: string
+          model?: string | null
+          tokens_used?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          workspace_id?: string
+          role?: string
+          content?: string
+          model?: string | null
+          tokens_used?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      assistant_sessions: {
+        Row: {
+          id: string
+          workspace_id: string
+          capture_id: string | null
+          user_id: string | null
+          status: string
+          metadata: Json
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          capture_id?: string | null
+          user_id?: string | null
+          status?: string
+          metadata?: Json
+          created_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          capture_id?: string | null
+          user_id?: string | null
+          status?: string
+          metadata?: Json
+          created_at?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: Database["public"]["Enums"]["audit_action"]
