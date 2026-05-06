@@ -21,6 +21,7 @@ import {
   Palette,
   Network,
   Share2,
+  Sparkles,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 
@@ -29,6 +30,7 @@ const navItems = [
   { label: 'Inbox', href: '/inbox', icon: Inbox },
   { label: 'Queue', href: '/queue', icon: ListOrdered },
   { label: 'Capture', href: '/capture', icon: Zap },
+  { label: 'Create', href: '/create', icon: Sparkles },
   { label: 'Private', href: '/private', icon: Lock },
   { label: 'Content Analyzer', href: '/analyze', icon: Network },
   { label: 'Syndication', href: '/syndication', icon: Share2 },
