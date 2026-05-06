@@ -16,7 +16,6 @@ function rawTextToExtractedContent(text: string): ExtractedContent {
   const wordCount = words.length
   const estimatedReadTime = Math.ceil(wordCount / 200)
 
-  // Use first sentence as a title approximation
   const firstSentence = trimmed.split(/[.!?]/)[0]?.trim() ?? ''
   const title = firstSentence.length > 80
     ? firstSentence.slice(0, 80) + '…'
