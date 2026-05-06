@@ -29,7 +29,7 @@ const navItems = [
   { label: 'Queue', href: '/queue', icon: ListOrdered },
   { label: 'Capture', href: '/capture', icon: Zap },
   { label: 'Private', href: '/private', icon: Lock },
-  { label: 'Content Analyzer', href: '/syndicate', icon: Network },
+  { label: 'Content Analyzer', href: '/analyze', icon: Network },
   { label: 'Studio', href: '/studio', icon: PenSquare },
   { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
