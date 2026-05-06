@@ -33,13 +33,21 @@ Clout is evolving from a social post generator into a broader content operating 
 import type { LucideIcon } from 'lucide-react'
 import { FileText, MessageSquare, Mail } from 'lucide-react'
 
+export type ContentTypeStatus =
+  | 'active'
+  | 'coming_soon'
+  | 'beta'
+  | 'experimental'
+  | 'internal'
+
 export interface ContentType {
   id: string
   title: string
   description: string
-  ctaLabel: string
+  ctaLabel?: string       // action label for active/beta/experimental types
+  statusLabel?: string    // muted badge text for non-active types (not a button)
   route?: string          // undefined = not yet routed
-  status: 'active' | 'coming_soon'
+  status: ContentTypeStatus
   icon: LucideIcon
 }
 
@@ -57,7 +65,7 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'linkedin',
     title: 'LinkedIn Post',
     description: 'Create professional thought leadership content optimized for reach, credibility, and engagement.',
-    ctaLabel: 'Coming Soon',
+    statusLabel: 'Coming Soon',
     status: 'coming_soon',
     icon: MessageSquare,
   },
@@ -65,12 +73,14 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'newsletter',
     title: 'Newsletter',
     description: 'Build editorial newsletters with recurring formats, curated sections, and audience-first structure.',
-    ctaLabel: 'Coming Soon',
+    statusLabel: 'Coming Soon',
     status: 'coming_soon',
     icon: Mail,
   },
 ]
 ```
+
+`statusLabel` renders as a muted pill/badge — never as a button. Buttons imply affordance. Non-interactive states communicate availability, not action.
 
 Adding a new content type in the future = one object added to this array. No page edits required.
 
@@ -144,8 +154,8 @@ Follows the existing design system (OKLCH tokens, Geist Sans, Tailwind v4, shadc
 
 **Coming soon card:**
 - `border border-zinc-100 bg-zinc-50 rounded-lg p-4 opacity-60`
-- Muted text, no link
-- Badge: `text-xs text-zinc-400 border border-zinc-200 bg-white px-2 py-0.5 rounded`
+- Muted text, no link, `cursor-default`
+- Status pill (not a button): `text-xs text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full` — communicates availability, not action
 
 **Blog shell placeholder cards:**
 - `border border-zinc-100 bg-zinc-50 rounded-lg p-6`
@@ -169,6 +179,27 @@ components/shell/sidebar.tsx              ← modify (add 1 nav item + Sparkles 
 ```
 
 No layout files need modification. No API routes needed. No database changes.
+
+---
+
+## Future Evolution
+
+The registry is designed to eventually carry more than routing. As Clout matures, `ContentType` will naturally expand to support:
+
+- `requiredPlan` — gating by subscription tier
+- `modalities` — text, voice, upload, assistant
+- `lensIds` — compatible lenses
+- `templateIds` — starter templates
+- `schedulable: boolean` — queue support
+- `analyticsKey` — platform-specific metrics
+
+The `/create` page itself will evolve from a static catalog into an operational workspace:
+
+- **Continue Working** — resume in-progress drafts
+- **Recent Drafts** — last N outputs per content type
+- **In Progress** — drafts pending review or publish
+
+This transforms Create from capability discovery into the actual creation environment. The current implementation lays the structural foundation for all of this without over-building now.
 
 ---
 
