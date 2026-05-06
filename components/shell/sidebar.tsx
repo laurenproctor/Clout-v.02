@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Palette,
   Network,
+  Share2,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 
@@ -30,6 +31,7 @@ const navItems = [
   { label: 'Capture', href: '/capture', icon: Zap },
   { label: 'Private', href: '/private', icon: Lock },
   { label: 'Content Analyzer', href: '/analyze', icon: Network },
+  { label: 'Syndication', href: '/syndication', icon: Share2 },
   { label: 'Studio', href: '/studio', icon: PenSquare },
   { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
