@@ -10,8 +10,10 @@ function isUrl(input: string): boolean {
   }
 }
 
+const MAX_CHARS = 12_000
+
 function rawTextToExtractedContent(text: string): ExtractedContent {
-  const trimmed = text.trim()
+  const trimmed = text.trim().slice(0, MAX_CHARS)
   const words = trimmed.split(/\s+/)
   const wordCount = words.length
   const estimatedReadTime = Math.ceil(wordCount / 200)

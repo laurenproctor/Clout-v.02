@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'application/x-ndjson',
       'Transfer-Encoding': 'chunked',
       'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
     },
   })
 }
