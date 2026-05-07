@@ -6,7 +6,7 @@ import { buildBlogSystemPrompt } from '@/lib/blog/buildBlogPrompt'
 import type { BlogGenerationRequest, NarrativeStrategy, OutlineSection } from '@/lib/blog/types'
 import type { BlogPromptContext } from '@/lib/blog/buildBlogPrompt'
 
-export const maxDuration = 120
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   const session = await getSession()

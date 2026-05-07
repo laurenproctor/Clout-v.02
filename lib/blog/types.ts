@@ -1,7 +1,5 @@
 // lib/blog/types.ts
 
-export type ContentTypeStatus = 'active' | 'coming_soon' | 'beta' | 'experimental' | 'internal'
-
 export type QualitativeRating = 'strong' | 'moderate' | 'developing' | 'needs-work'
 
 export interface QualitativeSignal {

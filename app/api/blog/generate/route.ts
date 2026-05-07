@@ -5,7 +5,7 @@ import { runPhase1to3 } from '@/lib/blog/runPhase1to3'
 import type { BlogGenerationRequest } from '@/lib/blog/types'
 import type { BlogPromptContext } from '@/lib/blog/buildBlogPrompt'
 
-export const maxDuration = 120
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
