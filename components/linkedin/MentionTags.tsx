@@ -29,6 +29,7 @@ export function MentionTags({ mentions, onChange }: MentionTagsProps) {
           <span key={name} className="inline-flex items-center gap-1 bg-zinc-100 rounded-full px-2.5 py-1 text-xs text-zinc-600">
             @{name}
             <button
+              type="button"
               onClick={() => onChange(mentions.filter(m => m !== name))}
               className="text-zinc-400 hover:text-zinc-700 ml-0.5"
             >

@@ -22,15 +22,15 @@ export function VariationCard({ variation, onChange }: VariationCardProps) {
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold text-zinc-900">{variation.label}</span>
           <div className="flex items-center gap-0.5">
-            <button className={actionBtn}>Edit</button>
-            <button className={actionBtn}>Duplicate</button>
-            <button className={actionBtn}>Rewrite</button>
+            <button type="button" className={actionBtn}>Edit</button>
+            <button type="button" className={actionBtn}>Duplicate</button>
+            <button type="button" className={actionBtn}>Rewrite</button>
           </div>
         </div>
         <div className="flex justify-end gap-0.5">
-          <button className={actionBtn}>Save Draft</button>
-          <button disabled className={`${actionBtn} cursor-not-allowed opacity-50`}>Queue</button>
-          <button disabled className={`${actionBtn} cursor-not-allowed opacity-50`}>Schedule</button>
+          <button type="button" className={actionBtn}>Save Draft</button>
+          <button type="button" disabled className={`${actionBtn} cursor-not-allowed opacity-50`}>Queue</button>
+          <button type="button" disabled className={`${actionBtn} cursor-not-allowed opacity-50`}>Schedule</button>
         </div>
       </div>
 

@@ -31,6 +31,7 @@ export function PostEditor({ body, onChange }: PostEditorProps) {
         {TRANSFORMS.map(label => (
           <button
             key={label}
+            type="button"
             disabled
             className="shrink-0 text-xs text-zinc-400 px-2 py-1 rounded opacity-40 cursor-not-allowed"
           >

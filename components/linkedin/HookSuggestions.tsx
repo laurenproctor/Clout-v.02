@@ -27,7 +27,8 @@ export function HookSuggestions({ hooks }: HookSuggestionsProps) {
               </span>
               <span className="text-sm text-zinc-700 flex-1">{hook.text}</span>
               <button
-                onClick={() => navigator.clipboard.writeText(hook.text)}
+                type="button"
+                onClick={() => navigator.clipboard.writeText(hook.text).catch(console.error)}
                 className="text-zinc-400 hover:text-zinc-600 shrink-0"
                 title="Copy"
               >

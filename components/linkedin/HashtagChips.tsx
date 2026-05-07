@@ -30,6 +30,7 @@ export function HashtagChips({ hashtags, onChange }: HashtagChipsProps) {
           <span key={tag} className="inline-flex items-center gap-1 bg-zinc-100 rounded-full px-2.5 py-1 text-xs text-zinc-600">
             #{tag}
             <button
+              type="button"
               onClick={() => onChange(hashtags.filter(h => h !== tag))}
               className="text-zinc-400 hover:text-zinc-700 ml-0.5"
             >
@@ -44,7 +45,12 @@ export function HashtagChips({ hashtags, onChange }: HashtagChipsProps) {
           placeholder="Add tag..."
           className="text-xs border-0 outline-none bg-transparent text-zinc-600 placeholder:text-zinc-300 w-24"
         />
-        <button onClick={() => {}} className="text-zinc-400 hover:text-zinc-600" title="Regenerate hashtags">
+        <button
+          type="button"
+          disabled
+          aria-label="Regenerate hashtags"
+          className="text-zinc-400 hover:text-zinc-600"
+        >
           <RefreshCw size={12} />
         </button>
       </div>
