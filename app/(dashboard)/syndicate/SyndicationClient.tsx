@@ -127,7 +127,7 @@ export function SyndicationClient({ availableLenses }: Props) {
 
       if (!receivedComplete) {
         setUi((prev) =>
-          prev.status === 'partial' || prev.status === 'complete'
+          prev.status === 'partial' || prev.status === 'complete' || prev.status === 'error'
             ? prev
             : { status: 'error', message: 'Generation timed out or was interrupted. Please try again.' }
         )

@@ -95,13 +95,13 @@ export async function POST(req: NextRequest) {
 
         if (message.startsWith('FETCH_FAILED')) {
           code = 'FETCH_FAILED'
-          userMessage = "We couldn't reach that URL. Check that it's publicly accessible."
+          userMessage = "We couldn't fetch that URL — it may be paywalled or bot-protected (NYT, WSJ, etc.). Paste the article text directly instead."
         } else if (message.startsWith('EXTRACTION_FAILED')) {
           code = 'EXTRACTION_FAILED'
           userMessage = "We couldn't extract readable content — the page may be paywalled or bot-protected."
         } else if (message.startsWith('LOW_SIGNAL')) {
           code = 'LOW_SIGNAL'
-          userMessage = 'Content is too short. Paste at least 50–100 words for strong platform adaptations.'
+          userMessage = 'Not enough content extracted — the page may be paywalled. Paste the article text directly instead.'
         }
 
         console.error('[syndication/generate] error:', message)
