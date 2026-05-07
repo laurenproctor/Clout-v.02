@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
 
         send({ type: 'progress', phase: 'analyzing' })
         const intelligence = await extractIntelligence(extracted)
+        send({ type: 'intelligence', data: intelligence })
 
         send({ type: 'progress', phase: 'generating' })
 

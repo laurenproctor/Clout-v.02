@@ -63,3 +63,16 @@ export interface SyndicationLens {
   rhetoricalModifier: string
   isPreset: boolean
 }
+
+export type LensCategoryName = 'Interpretation' | 'Narrative' | 'Positioning'
+
+export interface LensCategory {
+  name: LensCategoryName
+  lensNames: PresetLensName[]
+}
+
+export const LENS_CATEGORIES: LensCategory[] = [
+  { name: 'Interpretation', lensNames: ['Contrarian', 'Intellectual', 'Technical'] },
+  { name: 'Narrative',      lensNames: ['Emotional', 'Luxury'] },
+  { name: 'Positioning',    lensNames: ['Founder', 'Operator', 'Investor'] },
+]
