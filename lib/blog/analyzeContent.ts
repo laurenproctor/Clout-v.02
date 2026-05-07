@@ -1,3 +1,4 @@
+import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { ContentAnalysis, NarrativeStrategy, OutlineSection, StrategicInsights } from './types'
@@ -89,7 +90,7 @@ Return ONLY a JSON object:
 }`
 
   const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2000 })
-  const parsed = JSON.parse(res.content)
+  const parsed = parseJson<{ editorial: ContentAnalysis["editorial"]; distribution: ContentAnalysis["distribution"]; strategicInsights: StrategicInsights }>(res.content)
 
   const contentAnalysis: ContentAnalysis = {
     seo: seoMetrics,

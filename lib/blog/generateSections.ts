@@ -1,3 +1,4 @@
+import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { ArticleMemory, NarrativeStrategy, OutlineSection } from './types'
@@ -19,7 +20,7 @@ ${newSection.slice(0, 1500)}
 Return ONLY an updated ArticleMemory JSON object with the same shape. Add new items, do not remove existing ones.`
 
   const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 800 })
-  return JSON.parse(res.content) as ArticleMemory
+  return parseJson(res.content) as ArticleMemory
 }
 
 export async function generateSections(

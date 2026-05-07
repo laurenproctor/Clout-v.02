@@ -1,3 +1,4 @@
+import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { ImageSpec, NarrativeStrategy, OutlineSection } from './types'
@@ -44,7 +45,7 @@ Return ONLY a JSON object:
 Inline count: ${r.visualDensity === 'minimal' ? 1 : r.visualDensity === 'balanced' ? 2 : 3}`
 
   const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 1500 })
-  const result = JSON.parse(res.content)
+  const result = parseJson<{ hero?: ImageSpec; inline: ImageSpec[] }>(res.content)
   return {
     hero: result.hero,
     inline: result.inline ?? [],

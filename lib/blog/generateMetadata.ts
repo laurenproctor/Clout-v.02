@@ -1,3 +1,4 @@
+import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { NarrativeStrategy } from './types'
@@ -29,6 +30,6 @@ Return ONLY a JSON object:
 }`
 
   const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 500 })
-  const result = JSON.parse(res.content)
+  const result = parseJson<{ metaTitle: string; metaDescription: string; slug: string }>(res.content)
   return { result, inputTokens: res.inputTokens, outputTokens: res.outputTokens }
 }

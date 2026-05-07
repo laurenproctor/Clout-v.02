@@ -1,3 +1,4 @@
+import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { NarrativeStrategy } from './types'
@@ -27,6 +28,6 @@ Return ONLY a JSON object matching this exact shape:
 }`
 
   const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 1500 })
-  const result = JSON.parse(res.content) as NarrativeStrategy
+  const result = parseJson<NarrativeStrategy>(res.content)
   return { result, inputTokens: res.inputTokens, outputTokens: res.outputTokens }
 }

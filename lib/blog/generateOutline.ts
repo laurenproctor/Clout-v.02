@@ -1,3 +1,4 @@
+import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { NarrativeStrategy, OutlineSection } from './types'
@@ -44,6 +45,6 @@ Return ONLY a JSON array of OutlineSection objects:
 ]`
 
   const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2000 })
-  const result = JSON.parse(res.content) as OutlineSection[]
+  const result = parseJson<OutlineSection[]>(res.content)
   return { result, inputTokens: res.inputTokens, outputTokens: res.outputTokens }
 }
