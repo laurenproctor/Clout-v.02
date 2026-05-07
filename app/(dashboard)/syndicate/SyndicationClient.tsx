@@ -82,6 +82,8 @@ export function SyndicationClient({ availableLenses }: Props) {
       const decoder = new TextDecoder()
       let buffer = ''
 
+      let receivedComplete = false
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -114,12 +116,21 @@ export function SyndicationClient({ availableLenses }: Props) {
               [platform]: { status: 'error', message: frame.message as string },
             }))
           } else if (frame.type === 'complete') {
+            receivedComplete = true
             setUi({ status: 'complete' })
           } else if (frame.type === 'error') {
             const err = frame.error as { message: string }
             setUi({ status: 'error', message: err.message })
           }
         }
+      }
+
+      if (!receivedComplete) {
+        setUi((prev) =>
+          prev.status === 'partial' || prev.status === 'complete'
+            ? prev
+            : { status: 'error', message: 'Generation timed out or was interrupted. Please try again.' }
+        )
       }
     } catch {
       setUi({ status: 'error', message: 'Something went wrong. Check the URL and try again.' })

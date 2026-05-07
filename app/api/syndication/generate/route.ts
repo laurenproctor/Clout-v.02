@@ -104,7 +104,8 @@ export async function POST(req: NextRequest) {
           userMessage = 'Content is too short. Paste at least 50–100 words for strong platform adaptations.'
         }
 
-        send({ type: 'error', error: { code, message: userMessage } })
+        console.error('[syndication/generate] error:', message)
+        send({ type: 'error', error: { code, message: userMessage, _debug: message } })
       } finally {
         controller.close()
       }
