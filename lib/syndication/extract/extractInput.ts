@@ -1,4 +1,3 @@
-import { extractContent } from '@/lib/syndicate/extract/extractContent'
 import type { ExtractedContent } from '@/lib/syndicate/types/analysis'
 
 function isUrl(input: string): boolean {
@@ -43,6 +42,7 @@ export async function extractInput(input: string): Promise<ExtractedContent> {
   const trimmed = input.trim()
 
   if (isUrl(trimmed)) {
+    const { extractContent } = await import('@/lib/syndicate/extract/extractContent')
     return extractContent(trimmed)
   }
 
