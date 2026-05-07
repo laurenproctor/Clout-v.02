@@ -1,6 +1,4 @@
 // components/create/CreateCard.tsx
-'use client'
-
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { ContentType } from '@/lib/content/contentTypes'
