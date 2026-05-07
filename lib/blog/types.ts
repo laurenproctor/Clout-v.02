@@ -94,8 +94,10 @@ export interface BlogGenerationRequest {
   sourceType: 'keyword' | 'url' | 'text'
   sourceContent?: string
 
+  title?: string
   primaryKeyword: string
   secondaryKeywords: string[]
+  additionalContext?: string
 
   searchIntent: 'informational' | 'commercial' | 'transactional' | 'navigational'
   goalType:

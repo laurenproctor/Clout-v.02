@@ -82,10 +82,23 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
   lines.push(tempGuidance[temperature] ?? '')
   lines.push('')
 
+  if (r.title) {
+    lines.push('## Requested Title')
+    lines.push(`"${r.title}"`)
+    lines.push('Use this as the basis for headline development. Adapt or refine it — do not ignore it.')
+    lines.push('')
+  }
+
   if (ctx.selectedHeadline) {
-    lines.push(`## Confirmed Headline`)
+    lines.push('## Confirmed Headline')
     lines.push(`"${ctx.selectedHeadline}"`)
     lines.push('All content must align with and serve this headline.')
+    lines.push('')
+  }
+
+  if (r.additionalContext) {
+    lines.push('## Additional Instructions')
+    lines.push(r.additionalContext)
     lines.push('')
   }
 

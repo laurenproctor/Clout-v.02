@@ -40,6 +40,18 @@ export function BlogStrategyForm({ lenses, values, onChange }: BlogStrategyFormP
         onChangeKeyword={(primaryKeyword) => set({ primaryKeyword })}
       />
 
+      {/* Title */}
+      <div>
+        <label className="text-xs font-medium text-zinc-500 mb-1.5 block">Title <span className="text-zinc-300 font-normal">(optional)</span></label>
+        <input
+          type="text"
+          placeholder="Leave blank to generate from keyword"
+          value={values.title ?? ''}
+          onChange={e => set({ title: e.target.value || undefined })}
+          className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300"
+        />
+      </div>
+
       {/* Goal Type */}
       <div>
         <label className="text-xs font-medium text-zinc-500 mb-1.5 block">Goal</label>
@@ -147,6 +159,18 @@ export function BlogStrategyForm({ lenses, values, onChange }: BlogStrategyFormP
                   <option value="technical">Technical</option>
                   <option value="executive">Executive</option>
                 </select>
+              </div>
+
+              {/* Additional Context */}
+              <div>
+                <label className="text-xs font-medium text-zinc-500 mb-1 block">Additional Context</label>
+                <textarea
+                  placeholder="Any extra instructions, constraints, or context for the AI..."
+                  value={values.additionalContext ?? ''}
+                  onChange={e => set({ additionalContext: e.target.value || undefined })}
+                  rows={3}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none resize-none"
+                />
               </div>
             </div>
           </AccordionContent>
