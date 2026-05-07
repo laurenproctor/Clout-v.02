@@ -63,6 +63,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
       const decoder = new TextDecoder()
 
       let buffer = ''
+      let receivedPaused = false
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -80,14 +82,23 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               if (event.phase === 'narrative-strategy') setNarrativeStrategy(event.data)
               if (event.phase === 'hook-exploration') setHookExploration(event.data)
             } else if (event.type === 'paused') {
+              receivedPaused = true
               setState('narrative-review')
             } else if (event.type === 'error') {
-              throw new Error(event.message)
+              throw new Error(event.message ?? 'Generation failed')
             }
-          } catch {
-            // skip malformed lines
+          } catch (parseErr) {
+            if (parseErr instanceof Error && parseErr.message !== 'Generation failed') {
+              // skip malformed lines
+            } else {
+              throw parseErr
+            }
           }
         }
+      }
+
+      if (!receivedPaused) {
+        throw new Error('Generation timed out. The request took too long — try a shorter keyword or fewer lenses.')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -125,6 +136,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
       const decoder = new TextDecoder()
 
       let buffer = ''
+      let receivedComplete = false
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -139,15 +152,24 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             if (event.type === 'progress') {
               addProgress(event.phase, event.label)
             } else if (event.type === 'complete') {
+              receivedComplete = true
               setBlogPackage(event.data)
               setState('result')
             } else if (event.type === 'error') {
-              throw new Error(event.message)
+              throw new Error(event.message ?? 'Generation failed')
             }
-          } catch {
-            // skip malformed lines
+          } catch (parseErr) {
+            if (parseErr instanceof Error && parseErr.message !== 'Generation failed') {
+              // skip malformed lines
+            } else {
+              throw parseErr
+            }
           }
         }
+      }
+
+      if (!receivedComplete) {
+        throw new Error('Article generation timed out. The full pipeline exceeds the 60s limit — try a shorter article length.')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
