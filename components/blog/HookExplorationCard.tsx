@@ -11,11 +11,11 @@ interface HookExplorationCardProps {
 }
 
 const STYLE_LABELS: Record<HeadlineOption['style'], string> = {
-  contrarian: 'Contrarian',
-  'data-led': 'Data-Led',
-  narrative: 'Narrative',
-  question: 'Question',
-  executive: 'Executive',
+  contrarian: 'Most Contrarian',
+  'data-led': 'Data-Driven',
+  narrative: 'Story-Led',
+  question: 'Curiosity Hook',
+  executive: 'Executive Frame',
 }
 
 export function HookExplorationCard({ exploration, selectedHeadline, onSelect, editable }: HookExplorationCardProps) {
@@ -46,9 +46,6 @@ export function HookExplorationCard({ exploration, selectedHeadline, onSelect, e
                 selectedHeadline === opt.title ? 'bg-white/20 text-white' : 'bg-zinc-100 text-zinc-500'
               )}>
                 {STYLE_LABELS[opt.style]}
-              </span>
-              <span className={cn('text-xs', selectedHeadline === opt.title ? 'text-zinc-300' : 'text-zinc-400')}>
-                {'★'.repeat(opt.strength)}{'☆'.repeat(5 - opt.strength)}
               </span>
             </div>
             <div className="text-sm font-medium leading-snug">{opt.title}</div>
