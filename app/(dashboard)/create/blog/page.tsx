@@ -1,50 +1,26 @@
 // app/(dashboard)/create/blog/page.tsx
-import {
-  Search,
-  Type,
-  AlignLeft,
-  LayoutList,
-  Image,
-  Wand2,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { getSession } from '@/lib/auth/session'
+import { listLenses } from '@/lib/domain/lens'
+import { BlogWorkspace } from '@/components/blog/BlogWorkspace'
 
-const sections: { label: string; icon: LucideIcon }[] = [
-  { label: 'Primary Keyword', icon: Search },
-  { label: 'Meta Title', icon: Type },
-  { label: 'Meta Description', icon: AlignLeft },
-  { label: 'Content Structure', icon: LayoutList },
-  { label: 'Images', icon: Image },
-  { label: 'Draft Generation', icon: Wand2 },
-]
+export default async function BlogCreatePage() {
+  const session = await getSession()
+  if (!session) redirect('/sign-in')
 
-export default function BlogCreatePage() {
+  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const lenses = lensesResult.ok ? lensesResult.data : []
+
   return (
-    <div className="mx-auto max-w-4xl px-8 py-10">
-      {/* Header */}
-      <div className="mb-10">
-        <h1 className="mb-2 font-[Signifier] text-2xl font-semibold text-zinc-900">
-          Blog Post Creation
-        </h1>
-        <p className="text-sm text-zinc-500">
-          Create SEO-ready long-form content with metadata, structure, imagery, and AI-assisted
-          drafting workflows.
+    <div className="flex h-full flex-col">
+      <div className="border-b border-zinc-100 px-8 py-4">
+        <h1 className="font-[Signifier] text-lg font-semibold text-zinc-900">Blog Post</h1>
+        <p className="text-xs text-zinc-400 mt-0.5">
+          Strategic narrative engineering — position, argue, write, distribute.
         </p>
       </div>
-
-      {/* Placeholder section cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sections.map(({ label, icon: Icon }) => (
-          <div
-            key={label}
-            className="flex flex-col items-center justify-center gap-3 rounded-lg border border-zinc-100 bg-zinc-50 p-8 text-center"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-zinc-100">
-              <Icon className="h-5 w-5 text-zinc-400" />
-            </div>
-            <p className="text-sm font-medium text-zinc-500">{label}</p>
-          </div>
-        ))}
+      <div className="flex-1 min-h-0">
+        <BlogWorkspace lenses={lenses} />
       </div>
     </div>
   )
