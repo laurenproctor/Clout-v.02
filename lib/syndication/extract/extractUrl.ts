@@ -7,7 +7,7 @@ function stripTag(html: string, tag: string): string {
 }
 
 function extractBlock(html: string, tag: string): string | null {
-  const match = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi').exec(html)
+  const match = new RegExp(`<${tag}[^>]*>([\\s\\S]+)<\\/${tag}>`, 'gi').exec(html)
   return match ? match[1] : null
 }
 
