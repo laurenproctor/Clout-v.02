@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
+import { Sheet, SheetContent, SheetClose } from '@/components/ui/sheet'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -42,18 +43,39 @@ const navItems = [
   { label: 'Billing', href: '/billing', icon: CreditCard },
 ]
 
-export function Sidebar() {
+type MobileSidebarContextValue = {
+  open: boolean
+  setOpen: (open: boolean) => void
+}
+
+const MobileSidebarContext = createContext<MobileSidebarContextValue>({
+  open: false,
+  setOpen: () => {},
+})
+
+export function MobileSidebarProvider({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <MobileSidebarContext.Provider value={{ open, setOpen }}>
+      {children}
+    </MobileSidebarContext.Provider>
+  )
+}
+
+export function useMobileSidebar() {
+  return useContext(MobileSidebarContext)
+}
+
+function NavContent({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname()
   const [supportOpen, setSupportOpen] = useState(false)
 
   return (
-    <aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-zinc-200 bg-white">
-      {/* Logo */}
+    <>
       <div className="flex h-14 items-center border-b border-zinc-200 px-4">
         <span className="text-sm font-semibold tracking-tight text-zinc-900">Clout</span>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {navItems.map(({ label, href, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
@@ -61,6 +83,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onLinkClick}
               className={cn(
                 'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
                 isActive
@@ -75,7 +98,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom: help + settings */}
       <div className="border-t border-zinc-200 p-2 space-y-0.5">
         <div className="px-3 py-2">
           <p className="text-xs text-zinc-300">
@@ -93,6 +115,7 @@ export function Sidebar() {
         </button>
         <Link
           href="/settings/brand"
+          onClick={onLinkClick}
           className={cn(
             'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
             pathname.startsWith('/settings/brand')
@@ -105,6 +128,7 @@ export function Sidebar() {
         </Link>
         <Link
           href="/settings/workspace"
+          onClick={onLinkClick}
           className={cn(
             'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
             pathname.startsWith('/settings')
@@ -118,6 +142,26 @@ export function Sidebar() {
       </div>
 
       <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
-    </aside>
+    </>
+  )
+}
+
+export function Sidebar() {
+  const { open, setOpen } = useMobileSidebar()
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex h-full w-[220px] shrink-0 flex-col border-r border-zinc-200 bg-white">
+        <NavContent />
+      </aside>
+
+      {/* Mobile drawer */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="left" className="p-0 w-[220px] flex flex-col">
+          <NavContent onLinkClick={() => setOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

@@ -114,7 +114,7 @@ export default function LensesPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="col-span-2 sm:col-span-1">
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
                 Name *

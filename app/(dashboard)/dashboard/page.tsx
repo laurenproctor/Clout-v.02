@@ -251,7 +251,7 @@ export default function DashboardPage() {
 
         {/* 1. Hero + Positioning */}
         <div className="space-y-4">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
                 {firstName ? `${firstName}, your audience is waiting.` : 'Your audience is waiting.'}
@@ -474,14 +474,14 @@ export default function DashboardPage() {
   // ── Regular dashboard ──────────────────────────────────────────────────────
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">Dashboard</h1>
           <p className="mt-0.5 text-sm text-zinc-500">Your thought leadership command center.</p>
         </div>
         <Link
           href="/capture/new"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors self-start sm:self-auto"
         >
           + New Capture
         </Link>
@@ -519,7 +519,7 @@ export default function DashboardPage() {
       </form>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { label: 'Captures this month', value: stats.capturesThisMonth },
           { label: 'Outputs generated', value: stats.outputsGenerated },

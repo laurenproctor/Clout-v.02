@@ -6,7 +6,7 @@ export default function HomePage() {
 
       {/* Nav */}
       <nav
-        className="flex items-center justify-between px-10 py-5 border-b"
+        className="flex items-center justify-between px-5 py-4 border-b md:px-10 md:py-5"
         style={{ borderColor: 'var(--brand-border-light)' }}
       >
         <span
@@ -34,7 +34,7 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="mx-auto max-w-4xl px-10 py-28 text-center">
+      <section className="mx-auto max-w-4xl px-5 py-16 text-center md:px-10 md:py-28">
         <p
           className="text-[11px] uppercase tracking-[0.12em] mb-10"
           style={{ color: 'var(--brand-muted-text)' }}
@@ -42,7 +42,7 @@ export default function HomePage() {
           Thought leadership, synthesized.
         </p>
         <h1
-          className="text-[56px] leading-[1.05] tracking-[-0.02em] mb-8"
+          className="text-[32px] leading-[1.1] tracking-[-0.02em] mb-8 md:text-[56px] md:leading-[1.05]"
           style={{ fontFamily: 'var(--font-heading)', color: 'var(--brand-ink)' }}
         >
           Turn daily ideas into powerful<br />thought leadership.
@@ -55,17 +55,17 @@ export default function HomePage() {
           fragmented ideas into polished content that positions you as the expert
           you already are.
         </p>
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
           <Link
             href="/sign-up"
-            className="px-8 py-3.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            className="px-8 py-3.5 text-sm font-medium text-white transition-colors hover:opacity-90 w-full sm:w-auto text-center"
             style={{ background: 'var(--brand-blue)' }}
           >
             Get started
           </Link>
           <Link
             href="/sign-in"
-            className="px-8 py-3.5 text-sm font-medium transition-colors hover:opacity-80"
+            className="px-8 py-3.5 text-sm font-medium transition-colors hover:opacity-80 w-full sm:w-auto text-center"
             style={{
               border: '1px solid var(--brand-blue)',
               color: 'var(--brand-blue)',
@@ -78,14 +78,14 @@ export default function HomePage() {
 
       {/* How it works */}
       <section
-        className="border-t py-20"
+        className="border-t py-16 md:py-20"
         style={{
           background: 'var(--brand-surface)',
           borderColor: 'var(--brand-border-light)',
         }}
       >
-        <div className="mx-auto max-w-4xl px-10">
-          <div className="flex items-center gap-3 mb-16">
+        <div className="mx-auto max-w-4xl px-5 md:px-10">
+          <div className="flex items-center gap-3 mb-12 md:mb-16">
             <p
               className="text-[10px] uppercase tracking-[0.14em] shrink-0"
               style={{ color: '#BBBBBB' }}
@@ -94,7 +94,7 @@ export default function HomePage() {
             </p>
             <div className="flex-1 h-px" style={{ background: 'var(--brand-border-light)' }} />
           </div>
-          <div className="grid grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-12">
             {[
               {
                 step: '01',
@@ -142,11 +142,11 @@ export default function HomePage() {
 
       {/* Features */}
       <section
-        className="border-t py-20"
+        className="border-t py-16 md:py-20"
         style={{ borderColor: 'var(--brand-border-light)' }}
       >
-        <div className="mx-auto max-w-4xl px-10">
-          <div className="flex items-center gap-3 mb-16">
+        <div className="mx-auto max-w-4xl px-5 md:px-10">
+          <div className="flex items-center gap-3 mb-12 md:mb-16">
             <p
               className="text-[10px] uppercase tracking-[0.14em] shrink-0"
               style={{ color: '#BBBBBB' }}
@@ -155,7 +155,7 @@ export default function HomePage() {
             </p>
             <div className="flex-1 h-px" style={{ background: 'var(--brand-border-light)' }} />
           </div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {[
               {
                 title: 'Lenses that think like you',
@@ -180,7 +180,7 @@ export default function HomePage() {
             ].map(({ title, description }) => (
               <div
                 key={title}
-                className="p-8 bg-white"
+                className="p-6 bg-white md:p-8"
                 style={{ border: '1px solid var(--brand-border-light)' }}
               >
                 <h3
@@ -202,10 +202,10 @@ export default function HomePage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="py-24" style={{ background: 'var(--brand-deep-navy)' }}>
-        <div className="mx-auto max-w-2xl px-10 text-center">
+      <section className="py-16 md:py-24" style={{ background: 'var(--brand-deep-navy)' }}>
+        <div className="mx-auto max-w-2xl px-5 text-center md:px-10">
           <h2
-            className="text-[40px] leading-[1.1] tracking-[-0.01em] text-white mb-6"
+            className="text-[28px] leading-[1.15] tracking-[-0.01em] text-white mb-6 md:text-[40px] md:leading-[1.1]"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Your best ideas are already there.<br />We just help you find them.
@@ -226,11 +226,11 @@ export default function HomePage() {
       {/* Footer */}
       <footer style={{ background: 'var(--brand-deep-navy)' }}>
         <div
-          className="mx-auto max-w-5xl px-10 pt-16 pb-8"
+          className="mx-auto max-w-5xl px-5 pt-10 pb-8 md:px-10 md:pt-16"
           style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <div className="grid grid-cols-4 gap-12 mb-12">
-            <div>
+          <div className="grid grid-cols-2 gap-8 mb-12 md:grid-cols-4 md:gap-12">
+            <div className="col-span-2 md:col-span-1">
               <p
                 className="text-[11px] uppercase tracking-[0.12em] mb-4"
                 style={{ color: 'rgba(255,255,255,0.4)' }}
@@ -306,13 +306,13 @@ export default function HomePage() {
           </div>
 
           <div
-            className="flex items-center justify-between pt-8"
+            className="flex flex-col gap-4 pt-8 sm:flex-row sm:items-center sm:justify-between"
             style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
           >
             <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
               © 2026 Clout. All rights reserved.
             </span>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-4 sm:gap-6">
               {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((label) => (
                 <Link
                   key={label}

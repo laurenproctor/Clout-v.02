@@ -271,7 +271,7 @@ export default function StudioEditorPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             onClick={() => setChannelId(null)}
             className={cn(
@@ -319,7 +319,7 @@ export default function StudioEditorPage() {
         <VariantsRail variants={variants} />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-8 py-10 md:px-12 space-y-6">
+          <div className="max-w-2xl mx-auto px-4 py-10 md:px-8 lg:px-12 space-y-6">
 
             <input
               type="text"

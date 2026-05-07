@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/shell/sidebar'
+import { Sidebar, MobileSidebarProvider } from '@/components/shell/sidebar'
 import { TopNav } from '@/components/shell/top-nav'
 import { QuickCaptureProvider } from '@/components/shell/quick-capture-provider'
 import { ErrorBoundary } from '@/components/shell/error-boundary'
@@ -20,15 +20,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <QuickCaptureProvider>
-      <div className="flex h-screen overflow-hidden bg-zinc-50 text-[120%]">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <TopNav />
-          <main className="flex-1 overflow-y-auto p-6">
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </main>
+      <MobileSidebarProvider>
+        <div className="flex h-screen overflow-hidden bg-zinc-50 text-[120%]">
+          <Sidebar />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <TopNav />
+            <main className="flex-1 overflow-y-auto p-4 md:p-6">
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </main>
+          </div>
         </div>
-      </div>
+      </MobileSidebarProvider>
     </QuickCaptureProvider>
   )
 }

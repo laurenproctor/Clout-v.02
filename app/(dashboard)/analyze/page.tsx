@@ -91,7 +91,7 @@ export default function SyndicatePage() {
 
   return (
     <div className="min-h-full bg-white">
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:px-6 md:py-12">
 
         {/* Header */}
         {!isDone && (
