@@ -1,27 +1,6 @@
-import { parseJson } from './parseJson'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt, type BlogPromptContext } from './buildBlogPrompt'
 import type { ArticleMemory, NarrativeStrategy, OutlineSection } from './types'
-
-async function updateArticleMemory(
-  ctx: BlogPromptContext,
-  currentMemory: ArticleMemory,
-  newSection: string
-): Promise<ArticleMemory> {
-  const system = 'You are an editorial continuity assistant. Return only JSON.'
-  const user = `Update the article memory based on this newly written section.
-
-Current memory:
-${JSON.stringify(currentMemory, null, 2)}
-
-New section content:
-${newSection.slice(0, 1500)}
-
-Return ONLY an updated ArticleMemory JSON object with the same shape. Add new items, do not remove existing ones.`
-
-  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 800 })
-  return parseJson(res.content) as ArticleMemory
-}
 
 export async function generateSections(
   ctx: BlogPromptContext,
@@ -77,15 +56,11 @@ Write ONLY the section content in markdown. Start with the ## or ### heading. No
     totalInputTokens += res.inputTokens
     totalOutputTokens += res.outputTokens
 
-    // Update memory after each section (lightweight call)
-    try {
-      const updated = await updateArticleMemory(ctx, memory, res.content)
-      Object.assign(memory, updated)
-      totalInputTokens += 200
-      totalOutputTokens += 100
-    } catch {
-      // Memory update failure is non-fatal — continue with current memory
-    }
+    // Update memory inline (no extra API call — extract key phrases from section text)
+    const words = res.content.split(/\s+/)
+    const firstSentence = res.content.split(/[.!?]/)[0]?.trim() ?? ''
+    if (firstSentence) memory.canonicalClaims.push(firstSentence.slice(0, 120))
+    memory.prohibitedRepetition.push(...words.slice(0, 5).join(' ').split(' '))
   }
 
   const markdown = sections.join('\n\n')
