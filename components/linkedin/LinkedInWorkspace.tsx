@@ -27,6 +27,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
     lensIds: [],
     narrativeStyle: 'story',
     voiceRegister: 'warm',
+    sourceType: 'text',
   })
   const [variations, setVariations] = useState<LinkedInVariation[]>([])
   const [coaching, setCoaching] = useState<PostCoaching | null>(null)
@@ -37,7 +38,8 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
     !!request.postType &&
     !!request.sourceContent?.trim() &&
     !!request.intent &&
-    !!request.audience
+    !!request.audience &&
+    !!request.sourceType
 
   const handleGenerate = useCallback(async () => {
     setError(null)
@@ -69,25 +71,22 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
 
         for (const line of lines) {
           if (!line.trim()) continue
+          let event: { type: string; label?: string; data?: unknown; message?: string }
           try {
-            const event = JSON.parse(line)
-            if (event.type === 'progress') {
-              setProgressLabel(event.label)
-            } else if (event.type === 'complete') {
-              receivedComplete = true
-              setVariations(event.data.variations)
-              setState('result')
-            } else if (event.type === 'coaching') {
-              setCoaching(event.data)
-            } else if (event.type === 'error') {
-              throw new Error(event.message ?? 'Generation failed')
-            }
-          } catch (parseErr) {
-            if (parseErr instanceof Error && parseErr.message !== 'Generation failed') {
-              // skip malformed line
-            } else {
-              throw parseErr
-            }
+            event = JSON.parse(line)
+          } catch {
+            continue // skip malformed JSON line
+          }
+          if (event.type === 'progress') {
+            setProgressLabel(event.label ?? 'Generating...')
+          } else if (event.type === 'complete') {
+            receivedComplete = true
+            setVariations((event.data as { variations: LinkedInVariation[] }).variations)
+            setState('result')
+          } else if (event.type === 'coaching') {
+            setCoaching(event.data as PostCoaching)
+          } else if (event.type === 'error') {
+            throw new Error(event.message ?? 'Generation failed')
           }
         }
       }

@@ -20,12 +20,13 @@ export function SourceInputPanel({
   onSourceTypeChange,
   onSourceContentChange,
 }: SourceInputPanelProps) {
-  const [fileName, setFileName] = useState<string | null>(null)
+  const [uploadedFileName, setUploadedFileName] = useState<string>('')
 
   const tabValue = sourceType ?? 'text'
 
   function handleTabChange(value: string) {
     onSourceTypeChange(value as LinkedInSourceType)
+    onSourceContentChange('') // clear stale content from previous tab
   }
 
   return (
@@ -62,7 +63,7 @@ export function SourceInputPanel({
         <TabsContent value="upload">
           <label className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 p-6 cursor-pointer hover:border-zinc-300 transition-colors bg-white">
             <span className="text-xs text-zinc-500 mb-1">
-              {fileName ? fileName : 'Drop an image or click to browse'}
+              {uploadedFileName ? uploadedFileName : 'Drop an image or click to browse'}
             </span>
             <input
               type="file"
@@ -70,10 +71,13 @@ export function SourceInputPanel({
               className="hidden"
               onChange={e => {
                 const file = e.target.files?.[0]
-                if (file) {
-                  setFileName(file.name)
-                  onSourceContentChange(file.name)
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = () => {
+                  setUploadedFileName(file.name)
+                  onSourceContentChange(reader.result as string)
                 }
+                reader.readAsDataURL(file)
               }}
             />
           </label>
