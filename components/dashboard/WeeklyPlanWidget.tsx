@@ -22,6 +22,7 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
   return {
     suggestedSlot: raw.suggestedSlot as string | null,
     rank: raw.rank as number,
+    selection_reason: (raw.selection_reason as string) ?? 'Strong editorial score',
     output: {
       id:                  o.id as string,
       workspaceId:         o.workspaceId as string,

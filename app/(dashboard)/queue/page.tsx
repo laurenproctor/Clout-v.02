@@ -15,6 +15,18 @@ function formatSlot(isoUtc: string | null): string {
   return DateTime.fromISO(isoUtc).toLocal().toFormat("EEE, MMM d · h:mm a")
 }
 
+function slotConfidenceLabel(iso: string): string {
+  const dt = DateTime.fromISO(iso).toLocal()
+  const hour = dt.hour
+  const weekday = dt.weekday // 1=Mon...7=Sun
+
+  if (weekday >= 6) return 'Weekend slot'
+  if (hour >= 7 && hour <= 9) return 'Morning executive timing'
+  if (hour >= 11 && hour <= 13) return 'Midday engagement window'
+  if (hour >= 17 && hour <= 19) return 'Evening reach window'
+  return 'Strong weekday slot'
+}
+
 function excerpt(output: Output): string {
   const body = (output.content as OutputContent).body ?? ''
   return body.length > 120 ? body.slice(0, 120) + '…' : body
@@ -175,12 +187,17 @@ function RowShell({ item, right }: { item: Output; right: React.ReactNode }) {
   return (
     <li className="flex items-start justify-between gap-4 rounded-xl border border-zinc-200 bg-white px-5 py-4 transition-shadow hover:shadow-sm">
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="mb-1 flex items-center gap-2 flex-wrap">
           <span className={cn('rounded-full border px-2 py-0.5 text-xs font-medium', cfg.color)}>
             {cfg.label}
           </span>
           {item.scheduledAt && item.status !== 'published' && (
-            <span className="text-xs text-zinc-400">{formatSlot(item.scheduledAt)}</span>
+            <>
+              <span className="text-xs text-zinc-400">{formatSlot(item.scheduledAt)}</span>
+              <span className="rounded border border-zinc-100 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+                {slotConfidenceLabel(item.scheduledAt)}
+              </span>
+            </>
           )}
         </div>
         {item.title && <p className="text-sm font-medium text-zinc-900 truncate">{item.title}</p>}

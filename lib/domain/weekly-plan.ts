@@ -4,6 +4,17 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { assignNextSlot } from '@/lib/domain/scheduling'
 import type { Output, OutputContent, OutputStatus, WeeklyPlanItem, PerformanceSummary } from '@/types/domain'
 
+// ─── Selection Reason ─────────────────────────────────────────────────────────
+
+function computeSelectionReason(output: Output, rank: number): string {
+  if (rank === 1) return 'Top editorial pick this week'
+  if (output.status === 'approved') return 'Pre-approved — ready to publish'
+  const ageDays = DateTime.utc().diff(DateTime.fromISO(output.createdAt), 'days').days
+  if (ageDays < 3) return 'Fresh draft — strong recency signal'
+  if (ageDays < 7) return 'Timely — created this week'
+  return 'Strong editorial score'
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getWeekBucket(): string {
@@ -134,9 +145,10 @@ export async function buildWeeklyPlan(
 
   const taken = [...takenSlots]
   return ranked.map((output, i) => {
+    const rank = i + 1
     const suggestedSlot = assignNextSlot(mappedPrefs, taken)
     taken.push(suggestedSlot)
-    return { output, suggestedSlot, rank: i + 1 }
+    return { output, suggestedSlot, rank, selection_reason: computeSelectionReason(output, rank) }
   })
 }
 

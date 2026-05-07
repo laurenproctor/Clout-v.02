@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { DateTime } from 'luxon'
-import { Loader2, CheckCircle2, CalendarClock, X, ChevronDown } from 'lucide-react'
+import { Loader2, CheckCircle2, CalendarClock, X, ChevronDown, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WeeklyPlanItem, Output, OutputContent, ChannelPlatform } from '@/types/domain'
 import { PostDrawer } from './PostDrawer'
@@ -11,6 +11,22 @@ import { PostDrawer } from './PostDrawer'
 function excerpt(output: Output): string {
   const body = (output.content as OutputContent).body ?? ''
   return body.length > 140 ? body.slice(0, 140) + '…' : body
+}
+
+// Shift a slot forward by ~1.5 days to find a next available slot
+function findNextSlot(currentSlot: string | null, allTaken: (string | null)[]): string | null {
+  if (!currentSlot) return null
+  const dt = DateTime.fromISO(currentSlot)
+  const takenSet = new Set(allTaken.filter(Boolean).map((s) => DateTime.fromISO(s!).startOf('minute').toISO()))
+  // Try up to 14 days forward in 1-day increments
+  for (let i = 1; i <= 14; i++) {
+    const candidate = dt.plus({ days: i })
+    // Skip weekends (6=Sat, 7=Sun)
+    if (candidate.weekday === 6 || candidate.weekday === 7) continue
+    const key = candidate.startOf('minute').toISO()
+    if (!takenSet.has(key)) return candidate.toUTC().toISO()!
+  }
+  return null
 }
 
 function formatSlotPreview(iso: string | null): string {
@@ -24,6 +40,7 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
   return {
     suggestedSlot: raw.suggestedSlot as string | null,
     rank: raw.rank as number,
+    selection_reason: (raw.selection_reason as string) ?? 'Strong editorial score',
     output: {
       id:                  o.id as string,
       workspaceId:         o.workspaceId as string,
@@ -58,6 +75,7 @@ export default function InboxPage() {
   const [successCount, setSuccessCount] = useState<number | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [drawerIndex, setDrawerIndex] = useState<number | null>(null)
+  const [customSlots, setCustomSlots] = useState<Record<string, string | null>>({})
 
   const anyActing = approvingIds.size > 0
 
@@ -116,7 +134,8 @@ export default function InboxPage() {
 
     const approvals = ids.map((id) => {
       const item = items.find((i) => i.output.id === id)!
-      return { outputId: id, scheduledAt: item.suggestedSlot }
+      const scheduledAt = id in customSlots ? customSlots[id] : item.suggestedSlot
+      return { outputId: id, scheduledAt }
     })
 
     const res = await fetch('/api/weekly-plan/approve-selected', {
@@ -154,6 +173,15 @@ export default function InboxPage() {
 
   function handleDrawerEdit(id: string) {
     router.push(`/studio?outputId=${id}`)
+  }
+
+  function handleMoveToNextSlot(id: string) {
+    const item = visible.find((i) => i.output.id === id)
+    if (!item) return
+    const currentSlot = id in customSlots ? customSlots[id] : item.suggestedSlot
+    const allTaken = visible.map((i) => (i.output.id in customSlots ? customSlots[i.output.id] : i.suggestedSlot))
+    const nextSlot = findNextSlot(currentSlot, allTaken)
+    setCustomSlots((prev) => ({ ...prev, [id]: nextSlot }))
   }
 
   return (
@@ -266,6 +294,7 @@ export default function InboxPage() {
                 <PlanCard
                   key={item.output.id}
                   item={item}
+                  effectiveSlot={item.output.id in customSlots ? customSlots[item.output.id] : item.suggestedSlot}
                   isSelected={selected.has(item.output.id)}
                   isActing={approvingIds.has(item.output.id)}
                   anyActing={anyActing}
@@ -273,6 +302,7 @@ export default function InboxPage() {
                   onToggle={() => toggleSelect(item.output.id)}
                   onApprove={() => handleApproveSelected([item.output.id])}
                   onSkip={() => setSkipped((s) => new Set([...s, item.output.id]))}
+                  onMoveToNextSlot={() => handleMoveToNextSlot(item.output.id)}
                   onClick={() => openDrawer(index)}
                 />
               ))}
@@ -300,9 +330,10 @@ export default function InboxPage() {
 }
 
 function PlanCard({
-  item, isSelected, isActing, anyActing, isActive, onToggle, onApprove, onSkip, onClick,
+  item, effectiveSlot, isSelected, isActing, anyActing, isActive, onToggle, onApprove, onSkip, onMoveToNextSlot, onClick,
 }: {
   item: WeeklyPlanItem
+  effectiveSlot: string | null
   isSelected: boolean
   isActing: boolean
   anyActing: boolean
@@ -310,9 +341,10 @@ function PlanCard({
   onToggle: () => void
   onApprove: () => void
   onSkip: () => void
+  onMoveToNextSlot: () => void
   onClick: () => void
 }) {
-  const { output, suggestedSlot } = item
+  const { output } = item
   const channelName = output.channels?.label ?? output.channels?.platform ?? null
 
   return (
@@ -358,32 +390,46 @@ function PlanCard({
             <p className="text-sm font-medium text-zinc-900 truncate">{output.title}</p>
           )}
           <p className="mt-0.5 text-sm text-zinc-500 line-clamp-2">{excerpt(output)}</p>
-          <div className="mt-1.5 flex items-center gap-2">
+
+          {/* Selection reason — editorial intelligence label */}
+          <p className="mt-1 text-[11px] text-zinc-400 italic">· {item.selection_reason}</p>
+
+          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             {channelName && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium tracking-[0.02em] uppercase bg-zinc-100 border border-zinc-200 text-zinc-500">
                 {channelName}
               </span>
             )}
-            <span className="text-xs text-zinc-400">{formatSlotPreview(suggestedSlot)}</span>
+            <span className="text-xs text-zinc-400">{formatSlotPreview(effectiveSlot)}</span>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex shrink-0 items-center gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onSkip}
+              disabled={anyActing}
+              className="flex h-8 items-center rounded-lg border border-zinc-200 px-2.5 text-xs font-medium text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-700 disabled:opacity-40"
+            >
+              Skip
+            </button>
+            <button
+              onClick={onApprove}
+              disabled={anyActing}
+              className="flex h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
+            >
+              {isActing ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Approve &amp; Queue
+            </button>
+          </div>
           <button
-            onClick={onSkip}
+            onClick={onMoveToNextSlot}
             disabled={anyActing}
-            className="flex h-8 items-center rounded-lg border border-zinc-200 px-2.5 text-xs font-medium text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-700 disabled:opacity-40"
+            className="flex h-7 items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors disabled:opacity-40"
           >
-            Skip
-          </button>
-          <button
-            onClick={onApprove}
-            disabled={anyActing}
-            className="flex h-8 items-center gap-1 rounded-lg bg-zinc-900 px-2.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
-          >
-            {isActing ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-            Approve &amp; Queue
+            <ArrowRight className="h-3 w-3" />
+            Move to Next Slot
           </button>
         </div>
       </div>

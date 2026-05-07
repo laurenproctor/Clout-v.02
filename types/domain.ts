@@ -193,6 +193,7 @@ export interface WeeklyPlanItem {
   output: Output
   suggestedSlot: string | null  // ISO UTC — a preview, not committed until approved
   rank: number
+  selection_reason: string      // Why this draft was selected for the week
 }
 
 export interface PerformanceSummary {
