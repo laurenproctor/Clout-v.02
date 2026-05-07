@@ -24,7 +24,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
-import { Sheet, SheetContent, SheetClose } from '@/components/ui/sheet'
+import { X } from 'lucide-react'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -66,14 +67,24 @@ export function useMobileSidebar() {
   return useContext(MobileSidebarContext)
 }
 
-function NavContent({ onLinkClick }: { onLinkClick?: () => void }) {
+function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClose?: () => void }) {
   const pathname = usePathname()
   const [supportOpen, setSupportOpen] = useState(false)
 
   return (
     <>
-      <div className="flex h-14 items-center border-b border-zinc-200 px-4">
+      <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4">
         <span className="text-sm font-semibold tracking-tight text-zinc-900">Clout</span>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
@@ -158,8 +169,8 @@ export function Sidebar() {
 
       {/* Mobile drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="p-0 w-[220px] flex flex-col">
-          <NavContent onLinkClick={() => setOpen(false)} />
+        <SheetContent side="left" className="p-0 w-[220px] flex flex-col [&>button]:hidden">
+          <NavContent onLinkClick={() => setOpen(false)} onClose={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     </>
