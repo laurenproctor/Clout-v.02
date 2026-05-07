@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM = 'Clout Support <support@clout.so>'
 const TO = 'help@clout.you'
 
@@ -16,6 +14,7 @@ interface SupportNotificationParams {
 }
 
 export async function sendSupportNotification(params: SupportNotificationParams): Promise<void> {
+  const resend = new Resend(process.env.RESEND_API_KEY)
   const { category, message, userEmail, workspaceId, route, browserInfo, screenshotUrl } = params
 
   const categoryLabel: Record<string, string> = {
