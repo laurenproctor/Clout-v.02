@@ -1,4 +1,14 @@
 import type { ExtractedContent } from '@/lib/syndicate/types/analysis'
+import { extractUrl } from './extractUrl'
+
+function isUrl(input: string): boolean {
+  try {
+    const url = new URL(input.trim())
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 
 const MAX_CHARS = 12_000
 
@@ -31,6 +41,10 @@ function rawTextToExtractedContent(text: string): ExtractedContent {
 
 export async function extractInput(input: string): Promise<ExtractedContent> {
   const trimmed = input.trim()
+
+  if (isUrl(trimmed)) {
+    return extractUrl(trimmed)
+  }
 
   const wordCount = trimmed.split(/\s+/).filter(Boolean).length
   if (wordCount < 50) {
