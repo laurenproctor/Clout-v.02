@@ -4,7 +4,7 @@ import { listLenses } from '@/lib/domain/lens'
 import { runLinkedInGeneration } from '@/lib/linkedin/runGeneration'
 import type { LinkedInGenerationRequest } from '@/lib/linkedin/types'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
