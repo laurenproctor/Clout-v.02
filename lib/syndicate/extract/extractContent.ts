@@ -80,7 +80,7 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
         'User-Agent': 'Mozilla/5.0 (compatible; Clout/1.0; +https://clout.app)',
         Accept: 'text/html,application/xhtml+xml',
       },
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(8_000),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     html = await res.text()

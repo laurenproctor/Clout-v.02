@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const maxDuration = 60
 import { getSession } from '@/lib/auth/session'
 import { syndicationRequestSchema } from '@/lib/syndication/schemas/syndicationSchema'
 import { extractInput } from '@/lib/syndication/extract/extractInput'
