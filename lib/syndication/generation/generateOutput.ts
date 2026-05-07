@@ -4,10 +4,10 @@ import type { Platform, SyndicationIntelligence, SyndicationOutput } from '../ty
 import type { SyndicationLens } from '../types/lenses'
 
 const PLATFORM_MAX_TOKENS: Record<Platform, number> = {
-  x: 400,
-  linkedin: 700,
-  substack: 1200,
-  blog: 1400,
+  x: 512,
+  linkedin: 800,
+  substack: 1400,
+  blog: 1600,
 }
 
 export async function generateOutput(

@@ -13,7 +13,7 @@ export async function extractIntelligence(
       text: extracted.content,
     }),
     model: 'claude-sonnet-4-6',
-    maxTokens: 700,
+    maxTokens: 1024,
   })
 
   let parsed: unknown
