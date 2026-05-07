@@ -78,7 +78,7 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
           { type: 'story', text: '...' },
           { type: 'contrarian', text: '...' },
         ],
-        hashtags: ['leadership', 'strategy'],
+        hashtags: ['leadership', 'strategy', 'operations', 'growth'],
         ctaSuggestions: ['What\'s your take?', 'Drop a comment below', 'DM me to discuss'],
         transformationDelta: { changes: ['Elevated authority framing', 'Direct claim opener'] },
       },
@@ -159,20 +159,19 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
 
       try {
         emit({ type: 'progress', label: 'Core thesis identified' })
-        emit({ type: 'progress', label: 'Narrative leverage extracted' })
-        emit({ type: 'progress', label: 'Audience incentives mapped' })
-        emit({ type: 'progress', label: 'Editorial framing applied' })
-        emit({ type: 'progress', label: 'Platform adaptations generating' })
 
         const result = await callClaude({
           systemPrompt: buildSystemPrompt(ctx),
           userMessage: buildUserMessage(ctx.request),
-          maxTokens: 4000,
+          maxTokens: 6000,
         })
 
-        emit({ type: 'progress', label: 'Finalizing distribution variants' })
-
         const parsed = parseJson<ClaudeResponse>(result.content)
+        if (!Array.isArray(parsed?.variations) || !parsed?.coaching) {
+          throw new Error('Claude returned an unexpected response structure. Try again.')
+        }
+
+        emit({ type: 'progress', label: 'Finalizing distribution variants' })
 
         const variations: LinkedInVariation[] = parsed.variations.map((v) => ({
           id: crypto.randomUUID(),

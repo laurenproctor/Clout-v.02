@@ -12,8 +12,13 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
   }
 
-  const body = await req.json().catch(() => ({}))
-  const request = body.request as LinkedInGenerationRequest
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 })
+  }
+  const request = (body as { request?: unknown }).request as LinkedInGenerationRequest
 
   // Validate minimum required fields
   if (!request?.postType || !request?.sourceContent || !request?.intent || !request?.audience) {
