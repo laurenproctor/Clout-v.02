@@ -46,7 +46,10 @@ Return ONLY a valid JSON object matching this exact schema. No preamble, no expl
 }`
 }
 
+const INTELLIGENCE_INPUT_CHARS = 12_000
+
 export function buildIntelligenceUserMessage(content: { title: string; text: string }): string {
   const header = content.title ? `Title: ${content.title}\n\n` : ''
-  return `${header}${content.text}`
+  const text = content.text.slice(0, INTELLIGENCE_INPUT_CHARS)
+  return `${header}${text}`
 }
