@@ -19,7 +19,7 @@ export function LoadingPhaseIndicator({ stepIndex }: { stepIndex: number }) {
           <div key={step} className="flex items-center gap-2">
             {isDone && <span className="text-xs text-zinc-400">✓</span>}
             {isCurrent && <div className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-pulse shrink-0" />}
-            <span className={`text-xs ${isDone ? 'text-zinc-300' : 'text-zinc-500'}`}>{step}</span>
+            <span className={`text-xs ${isDone ? 'text-zinc-400' : 'text-zinc-700'}`}>{step}</span>
           </div>
         )
       })}
