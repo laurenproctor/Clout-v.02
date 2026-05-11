@@ -16,6 +16,12 @@ export type CardState =
   | { status: 'done'; content: string }
   | { status: 'error'; message: string }
 
+interface ChannelOption {
+  id: string
+  label: string | null
+  account_type: string
+}
+
 interface PlatformGridProps {
   platforms: Platform[]
   cards: Partial<Record<Platform, CardState>>
@@ -28,6 +34,9 @@ interface PlatformGridProps {
   onSchedule?: (platform: Platform, scheduledAt: Date) => void
   onQueue?: (platform: Platform) => void
   publishState?: Partial<Record<Platform, PublishState>>
+  channelAccounts?: Partial<Record<Platform, ChannelOption[]>>
+  selectedChannelId?: Partial<Record<Platform, string>>
+  onSelectChannel?: (platform: Platform, channelId: string) => void
 }
 
 const SKELETON_BARS: Record<Platform, number> = {
@@ -53,6 +62,9 @@ export default function PlatformGrid({
   onSchedule,
   onQueue,
   publishState,
+  channelAccounts,
+  selectedChannelId,
+  onSelectChannel,
 }: PlatformGridProps) {
 
   return (
@@ -123,10 +135,30 @@ export default function PlatformGrid({
             onRegenerate: (variantNote?: string) => onRegenerate(platform, variantNote),
             ...publishingProps,
           }
-          if (platform === 'x') return <div key={platform} className="col-span-full"><XCard {...sharedProps} /></div>
-          if (platform === 'linkedin') return <div key={platform} className="col-span-full"><LinkedInCard {...sharedProps} /></div>
-          if (platform === 'threads') return <div key={platform} className="col-span-full"><ThreadsCard {...sharedProps} /></div>
-          if (platform === 'facebook') return <div key={platform} className="col-span-full"><FacebookCard {...sharedProps} /></div>
+
+          const accounts = channelAccounts?.[platform] ?? []
+          const selId = selectedChannelId?.[platform] ?? accounts[0]?.id
+          const accountSelector = accounts.length > 1 ? (
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-xs text-zinc-400">Post from:</span>
+              <select
+                value={selId ?? ''}
+                onChange={e => onSelectChannel?.(platform, e.target.value)}
+                className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+              >
+                {accounts.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.label ?? a.id}{a.account_type !== 'personal' ? ` (${a.account_type})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null
+
+          if (platform === 'x') return <div key={platform} className="col-span-full">{accountSelector}<XCard {...sharedProps} /></div>
+          if (platform === 'linkedin') return <div key={platform} className="col-span-full">{accountSelector}<LinkedInCard {...sharedProps} /></div>
+          if (platform === 'threads') return <div key={platform} className="col-span-full">{accountSelector}<ThreadsCard {...sharedProps} /></div>
+          if (platform === 'facebook') return <div key={platform} className="col-span-full">{accountSelector}<FacebookCard {...sharedProps} /></div>
           if (platform === 'substack') return <SubstackCard key={platform} {...sharedProps} />
           if (platform === 'blog') return <BlogCard key={platform} {...sharedProps} />
         }

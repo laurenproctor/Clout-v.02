@@ -18,7 +18,7 @@ export interface ResearchSource {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok'
 export type LensScope = 'system' | 'workspace'
 
 // ─── Core Entities ────────────────────────────────────────────────────────────
@@ -157,6 +157,8 @@ export interface Channel {
   workspaceId: string
   platform: ChannelPlatform
   label: string | null
+  accountId: string | null
+  accountType: 'personal' | 'page' | 'business'
   config: Record<string, unknown>
   isActive: boolean
   createdAt: string

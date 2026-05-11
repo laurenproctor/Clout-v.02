@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { exchangeTikTokCode, fetchTikTokUser } from '@/lib/tiktok'
 import { verifyOAuthState } from '@/lib/oauth-state'
 import { upsertChannelCredential } from '@/lib/domain/credentials'
+import { createOrUpdateChannelByAccountId } from '@/lib/domain/channels'
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL!
 
@@ -51,43 +51,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient()
-
-    const { data: existing } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .eq('platform', 'tiktok')
-      .single()
-
-    let channelId: string
-
-    if (existing) {
-      channelId = existing.id
-      await supabase
-        .from('channels')
-        .update({ is_active: true, label: user.display_name })
-        .eq('id', channelId)
-    } else {
-      const { data: newCh, error } = await supabase
-        .from('channels')
-        .insert({
-          workspace_id: workspaceId,
-          platform:     'tiktok',
-          label:        user.display_name,
-          config:       {},
-          is_active:    true,
-        })
-        .select('id')
-        .single()
-
-      if (error || !newCh) {
-        const msg = error?.message ?? 'no data returned'
-        console.error('TikTok channel insert error:', msg)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed${detail(msg)}`)
-      }
-      channelId = newCh.id
-    }
+    const { channelId } = await createOrUpdateChannelByAccountId({
+      workspaceId,
+      platform:    'tiktok',
+      accountId:   tokens.open_id,
+      accountType: 'personal',
+      label:       user.display_name,
+    })
 
     const credResult = await upsertChannelCredential({
       channelId,
@@ -102,9 +72,6 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('TikTok credential upsert error:', credResult.error)
-      if (!existing) {
-        await supabase.from('channels').delete().eq('id', channelId)
-      }
       return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
     }
 

@@ -20,6 +20,11 @@ const PUBLISH_ROUTE: Partial<Record<Platform, string>> = {
   facebook: '/api/channels/facebook/post',
 }
 
+// Maps syndication platform keys → channel table platform values
+const CHANNEL_PLATFORM_MAP: Partial<Record<Platform, string>> = {
+  x: 'twitter',
+}
+
 type UIState =
   | { status: 'idle' }
   | { status: 'running' }
@@ -49,7 +54,8 @@ export function SyndicationClient() {
   const [intelligence, setIntelligence] = useState<SyndicationIntelligence | null>(null)
   const [loadingStep, setLoadingStep] = useState(0)
   const [publishState, setPublishState] = useState<Partial<Record<Platform, PublishState>>>({})
-  const [channels, setChannels] = useState<{ id: string; platform: string }[]>([])
+  const [channels, setChannels] = useState<{ id: string; platform: string; label: string | null; account_type: string }[]>([])
+  const [selectedChannelId, setSelectedChannelId] = useState<Partial<Record<Platform, string>>>({})
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isRunning = ui.status === 'running'
@@ -59,12 +65,27 @@ export function SyndicationClient() {
   useEffect(() => {
     fetch('/api/channels')
       .then(r => r.json())
-      .then((data: { id: string; platform: string }[]) => setChannels(Array.isArray(data) ? data : []))
+      .then((data: { id: string; platform: string; label: string | null; account_type: string }[]) => {
+        setChannels(Array.isArray(data) ? data : [])
+      })
       .catch(() => null)
   }, [])
 
+  function getChannelsForPlatform(platform: Platform) {
+    const dbPlatform = CHANNEL_PLATFORM_MAP[platform] ?? platform
+    return channels.filter(c => c.platform === dbPlatform)
+  }
+
   function getChannelId(platform: Platform): string | null {
-    return channels.find(c => c.platform === platform)?.id ?? null
+    const explicit = selectedChannelId[platform]
+    if (explicit) return explicit
+    return getChannelsForPlatform(platform)[0]?.id ?? null
+  }
+
+  function handleSelectChannel(platform: Platform, channelId: string) {
+    setSelectedChannelId(prev => ({ ...prev, [platform]: channelId }))
+    // Reset draft state when switching accounts — the new account needs a fresh draft
+    setPublishState(prev => ({ ...prev, [platform]: undefined }))
   }
 
   function stopInterval() {
@@ -504,6 +525,11 @@ export function SyndicationClient() {
                   onSchedule={handleSchedule}
                   onQueue={handleQueue}
                   publishState={publishState}
+                  channelAccounts={Object.fromEntries(
+                    ALL_PLATFORMS.map(p => [p, getChannelsForPlatform(p)])
+                  ) as Partial<Record<Platform, { id: string; label: string | null; account_type: string }[]>>}
+                  selectedChannelId={selectedChannelId}
+                  onSelectChannel={handleSelectChannel}
                 />
               )}
             </div>

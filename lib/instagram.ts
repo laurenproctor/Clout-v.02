@@ -63,17 +63,27 @@ export interface InstagramAccount {
   name:     string
 }
 
-// Finds the first Instagram Business Account linked to any of the user's Facebook Pages.
-export async function fetchInstagramAccount(
+// Finds all Instagram Business/Creator Accounts linked to the user's Facebook Pages.
+export async function fetchInstagramAccounts(
   userAccessToken: string,
-): Promise<InstagramAccount | null> {
+): Promise<InstagramAccount[]> {
   const params = new URLSearchParams({
     fields:       'instagram_business_account{id,username,name}',
     access_token: userAccessToken,
   })
   const res = await fetch(`${GRAPH_BASE}/me/accounts?${params}`)
-  if (!res.ok) return null
+  if (!res.ok) return []
   const json = await res.json()
   const pages = (json.data as Array<{ instagram_business_account?: InstagramAccount }>) ?? []
-  return pages.find(p => p.instagram_business_account)?.instagram_business_account ?? null
+  return pages
+    .map(p => p.instagram_business_account)
+    .filter((a): a is InstagramAccount => Boolean(a))
+}
+
+// Legacy single-account helper — kept for backward compat.
+export async function fetchInstagramAccount(
+  userAccessToken: string,
+): Promise<InstagramAccount | null> {
+  const accounts = await fetchInstagramAccounts(userAccessToken)
+  return accounts[0] ?? null
 }

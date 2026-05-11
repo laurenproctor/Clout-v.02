@@ -241,11 +241,13 @@ create table channels (
   workspace_id uuid not null references workspaces(id) on delete cascade,
   platform     channel_platform not null,
   label        text,
+  account_id   text,                          -- platform-specific account/page identifier
+  account_type text not null default 'personal', -- personal | page | business
   config       jsonb not null default '{}'::jsonb,
   is_active    boolean not null default true,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  unique (workspace_id, platform)
+  unique (workspace_id, platform, account_id) -- per-account uniqueness; allows multiple accounts per platform
 );
 create index channels_workspace_idx on channels(workspace_id) where is_active = true;
 

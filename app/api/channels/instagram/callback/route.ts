@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import {
   exchangeInstagramCode,
   getLongLivedInstagramToken,
-  fetchInstagramAccount,
+  fetchInstagramAccounts,
 } from '@/lib/instagram'
 import { verifyOAuthState } from '@/lib/oauth-state'
 import { upsertChannelCredential } from '@/lib/domain/credentials'
+import { createOrUpdateChannelByAccountId } from '@/lib/domain/channels'
+import { signCookiePayload } from '@/lib/signed-cookie'
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL!
 
@@ -44,81 +45,69 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
   }
 
-  let account: Awaited<ReturnType<typeof fetchInstagramAccount>>
+  let accounts: Awaited<ReturnType<typeof fetchInstagramAccounts>>
   try {
-    account = await fetchInstagramAccount(longToken)
+    accounts = await fetchInstagramAccounts(longToken)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Instagram account fetch failed:', msg)
     return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
   }
 
-  if (!account) {
+  if (accounts.length === 0) {
     return NextResponse.redirect(`${APP_URL()}/channels?error=instagram_no_business_account`)
   }
 
-  try {
-    const supabase = await createClient()
+  // Single account: connect directly without a picker
+  if (accounts.length === 1) {
+    const account = accounts[0]
+    try {
+      const { channelId } = await createOrUpdateChannelByAccountId({
+        workspaceId,
+        platform:    'instagram',
+        accountId:   account.id,
+        accountType: 'business',
+        label:       `@${account.username}`,
+      })
 
-    const { data: existing } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .eq('platform', 'instagram')
-      .single()
+      const credResult = await upsertChannelCredential({
+        channelId,
+        workspaceId,
+        accessToken:  longToken,
+        refreshToken: null,
+        expiresAt:    Math.floor(Date.now() / 1000) + expiresIn,
+        accountId:    account.id,
+        accountName:  account.username,
+        accountEmail: null,
+      })
 
-    let channelId: string
-
-    if (existing) {
-      channelId = existing.id
-      await supabase
-        .from('channels')
-        .update({ is_active: true, label: account.username })
-        .eq('id', channelId)
-    } else {
-      const { data: newCh, error } = await supabase
-        .from('channels')
-        .insert({
-          workspace_id: workspaceId,
-          platform:     'instagram',
-          label:        account.username,
-          config:       {},
-          is_active:    true,
-        })
-        .select('id')
-        .single()
-
-      if (error || !newCh) {
-        const msg = error?.message ?? 'no data returned'
-        console.error('Instagram channel insert error:', msg)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed${detail(msg)}`)
+      if (!credResult.ok) {
+        console.error('Instagram credential upsert error:', credResult.error)
+        return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
       }
-      channelId = newCh.id
+
+      return NextResponse.redirect(`${APP_URL()}/channels?connected=instagram`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
     }
-
-    const credResult = await upsertChannelCredential({
-      channelId,
-      workspaceId,
-      accessToken:  longToken,
-      refreshToken: null,
-      expiresAt:    Math.floor(Date.now() / 1000) + expiresIn,
-      accountId:    account.id,
-      accountName:  account.username,
-      accountEmail: null,
-    })
-
-    if (!credResult.ok) {
-      console.error('Instagram credential upsert error:', credResult.error)
-      if (!existing) {
-        await supabase.from('channels').delete().eq('id', channelId)
-      }
-      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
-    }
-
-    return NextResponse.redirect(`${APP_URL()}/channels?connected=instagram`)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('Instagram OAuth callback error:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
   }
+
+  // Multiple accounts: store in signed cookie and show picker
+  const cookieValue = signCookiePayload({
+    workspaceId,
+    accounts,
+    userLongLivedToken: longToken,
+    userTokenExpiresIn: expiresIn,
+  })
+
+  const res = NextResponse.redirect(`${APP_URL()}/channels?select=instagram`)
+  res.cookies.set('ig_pending_accounts', cookieValue, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path:     '/',
+    maxAge:   600,
+  })
+  return res
 }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Share2, Mail, Globe, ExternalLink, RefreshCw, Unlink, CheckCircle2 } from 'lucide-react'
+import { Share2, Mail, Globe, ExternalLink, RefreshCw, Unlink, CheckCircle2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function XIcon({ className }: { className?: string }) {
@@ -51,6 +51,7 @@ interface Channel {
   id: string
   platform: Platform
   label: string | null
+  account_type: string
   is_active: boolean
 }
 
@@ -62,9 +63,27 @@ interface ReadyOutput {
   channels: { platform: Platform; label: string | null } | null
 }
 
-const PLATFORMS = [
+interface PendingPage {
+  id: string
+  name: string
+}
+
+interface PendingAccount {
+  id: string
+  username: string
+  name: string
+}
+
+const PLATFORMS: {
+  key: Platform | 'blog'
+  name: string
+  Icon: React.ComponentType<{ className?: string }>
+  tagline: string
+  available: boolean
+  connectHref: string | null
+}[] = [
   {
-    key: 'linkedin' as const,
+    key: 'linkedin',
     name: 'LinkedIn',
     Icon: Share2,
     tagline: 'Publish directly to your profile.',
@@ -72,7 +91,7 @@ const PLATFORMS = [
     connectHref: '/api/channels/linkedin/connect',
   },
   {
-    key: 'threads' as const,
+    key: 'threads',
     name: 'Threads',
     Icon: ThreadsIcon,
     tagline: 'Publish directly to your Threads profile.',
@@ -80,7 +99,7 @@ const PLATFORMS = [
     connectHref: '/api/channels/threads/connect',
   },
   {
-    key: 'twitter' as const,
+    key: 'twitter',
     name: 'X (Twitter)',
     Icon: XIcon,
     tagline: 'Publish directly to your X profile.',
@@ -88,7 +107,7 @@ const PLATFORMS = [
     connectHref: '/api/channels/twitter/connect',
   },
   {
-    key: 'instagram' as const,
+    key: 'instagram',
     name: 'Instagram',
     Icon: InstagramIcon,
     tagline: 'Connect your Business or Creator account.',
@@ -96,7 +115,7 @@ const PLATFORMS = [
     connectHref: '/api/channels/instagram/connect',
   },
   {
-    key: 'tiktok' as const,
+    key: 'tiktok',
     name: 'TikTok',
     Icon: TikTokIcon,
     tagline: 'Connect your TikTok account.',
@@ -104,7 +123,7 @@ const PLATFORMS = [
     connectHref: '/api/channels/tiktok/connect',
   },
   {
-    key: 'facebook' as const,
+    key: 'facebook',
     name: 'Facebook',
     Icon: FacebookIcon,
     tagline: 'Publish to your Facebook Page.',
@@ -112,7 +131,7 @@ const PLATFORMS = [
     connectHref: '/api/channels/facebook/connect',
   },
   {
-    key: 'newsletter' as const,
+    key: 'newsletter',
     name: 'Email',
     Icon: Mail,
     tagline: 'Newsletter export — coming soon.',
@@ -120,7 +139,7 @@ const PLATFORMS = [
     connectHref: null,
   },
   {
-    key: 'blog' as const,
+    key: 'blog',
     name: 'Blog',
     Icon: Globe,
     tagline: 'Markdown export — coming soon.',
@@ -139,6 +158,69 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+function AccountTypeBadge({ type }: { type: string }) {
+  if (type === 'personal') return null
+  return (
+    <span className="rounded-full border border-zinc-200 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 capitalize">
+      {type}
+    </span>
+  )
+}
+
+// ─── Picker modal ─────────────────────────────────────────────────────────────
+
+function PickerModal({
+  title,
+  items,
+  onSelect,
+  onClose,
+}: {
+  title: string
+  items: { id: string; label: string }[]
+  onSelect: (id: string) => Promise<void>
+  onClose: () => void
+}) {
+  const [selecting, setSelecting] = useState<string | null>(null)
+
+  async function pick(id: string) {
+    setSelecting(id)
+    await onSelect(id)
+    setSelecting(null)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-zinc-900">{title}</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {items.map(item => (
+            <button
+              key={item.id}
+              onClick={() => pick(item.id)}
+              disabled={!!selecting}
+              className={cn(
+                'w-full rounded-xl border px-4 py-3 text-left text-sm transition-colors',
+                selecting === item.id
+                  ? 'border-zinc-900 bg-zinc-900 text-white'
+                  : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-400'
+              )}
+            >
+              {selecting === item.id ? 'Connecting…' : item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 function PublishingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -150,38 +232,19 @@ function PublishingContent() {
   const [publishing, setPublishing] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
-  useEffect(() => {
-    const connected = searchParams.get('connected')
-    const error     = searchParams.get('error')
-    if (connected === 'linkedin')                      flash('LinkedIn connected.', true)
-    else if (connected === 'twitter')                  flash('X (Twitter) connected.', true)
-    else if (connected === 'threads')                  flash('Threads connected.', true)
-    else if (connected === 'facebook')                 flash('Facebook connected.', true)
-    else if (connected === 'instagram')                flash('Instagram connected.', true)
-    else if (connected === 'tiktok')                   flash('TikTok connected.', true)
-    else if (error === 'linkedin_denied')              flash('Connection cancelled.', false)
-    else if (error === 'twitter_denied')               flash('Connection cancelled.', false)
-    else if (error === 'threads_denied')               flash('Connection cancelled.', false)
-    else if (error === 'facebook_denied')              flash('Connection cancelled.', false)
-    else if (error === 'instagram_denied')             flash('Connection cancelled.', false)
-    else if (error === 'tiktok_denied')                flash('Connection cancelled.', false)
-    else if (error === 'facebook_no_pages')            flash('No Facebook Pages found. Create a Page and try again.', false)
-    else if (error === 'instagram_no_business_account') flash('No Instagram Business account found. Link one to a Facebook Page and try again.', false)
-    else if (error === 'twitter_pkce_missing')         flash('Session expired — please try again.', false)
-    else if (error === 'tiktok_pkce_missing')          flash('Session expired — please try again.', false)
-    else if (error === 'session_expired')              flash('Session expired — please try again.', false)
-    else if (error === 'token_exchange_failed')        flash('The platform rejected the connection. Check your app credentials.', false)
-    else if (error === 'profile_fetch_failed')         flash('Connected but couldn\'t fetch your profile. Try again.', false)
-    else if (error === 'channel_db_failed')            flash('Database error saving channel. Try again.', false)
-    else if (error === 'credential_db_failed')         flash('Database error saving credentials. Try again.', false)
-    else if (error === 'connect_failed')               flash('Connection failed. Please try again.', false)
-    if (connected || error) router.replace('/channels')
-  }, [])
+  // Picker state
+  const [fbPages, setFbPages] = useState<PendingPage[] | null>(null)
+  const [igAccounts, setIgAccounts] = useState<PendingAccount[] | null>(null)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
     setTimeout(() => setToast(null), 4000)
   }
+
+  const loadChannels = useCallback(async () => {
+    const res = await fetch('/api/channels')
+    if (res.ok) setChannels(await res.json())
+  }, [])
 
   async function load() {
     const [cRes, approvedRes, publishedRes] = await Promise.all([
@@ -198,13 +261,86 @@ function PublishingContent() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  // Handle ?connected=, ?error=, ?select= params
+  useEffect(() => {
+    const connected = searchParams.get('connected')
+    const error     = searchParams.get('error')
+    const select    = searchParams.get('select')
+
+    if (connected === 'linkedin')                       flash('LinkedIn connected.', true)
+    else if (connected === 'twitter')                   flash('X (Twitter) connected.', true)
+    else if (connected === 'threads')                   flash('Threads connected.', true)
+    else if (connected === 'facebook')                  flash('Facebook connected.', true)
+    else if (connected === 'instagram')                 flash('Instagram connected.', true)
+    else if (connected === 'tiktok')                    flash('TikTok connected.', true)
+    else if (error === 'facebook_no_pages')             flash('No Facebook Pages found. Create a Page and try again.', false)
+    else if (error === 'instagram_no_business_account') flash('No Instagram Business account found. Link one to a Facebook Page and try again.', false)
+    else if (error === 'twitter_pkce_missing')          flash('Session expired — please try again.', false)
+    else if (error === 'tiktok_pkce_missing')           flash('Session expired — please try again.', false)
+    else if (error === 'session_expired')               flash('Session expired — please try again.', false)
+    else if (error === 'token_exchange_failed')         flash('The platform rejected the connection. Check your app credentials.', false)
+    else if (error === 'profile_fetch_failed')          flash('Connected but couldn\'t fetch your profile. Try again.', false)
+    else if (error === 'channel_db_failed')             flash('Database error saving channel. Try again.', false)
+    else if (error === 'credential_db_failed')          flash('Database error saving credentials. Try again.', false)
+    else if (error === 'connect_failed')                flash('Connection failed. Please try again.', false)
+    else if (error)                                     flash('Connection cancelled.', false)
+
+    if (select === 'facebook') {
+      fetch('/api/channels/facebook/pending-pages')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.pages) setFbPages(data.pages) })
+      router.replace('/channels')
+    } else if (select === 'instagram') {
+      fetch('/api/channels/instagram/pending-accounts')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.accounts) setIgAccounts(data.accounts) })
+      router.replace('/channels')
+    } else if (connected || error) {
+      router.replace('/channels')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDisconnect(channelId: string) {
     if (!confirm('Disconnect this account?')) return
     await fetch(`/api/channels/${channelId}`, { method: 'DELETE' })
     setChannels(prev => prev.filter(c => c.id !== channelId))
     flash('Account disconnected.', true)
+  }
+
+  // ── FB page picker select
+  async function handleSelectFbPage(pageId: string) {
+    const res = await fetch('/api/channels/facebook/select-page', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId }),
+    })
+    if (res.ok) {
+      setFbPages(null)
+      await loadChannels()
+      flash('Facebook page connected.', true)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      flash(data.error ?? 'Failed to connect page.', false)
+    }
+  }
+
+  // ── IG account picker select
+  async function handleSelectIgAccount(accountId: string) {
+    const res = await fetch('/api/channels/instagram/select-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId }),
+    })
+    if (res.ok) {
+      setIgAccounts(null)
+      await loadChannels()
+      flash('Instagram account connected.', true)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      flash(data.error ?? 'Failed to connect account.', false)
+    }
   }
 
   const PUBLISH_ROUTES: Partial<Record<Platform, string>> = {
@@ -260,7 +396,27 @@ function PublishingContent() {
         </div>
       )}
 
-      {/* Header + momentum */}
+      {/* FB page picker */}
+      {fbPages && (
+        <PickerModal
+          title="Choose a Facebook Page to connect"
+          items={fbPages.map(p => ({ id: p.id, label: p.name }))}
+          onSelect={handleSelectFbPage}
+          onClose={() => setFbPages(null)}
+        />
+      )}
+
+      {/* IG account picker */}
+      {igAccounts && (
+        <PickerModal
+          title="Choose an Instagram account to connect"
+          items={igAccounts.map(a => ({ id: a.id, label: `@${a.username}` + (a.name !== a.username ? ` · ${a.name}` : '') }))}
+          onSelect={handleSelectIgAccount}
+          onClose={() => setIgAccounts(null)}
+        />
+      )}
+
+      {/* Header */}
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">Publishing</h1>
@@ -277,53 +433,77 @@ function PublishingContent() {
         )}
       </div>
 
-      {/* Accounts */}
+      {/* Accounts — grouped by platform */}
       <section className="space-y-3">
         <h2 className="text-xs font-medium uppercase tracking-widest text-zinc-400">Accounts</h2>
-        <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+        <div className="space-y-3">
           {PLATFORMS.map(({ key, name, Icon, tagline, available, connectHref }) => {
-            const ch = channels.find(c => c.platform === key)
-            const isConnected = ch?.is_active ?? false
+            const platformChannels = channels.filter(c => c.platform === (key as Platform) && c.is_active)
+            const isConnected = platformChannels.length > 0
+
             return (
-              <div key={key} className="flex items-center gap-4 px-5 py-4">
-                <div className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-                  isConnected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-400'
-                )}>
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-zinc-900">{name}</p>
-                    {isConnected && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+              <div key={key} className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+                {/* Platform header */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100">
+                  <div className={cn(
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors',
+                    isConnected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-400'
+                  )}>
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
-                  <p className="text-xs text-zinc-400 truncate">
-                    {isConnected && ch?.label ? ch.label : tagline}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  {isConnected ? (
-                    available && ch && connectHref && (
-                      <>
-                        <a href={connectHref} className="text-zinc-300 hover:text-zinc-600 transition-colors" title="Reconnect">
-                          <RefreshCw className="h-3.5 w-3.5" />
-                        </a>
-                        <button onClick={() => handleDisconnect(ch.id)} className="text-zinc-300 hover:text-red-400 transition-colors" title="Disconnect">
-                          <Unlink className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    )
-                  ) : available && connectHref ? (
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-zinc-900">{name}</p>
+                      {isConnected && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />}
+                    </div>
+                    {!isConnected && (
+                      <p className="text-xs text-zinc-400">{tagline}</p>
+                    )}
+                  </div>
+                  {/* Connect button (shown in header when not yet connected) */}
+                  {!isConnected && available && connectHref && (
                     <a
                       href={connectHref}
-                      className="rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
+                      className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
                     >
                       Connect
                     </a>
-                  ) : (
-                    <span className="text-xs text-zinc-300">Soon</span>
+                  )}
+                  {!available && (
+                    <span className="shrink-0 text-xs text-zinc-300">Soon</span>
                   )}
                 </div>
+
+                {/* Connected account rows */}
+                {platformChannels.map(ch => (
+                  <div key={ch.id} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 last:border-b-0">
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <p className="text-sm text-zinc-700 truncate">{ch.label ?? 'Connected account'}</p>
+                      <AccountTypeBadge type={ch.account_type} />
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      {connectHref && (
+                        <a href={connectHref} className="text-zinc-300 hover:text-zinc-600 transition-colors" title="Reconnect">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      <button onClick={() => handleDisconnect(ch.id)} className="text-zinc-300 hover:text-red-400 transition-colors" title="Disconnect">
+                        <Unlink className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add another account row */}
+                {isConnected && available && connectHref && (
+                  <a
+                    href={connectHref}
+                    className="flex items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Connect another {name} account
+                  </a>
+                )}
               </div>
             )
           })}

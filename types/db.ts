@@ -485,6 +485,8 @@ export type Database = {
       }
       channels: {
         Row: {
+          account_id: string | null
+          account_type: string
           config: Json
           created_at: string
           id: string
@@ -495,6 +497,8 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          account_id?: string | null
+          account_type?: string
           config?: Json
           created_at?: string
           id?: string
@@ -505,6 +509,8 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          account_id?: string | null
+          account_type?: string
           config?: Json
           created_at?: string
           id?: string

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { exchangeTwitterCode, fetchTwitterUser } from '@/lib/twitter'
 import { verifyOAuthState } from '@/lib/oauth-state'
 import { upsertChannelCredential } from '@/lib/domain/credentials'
+import { createOrUpdateChannelByAccountId } from '@/lib/domain/channels'
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL!
 
@@ -48,42 +48,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient()
-
-    const { data: existing } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .eq('platform', 'twitter')
-      .single()
-
-    let channelId: string
-
-    if (existing) {
-      channelId = existing.id
-      await supabase
-        .from('channels')
-        .update({ is_active: true, label: `@${user.username}` })
-        .eq('id', channelId)
-    } else {
-      const { data: newCh, error } = await supabase
-        .from('channels')
-        .insert({
-          workspace_id: workspaceId,
-          platform:     'twitter',
-          label:        `@${user.username}`,
-          config:       { char_limit: 280 },
-          is_active:    true,
-        })
-        .select('id')
-        .single()
-
-      if (error || !newCh) {
-        console.error('Twitter channel insert error:', error?.message)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed`)
-      }
-      channelId = newCh.id
-    }
+    const { channelId } = await createOrUpdateChannelByAccountId({
+      workspaceId,
+      platform:    'twitter',
+      accountId:   user.id,
+      accountType: 'personal',
+      label:       `@${user.username}`,
+    })
 
     const credResult = await upsertChannelCredential({
       channelId,
@@ -98,9 +69,6 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('Twitter credential upsert error:', credResult.error)
-      if (!existing) {
-        await supabase.from('channels').delete().eq('id', channelId)
-      }
       return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed`)
     }
 

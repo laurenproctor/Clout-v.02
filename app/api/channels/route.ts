@@ -27,24 +27,12 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { platform, label, config } = body
 
-  const validPlatforms = ['linkedin', 'newsletter', 'twitter', 'threads']
+  const validPlatforms = ['linkedin', 'newsletter', 'twitter', 'threads', 'facebook', 'instagram', 'tiktok']
   if (!validPlatforms.includes(platform)) {
     return NextResponse.json({ error: 'Invalid platform' }, { status: 400 })
   }
 
   const supabase = await createClient()
-
-  // Only one channel per platform per workspace
-  const { data: existing } = await supabase
-    .from('channels')
-    .select('id')
-    .eq('workspace_id', session.workspaceId)
-    .eq('platform', platform)
-    .single()
-
-  if (existing) {
-    return NextResponse.json({ error: 'Channel already exists for this platform' }, { status: 409 })
-  }
 
   const { data, error } = await supabase
     .from('channels')
@@ -57,6 +45,9 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    const status = error.code === '23505' ? 409 : 500
+    return NextResponse.json({ error: error.message }, { status })
+  }
   return NextResponse.json(data, { status: 201 })
 }

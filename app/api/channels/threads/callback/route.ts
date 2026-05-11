@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { exchangeThreadsCode, exchangeForLongLivedToken, fetchThreadsProfile } from '@/lib/threads'
 import { verifyOAuthState } from '@/lib/oauth-state'
 import { upsertChannelCredential } from '@/lib/domain/credentials'
+import { createOrUpdateChannelByAccountId } from '@/lib/domain/channels'
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL!
 
@@ -53,43 +53,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient()
-
-    const { data: existing } = await supabase
-      .from('channels')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .eq('platform', 'threads')
-      .single()
-
-    let channelId: string
-
-    if (existing) {
-      channelId = existing.id
-      await supabase
-        .from('channels')
-        .update({ is_active: true, label: profile.username })
-        .eq('id', channelId)
-    } else {
-      const { data: newCh, error } = await supabase
-        .from('channels')
-        .insert({
-          workspace_id: workspaceId,
-          platform:     'threads',
-          label:        profile.username,
-          config:       { char_limit: 500, soft_limit: 200 },
-          is_active:    true,
-        })
-        .select('id')
-        .single()
-
-      if (error || !newCh) {
-        const msg = error?.message ?? 'no data returned'
-        console.error('Threads channel insert error:', msg)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed${detail(msg)}`)
-      }
-      channelId = newCh.id
-    }
+    const { channelId } = await createOrUpdateChannelByAccountId({
+      workspaceId,
+      platform:    'threads',
+      accountId:   profile.id,
+      accountType: 'personal',
+      label:       `@${profile.username}`,
+    })
 
     // Threads uses same-token refresh — no separate refresh_token field
     const credResult = await upsertChannelCredential({
@@ -105,9 +75,6 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('Threads credential upsert error:', credResult.error)
-      if (!existing) {
-        await supabase.from('channels').delete().eq('id', channelId)
-      }
       return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
     }
 
