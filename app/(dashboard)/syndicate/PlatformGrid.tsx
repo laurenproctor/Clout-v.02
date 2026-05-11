@@ -52,9 +52,9 @@ export default function PlatformGrid({
               <div className="rounded-lg border border-zinc-200 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-semibold uppercase text-zinc-900">{PLATFORM_LABELS[platform]}</span>
+                    <span className="text-sm font-semibold uppercase text-zinc-900">{PLATFORM_LABELS[platform]}</span>
                   </div>
-                  <span className="text-xs text-zinc-400 animate-pulse">Generating new version…</span>
+                  <span className="text-sm text-zinc-400 animate-pulse">Generating new version…</span>
                 </div>
                 <div className="space-y-2">
                   {Array.from({ length: n }).map((_, i) => (
@@ -73,10 +73,10 @@ export default function PlatformGrid({
         if (card.status === 'error') {
           return (
             <div key={platform} className="rounded-lg border border-zinc-200 p-4 space-y-2">
-              <p className="text-xs text-red-500">{card.message}</p>
+              <p className="text-sm text-red-500">{card.message}</p>
               <button
                 onClick={() => onRegenerate(platform)}
-                className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors"
               >
                 Try again
               </button>
@@ -107,10 +107,10 @@ export default function PlatformGrid({
             onClick={() => onFocus(platform, card.content)}
           >
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold uppercase text-zinc-900">
+              <span className="text-sm font-semibold uppercase text-zinc-900">
                 {PLATFORM_LABELS[platform]}
               </span>
-              <span className="text-xs text-zinc-400">{PLATFORM_DESCRIPTORS[platform]}</span>
+              <span className="text-sm text-zinc-400">{PLATFORM_DESCRIPTORS[platform]}</span>
             </div>
 
             <p
@@ -127,19 +127,19 @@ export default function PlatformGrid({
 
             <div className="flex gap-2 flex-wrap pt-1">
               <button
-                className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                className="rounded-md border border-zinc-200 px-2.5 py-1 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
                 onClick={(e) => { e.stopPropagation(); onCopy(card.content) }}
               >
                 Copy
               </button>
               <button
-                className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                className="rounded-md border border-zinc-200 px-2.5 py-1 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
                 onClick={(e) => { e.stopPropagation(); onFocus(platform, card.content) }}
               >
                 Edit
               </button>
               <button
-                className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                className="rounded-md border border-zinc-200 px-2.5 py-1 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
                 onClick={(e) => { e.stopPropagation(); onRegenerate(platform) }}
               >
                 Regenerate

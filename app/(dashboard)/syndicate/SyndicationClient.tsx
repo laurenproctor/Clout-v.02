@@ -248,7 +248,7 @@ export function SyndicationClient() {
 
           {/* Platform toggles */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Platforms</p>
+            <p className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Platforms</p>
             <div className="flex flex-wrap gap-2">
               {ALL_PLATFORMS.map(platform => (
                 <button
@@ -291,7 +291,7 @@ export function SyndicationClient() {
             {hasResults && !isRunning && (
               <button
                 onClick={handleReset}
-                className="mt-3 block text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                className="mt-3 block text-sm text-zinc-400 hover:text-zinc-600 transition-colors"
               >
                 Start over
               </button>
@@ -299,7 +299,7 @@ export function SyndicationClient() {
           </div>
 
           {ui.status === 'error' && (
-            <p className="text-xs text-red-500">{ui.message}</p>
+            <p className="text-sm text-red-500">{ui.message}</p>
           )}
         </div>
 
@@ -316,21 +316,21 @@ export function SyndicationClient() {
             <div className="border border-zinc-100 rounded-lg overflow-hidden">
               <button
                 onClick={() => setSourceVisible(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-xs text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 text-sm text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
               >
                 <span className="font-medium">Source URL</span>
                 <span>{sourceVisible ? '▲' : '▼'}</span>
               </button>
               {sourceVisible && (
                 <div className="px-4 pb-4">
-                  <p className="text-xs text-zinc-500 leading-relaxed whitespace-pre-wrap line-clamp-6">{input}</p>
+                  <p className="text-sm text-zinc-500 leading-relaxed whitespace-pre-wrap line-clamp-6">{input}</p>
                 </div>
               )}
             </div>
 
             {/* Platform versions */}
             <div className="border-t border-zinc-100 pt-6">
-              <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-4">Platform Posts</p>
+              <p className="text-sm font-medium text-zinc-400 uppercase tracking-wide mb-4">Platform Posts</p>
 
               {focused ? (
                 <FocusedEditView

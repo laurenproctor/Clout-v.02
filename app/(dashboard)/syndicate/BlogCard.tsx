@@ -37,13 +37,13 @@ export default function BlogCard({ content, intelligence, onFocus, onCopy, onReg
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
         <div className="flex items-center gap-2.5">
           <span className="text-[15px] font-semibold tracking-tight text-zinc-900">Blog</span>
-          <span className="text-[11px] text-zinc-400">Structured · evergreen · searchable</span>
+          <span className="text-[14px] text-zinc-400">Structured · evergreen · searchable</span>
         </div>
       </div>
 
       {/* Post body */}
       <div className="px-5 pb-6 cursor-pointer" onClick={onFocus}>
-        <p className="text-[14px] leading-[1.75] text-zinc-700 whitespace-pre-wrap">{content}</p>
+        <p className="text-[17px] leading-[1.75] text-zinc-700 whitespace-pre-wrap">{content}</p>
       </div>
 
       {/* Intelligence layer */}
@@ -52,38 +52,38 @@ export default function BlogCard({ content, intelligence, onFocus, onCopy, onReg
           className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-zinc-50 transition-colors"
           onClick={(e) => { e.stopPropagation(); setShowInsights(v => !v) }}
         >
-          <span className="text-[11px] text-zinc-400">Why this may perform well</span>
-          <span className="text-[9px] text-zinc-300">{showInsights ? '▴' : '▾'}</span>
+          <span className="text-[14px] text-zinc-400">Why this may perform well</span>
+          <span className="text-[14px] text-zinc-300">{showInsights ? '▴' : '▾'}</span>
         </button>
 
         {showInsights && (
           <div className="px-5 pb-5 space-y-4 border-t border-zinc-50">
             {intelligence.authority_style && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Information architecture</p>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">{intelligence.authority_style}</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Information architecture</p>
+                <p className="text-[14px] text-zinc-500 leading-relaxed">{intelligence.authority_style}</p>
               </div>
             )}
             {intelligence.narrative_style && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Structural logic</p>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">{intelligence.narrative_style}</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Structural logic</p>
+                <p className="text-[14px] text-zinc-500 leading-relaxed">{intelligence.narrative_style}</p>
               </div>
             )}
             {intelligence.adaptation_constraints.length > 0 && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Preservation constraints</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Preservation constraints</p>
                 <div className="space-y-1">
                   {intelligence.adaptation_constraints.slice(0, 2).map((c, i) => (
-                    <p key={i} className="text-[11px] text-zinc-500 leading-relaxed">· {c}</p>
+                    <p key={i} className="text-[14px] text-zinc-500 leading-relaxed">· {c}</p>
                   ))}
                 </div>
               </div>
             )}
             {intelligence.platform_risks?.blog && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Adaptation note</p>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">{intelligence.platform_risks.blog}</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Adaptation note</p>
+                <p className="text-[14px] text-zinc-400 leading-relaxed">{intelligence.platform_risks.blog}</p>
               </div>
             )}
           </div>
@@ -94,28 +94,28 @@ export default function BlogCard({ content, intelligence, onFocus, onCopy, onReg
       <div className="border-t border-zinc-100 px-5 py-3">
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            className="text-[11px] font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+            className="text-[14px] font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
             onClick={(e) => { e.stopPropagation(); handleCopy() }}
           >
             {copied ? 'Copied' : 'Copy'}
           </button>
-          <span className="text-zinc-200 text-xs select-none">·</span>
+          <span className="text-zinc-200 text-sm select-none">·</span>
           <button
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            className="text-[14px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
             onClick={(e) => { e.stopPropagation(); onFocus() }}
           >
             Edit
           </button>
-          <span className="text-zinc-200 text-xs select-none">·</span>
+          <span className="text-zinc-200 text-sm select-none">·</span>
           <button
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            className="text-[14px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
             onClick={(e) => { e.stopPropagation(); onRegenerate() }}
           >
             Regenerate
           </button>
-          <span className="text-zinc-200 text-xs select-none">·</span>
+          <span className="text-zinc-200 text-sm select-none">·</span>
           <button
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            className="text-[14px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
             onClick={(e) => { e.stopPropagation(); setShowVariants(v => !v) }}
           >
             Rewrite as {showVariants ? '▴' : '▾'}
@@ -128,7 +128,7 @@ export default function BlogCard({ content, intelligence, onFocus, onCopy, onReg
               <button
                 key={v.label}
                 onClick={(e) => { e.stopPropagation(); setShowVariants(false); onRegenerate(v.note) }}
-                className="text-[10px] font-medium text-zinc-500 border border-zinc-200 rounded-full px-2.5 py-1 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
+                className="text-[14px] font-medium text-zinc-500 border border-zinc-200 rounded-full px-2.5 py-1 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
               >
                 {v.label}
               </button>

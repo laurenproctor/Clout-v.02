@@ -16,7 +16,7 @@ Extract:
 - emotional_style: The emotional register and how it is used. Examples: "earned vulnerability before critique", "controlled indignation", "intellectual excitement as invitation".
 - spreadability_patterns: What makes this content shareable or memorable. Examples: "quotable compression of complex idea", "identity-signaling thesis readers can screenshot", "tension that invites disagreement".
 - narrative_style: How the content is structured temporally. Examples: "confession → competence → insight", "status quo → disruption → implication", "question → evidence → counter-intuitive synthesis".
-- platform_risks: For each platform (x, linkedin, substack, blog), one sentence about what makes adaptation challenging. Be honest about weak fits.
+- platform_risks: For each platform (x, linkedin, substack, blog), one concrete sentence describing the specific structural decision for this content on that platform — what gets foregrounded, what structural move opens the piece, how the argument is reordered for that audience. This is a reconstruction decision, not a generic description of the platform.
 - key_quotes: 2–4 direct quotes from the content that are load-bearing — the sentences that most concentrate the content's energy.
 - adaptation_constraints: What must be preserved in any adaptation for the content to remain honest and effective.
 

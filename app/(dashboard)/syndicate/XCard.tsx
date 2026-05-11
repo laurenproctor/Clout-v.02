@@ -46,15 +46,15 @@ export default function XCard({ content, intelligence, onFocus, onCopy, onRegene
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
         <div className="flex items-center gap-2.5">
           <span className="text-[15px] font-semibold tracking-tight text-zinc-900">X</span>
-          <span className="text-[11px] text-zinc-400">Short-form · conversational · quotable</span>
+          <span className="text-[14px] text-zinc-400">Short-form · conversational · quotable</span>
         </div>
         <div className="flex items-center gap-2">
           {toneTags.map(tag => (
-            <span key={tag} className="text-[10px] text-zinc-400 border border-zinc-100 rounded-full px-2 py-0.5">
+            <span key={tag} className="text-[14px] text-zinc-400 border border-zinc-100 rounded-full px-2 py-0.5">
               {tag}
             </span>
           ))}
-          <span className={`text-[11px] tabular-nums ml-1 ${charCount > 280 ? 'text-amber-500' : 'text-zinc-400'}`}>
+          <span className={`text-[14px] tabular-nums ml-1 ${charCount > 280 ? 'text-amber-500' : 'text-zinc-400'}`}>
             {charCount} chars
           </span>
         </div>
@@ -73,38 +73,38 @@ export default function XCard({ content, intelligence, onFocus, onCopy, onRegene
           className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-zinc-50 transition-colors"
           onClick={(e) => { e.stopPropagation(); setShowInsights(v => !v) }}
         >
-          <span className="text-[11px] text-zinc-400">Why this may perform well</span>
-          <span className="text-[9px] text-zinc-300">{showInsights ? '▴' : '▾'}</span>
+          <span className="text-[14px] text-zinc-400">Why this may perform well</span>
+          <span className="text-[14px] text-zinc-300">{showInsights ? '▴' : '▾'}</span>
         </button>
 
         {showInsights && (
           <div className="px-5 pb-5 space-y-4 border-t border-zinc-50">
             {intelligence.narrative_style && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Hook structure</p>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">{intelligence.narrative_style}</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Hook structure</p>
+                <p className="text-[14px] text-zinc-500 leading-relaxed">{intelligence.narrative_style}</p>
               </div>
             )}
             {intelligence.emotional_style && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Emotional dynamics</p>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">{intelligence.emotional_style}</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Emotional dynamics</p>
+                <p className="text-[14px] text-zinc-500 leading-relaxed">{intelligence.emotional_style}</p>
               </div>
             )}
             {intelligence.spreadability_patterns.length > 0 && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Retention mechanics</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Retention mechanics</p>
                 <div className="space-y-1">
                   {intelligence.spreadability_patterns.slice(0, 3).map((p, i) => (
-                    <p key={i} className="text-[11px] text-zinc-500 leading-relaxed">· {p}</p>
+                    <p key={i} className="text-[14px] text-zinc-500 leading-relaxed">· {p}</p>
                   ))}
                 </div>
               </div>
             )}
             {intelligence.platform_risks?.x && (
               <div>
-                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Adaptation note</p>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">{intelligence.platform_risks.x}</p>
+                <p className="text-[14px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Adaptation note</p>
+                <p className="text-[14px] text-zinc-400 leading-relaxed">{intelligence.platform_risks.x}</p>
               </div>
             )}
           </div>
@@ -115,28 +115,28 @@ export default function XCard({ content, intelligence, onFocus, onCopy, onRegene
       <div className="border-t border-zinc-100 px-5 py-3">
         <div className="flex items-center gap-3 flex-wrap">
           <button
-            className="text-[11px] font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+            className="text-[14px] font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
             onClick={(e) => { e.stopPropagation(); handleCopy() }}
           >
             {copied ? 'Copied' : 'Copy'}
           </button>
-          <span className="text-zinc-200 text-xs select-none">·</span>
+          <span className="text-zinc-200 text-sm select-none">·</span>
           <button
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            className="text-[14px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
             onClick={(e) => { e.stopPropagation(); onFocus() }}
           >
             Edit
           </button>
-          <span className="text-zinc-200 text-xs select-none">·</span>
+          <span className="text-zinc-200 text-sm select-none">·</span>
           <button
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            className="text-[14px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
             onClick={(e) => { e.stopPropagation(); onRegenerate() }}
           >
             Regenerate
           </button>
-          <span className="text-zinc-200 text-xs select-none">·</span>
+          <span className="text-zinc-200 text-sm select-none">·</span>
           <button
-            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            className="text-[14px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
             onClick={(e) => { e.stopPropagation(); setShowVariants(v => !v) }}
           >
             Rewrite as {showVariants ? '▴' : '▾'}
@@ -149,7 +149,7 @@ export default function XCard({ content, intelligence, onFocus, onCopy, onRegene
               <button
                 key={v.label}
                 onClick={(e) => { e.stopPropagation(); setShowVariants(false); onRegenerate(v.note) }}
-                className="text-[10px] font-medium text-zinc-500 border border-zinc-200 rounded-full px-2.5 py-1 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
+                className="text-[14px] font-medium text-zinc-500 border border-zinc-200 rounded-full px-2.5 py-1 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
               >
                 {v.label}
               </button>
