@@ -15,11 +15,20 @@ export function buildGenerationSystemPrompt(
   platform: Platform,
   intelligence: SyndicationIntelligence,
   sourceUrl?: string,
+  notes?: string,
 ): string {
   const model = PLATFORM_MODELS[platform]
 
+  const notesSection = notes?.trim()
+    ? `## Angle and direction\n\nThe user has provided specific instructions for how to approach this post. Follow them closely — they override default framing choices:\n\n${notes.trim()}\n\n`
+    : ''
+
   const preWriting = 'preWritingFramework' in model
     ? `## Before writing\n\n${(model as typeof model & { preWritingFramework: string }).preWritingFramework}\n\n`
+    : ''
+
+  const hashtagSection = 'hashtagRule' in model
+    ? `## Hashtags\n\n${(model as typeof model & { hashtagRule: string }).hashtagRule}\n\n`
     : ''
 
   const sourceLinkSection = (platform === 'x' && sourceUrl)
@@ -32,7 +41,7 @@ export function buildGenerationSystemPrompt(
 
 Your job: write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through.
 
-## What you're promoting
+${notesSection}## What you're promoting
 
 **Core idea:** ${intelligence.thesis}
 
@@ -55,7 +64,7 @@ ${model.lengthTarget}
 ### Don't do these
 ${model.antiPatterns.map(a => `- ${a}`).join('\n')}
 
-${sourceLinkSection}## Output
+${hashtagSection}${sourceLinkSection}## Output
 
 Return only the post text. No preamble, no explanation, no metadata.`
 }

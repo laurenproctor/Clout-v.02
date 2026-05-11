@@ -10,6 +10,19 @@ function isUrl(input: string): boolean {
   }
 }
 
+function extractFirstUrl(text: string): string | null {
+  const match = text.match(/https?:\/\/[^\s<>"]+/)
+  if (!match) return null
+  // Strip trailing punctuation that may have been captured (periods, commas, etc.)
+  const url = match[0].replace(/[.,;:!?)'"\]]+$/, '')
+  try {
+    new URL(url)
+    return url
+  } catch {
+    return null
+  }
+}
+
 const MAX_CHARS = 12_000
 
 function rawTextToExtractedContent(text: string): ExtractedContent {
@@ -42,10 +55,18 @@ function rawTextToExtractedContent(text: string): ExtractedContent {
 export async function extractInput(input: string): Promise<ExtractedContent> {
   const trimmed = input.trim()
 
+  // Exact URL match
   if (isUrl(trimmed)) {
     return extractUrl(trimmed)
   }
 
+  // URL embedded in text (e.g. user pasted URL + context into the same field)
+  const embeddedUrl = extractFirstUrl(trimmed)
+  if (embeddedUrl) {
+    return extractUrl(embeddedUrl)
+  }
+
+  // Raw text fallback
   const wordCount = trimmed.split(/\s+/).filter(Boolean).length
   if (wordCount < 50) {
     throw new Error('LOW_SIGNAL: Content too short for syndication')

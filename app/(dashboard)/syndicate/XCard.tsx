@@ -4,23 +4,34 @@ import { useState } from 'react'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
 import { deriveToneTags } from './intelligenceUtils'
 
-interface PlatformCardProps {
+const REWRITE_VARIANTS = [
+  { label: 'Sharper', note: 'Make this sharper and more direct. Cut anything that doesn\'t earn its place. Every word must justify itself.' },
+  { label: 'More contrarian', note: 'Take a more contrarian angle. Challenge the expected take. The post should push back on consensus.' },
+  { label: 'More concise', note: 'Cut this down significantly. One sharp idea, minimum words, maximum punch.' },
+  { label: 'More emotional', note: 'Lead with more emotional weight. Make the human stakes immediate and visible.' },
+  { label: 'More analytical', note: 'Lean into precision and intellectual rigor. Structure the argument more carefully.' },
+  { label: 'More viral', note: 'Optimize aggressively for shareability. The hook must stop scrolling. The post must create a desire to repost.' },
+]
+
+function xCharCount(content: string): number {
+  return content.replace(/https?:\/\/[^\s]+/g, 'x'.repeat(23)).length
+}
+
+interface Props {
   content: string
   intelligence: SyndicationIntelligence
   onFocus: () => void
   onCopy: () => void
-  onRegenerate: () => void
+  onRegenerate: (variantNote?: string) => void
 }
 
-export default function XCard({
-  content,
-  intelligence,
-  onFocus,
-  onCopy,
-  onRegenerate,
-}: PlatformCardProps) {
-  const [showWhy, setShowWhy] = useState(false)
+export default function XCard({ content, intelligence, onFocus, onCopy, onRegenerate }: Props) {
   const [copied, setCopied] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
+  const [showVariants, setShowVariants] = useState(false)
+
+  const charCount = xCharCount(content)
+  const toneTags = deriveToneTags(intelligence.tone).slice(0, 2)
 
   function handleCopy() {
     onCopy()
@@ -29,80 +40,122 @@ export default function XCard({
   }
 
   return (
-    <div
-      className="rounded-lg border border-zinc-200 p-4 space-y-3 flex flex-col cursor-pointer hover:border-zinc-400 transition-colors"
-      onClick={onFocus}
-    >
-      {/* Header row */}
-      <div className="flex justify-between items-start">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold uppercase text-zinc-900">X</span>
-          <span className="text-xs text-zinc-400">Short-form · conversational · quotable</span>
+    <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-[15px] font-semibold tracking-tight text-zinc-900">X</span>
+          <span className="text-[11px] text-zinc-400">Short-form · conversational · quotable</span>
         </div>
-      </div>
-
-      {/* Full post content */}
-      <p className="text-sm text-zinc-600 leading-relaxed whitespace-pre-wrap">{content}</p>
-
-      {/* Retention Strategy */}
-      <div>
-        <p className="text-xs uppercase tracking-widest text-zinc-400 mb-1.5">Retention Strategy</p>
-        <div className="flex flex-wrap gap-1.5">
-          {intelligence.spreadability_patterns.slice(0, 3).map((pattern, i) => (
-            <span key={i} className="bg-zinc-100 text-zinc-700 rounded-full px-2 py-0.5 text-xs">
-              {pattern}
+        <div className="flex items-center gap-2">
+          {toneTags.map(tag => (
+            <span key={tag} className="text-[10px] text-zinc-400 border border-zinc-100 rounded-full px-2 py-0.5">
+              {tag}
             </span>
           ))}
-        </div>
-      </div>
-
-      {/* Tone tags */}
-      <div className="flex flex-wrap gap-1.5">
-        {deriveToneTags(intelligence.tone).map((tag, i) => (
-          <span key={i} className="bg-zinc-100 rounded-full px-2 py-0.5 text-xs text-zinc-600">
-            {tag}
+          <span className={`text-[11px] tabular-nums ml-1 ${charCount > 280 ? 'text-amber-500' : 'text-zinc-400'}`}>
+            {charCount} chars
           </span>
-        ))}
+        </div>
       </div>
 
-      {/* Why this works */}
-      <button
-        className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors text-left w-fit"
-        onClick={(e) => { e.stopPropagation(); setShowWhy(v => !v) }}
-      >
-        {showWhy ? 'Why this works ▴' : 'Why this works ▾'}
-      </button>
-      {showWhy && (
-        <div className="space-y-1.5">
-          {intelligence.platform_risks['x'] && (
-            <p className="text-xs text-zinc-500">{intelligence.platform_risks['x']}</p>
-          )}
-          {intelligence.persuasive_mechanics.slice(0, 2).map((m, i) => (
-            <p key={i} className="text-xs text-zinc-500">• {m}</p>
-          ))}
-        </div>
-      )}
+      {/* Post body */}
+      <div className="px-5 pb-6 cursor-pointer" onClick={onFocus}>
+        <p className="text-[17px] leading-[1.65] text-zinc-900 whitespace-pre-wrap">
+          {content}
+        </p>
+      </div>
 
-      {/* Action buttons */}
-      <div className="flex gap-2 flex-wrap pt-1">
+      {/* Intelligence layer */}
+      <div className="border-t border-zinc-100">
         <button
-          className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-          onClick={(e) => { e.stopPropagation(); handleCopy() }}
+          className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-zinc-50 transition-colors"
+          onClick={(e) => { e.stopPropagation(); setShowInsights(v => !v) }}
         >
-          {copied ? 'Copied' : 'Copy'}
+          <span className="text-[11px] text-zinc-400">Why this may perform well</span>
+          <span className="text-[9px] text-zinc-300">{showInsights ? '▴' : '▾'}</span>
         </button>
-        <button
-          className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onFocus() }}
-        >
-          Edit
-        </button>
-        <button
-          className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onRegenerate() }}
-        >
-          Regenerate X Version
-        </button>
+
+        {showInsights && (
+          <div className="px-5 pb-5 space-y-4 border-t border-zinc-50">
+            {intelligence.narrative_style && (
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Hook structure</p>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">{intelligence.narrative_style}</p>
+              </div>
+            )}
+            {intelligence.emotional_style && (
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Emotional dynamics</p>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">{intelligence.emotional_style}</p>
+              </div>
+            )}
+            {intelligence.spreadability_patterns.length > 0 && (
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Retention mechanics</p>
+                <div className="space-y-1">
+                  {intelligence.spreadability_patterns.slice(0, 3).map((p, i) => (
+                    <p key={i} className="text-[11px] text-zinc-500 leading-relaxed">· {p}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {intelligence.platform_risks?.x && (
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.12em] text-zinc-300 mb-1.5">Adaptation note</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">{intelligence.platform_risks.x}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Action bar */}
+      <div className="border-t border-zinc-100 px-5 py-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            className="text-[11px] font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+            onClick={(e) => { e.stopPropagation(); handleCopy() }}
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          <span className="text-zinc-200 text-xs select-none">·</span>
+          <button
+            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onFocus() }}
+          >
+            Edit
+          </button>
+          <span className="text-zinc-200 text-xs select-none">·</span>
+          <button
+            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onRegenerate() }}
+          >
+            Regenerate
+          </button>
+          <span className="text-zinc-200 text-xs select-none">·</span>
+          <button
+            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+            onClick={(e) => { e.stopPropagation(); setShowVariants(v => !v) }}
+          >
+            Rewrite as {showVariants ? '▴' : '▾'}
+          </button>
+        </div>
+
+        {showVariants && (
+          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-zinc-50">
+            {REWRITE_VARIANTS.map(v => (
+              <button
+                key={v.label}
+                onClick={(e) => { e.stopPropagation(); setShowVariants(false); onRegenerate(v.note) }}
+                className="text-[10px] font-medium text-zinc-500 border border-zinc-200 rounded-full px-2.5 py-1 hover:border-zinc-900 hover:text-zinc-900 transition-colors"
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

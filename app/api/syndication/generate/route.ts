@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { input, platforms } = parsed.data
+  const { input, platforms, notes } = parsed.data
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         await Promise.allSettled(
           platforms.map(async (platform: Platform) => {
             try {
-              const output = await generateOutput(platform, intelligence, extracted.url || undefined)
+              const output = await generateOutput(platform, intelligence, extracted.url || undefined, notes)
               send({ type: 'output', platform, content: output.content })
             } catch (err) {
               send({

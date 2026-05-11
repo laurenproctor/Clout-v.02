@@ -19,4 +19,5 @@ The most effective content on LinkedIn combines demonstrated competence with a p
     'Do not use emoji as chapter breaks',
     'Avoid the LinkedIn inspirational cadence: short line / short line / short line / one-word punch',
   ],
+  hashtagRule: 'End every post with 3–5 relevant hashtags on their own line. Choose hashtags that are specific enough to reach a real audience (e.g. #ProductStrategy, #B2BMarketing, #AIPolicy) — not generic filler like #Business or #Success.',
 }

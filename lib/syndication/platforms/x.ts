@@ -37,7 +37,7 @@ Only after completing this framework should you write the post.`,
     'Insight density: the post should contain more usable ideas per word than anything else in the feed',
   ],
 
-  lengthTarget: '150–280 characters for a single sharp post. If threading (4–8 tweets), each tweet must stand alone as a complete thought — not a fragment that requires the next one to make sense.',
+  lengthTarget: 'Maximum 280 characters. Single tweet only — no threads. If the idea cannot fit in 280 characters, compress it until it does. A tighter post is always better than a longer one.',
 
   antiPatterns: [
     'Generic inspiration — "Success requires consistency." Everyone knows this. Say something specific',
@@ -52,6 +52,7 @@ Only after completing this framework should you write the post.`,
     'Emoji used as structural punctuation or bullet points',
     'More than one hashtag — zero is usually better',
     'Ending with "What do you think?" or any weak open solicitation',
-    'Preserving the source\'s sentence order or pacing — this is reconstruction, not rearrangement',
+    'Writing a thread — one tweet only, 280 characters maximum',
+    'Going over 280 characters for any reason',
   ],
 }

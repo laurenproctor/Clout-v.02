@@ -26,6 +26,7 @@ interface FocusedCard {
 
 export function SyndicationClient() {
   const [input, setInput] = useState('')
+  const [notes, setNotes] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['x', 'linkedin', 'substack', 'blog'])
   const [ui, setUi] = useState<UIState>({ status: 'idle' })
   const [cards, setCards] = useState<Partial<Record<Platform, CardState>>>({})
@@ -74,6 +75,7 @@ export function SyndicationClient() {
         body: JSON.stringify({
           input: input.trim(),
           platforms: selectedPlatforms,
+          notes: notes.trim() || undefined,
         }),
       })
 
@@ -144,6 +146,7 @@ export function SyndicationClient() {
   function handleReset() {
     stopInterval()
     setInput('')
+    setNotes('')
     setUi({ status: 'idle' })
     setCards({})
     setFocused(null)
@@ -151,10 +154,12 @@ export function SyndicationClient() {
     setLoadingStep(0)
   }
 
-  async function handleRegenerate(platform: Platform) {
+  async function handleRegenerate(platform: Platform, variantNote?: string) {
     if (!input.trim()) return
     setCards(prev => ({ ...prev, [platform]: { status: 'loading' } }))
     if (focused?.platform === platform) setFocused(null)
+
+    const effectiveNotes = [notes.trim(), variantNote].filter(Boolean).join('\n\n') || undefined
 
     try {
       const res = await fetch('/api/syndication/generate', {
@@ -163,6 +168,7 @@ export function SyndicationClient() {
         body: JSON.stringify({
           input: input.trim(),
           platforms: [platform],
+          notes: effectiveNotes,
         }),
       })
 
@@ -215,12 +221,24 @@ export function SyndicationClient() {
 
         {/* Input section */}
         <div className="space-y-5 pb-8 border-b border-zinc-100 mb-8">
-          <textarea
+          <input
+            type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             disabled={isRunning}
             placeholder="Drop a URL."
-            rows={3}
+            className={cn(
+              'w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-300',
+              'focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-0',
+              'disabled:opacity-50 transition-opacity',
+            )}
+          />
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            disabled={isRunning}
+            placeholder="Any angle, focus, or context? (optional) — e.g. 'make it contrarian' or 'emphasize the cost angle'"
+            rows={2}
             className={cn(
               'w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-300 resize-none',
               'focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-0',
@@ -320,7 +338,7 @@ export function SyndicationClient() {
                   content={focused.content}
                   onChange={content => setFocused({ ...focused, content })}
                   onCopy={() => copyToClipboard(focused.content)}
-                  onRegenerate={() => handleRegenerate(focused.platform)}
+                  onRegenerate={() => handleRegenerate(focused.platform, undefined)}
                   onBack={() => setFocused(null)}
                 />
               ) : (

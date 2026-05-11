@@ -19,7 +19,7 @@ interface PlatformGridProps {
   intelligence: SyndicationIntelligence | null
   onFocus: (platform: Platform, content: string) => void
   onCopy: (text: string) => void
-  onRegenerate: (platform: Platform) => void
+  onRegenerate: (platform: Platform, variantNote?: string) => void
 }
 
 const SKELETON_BARS: Record<Platform, number> = {
@@ -37,6 +37,7 @@ export default function PlatformGrid({
   onCopy,
   onRegenerate,
 }: PlatformGridProps) {
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {platforms.map((platform) => {
@@ -47,7 +48,7 @@ export default function PlatformGrid({
         if (card.status === 'loading') {
           const n = SKELETON_BARS[platform]
           return (
-            <div key={platform} className={platform === 'x' ? 'col-span-full' : ''}>
+            <div key={platform} className={(platform === 'x' || platform === 'linkedin') ? 'col-span-full' : ''}>
               <div className="rounded-lg border border-zinc-200 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-0.5">
@@ -90,10 +91,10 @@ export default function PlatformGrid({
             intelligence,
             onFocus: () => onFocus(platform, card.content),
             onCopy: () => onCopy(card.content),
-            onRegenerate: () => onRegenerate(platform),
+            onRegenerate: (variantNote?: string) => onRegenerate(platform, variantNote),
           }
           if (platform === 'x') return <div key={platform} className="col-span-full"><XCard {...sharedProps} /></div>
-          if (platform === 'linkedin') return <LinkedInCard key={platform} {...sharedProps} />
+          if (platform === 'linkedin') return <div key={platform} className="col-span-full"><LinkedInCard {...sharedProps} /></div>
           if (platform === 'substack') return <SubstackCard key={platform} {...sharedProps} />
           if (platform === 'blog') return <BlogCard key={platform} {...sharedProps} />
         }
