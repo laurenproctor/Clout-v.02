@@ -83,33 +83,33 @@ const PLATFORMS = [
     key: 'twitter' as const,
     name: 'X (Twitter)',
     Icon: XIcon,
-    tagline: 'Coming soon.',
-    available: false,
-    connectHref: null,
+    tagline: 'Publish directly to your X profile.',
+    available: true,
+    connectHref: '/api/channels/twitter/connect',
   },
   {
     key: 'instagram' as const,
     name: 'Instagram',
     Icon: InstagramIcon,
-    tagline: 'Coming soon.',
-    available: false,
-    connectHref: null,
+    tagline: 'Connect your Business or Creator account.',
+    available: true,
+    connectHref: '/api/channels/instagram/connect',
   },
   {
     key: 'tiktok' as const,
     name: 'TikTok',
     Icon: TikTokIcon,
-    tagline: 'Coming soon.',
-    available: false,
-    connectHref: null,
+    tagline: 'Connect your TikTok account.',
+    available: true,
+    connectHref: '/api/channels/tiktok/connect',
   },
   {
     key: 'facebook' as const,
     name: 'Facebook',
     Icon: FacebookIcon,
-    tagline: 'Coming soon.',
-    available: false,
-    connectHref: null,
+    tagline: 'Publish to your Facebook Page.',
+    available: true,
+    connectHref: '/api/channels/facebook/connect',
   },
   {
     key: 'newsletter' as const,
@@ -153,19 +153,28 @@ function PublishingContent() {
   useEffect(() => {
     const connected = searchParams.get('connected')
     const error     = searchParams.get('error')
-    if (connected === 'linkedin')                flash('LinkedIn connected.', true)
-    else if (connected === 'twitter')            flash('X (Twitter) connected.', true)
-    else if (connected === 'threads')            flash('Threads connected.', true)
-    else if (error === 'linkedin_denied')        flash('Connection cancelled.', false)
-    else if (error === 'twitter_denied')         flash('Connection cancelled.', false)
-    else if (error === 'threads_denied')         flash('Connection cancelled.', false)
-    else if (error === 'twitter_pkce_missing')   flash('Session expired — please try again.', false)
-    else if (error === 'session_expired')        flash('Session expired — please try again.', false)
-    else if (error === 'token_exchange_failed')  flash('The platform rejected the connection. Check your app credentials.', false)
-    else if (error === 'profile_fetch_failed')   flash('Connected but couldn\'t fetch your profile. Try again.', false)
-    else if (error === 'channel_db_failed')      flash('Database error saving channel. Try again.', false)
-    else if (error === 'credential_db_failed')   flash('Database error saving credentials. Try again.', false)
-    else if (error === 'connect_failed')         flash('Connection failed. Please try again.', false)
+    if (connected === 'linkedin')                      flash('LinkedIn connected.', true)
+    else if (connected === 'twitter')                  flash('X (Twitter) connected.', true)
+    else if (connected === 'threads')                  flash('Threads connected.', true)
+    else if (connected === 'facebook')                 flash('Facebook connected.', true)
+    else if (connected === 'instagram')                flash('Instagram connected.', true)
+    else if (connected === 'tiktok')                   flash('TikTok connected.', true)
+    else if (error === 'linkedin_denied')              flash('Connection cancelled.', false)
+    else if (error === 'twitter_denied')               flash('Connection cancelled.', false)
+    else if (error === 'threads_denied')               flash('Connection cancelled.', false)
+    else if (error === 'facebook_denied')              flash('Connection cancelled.', false)
+    else if (error === 'instagram_denied')             flash('Connection cancelled.', false)
+    else if (error === 'tiktok_denied')                flash('Connection cancelled.', false)
+    else if (error === 'facebook_no_pages')            flash('No Facebook Pages found. Create a Page and try again.', false)
+    else if (error === 'instagram_no_business_account') flash('No Instagram Business account found. Link one to a Facebook Page and try again.', false)
+    else if (error === 'twitter_pkce_missing')         flash('Session expired — please try again.', false)
+    else if (error === 'tiktok_pkce_missing')          flash('Session expired — please try again.', false)
+    else if (error === 'session_expired')              flash('Session expired — please try again.', false)
+    else if (error === 'token_exchange_failed')        flash('The platform rejected the connection. Check your app credentials.', false)
+    else if (error === 'profile_fetch_failed')         flash('Connected but couldn\'t fetch your profile. Try again.', false)
+    else if (error === 'channel_db_failed')            flash('Database error saving channel. Try again.', false)
+    else if (error === 'credential_db_failed')         flash('Database error saving credentials. Try again.', false)
+    else if (error === 'connect_failed')               flash('Connection failed. Please try again.', false)
     if (connected || error) router.replace('/channels')
   }, [])
 
@@ -198,28 +207,43 @@ function PublishingContent() {
     flash('Account disconnected.', true)
   }
 
-  async function handlePublishNow(outputId: string) {
+  const PUBLISH_ROUTES: Partial<Record<Platform, string>> = {
+    linkedin:  '/api/channels/linkedin/post',
+    threads:   '/api/channels/threads/post',
+    twitter:   '/api/channels/twitter/post',
+    facebook:  '/api/channels/facebook/post',
+  }
+
+  const PLATFORM_LABELS: Partial<Record<Platform, string>> = {
+    linkedin: 'LinkedIn',
+    threads:  'Threads',
+    twitter:  'X (Twitter)',
+    facebook: 'Facebook',
+  }
+
+  async function handlePublishNow(outputId: string, platform: Platform) {
+    const route = PUBLISH_ROUTES[platform]
+    if (!route) return
     setPublishing(outputId)
-    const res = await fetch('/api/channels/linkedin/post', {
+    const res = await fetch(route, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ outputId }),
     })
     const data = await res.json()
+    const label = PLATFORM_LABELS[platform] ?? platform
     if (res.ok) {
       if (!data.alreadyPublished) {
         setTotalPublished(n => n + 1)
         setLastPublishedAt(new Date().toISOString())
       }
-      flash(data.alreadyPublished ? 'Already posted to LinkedIn.' : 'Posted to LinkedIn.', true)
+      flash(data.alreadyPublished ? `Already posted to ${label}.` : `Posted to ${label}.`, true)
       setReady(prev => prev.filter(o => o.id !== outputId))
     } else {
       flash(data.error ?? 'Publish failed.', false)
     }
     setPublishing(null)
   }
-
-  const linkedInChannel = channels.find(c => c.platform === 'linkedin' && c.is_active)
 
   return (
     <div className="max-w-xl space-y-10">
@@ -328,7 +352,10 @@ function PublishingContent() {
         ) : (
           <div className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
             {ready.map(output => {
-              const canPost = linkedInChannel && output.channels?.platform === 'linkedin'
+              const outputPlatform = output.channels?.platform
+              const canPost = outputPlatform != null &&
+                outputPlatform in PUBLISH_ROUTES &&
+                channels.some(c => c.platform === outputPlatform && c.is_active)
               return (
                 <div key={output.id} className="flex items-center gap-4 px-5 py-4">
                   <div className="flex-1 min-w-0">
@@ -342,9 +369,9 @@ function PublishingContent() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {canPost && (
+                    {canPost && outputPlatform && (
                       <button
-                        onClick={() => handlePublishNow(output.id)}
+                        onClick={() => handlePublishNow(output.id, outputPlatform)}
                         disabled={!!publishing}
                         className={cn(
                           'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',

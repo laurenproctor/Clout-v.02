@@ -67,6 +67,54 @@ export async function fetchTwitterUser(accessToken: string): Promise<TwitterUser
   return json.data as TwitterUser
 }
 
+export async function refreshTwitterToken(
+  refreshToken: string,
+): Promise<{ access_token: string; refresh_token?: string; expires_in: number }> {
+  const credentials = Buffer.from(
+    `${process.env.X_CLIENT_ID!}:${process.env.X_CLIENT_SECRET!}`
+  ).toString('base64')
+  const res = await fetch(`${OAUTH_BASE}/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization:  `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({
+      grant_type:    'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Twitter token refresh failed (${res.status}): ${text}`)
+  }
+  return res.json()
+}
+
+// Posts a tweet. Returns the new tweet ID.
+export async function postTweet(
+  accessToken: string,
+  text: string,
+): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE}/2/tweets`, {
+    method: 'POST',
+    headers: {
+      Authorization:  `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    const err = new Error(`Tweet post failed (${res.status}): ${body}`) as Error & { status: number; body: string }
+    err.status = res.status
+    err.body = body
+    throw err
+  }
+  const json = await res.json()
+  return json.data as { id: string }
+}
+
 // PKCE helpers
 
 export function generateCodeVerifier(): string {

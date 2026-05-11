@@ -9,6 +9,8 @@ import {
   publishThreadsContainer,
   refreshThreadsToken,
 } from '@/lib/threads'
+import { postTweet, refreshTwitterToken } from '@/lib/twitter'
+import { postToFacebookPage } from '@/lib/facebook'
 import type { Output, OutputContent, OutputStatus } from '@/types/domain'
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
@@ -74,6 +76,22 @@ export async function markPublishing(outputId: string): Promise<boolean> {
     .select('id')
     .single()
   return !!data
+}
+
+// Acquire a publish lock for manual-trigger routes (any status except already-publishing/published).
+// Returns { ok: false } if the output is already being published or has a provider post ID.
+// Lock is released naturally by markPublished or markFailed transitioning out of 'publishing'.
+export async function acquirePublishLock(outputId: string): Promise<{ ok: boolean }> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('outputs')
+    .update({ status: 'publishing', updated_at: new Date().toISOString() })
+    .eq('id', outputId)
+    .neq('status', 'publishing')
+    .is('provider_post_id', null)
+    .select('id')
+    .single()
+  return { ok: !!data }
 }
 
 export async function markPublished(outputId: string, postUrn: string): Promise<void> {
@@ -375,6 +393,217 @@ export async function publishThreadsOutput(
   return { postId }
 }
 
+// ─── Twitter / X ─────────────────────────────────────────────────────────────
+
+export function formatTwitterText(content: OutputContent): string {
+  const body = content.body?.trim() ?? ''
+  const hashtags = ((content.hashtags as string[] | undefined) ?? [])
+    .slice(0, 2)
+    .map(h => `#${h}`)
+    .join(' ')
+  return [body, hashtags].filter(Boolean).join('\n').trim()
+}
+
+export async function publishTwitterOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign an X channel.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  if (output.providerPostId) {
+    return { postId: output.providerPostId }
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('X account not connected. Go to Channels and reconnect your account.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+
+  let cred = credResult.data
+
+  if (isTokenExpired(cred.expiresAt)) {
+    if (!cred.refreshToken) {
+      throw Object.assign(
+        new Error('X session expired. Go to Channels and reconnect your account.'),
+        { code: 'token_expired', retryable: false }
+      )
+    }
+    try {
+      const refreshed = await refreshTwitterToken(cred.refreshToken)
+      const upsertResult = await upsertChannelCredential({
+        channelId:    output.channelId,
+        workspaceId:  output.workspaceId,
+        accessToken:  refreshed.access_token,
+        refreshToken: refreshed.refresh_token ?? cred.refreshToken,
+        expiresAt:    Math.floor(Date.now() / 1000) + refreshed.expires_in,
+        accountId:    cred.accountId,
+        accountName:  cred.accountName,
+        accountEmail: cred.accountEmail,
+      })
+      if (!upsertResult.ok) throw new Error('Failed to store refreshed token')
+      cred = upsertResult.data
+    } catch (refreshErr) {
+      if (isAuthError(refreshErr)) {
+        throw Object.assign(
+          new Error('X session expired and could not be refreshed. Please reconnect your account.'),
+          { code: 'token_expired', retryable: false }
+        )
+      }
+      throw refreshErr
+    }
+  }
+
+  const text = formatTwitterText(output.content as OutputContent)
+  if (!text) {
+    throw Object.assign(
+      new Error('This draft has no content to post.'),
+      { code: 'no_content', retryable: false }
+    )
+  }
+
+  const startedAt = Date.now()
+  let postId: string
+
+  try {
+    const { id } = await postTweet(cred.accessToken, text)
+    postId = id
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'twitter',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'publish_error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:    output.workspaceId,
+    outputId:       output.id,
+    channelId:      output.channelId,
+    platform:       'twitter',
+    status:         'success',
+    providerPostId: postId,
+    wasRetry:       opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { postId }
+}
+
+// ─── Facebook ─────────────────────────────────────────────────────────────────
+
+export function formatFacebookText(title: string | null, content: OutputContent): string {
+  const hashtags = ((content.hashtags as string[] | undefined) ?? [])
+    .map(h => `#${h}`)
+    .join(' ')
+  return [title, content.body, hashtags ? `\n${hashtags}` : '']
+    .filter(Boolean)
+    .join('\n\n')
+    .trim()
+}
+
+export async function publishFacebookOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a Facebook channel.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  if (output.providerPostId) {
+    return { postId: output.providerPostId }
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('Facebook page not connected. Go to Channels and reconnect your account.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+
+  const cred = credResult.data
+
+  // Page access tokens derived from long-lived user tokens do not expire on a schedule.
+  // If the token is flagged as expired, the user must reconnect to get a fresh page token.
+  if (isTokenExpired(cred.expiresAt)) {
+    throw Object.assign(
+      new Error('Facebook session expired. Go to Channels and reconnect your account.'),
+      { code: 'token_expired', retryable: false }
+    )
+  }
+
+  if (!cred.accountId) {
+    throw Object.assign(
+      new Error('Facebook page ID missing. Please reconnect your account.'),
+      { code: 'missing_account_id', retryable: false }
+    )
+  }
+
+  const text = formatFacebookText(output.title, output.content as OutputContent)
+  if (!text) {
+    throw Object.assign(
+      new Error('This draft has no content to post.'),
+      { code: 'no_content', retryable: false }
+    )
+  }
+
+  const startedAt = Date.now()
+  let postId: string
+
+  try {
+    const { id } = await postToFacebookPage(cred.accessToken, cred.accountId, text)
+    postId = id
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'facebook',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'publish_error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:    output.workspaceId,
+    outputId:       output.id,
+    channelId:      output.channelId,
+    platform:       'facebook',
+    status:         'success',
+    providerPostId: postId,
+    wasRetry:       opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { postId }
+}
+
 // ─── Platform dispatcher ──────────────────────────────────────────────────────
 
 async function getChannelPlatform(channelId: string): Promise<string | null> {
@@ -409,6 +638,16 @@ export async function publishOutput(
 
   if (platform === 'threads') {
     const { postId } = await publishThreadsOutput(output, opts)
+    return { providerPostId: postId }
+  }
+
+  if (platform === 'twitter') {
+    const { postId } = await publishTwitterOutput(output, opts)
+    return { providerPostId: postId }
+  }
+
+  if (platform === 'facebook') {
+    const { postId } = await publishFacebookOutput(output, opts)
     return { providerPostId: postId }
   }
 
