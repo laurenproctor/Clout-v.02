@@ -5,6 +5,7 @@ import { LINKEDIN_PLATFORM_MODEL } from './platforms/linkedin'
 import { SUBSTACK_PLATFORM_MODEL } from './platforms/substack'
 import { BLOG_PLATFORM_MODEL } from './platforms/blog'
 import { THREADS_PLATFORM_MODEL } from './platforms/threads'
+import { FACEBOOK_PLATFORM_MODEL } from './platforms/facebook'
 
 // The registry is the single authoritative source for all platform behavior.
 // Future fields (validator, formatter, publisher, analytics) are commented as
@@ -56,5 +57,12 @@ export const PLATFORM_REGISTRY: Record<Platform, PlatformDefinition> = {
     descriptor: 'Social · conversational · reply-native',
     maxTokens: 220,
     model: THREADS_PLATFORM_MODEL,
+  },
+  facebook: {
+    id: 'facebook',
+    label: 'Facebook',
+    descriptor: 'Personal · story-driven · conversation-first',
+    maxTokens: 600,
+    model: FACEBOOK_PLATFORM_MODEL as PlatformBehaviorModel,
   },
 }
