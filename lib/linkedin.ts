@@ -15,9 +15,10 @@ export function buildLinkedInAuthUrl(
     client_id:     process.env.LINKEDIN_CLIENT_ID!,
     redirect_uri:  redirectUri,
     state,
-    // w_organization_social + r_organization_admin allow posting as / listing Company Pages.
-    // LinkedIn silently drops scopes the app isn't approved for — org fetch fails gracefully.
-    scope: 'openid profile email w_member_social w_organization_social r_organization_admin',
+    // w_organization_social + r_organization_admin are needed for Company Page posting/listing
+    // but require LinkedIn Marketing Developer Platform approval. If approved, add them here.
+    // The org fetch in the callback handles 403 gracefully (returns []) if not yet approved.
+    scope: 'openid profile email w_member_social',
   })
   // prompt=login forces LinkedIn to show the sign-in screen even if the user
   // is already logged in — necessary when connecting a second LinkedIn account.
