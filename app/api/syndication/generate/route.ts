@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         await Promise.allSettled(
           platforms.map(async (platform: Platform) => {
             try {
-              const output = await generateOutput(platform, intelligence, resolvedLenses)
+              const output = await generateOutput(platform, intelligence, resolvedLenses, extracted.url || undefined)
               send({ type: 'output', platform, content: output.content })
             } catch (err) {
               send({

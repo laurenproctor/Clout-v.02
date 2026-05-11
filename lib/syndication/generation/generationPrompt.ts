@@ -16,6 +16,7 @@ export function buildGenerationSystemPrompt(
   platform: Platform,
   intelligence: SyndicationIntelligence,
   lenses: SyndicationLens[],
+  sourceUrl?: string,
 ): string {
   const model = PLATFORM_MODELS[platform]
 
@@ -30,6 +31,10 @@ export function buildGenerationSystemPrompt(
 
   const preWriting = 'preWritingFramework' in model
     ? `\n## Pre-writing framework\n\n${(model as typeof model & { preWritingFramework: string }).preWritingFramework}\n`
+    : ''
+
+  const sourceLinkSection = (platform === 'x' && sourceUrl)
+    ? `\n## Source link\n\nEnd the post with the source URL on its own line, preceded by a short lead-in. Use one of these formats — pick whichever fits the post's tone:\n- "Read the full piece: ${sourceUrl}"\n- "Full piece → ${sourceUrl}"\n- "Worth reading: ${sourceUrl}"\n\nThe link must be the very last line of the post.\n`
     : ''
 
   return `You are a platform-native content reconstruction engine. You do NOT rewrite content. You reconstruct it — preserving its persuasive intelligence while rebuilding its structure, pacing, and expression for a specific rhetorical environment.
@@ -83,7 +88,7 @@ ${lensSection}${riskNote}
 - NEVER add hashtags unless the platform requires them (blog only: none; X: max 1 if natural)
 - The output must feel independently written for ${model.platform}, not adapted FROM somewhere else
 
-## Output format
+${sourceLinkSection}## Output format
 
 Return ONLY the final content. No preamble, no explanation, no metadata. Just the post/essay/article text ready to be copied and used.`
 }

@@ -14,9 +14,10 @@ export async function generateOutput(
   platform: Platform,
   intelligence: SyndicationIntelligence,
   lenses: SyndicationLens[],
+  sourceUrl?: string,
 ): Promise<SyndicationOutput> {
   const result = await callClaude({
-    systemPrompt: buildGenerationSystemPrompt(platform, intelligence, lenses),
+    systemPrompt: buildGenerationSystemPrompt(platform, intelligence, lenses, sourceUrl),
     userMessage: buildGenerationUserMessage(platform),
     model: 'claude-sonnet-4-6',
     maxTokens: PLATFORM_MAX_TOKENS[platform],
