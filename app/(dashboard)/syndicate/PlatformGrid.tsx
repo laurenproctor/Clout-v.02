@@ -6,6 +6,7 @@ import XCard from './XCard'
 import LinkedInCard from './LinkedInCard'
 import SubstackCard from './SubstackCard'
 import BlogCard from './BlogCard'
+import ThreadsCard from './ThreadsCard'
 
 export type CardState =
   | { status: 'idle' }
@@ -27,6 +28,7 @@ const SKELETON_BARS: Record<Platform, number> = {
   linkedin: 6,
   substack: 10,
   blog: 8,
+  threads: 4,
 }
 
 export default function PlatformGrid({
@@ -95,6 +97,7 @@ export default function PlatformGrid({
           }
           if (platform === 'x') return <div key={platform} className="col-span-full"><XCard {...sharedProps} /></div>
           if (platform === 'linkedin') return <div key={platform} className="col-span-full"><LinkedInCard {...sharedProps} /></div>
+          if (platform === 'threads') return <div key={platform} className="col-span-full"><ThreadsCard {...sharedProps} /></div>
           if (platform === 'substack') return <SubstackCard key={platform} {...sharedProps} />
           if (platform === 'blog') return <BlogCard key={platform} {...sharedProps} />
         }

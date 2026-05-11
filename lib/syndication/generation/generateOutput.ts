@@ -1,12 +1,12 @@
 import { callClaude } from '@/lib/ai/generate'
 import { buildGenerationSystemPrompt, buildGenerationUserMessage } from './generationPrompt'
+import { PLATFORM_REGISTRY } from '../registry'
 import type { Platform, SyndicationIntelligence, SyndicationOutput } from '../types/intelligence'
 
-const PLATFORM_MAX_TOKENS: Record<Platform, number> = {
-  x: 160,
-  linkedin: 800,
-  substack: 1400,
-  blog: 1600,
+export interface DivergenceContext {
+  alreadyGenerated: Platform[]
+  generatedOpeners?: string[]   // first sentences of outputs already generated this session
+  generatedAngles?: string[]    // core claims/angles already used
 }
 
 export async function generateOutput(
@@ -14,12 +14,15 @@ export async function generateOutput(
   intelligence: SyndicationIntelligence,
   sourceUrl?: string,
   notes?: string,
+  divergenceContext?: DivergenceContext,
 ): Promise<SyndicationOutput> {
+  const maxTokens = PLATFORM_REGISTRY[platform].maxTokens
+
   const result = await callClaude({
-    systemPrompt: buildGenerationSystemPrompt(platform, intelligence, sourceUrl, notes),
+    systemPrompt: buildGenerationSystemPrompt(platform, intelligence, sourceUrl, notes, divergenceContext),
     userMessage: buildGenerationUserMessage(platform),
     model: 'claude-sonnet-4-6',
-    maxTokens: PLATFORM_MAX_TOKENS[platform],
+    maxTokens,
   })
 
   return {

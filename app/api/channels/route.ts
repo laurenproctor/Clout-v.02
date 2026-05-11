@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { platform, label, config } = body
 
-  const validPlatforms = ['linkedin', 'newsletter', 'twitter']
+  const validPlatforms = ['linkedin', 'newsletter', 'twitter', 'threads']
   if (!validPlatforms.includes(platform)) {
     return NextResponse.json({ error: 'Invalid platform' }, { status: 400 })
   }

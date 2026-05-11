@@ -1,4 +1,4 @@
-export type Platform = 'x' | 'linkedin' | 'substack' | 'blog'
+export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads'
 
 export type SyndicationPhase =
   | 'extracting'
@@ -36,6 +36,7 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   linkedin: 'LinkedIn',
   substack: 'Substack',
   blog: 'Blog',
+  threads: 'Threads',
 }
 
 export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
@@ -43,4 +44,5 @@ export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
   linkedin: 'Professional · authority-driven',
   substack: 'Editorial · immersive · long-form',
   blog: 'Structured · evergreen · searchable',
+  threads: 'Social · conversational · reply-native',
 }

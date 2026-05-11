@@ -18,7 +18,7 @@ export interface ResearchSource {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads'
 export type LensScope = 'system' | 'workspace'
 
 // ─── Core Entities ────────────────────────────────────────────────────────────

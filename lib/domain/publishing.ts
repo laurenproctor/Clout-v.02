@@ -4,6 +4,11 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getChannelCredential, isTokenExpired, upsertChannelCredential } from '@/lib/domain/credentials'
 import { createPublishLog } from '@/lib/domain/publish-log'
 import { postTextToLinkedIn, refreshLinkedInToken } from '@/lib/linkedin'
+import {
+  createThreadsTextContainer,
+  publishThreadsContainer,
+  refreshThreadsToken,
+} from '@/lib/threads'
 import type { Output, OutputContent, OutputStatus } from '@/types/domain'
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
@@ -251,4 +256,164 @@ export async function publishLinkedInOutput(
   })
 
   return { postUrn }
+}
+
+// ─── Threads ──────────────────────────────────────────────────────────────────
+
+export function formatThreadsText(content: OutputContent): string {
+  const body = content.body?.trim() ?? ''
+  const hashtags = (content.hashtags as string[] | undefined) ?? []
+  // Max 1 hashtag on Threads
+  const tag = hashtags[0] ? `#${hashtags[0]}` : ''
+  return [body, tag].filter(Boolean).join('\n').trim()
+}
+
+export async function publishThreadsOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a Threads channel.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  if (output.providerPostId) {
+    return { postId: output.providerPostId }
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('Threads account not connected. Go to Channels and reconnect your account.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+
+  let cred = credResult.data
+
+  // Threads uses same-token refresh — no separate refresh_token
+  if (isTokenExpired(cred.expiresAt)) {
+    try {
+      const refreshed = await refreshThreadsToken(cred.accessToken)
+      const upsertResult = await upsertChannelCredential({
+        channelId:    output.channelId,
+        workspaceId:  output.workspaceId,
+        accessToken:  refreshed.access_token,
+        refreshToken: null,
+        expiresAt:    Math.floor(Date.now() / 1000) + refreshed.expires_in,
+        accountId:    cred.accountId,
+        accountName:  cred.accountName,
+        accountEmail: cred.accountEmail,
+      })
+      if (!upsertResult.ok) throw new Error('Failed to store refreshed token')
+      cred = upsertResult.data
+    } catch (refreshErr) {
+      if (isAuthError(refreshErr)) {
+        throw Object.assign(
+          new Error('Threads session expired and could not be refreshed. Please reconnect your account.'),
+          { code: 'token_expired', retryable: false }
+        )
+      }
+      throw refreshErr
+    }
+  }
+
+  if (!cred.accountId) {
+    throw Object.assign(
+      new Error('Threads account ID missing. Please reconnect your account.'),
+      { code: 'missing_account_id', retryable: false }
+    )
+  }
+
+  const text = formatThreadsText(output.content as OutputContent)
+  if (!text) {
+    throw Object.assign(
+      new Error('This draft has no content to post.'),
+      { code: 'no_content', retryable: false }
+    )
+  }
+
+  const startedAt = Date.now()
+  let postId: string
+
+  try {
+    const { id: creationId } = await createThreadsTextContainer(cred.accessToken, cred.accountId, text)
+    // Meta recommends a brief pause between container creation and publish
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    const { id } = await publishThreadsContainer(cred.accessToken, cred.accountId, creationId)
+    postId = id
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'threads',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'publish_error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:    output.workspaceId,
+    outputId:       output.id,
+    channelId:      output.channelId,
+    platform:       'threads',
+    status:         'success',
+    providerPostId: postId,
+    wasRetry:       opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { postId }
+}
+
+// ─── Platform dispatcher ──────────────────────────────────────────────────────
+
+async function getChannelPlatform(channelId: string): Promise<string | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('channels')
+    .select('platform')
+    .eq('id', channelId)
+    .single()
+  return (data?.platform as string | null) ?? null
+}
+
+// Dispatches to the correct platform publisher based on channel.platform.
+// Use this in the scheduler — it handles routing automatically.
+export async function publishOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ providerPostId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  const platform = await getChannelPlatform(output.channelId)
+
+  if (platform === 'linkedin') {
+    const { postUrn } = await publishLinkedInOutput(output, opts)
+    return { providerPostId: postUrn }
+  }
+
+  if (platform === 'threads') {
+    const { postId } = await publishThreadsOutput(output, opts)
+    return { providerPostId: postId }
+  }
+
+  throw Object.assign(
+    new Error(`Publishing is not yet supported for platform: ${platform ?? 'unknown'}`),
+    { code: 'unsupported_platform', retryable: false }
+  )
 }

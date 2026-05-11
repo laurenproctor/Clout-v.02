@@ -1,0 +1,14 @@
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
+import { buildThreadsAuthUrl } from '@/lib/threads'
+import { signOAuthState } from '@/lib/oauth-state'
+
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/channels/threads/callback`
+  const state = signOAuthState(session.workspaceId)
+
+  return NextResponse.redirect(buildThreadsAuthUrl(redirectUri, state))
+}

@@ -728,7 +728,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
           <div className="flex items-center gap-3 flex-wrap">
 
             <div className="flex items-center gap-1.5">
-              {['LinkedIn', 'X', 'Email', 'Blog'].map((t) => (
+              {['LinkedIn', 'X', 'Threads', 'Email', 'Blog'].map((t) => (
                 <button
                   key={t}
                   type="button"

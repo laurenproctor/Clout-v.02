@@ -6,7 +6,7 @@ export const syndicationRequestSchema = z.object({
     .min(1, 'Please provide a URL.')
     .max(50_000, 'Content is too long.'),
   platforms: z
-    .array(z.enum(['x', 'linkedin', 'substack', 'blog']))
+    .array(z.enum(['x', 'linkedin', 'substack', 'blog', 'threads']))
     .min(1, 'Select at least one platform.'),
   notes: z.string().max(50_000).optional(),
 })

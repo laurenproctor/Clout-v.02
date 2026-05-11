@@ -37,7 +37,15 @@ function FacebookIcon({ className }: { className?: string }) {
   )
 }
 
-type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook'
+function ThreadsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M19.535 10.458c-.155-.068-.312-.133-.471-.193-.279-3.566-2.143-5.608-5.41-5.627h-.04c-1.963 0-3.596.837-4.606 2.358l1.718 1.176c.75-1.137 1.927-1.38 2.889-1.38h.027c1.111.007 1.949.33 2.495.96.396.453.658 1.08.788 1.872a14.95 14.95 0 0 0-1.921-.13c-1.935 0-3.34.574-4.178 1.71-.699.942-.848 2.164-.44 3.434.574 1.795 2.138 2.866 4.009 2.866.167 0 .336-.008.507-.024 1.545-.148 2.722-.852 3.498-2.095.597-.95.973-2.182 1.12-3.661.673.406 1.171.94 1.449 1.587.481 1.12.509 2.958-.99 4.455-1.313 1.31-2.892 1.878-5.271 1.895-2.646-.02-4.651-.868-5.961-2.522-1.232-1.556-1.865-3.817-1.883-6.723.018-2.905.651-5.167 1.883-6.722C9.27 3.712 11.276 2.864 13.921 2.844c2.661.02 4.704.872 6.071 2.531.671.82 1.175 1.855 1.503 3.075l2.008-.535c-.395-1.469-1.025-2.74-1.881-3.793C19.888 1.877 17.362.773 13.929.75h-.016c-3.432.022-5.921 1.139-7.549 3.083-1.463 1.768-2.214 4.277-2.241 8.165v.004c.027 3.889.778 6.397 2.241 8.165 1.628 1.942 4.117 3.06 7.549 3.082h.016c3.041-.02 5.192-.817 6.949-2.573 2.091-2.088 2.027-4.727 1.34-6.339-.512-1.192-1.493-2.158-3.183-2.88zM13.73 16.011c-1.174.082-2.113-.527-2.435-1.537-.2-.628-.109-1.17.273-1.674.473-.638 1.251-.96 2.312-.96h.039c.525.003 1.024.06 1.489.169-.17 2.048-.847 3.064-1.678 3.002z" />
+    </svg>
+  )
+}
+
+type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'threads'
 
 interface Channel {
   id: string
@@ -62,6 +70,14 @@ const PLATFORMS = [
     tagline: 'Publish directly to your profile.',
     available: true,
     connectHref: '/api/channels/linkedin/connect',
+  },
+  {
+    key: 'threads' as const,
+    name: 'Threads',
+    Icon: ThreadsIcon,
+    tagline: 'Publish directly to your Threads profile.',
+    available: true,
+    connectHref: '/api/channels/threads/connect',
   },
   {
     key: 'twitter' as const,
@@ -139,8 +155,10 @@ function PublishingContent() {
     const error     = searchParams.get('error')
     if (connected === 'linkedin')                flash('LinkedIn connected.', true)
     else if (connected === 'twitter')            flash('X (Twitter) connected.', true)
+    else if (connected === 'threads')            flash('Threads connected.', true)
     else if (error === 'linkedin_denied')        flash('Connection cancelled.', false)
     else if (error === 'twitter_denied')         flash('Connection cancelled.', false)
+    else if (error === 'threads_denied')         flash('Connection cancelled.', false)
     else if (error === 'twitter_pkce_missing')   flash('Session expired — please try again.', false)
     else if (error === 'session_expired')        flash('Session expired — please try again.', false)
     else if (error === 'token_exchange_failed')  flash('The platform rejected the connection. Check your app credentials.', false)

@@ -12,9 +12,10 @@ const PLATFORM_DEFAULTS: Record<Platform, string> = {
   linkedin: 'Lead with the professional implication before the argument',
   substack: 'Open with the tension that makes this urgent; let the argument unfold',
   blog: 'Lead with the searchable question this answers; use headers to signal structure',
+  threads: 'Open with a single personal observation; let it breathe',
 }
 
-const PLATFORMS: Platform[] = ['x', 'linkedin', 'substack', 'blog']
+const PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog']
 
 export function IntelligenceSection({ intelligence }: Props) {
   return (
