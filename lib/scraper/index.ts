@@ -3,10 +3,21 @@ import { isSubstack, extractSubstack, fetchSubstackApi } from './substack'
 import { extractWithReadability } from './readability'
 import { sanitizeHtml } from './sanitize'
 import { toMarkdown } from './markdown'
+import { fetchWithJina } from './jina'
 import type { ScrapedArticle } from './types'
 
 export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
-  const html = await fetchHtml(url)
+  let html: string
+  try {
+    html = await fetchHtml(url)
+  } catch (err) {
+    // Bot-blocked or 403 — fall back to Jina Reader before giving up
+    if (err instanceof Error && err.message.startsWith('FETCH_BLOCKED')) {
+      return fetchWithJina(url)
+    }
+    throw err
+  }
+
   const substack = isSubstack(url, html)
 
   let extracted: Awaited<ReturnType<typeof extractWithReadability>>

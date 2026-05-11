@@ -215,7 +215,7 @@ export function SyndicationClient() {
         <div className="mb-10">
           <h1 className="text-2xl font-medium text-zinc-900 leading-tight mb-2">Syndication Engine</h1>
           <p className="text-sm text-zinc-500 leading-relaxed max-w-lg">
-            Drop a URL and get ready-to-post content for every platform.
+            Drop a URL, add optional context, and get ready-to-post content for every platform.
           </p>
         </div>
 

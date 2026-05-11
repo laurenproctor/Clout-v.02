@@ -77,10 +77,10 @@ export async function POST(req: NextRequest) {
         let code = 'GENERATION_FAILED'
         let userMessage = "Something went wrong. Please try again."
 
-        if (message.startsWith('FETCH_FAILED') || message.startsWith('FETCH_BLOCKED') || message.startsWith('EXTRACTION_FAILED') || message.startsWith('LOW_SIGNAL')) {
+        if (message.startsWith('FETCH_FAILED') || message.startsWith('FETCH_BLOCKED') || message.startsWith('EXTRACTION_FAILED') || message.startsWith('LOW_SIGNAL') || message.startsWith('JINA_FAILED')) {
           code = 'FETCH_FAILED'
-          userMessage = "Paste the article text in the box below the URL field so content can be parsed."
-        } else if (message.startsWith('FETCH_TIMEOUT')) {
+          userMessage = "Could not retrieve article content. Paste the article text in the box below the URL field to continue."
+        } else if (message.startsWith('FETCH_TIMEOUT') || message.startsWith('JINA_TIMEOUT')) {
           code = 'FETCH_TIMEOUT'
           userMessage = "That URL took too long to respond. Try again, or paste the article text in the box below."
         }
