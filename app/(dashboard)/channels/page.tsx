@@ -214,6 +214,47 @@ function TokenExpiryWarning({ expiresAt, connectHref }: { expiresAt: number | nu
   )
 }
 
+// ─── LinkedIn type picker ─────────────────────────────────────────────────────
+
+function LinkedInTypePicker({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-zinc-900">Connect LinkedIn</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          <a
+            href="/api/channels/linkedin/connect"
+            className="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-left text-sm transition-colors hover:border-zinc-400"
+          >
+            <p className="font-medium text-zinc-900">Personal Profile</p>
+            <p className="text-xs text-zinc-400 mt-0.5">Connect your own LinkedIn profile</p>
+          </a>
+          <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
+            <p className="text-sm font-medium text-zinc-700">Company Page</p>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Requires LinkedIn Marketing Developer Platform access.{' '}
+              <a
+                href="https://developer.linkedin.com/product-catalog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-zinc-600"
+              >
+                Apply here
+              </a>
+              . Once approved, Company Pages will appear automatically when you connect.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Picker modal ─────────────────────────────────────────────────────────────
 
 function PickerModal({
@@ -283,6 +324,7 @@ function PublishingContent() {
   const [fbPages, setFbPages] = useState<PendingPage[] | null>(null)
   const [igAccounts, setIgAccounts] = useState<PendingAccount[] | null>(null)
   const [liProfiles, setLiProfiles] = useState<PendingLiProfile[] | null>(null)
+  const [showLinkedInPicker, setShowLinkedInPicker] = useState(false)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -466,6 +508,11 @@ function PublishingContent() {
         </div>
       )}
 
+      {/* LinkedIn type picker (personal vs company page) */}
+      {showLinkedInPicker && (
+        <LinkedInTypePicker onClose={() => setShowLinkedInPicker(false)} />
+      )}
+
       {/* LinkedIn profile/page picker */}
       {liProfiles && (
         <PickerModal
@@ -545,12 +592,21 @@ function PublishingContent() {
                   </div>
                   {/* Connect button (shown in header when not yet connected) */}
                   {!isConnected && available && connectHref && (
-                    <a
-                      href={connectHref}
-                      className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
-                    >
-                      Connect
-                    </a>
+                    key === 'linkedin' ? (
+                      <button
+                        onClick={() => setShowLinkedInPicker(true)}
+                        className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
+                      >
+                        Connect
+                      </button>
+                    ) : (
+                      <a
+                        href={connectHref}
+                        className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
+                      >
+                        Connect
+                      </a>
+                    )
                   )}
                   {!available && (
                     <span className="shrink-0 text-xs text-zinc-300">Soon</span>
@@ -580,13 +636,23 @@ function PublishingContent() {
 
                 {/* Add another account row */}
                 {isConnected && available && connectHref && (
-                  <a
-                    href={connectHref}
-                    className="flex items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Connect another {name} account
-                  </a>
+                  key === 'linkedin' ? (
+                    <button
+                      onClick={() => setShowLinkedInPicker(true)}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-left"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Connect another {name} account
+                    </button>
+                  ) : (
+                    <a
+                      href={connectHref}
+                      className="flex items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Connect another {name} account
+                    </a>
+                  )
                 )}
               </div>
             )
