@@ -1,5 +1,5 @@
 import { fetchHtml } from './fetchUrl'
-import { isSubstack, extractSubstack } from './substack'
+import { isSubstack, extractSubstack, fetchSubstackApi } from './substack'
 import { extractWithReadability } from './readability'
 import { sanitizeHtml } from './sanitize'
 import { toMarkdown } from './markdown'
@@ -7,21 +7,27 @@ import type { ScrapedArticle } from './types'
 
 export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
   const html = await fetchHtml(url)
-
   const substack = isSubstack(url, html)
 
   let extracted: Awaited<ReturnType<typeof extractWithReadability>>
-  try {
-    if (substack) {
-      extracted = extractSubstack(html)
+
+  if (substack) {
+    // Try Substack API first — returns clean JSON, bypasses bot protection
+    const apiResult = await fetchSubstackApi(url)
+    if (apiResult) {
+      extracted = apiResult
     } else {
-      extracted = await extractWithReadability(html, url)
+      // Fall back to HTML extraction
+      try {
+        extracted = extractSubstack(html)
+      } catch {
+        extracted = await extractWithReadability(html, url)
+      }
     }
-  } catch (err) {
-    // If custom extractor fails, fall through to Readability
-    if (substack) {
+  } else {
+    try {
       extracted = await extractWithReadability(html, url)
-    } else {
+    } catch (err) {
       throw err
     }
   }
