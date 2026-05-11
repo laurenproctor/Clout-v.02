@@ -192,6 +192,12 @@ export function SyndicationClient() {
           if (frame.type === 'output') {
             const content = frame.content as string
             setCards(prev => ({ ...prev, [platform]: { status: 'done', content } }))
+          } else if (frame.type === 'error') {
+            const err = frame.error as { message: string }
+            setCards(prev => ({
+              ...prev,
+              [platform]: { status: 'error', message: err.message ?? 'Regeneration failed. Try again.' },
+            }))
           }
         }
       }

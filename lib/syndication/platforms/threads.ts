@@ -9,7 +9,7 @@ Posts under 200 characters consistently outperform longer ones. Strong opening l
 
 The reader isn't waiting for your take. They're mid-scroll. The post either earns their pause in the first sentence or it doesn't.`,
 
-  preWritingFramework: `Before writing, identify:
+  preWritingFramework: `Before writing, work through these questions:
 
 1. The single observation this post is making — not the topic, but the observation. ("AI is changing work" is a topic. "Most AI tools just make people more efficient at the wrong things" is an observation.)
 
@@ -19,21 +19,36 @@ The reader isn't waiting for your take. They're mid-scroll. The post either earn
 
 4. Whether it sounds like something a person said or something a brand published. If you'd see it in a press release, rewrite it.
 
-5. Whether the ending creates forward tension or closes everything down. Closure is fine. Premature closure — explaining the point — kills the post.`,
+5. Whether the ending creates forward tension or closes everything down. Closure is fine. Premature closure — explaining the point — kills the post.
+
+**Thread vs. single post decision:**
+
+Only create a multi-post thread if the idea genuinely unfolds in stages — each post introduces a new idea, escalation, contrast, or reframing, and the thread benefits from pacing. Do NOT split posts simply to increase thread length. Every post must earn its existence.
+
+Good reasons to thread: conceptual progression, tonal shift, escalation, contradiction, reframing, narrative movement.
+Bad reasons to thread: one sentence that could be one post, filler transitions, artificial suspense, continuation bait.
+
+**Before finalizing, ask yourself:**
+- Does this sound like a real intelligent person wrote it?
+- Would someone naturally reply to this?
+- Does the pacing feel human?
+- Is any post unnecessary? Cut it.
+- Is the thread fragmented for real narrative reasons, or artificial ones?`,
 
   structuralRules: [
     'Lead with a single observation, not a headline or announcement',
     'One idea per post — the urge to explain is usually the impulse to kill the post',
-    'Short paragraphs: 1–2 sentences maximum. Whitespace carries pacing.',
+    'Each post should contain 1–4 sentences and feel complete on its own',
     'Write in first person. Not "brands," not "leaders," not the royal "we"',
     'Let whitespace do editorial work — a blank line says more than a transition phrase',
     'End on open tension, a question, or an unresolved thought — not a CTA',
     'If threading, each reply must be independently readable by someone who arrives mid-thread',
     'Avoid numbered lists and bullet formatting — use flowing prose instead',
+    'Avoid repetitive sentence rhythm across posts — vary cadence and density',
     'The post should feel like something a person said to a friend, not something a team approved',
   ],
 
-  lengthTarget: 'Under 200 characters for single posts (hard max 500). Thread sequences: 2–10 posts. Err toward shorter. A tighter post is almost always better.',
+  lengthTarget: 'Single posts: aim for 1–4 sentences (hard max 500 characters). Prefer medium-density — complete, readable, at least one meaningful observation per post. Threads: 2–6 posts, only when the idea genuinely requires stages. No ultra-short filler posts, no giant essay blocks.',
 
   antiPatterns: [
     '"Thrilled to announce" or any variation of excited-to-share language',
@@ -41,6 +56,11 @@ The reader isn't waiting for your take. They're mid-scroll. The post either earn
     '"As a [title/role]" openers',
     '"Here are X things/tips/ways" list formats',
     '"Thread 🧵" opener',
+    'Splitting one sentence across multiple posts — if it can be one post, it should be',
+    'Filler transition posts: "Here\'s the thing.", "But wait.", "So what does this mean?"',
+    'Artificial suspense: ending a post mid-thought just to make the reader tap to the next',
+    'Continuation bait: "More on this below" / "Keep reading" / "Part 2/3/4" energy',
+    'Repetitive sentence rhythm — every post opening with the same structure',
     'Em dash chains mid-sentence — they signal over-polished drafting',
     'Bullet points or numbered lists',
     'Excessive emoji — one is often fine, three is a wall',

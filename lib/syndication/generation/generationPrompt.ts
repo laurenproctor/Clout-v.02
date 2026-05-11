@@ -56,9 +56,9 @@ export function buildGenerationSystemPrompt(
     ? `## Hashtags\n\n${model.hashtagRule}\n\n`
     : ''
 
-  const sourceLinkSection = (platform === 'x' && sourceUrl)
-    ? `## Source link\n\nEnd the post with the source URL on its own line, preceded by a short lead-in. Pick whichever fits the tone:\n- "Read the full piece: ${sourceUrl}"\n- "Full piece → ${sourceUrl}"\n- "Worth reading: ${sourceUrl}"\n\nThe link must be the very last line.\n\n`
-    : (sourceUrl && platform !== 'x')
+  const sourceLinkSection = (sourceUrl && (platform === 'x' || platform === 'threads'))
+    ? `## Source link\n\nEnd the post with the source URL on its own line, preceded by a short lead-in. Pick whichever fits the tone:\n- "Read the full piece: ${sourceUrl}"\n- "Full piece → ${sourceUrl}"\n- "Worth reading: ${sourceUrl}"\n\nThe link must be the very last line. Include the full URL exactly as given — do not truncate or shorten it.\n\n`
+    : (sourceUrl && platform !== 'x' && platform !== 'threads')
     ? `## Source link\n\nReference the source naturally in the post: ${sourceUrl}\n\n`
     : ''
 
@@ -66,9 +66,13 @@ export function buildGenerationSystemPrompt(
     ? buildDivergenceClause(platform, divergenceContext)
     : ''
 
+  const formatInstruction = platform === 'threads'
+    ? `write a post (or a thread if the idea genuinely unfolds in stages) for THREADS that teases the most compelling idea from this content and makes people want to click through`
+    : `write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through`
+
   return `You write platform-native posts that promote content and drive people to read it.
 
-Your job: write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through.
+Your job: ${formatInstruction}.
 
 ${notesSection}${divergenceSection}## What you're promoting
 
@@ -99,6 +103,10 @@ Return only the post text. No preamble, no explanation, no metadata.`
 }
 
 export function buildGenerationUserMessage(platform: Platform): string {
+  if (platform === 'threads') {
+    return `Write a Threads post or thread. Apply the thread decision criteria from the before-writing framework. Output only the final text — each post separated by a blank line if threading.`
+  }
+
   const platformNames: Record<Platform, string> = {
     x: 'X (Twitter)',
     linkedin: 'LinkedIn',
