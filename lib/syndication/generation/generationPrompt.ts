@@ -66,13 +66,9 @@ export function buildGenerationSystemPrompt(
     ? buildDivergenceClause(platform, divergenceContext)
     : ''
 
-  const formatInstruction = platform === 'threads'
-    ? `write a post (or a thread if the idea genuinely unfolds in stages) for THREADS that teases the most compelling idea from this content and makes people want to click through`
-    : `write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through`
-
   return `You write platform-native posts that promote content and drive people to read it.
 
-Your job: ${formatInstruction}.
+Your job: write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through.
 
 ${notesSection}${divergenceSection}## What you're promoting
 
@@ -103,16 +99,13 @@ Return only the post text. No preamble, no explanation, no metadata.`
 }
 
 export function buildGenerationUserMessage(platform: Platform): string {
-  if (platform === 'threads') {
-    return `Write a Threads post or thread. Apply the thread decision criteria from the before-writing framework. Output only the final text — each post separated by a blank line if threading.`
-  }
-
   const platformNames: Record<Platform, string> = {
     x: 'X (Twitter)',
     linkedin: 'LinkedIn',
     substack: 'Substack newsletter',
     blog: 'blog post',
     threads: 'Threads',
+    facebook: 'Facebook post',
   }
   return `Write a promotional post for ${platformNames[platform]}. Output only the final text.`
 }
