@@ -63,9 +63,12 @@ export async function POST(req: NextRequest) {
         let code = 'GENERATION_FAILED'
         let userMessage = "Something went wrong. Please try again."
 
-        if (message.startsWith('FETCH_FAILED')) {
+        if (message.startsWith('FETCH_FAILED') || message.startsWith('FETCH_BLOCKED')) {
           code = 'FETCH_FAILED'
           userMessage = "We couldn't fetch that URL — it may be paywalled or bot-protected (NYT, WSJ, etc.). Paste the article text directly instead."
+        } else if (message.startsWith('FETCH_TIMEOUT')) {
+          code = 'FETCH_TIMEOUT'
+          userMessage = "That URL took too long to respond. Try again, or paste the article text directly."
         } else if (message.startsWith('EXTRACTION_FAILED')) {
           code = 'EXTRACTION_FAILED'
           userMessage = "We couldn't extract readable content — the page may be paywalled or bot-protected."
