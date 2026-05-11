@@ -11,7 +11,7 @@ import FocusedEditView from './FocusedEditView'
 import { LoadingPhaseIndicator, LOADING_STEPS } from './LoadingPhaseIndicator'
 import { IntelligenceSection } from './IntelligenceSection'
 
-const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog']
+const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
 
 type UIState =
   | { status: 'idle' }
@@ -27,7 +27,7 @@ interface FocusedCard {
 export function SyndicationClient() {
   const [input, setInput] = useState('')
   const [notes, setNotes] = useState('')
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['x', 'linkedin', 'threads', 'substack', 'blog'])
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook'])
   const [ui, setUi] = useState<UIState>({ status: 'idle' })
   const [cards, setCards] = useState<Partial<Record<Platform, CardState>>>({})
   const [focused, setFocused] = useState<FocusedCard | null>(null)
