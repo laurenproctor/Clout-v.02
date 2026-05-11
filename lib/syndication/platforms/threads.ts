@@ -3,11 +3,13 @@ import type { PlatformBehaviorModel } from '../types/platform'
 export const THREADS_PLATFORM_MODEL: PlatformBehaviorModel = {
   platform: 'threads',
 
-  rhetoricalEnvironment: `Threads is a low-polish, reply-first social space. Users scroll like Instagram but write like they're texting a group chat. The dominant register is personal observation — not broadcast, not announcement, not thought leadership.
+  rhetoricalEnvironment: `Threads is a low-polish, reply-first social space. The dominant register is personal observation — not broadcast, not announcement, not thought leadership.
 
-Posts under 200 characters consistently outperform longer ones. Strong opening lines matter. Hashtags are largely decorative and often read as corporate. The emotional register that wins: specific, slightly unfinished, quietly interesting. Being right matters less than being interesting.
+Posts under 200 characters consistently outperform longer ones. Strong opening lines matter. Hashtags are largely decorative and often read as corporate. The emotional register that wins: specific, quietly interesting, confident without being loud. Being right matters less than being interesting.
 
-The reader isn't waiting for your take. They're mid-scroll. The post either earns their pause in the first sentence or it doesn't.`,
+The reader isn't waiting for your take. They're mid-scroll. The post either earns their pause in the first sentence or it doesn't.
+
+"Low-polish" means the tone is direct and personal, not that grammar and punctuation are optional. Every post must use correct grammar, complete sentences, and proper punctuation. Casualness lives in word choice and sentence rhythm — not in dropped periods or careless syntax.`,
 
   preWritingFramework: `Before writing, work through these questions:
 
@@ -21,34 +23,27 @@ The reader isn't waiting for your take. They're mid-scroll. The post either earn
 
 5. Whether the ending creates forward tension or closes everything down. Closure is fine. Premature closure — explaining the point — kills the post.
 
-**Thread vs. single post decision:**
-
-Only create a multi-post thread if the idea genuinely unfolds in stages — each post introduces a new idea, escalation, contrast, or reframing, and the thread benefits from pacing. Do NOT split posts simply to increase thread length. Every post must earn its existence.
-
-Good reasons to thread: conceptual progression, tonal shift, escalation, contradiction, reframing, narrative movement.
-Bad reasons to thread: one sentence that could be one post, filler transitions, artificial suspense, continuation bait.
-
 **Before finalizing, ask yourself:**
 - Does this sound like a real intelligent person wrote it?
+- Is every sentence grammatically correct with proper punctuation?
 - Would someone naturally reply to this?
 - Does the pacing feel human?
 - Is any post unnecessary? Cut it.
-- Is the thread fragmented for real narrative reasons, or artificial ones?`,
+- Does it feel complete as a single post?`,
 
   structuralRules: [
+    'Use correct grammar, complete sentences, and proper punctuation in every post — casual tone does not mean loose writing',
     'Lead with a single observation, not a headline or announcement',
     'One idea per post — the urge to explain is usually the impulse to kill the post',
     'Each post should contain 1–4 sentences and feel complete on its own',
     'Write in first person. Not "brands," not "leaders," not the royal "we"',
     'Let whitespace do editorial work — a blank line says more than a transition phrase',
     'End on open tension, a question, or an unresolved thought — not a CTA',
-    'If threading, each reply must be independently readable by someone who arrives mid-thread',
     'Avoid numbered lists and bullet formatting — use flowing prose instead',
-    'Avoid repetitive sentence rhythm across posts — vary cadence and density',
     'The post should feel like something a person said to a friend, not something a team approved',
   ],
 
-  lengthTarget: 'Single posts: aim for 1–4 sentences (hard max 500 characters). Prefer medium-density — complete, readable, at least one meaningful observation per post. Threads: 2–6 posts, only when the idea genuinely requires stages. No ultra-short filler posts, no giant essay blocks.',
+  lengthTarget: 'Aim for 1–4 sentences (hard max 500 characters). Prefer medium-density — complete, readable, at least one meaningful observation. No ultra-short filler, no giant essay blocks.',
 
   antiPatterns: [
     '"Thrilled to announce" or any variation of excited-to-share language',
@@ -56,11 +51,6 @@ Bad reasons to thread: one sentence that could be one post, filler transitions, 
     '"As a [title/role]" openers',
     '"Here are X things/tips/ways" list formats',
     '"Thread 🧵" opener',
-    'Splitting one sentence across multiple posts — if it can be one post, it should be',
-    'Filler transition posts: "Here\'s the thing.", "But wait.", "So what does this mean?"',
-    'Artificial suspense: ending a post mid-thought just to make the reader tap to the next',
-    'Continuation bait: "More on this below" / "Keep reading" / "Part 2/3/4" energy',
-    'Repetitive sentence rhythm — every post opening with the same structure',
     'Em dash chains mid-sentence — they signal over-polished drafting',
     'Bullet points or numbered lists',
     'Excessive emoji — one is often fine, three is a wall',
@@ -73,6 +63,8 @@ Bad reasons to thread: one sentence that could be one post, filler transitions, 
     '"Let that sink in." or "Just think about that."',
     '"The future of X is here."',
     'Explaining the point after already making it',
+    'Dropping terminal punctuation or writing in all lowercase as a stylistic choice',
+    'Sentence fragments used as standalone posts',
   ],
 
   hashtagRule: 'Use 0–1 hashtags maximum. Only include one if it meaningfully places the post in a real discovery category. Most posts are better without any. Hashtags on Threads often read as corporate.',
@@ -89,13 +81,12 @@ Bad reasons to thread: one sentence that could be one post, filler transitions, 
   },
 
   capabilities: {
-    supportsThreads: true,
+    supportsThreads: false,
     supportsMedia: true,
     supportsCarousel: false,
     supportsPolls: false,
     supportsScheduling: false,
     maxPostLength: 500,
     softPostLength: 200,
-    maxThreadLength: 10,
   },
 }
