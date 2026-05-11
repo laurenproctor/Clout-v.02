@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
 import { truncateAtWord } from './intelligenceUtils'
+import { PublishingActions } from '@/components/publishing/PublishingActions'
 
 const SEE_MORE_CHARS = 250
 
@@ -26,9 +27,16 @@ interface Props {
   onFocus: () => void
   onCopy: () => void
   onRegenerate: (variantNote?: string) => void
+  onSaveDraft?: () => void
+  onPublishNow?: () => void
+  onSchedule?: (scheduledAt: Date) => void
+  onQueue?: () => void
+  isSaving?: boolean
+  isPublishing?: boolean
+  savedAt?: Date | null
 }
 
-export default function FacebookCard({ content, intelligence, onFocus, onCopy, onRegenerate }: Props) {
+export default function FacebookCard({ content, intelligence, onFocus, onCopy, onRegenerate, onSaveDraft, onPublishNow, onSchedule, onQueue, isSaving, isPublishing, savedAt }: Props) {
   const [copied, setCopied] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
@@ -169,6 +177,18 @@ export default function FacebookCard({ content, intelligence, onFocus, onCopy, o
           </div>
         )}
       </div>
+
+      {onSaveDraft && (
+        <PublishingActions
+          onSaveDraft={onSaveDraft}
+          onPublishNow={onPublishNow!}
+          onSchedule={onSchedule!}
+          onQueue={onQueue!}
+          isSaving={isSaving}
+          isPublishing={isPublishing}
+          savedAt={savedAt}
+        />
+      )}
     </div>
   )
 }

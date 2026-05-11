@@ -6,7 +6,7 @@ function toOutput(row: Record<string, unknown>): Output {
   const output: Output = {
     id: row.id as string,
     workspaceId: row.workspace_id as string,
-    generationId: row.generation_id as string,
+    generationId: (row.generation_id as string | null) ?? null,
     channelId: row.channel_id as string | null,
     status: row.status as OutputStatus,
     title: row.title as string | null,

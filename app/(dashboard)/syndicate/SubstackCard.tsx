@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
 import { estimateReadTime } from './intelligenceUtils'
+import { PublishingActions } from '@/components/publishing/PublishingActions'
 
 const REWRITE_VARIANTS = [
   { label: 'More literary', note: 'Elevate the prose. More careful sentence construction, more precise language, stronger narrative arc.' },
@@ -18,9 +19,16 @@ interface Props {
   onFocus: () => void
   onCopy: () => void
   onRegenerate: (variantNote?: string) => void
+  onSaveDraft?: () => void
+  onPublishNow?: () => void
+  onSchedule?: (scheduledAt: Date) => void
+  onQueue?: () => void
+  isSaving?: boolean
+  isPublishing?: boolean
+  savedAt?: Date | null
 }
 
-export default function SubstackCard({ content, intelligence, onFocus, onCopy, onRegenerate }: Props) {
+export default function SubstackCard({ content, intelligence, onFocus, onCopy, onRegenerate, onSaveDraft, onPublishNow, onSchedule, onQueue, isSaving, isPublishing, savedAt }: Props) {
   const [copied, setCopied] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [showVariants, setShowVariants] = useState(false)
@@ -138,6 +146,18 @@ export default function SubstackCard({ content, intelligence, onFocus, onCopy, o
           </div>
         )}
       </div>
+
+      {onSaveDraft && (
+        <PublishingActions
+          onSaveDraft={onSaveDraft}
+          onPublishNow={onPublishNow!}
+          onSchedule={onSchedule!}
+          onQueue={onQueue!}
+          isSaving={isSaving}
+          isPublishing={isPublishing}
+          savedAt={savedAt}
+        />
+      )}
     </div>
   )
 }

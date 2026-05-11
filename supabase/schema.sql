@@ -282,7 +282,7 @@ create index scheduling_preferences_workspace_idx on scheduling_preferences(work
 create table outputs (
   id             uuid primary key default gen_random_uuid(),
   workspace_id   uuid not null references workspaces(id) on delete cascade,
-  generation_id  uuid not null references generations(id),
+  generation_id  uuid references generations(id),  -- nullable: syndication outputs have no generation
   channel_id     uuid references channels(id) on delete set null,
   content_type   text not null default 'standard',
   status         output_status not null default 'draft',

@@ -822,7 +822,7 @@ export type Database = {
           content_type: string
           created_at: string
           deleted_at: string | null
-          generation_id: string
+          generation_id: string | null
           id: string
           last_publish_error: string | null
           performance_snapshot: Json | null
@@ -844,7 +844,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           deleted_at?: string | null
-          generation_id: string
+          generation_id?: string | null
           id?: string
           last_publish_error?: string | null
           performance_snapshot?: Json | null
@@ -866,7 +866,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           deleted_at?: string | null
-          generation_id?: string
+          generation_id?: string | null
           id?: string
           last_publish_error?: string | null
           performance_snapshot?: Json | null

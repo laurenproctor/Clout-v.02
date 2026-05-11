@@ -8,6 +8,7 @@ import SubstackCard from './SubstackCard'
 import BlogCard from './BlogCard'
 import ThreadsCard from './ThreadsCard'
 import FacebookCard from './FacebookCard'
+import type { PublishState } from './SyndicationClient'
 
 export type CardState =
   | { status: 'idle' }
@@ -22,6 +23,11 @@ interface PlatformGridProps {
   onFocus: (platform: Platform, content: string) => void
   onCopy: (text: string) => void
   onRegenerate: (platform: Platform, variantNote?: string) => void
+  onSaveDraft?: (platform: Platform) => void
+  onPublishNow?: (platform: Platform) => void
+  onSchedule?: (platform: Platform, scheduledAt: Date) => void
+  onQueue?: (platform: Platform) => void
+  publishState?: Partial<Record<Platform, PublishState>>
 }
 
 const SKELETON_BARS: Record<Platform, number> = {
@@ -42,12 +48,18 @@ export default function PlatformGrid({
   onFocus,
   onCopy,
   onRegenerate,
+  onSaveDraft,
+  onPublishNow,
+  onSchedule,
+  onQueue,
+  publishState,
 }: PlatformGridProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {platforms.map((platform) => {
         const card = cards[platform] ?? { status: 'idle' as const }
+        const ps = publishState?.[platform]
 
         if (card.status === 'idle') return null
 
@@ -90,6 +102,17 @@ export default function PlatformGrid({
           )
         }
 
+        // Build publishing callbacks scoped to this platform
+        const publishingProps = {
+          onSaveDraft: onSaveDraft ? () => onSaveDraft(platform) : undefined,
+          onPublishNow: onPublishNow ? () => onPublishNow(platform) : undefined,
+          onSchedule: onSchedule ? (d: Date) => onSchedule(platform, d) : undefined,
+          onQueue: onQueue ? () => onQueue(platform) : undefined,
+          isSaving: ps?.isSaving,
+          isPublishing: ps?.isPublishing,
+          savedAt: ps?.savedAt ?? undefined,
+        }
+
         // done
         if (intelligence !== null) {
           const sharedProps = {
@@ -98,6 +121,7 @@ export default function PlatformGrid({
             onFocus: () => onFocus(platform, card.content),
             onCopy: () => onCopy(card.content),
             onRegenerate: (variantNote?: string) => onRegenerate(platform, variantNote),
+            ...publishingProps,
           }
           if (platform === 'x') return <div key={platform} className="col-span-full"><XCard {...sharedProps} /></div>
           if (platform === 'linkedin') return <div key={platform} className="col-span-full"><LinkedInCard {...sharedProps} /></div>

@@ -170,7 +170,7 @@ export interface OutputChannel {
 export interface Output {
   id: string
   workspaceId: string
-  generationId: string
+  generationId: string | null
   channelId: string | null
   status: OutputStatus
   title: string | null

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
+import { PublishingActions } from '@/components/publishing/PublishingActions'
 
 const REWRITE_VARIANTS = [
   { label: 'More SEO-focused', note: 'Optimize for search intent. Clearer structure, better keyword integration, stronger meta-appeal for a search audience.' },
@@ -17,9 +18,16 @@ interface Props {
   onFocus: () => void
   onCopy: () => void
   onRegenerate: (variantNote?: string) => void
+  onSaveDraft?: () => void
+  onPublishNow?: () => void
+  onSchedule?: (scheduledAt: Date) => void
+  onQueue?: () => void
+  isSaving?: boolean
+  isPublishing?: boolean
+  savedAt?: Date | null
 }
 
-export default function BlogCard({ content, intelligence, onFocus, onCopy, onRegenerate }: Props) {
+export default function BlogCard({ content, intelligence, onFocus, onCopy, onRegenerate, onSaveDraft, onPublishNow, onSchedule, onQueue, isSaving, isPublishing, savedAt }: Props) {
   const [copied, setCopied] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [showVariants, setShowVariants] = useState(false)
@@ -136,6 +144,18 @@ export default function BlogCard({ content, intelligence, onFocus, onCopy, onReg
           </div>
         )}
       </div>
+
+      {onSaveDraft && (
+        <PublishingActions
+          onSaveDraft={onSaveDraft}
+          onPublishNow={onPublishNow!}
+          onSchedule={onSchedule!}
+          onQueue={onQueue!}
+          isSaving={isSaving}
+          isPublishing={isPublishing}
+          savedAt={savedAt}
+        />
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligen
 import { scoreHumanity } from '@/lib/syndication/scoring/humanity'
 import { validateThreadsPost } from '@/lib/syndication/validation/threads'
 import { deriveToneTags } from './intelligenceUtils'
+import { PublishingActions } from '@/components/publishing/PublishingActions'
 
 const THREADS_MAX = 500
 const THREADS_WARN = 400
@@ -24,9 +25,16 @@ interface Props {
   onFocus: () => void
   onCopy: () => void
   onRegenerate: (variantNote?: string) => void
+  onSaveDraft?: () => void
+  onPublishNow?: () => void
+  onSchedule?: (scheduledAt: Date) => void
+  onQueue?: () => void
+  isSaving?: boolean
+  isPublishing?: boolean
+  savedAt?: Date | null
 }
 
-export default function ThreadsCard({ content, intelligence, onFocus, onCopy, onRegenerate }: Props) {
+export default function ThreadsCard({ content, intelligence, onFocus, onCopy, onRegenerate, onSaveDraft, onPublishNow, onSchedule, onQueue, isSaving, isPublishing, savedAt }: Props) {
   const [copied, setCopied] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [showVariants, setShowVariants] = useState(false)
@@ -233,6 +241,18 @@ export default function ThreadsCard({ content, intelligence, onFocus, onCopy, on
           </div>
         )}
       </div>
+
+      {onSaveDraft && (
+        <PublishingActions
+          onSaveDraft={onSaveDraft}
+          onPublishNow={onPublishNow!}
+          onSchedule={onSchedule!}
+          onQueue={onQueue!}
+          isSaving={isSaving}
+          isPublishing={isPublishing}
+          savedAt={savedAt}
+        />
+      )}
     </div>
   )
 }

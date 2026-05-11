@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/syndication/types/intelligence'
 import { PLATFORM_LABELS } from '@/lib/syndication/types/intelligence'
@@ -13,6 +13,13 @@ import { IntelligenceSection } from './IntelligenceSection'
 
 const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
 
+const PUBLISH_ROUTE: Partial<Record<Platform, string>> = {
+  linkedin: '/api/channels/linkedin/post',
+  x: '/api/channels/twitter/post',
+  threads: '/api/channels/threads/post',
+  facebook: '/api/channels/facebook/post',
+}
+
 type UIState =
   | { status: 'idle' }
   | { status: 'running' }
@@ -22,6 +29,13 @@ type UIState =
 interface FocusedCard {
   platform: Platform
   content: string
+}
+
+export type PublishState = {
+  draftId: string | null
+  isSaving: boolean
+  isPublishing: boolean
+  savedAt: Date | null
 }
 
 export function SyndicationClient() {
@@ -34,11 +48,24 @@ export function SyndicationClient() {
   const [sourceVisible, setSourceVisible] = useState(false)
   const [intelligence, setIntelligence] = useState<SyndicationIntelligence | null>(null)
   const [loadingStep, setLoadingStep] = useState(0)
+  const [publishState, setPublishState] = useState<Partial<Record<Platform, PublishState>>>({})
+  const [channels, setChannels] = useState<{ id: string; platform: string }[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isRunning = ui.status === 'running'
   const hasResults = ui.status === 'partial' || ui.status === 'complete'
   const isComplete = ui.status === 'complete'
+
+  useEffect(() => {
+    fetch('/api/channels')
+      .then(r => r.json())
+      .then((data: { id: string; platform: string }[]) => setChannels(Array.isArray(data) ? data : []))
+      .catch(() => null)
+  }, [])
+
+  function getChannelId(platform: Platform): string | null {
+    return channels.find(c => c.platform === platform)?.id ?? null
+  }
 
   function stopInterval() {
     if (intervalRef.current) {
@@ -53,10 +80,124 @@ export function SyndicationClient() {
     )
   }
 
+  function setPublishField(platform: Platform, patch: Partial<PublishState>) {
+    setPublishState(prev => ({
+      ...prev,
+      [platform]: { draftId: null, isSaving: false, isPublishing: false, savedAt: null, ...prev[platform], ...patch },
+    }))
+  }
+
+  async function saveDraftIfNeeded(platform: Platform): Promise<string | null> {
+    const existing = publishState[platform]?.draftId
+    if (existing) return existing
+
+    const card = cards[platform]
+    if (!card || card.status !== 'done') return null
+
+    setPublishField(platform, { isSaving: true })
+
+    try {
+      const res = await fetch('/api/syndication/outputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform,
+          content: card.content,
+          channelId: getChannelId(platform),
+        }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const data = await res.json() as { id: string }
+      setPublishField(platform, { draftId: data.id, isSaving: false, savedAt: new Date() })
+      return data.id
+    } catch {
+      setPublishField(platform, { isSaving: false })
+      return null
+    }
+  }
+
+  async function handleSaveDraft(platform: Platform) {
+    const card = cards[platform]
+    if (!card || card.status !== 'done') return
+
+    // If already saved, update existing record content
+    const existingId = publishState[platform]?.draftId
+    if (existingId) {
+      setPublishField(platform, { isSaving: true })
+      try {
+        await fetch(`/api/outputs/${existingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: { body: card.content, platform } }),
+        })
+        setPublishField(platform, { isSaving: false, savedAt: new Date() })
+      } catch {
+        setPublishField(platform, { isSaving: false })
+      }
+      return
+    }
+
+    await saveDraftIfNeeded(platform)
+  }
+
+  async function handlePublishNow(platform: Platform) {
+    const route = PUBLISH_ROUTE[platform]
+    if (!route) {
+      // Substack / Blog — no direct post API
+      alert(`Direct publishing to ${PLATFORM_LABELS[platform]} is not available yet. Save a draft and publish from your ${PLATFORM_LABELS[platform]} account.`)
+      return
+    }
+
+    setPublishField(platform, { isPublishing: true })
+    const outputId = await saveDraftIfNeeded(platform)
+    if (!outputId) {
+      setPublishField(platform, { isPublishing: false })
+      return
+    }
+
+    try {
+      const res = await fetch(route, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outputId }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'Publish failed')
+      }
+      setPublishField(platform, { isPublishing: false })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Publish failed'
+      alert(`Could not publish to ${PLATFORM_LABELS[platform]}: ${message}`)
+      setPublishField(platform, { isPublishing: false })
+    }
+  }
+
+  async function handleSchedule(platform: Platform, scheduledAt: Date) {
+    const outputId = await saveDraftIfNeeded(platform)
+    if (!outputId) return
+
+    await fetch(`/api/outputs/${outputId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduled_at: scheduledAt.toISOString(), status: 'queued' }),
+    }).catch(() => null)
+  }
+
+  async function handleQueue(platform: Platform) {
+    const outputId = await saveDraftIfNeeded(platform)
+    if (!outputId) return
+
+    await fetch(`/api/outputs/${outputId}/queue`, {
+      method: 'POST',
+    }).catch(() => null)
+  }
+
   async function handleGenerate() {
     if (!input.trim() || selectedPlatforms.length === 0 || isRunning) return
 
     setIntelligence(null)
+    setPublishState({})
     setUi({ status: 'running' })
     setCards(
       Object.fromEntries(selectedPlatforms.map(p => [p, { status: 'loading' as const }])),
@@ -151,12 +292,15 @@ export function SyndicationClient() {
     setCards({})
     setFocused(null)
     setIntelligence(null)
+    setPublishState({})
     setLoadingStep(0)
   }
 
   async function handleRegenerate(platform: Platform, variantNote?: string) {
     if (!input.trim()) return
     setCards(prev => ({ ...prev, [platform]: { status: 'loading' } }))
+    // Reset publish state for this platform on regenerate
+    setPublishState(prev => ({ ...prev, [platform]: undefined }))
     if (focused?.platform === platform) setFocused(null)
 
     const effectiveNotes = [notes.trim(), variantNote].filter(Boolean).join('\n\n') || undefined
@@ -355,6 +499,11 @@ export function SyndicationClient() {
                   onFocus={(platform, content) => setFocused({ platform, content })}
                   onCopy={copyToClipboard}
                   onRegenerate={handleRegenerate}
+                  onSaveDraft={handleSaveDraft}
+                  onPublishNow={handlePublishNow}
+                  onSchedule={handleSchedule}
+                  onQueue={handleQueue}
+                  publishState={publishState}
                 />
               )}
             </div>
