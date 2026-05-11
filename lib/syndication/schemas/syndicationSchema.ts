@@ -8,7 +8,7 @@ export const syndicationRequestSchema = z.object({
   platforms: z
     .array(z.enum(['x', 'linkedin', 'substack', 'blog']))
     .min(1, 'Select at least one platform.'),
-  notes: z.string().max(1000).optional(),
+  notes: z.string().max(50_000).optional(),
 })
 
 export type SyndicationRequestInput = z.infer<typeof syndicationRequestSchema>

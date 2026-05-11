@@ -52,6 +52,13 @@ function rawTextToExtractedContent(text: string): ExtractedContent {
   }
 }
 
+export function extractRawText(text: string): ExtractedContent {
+  const trimmed = text.trim().slice(0, MAX_CHARS)
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length
+  if (wordCount < 50) throw new Error('LOW_SIGNAL: Content too short for syndication')
+  return rawTextToExtractedContent(trimmed)
+}
+
 export async function extractInput(input: string): Promise<ExtractedContent> {
   const trimmed = input.trim()
 

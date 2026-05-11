@@ -237,7 +237,7 @@ export function SyndicationClient() {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             disabled={isRunning}
-            placeholder="Any angle, focus, or context? (optional) — e.g. 'make it contrarian' or 'emphasize the cost angle'"
+            placeholder="Article text, angle, or context (optional) — paste article text here if the URL is paywalled, or add a note like 'make it contrarian'"
             rows={2}
             className={cn(
               'w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-300 resize-none',

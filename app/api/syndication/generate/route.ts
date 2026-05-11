@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const maxDuration = 60
 import { getSession } from '@/lib/auth/session'
 import { syndicationRequestSchema } from '@/lib/syndication/schemas/syndicationSchema'
-import { extractInput } from '@/lib/syndication/extract/extractInput'
+import { extractInput, extractRawText } from '@/lib/syndication/extract/extractInput'
 import { extractIntelligence } from '@/lib/syndication/intelligence/extractIntelligence'
 import { generateOutput } from '@/lib/syndication/generation/generateOutput'
 import type { Platform } from '@/lib/syndication/types/intelligence'
@@ -33,7 +33,21 @@ export async function POST(req: NextRequest) {
 
       try {
         send({ type: 'progress', phase: 'extracting' })
-        const extracted = await extractInput(input)
+
+        let extracted
+        let notesForGeneration: string | undefined = notes
+        try {
+          extracted = await extractInput(input)
+        } catch (urlErr) {
+          const notesText = notes?.trim() ?? ''
+          const wordCount = notesText.split(/\s+/).filter(Boolean).length
+          if (wordCount >= 50) {
+            extracted = extractRawText(notesText)
+            notesForGeneration = undefined
+          } else {
+            throw urlErr
+          }
+        }
 
         send({ type: 'progress', phase: 'analyzing' })
         const intelligence = await extractIntelligence(extracted)
@@ -44,7 +58,7 @@ export async function POST(req: NextRequest) {
         await Promise.allSettled(
           platforms.map(async (platform: Platform) => {
             try {
-              const output = await generateOutput(platform, intelligence, extracted.url || undefined, notes)
+              const output = await generateOutput(platform, intelligence, extracted.url || undefined, notesForGeneration)
               send({ type: 'output', platform, content: output.content })
             } catch (err) {
               send({
@@ -63,18 +77,12 @@ export async function POST(req: NextRequest) {
         let code = 'GENERATION_FAILED'
         let userMessage = "Something went wrong. Please try again."
 
-        if (message.startsWith('FETCH_FAILED') || message.startsWith('FETCH_BLOCKED')) {
+        if (message.startsWith('FETCH_FAILED') || message.startsWith('FETCH_BLOCKED') || message.startsWith('EXTRACTION_FAILED') || message.startsWith('LOW_SIGNAL')) {
           code = 'FETCH_FAILED'
-          userMessage = "We couldn't fetch that URL — it may be paywalled or bot-protected (NYT, WSJ, etc.). Paste the article text directly instead."
+          userMessage = "Paste the article text in the box below the URL field so content can be parsed."
         } else if (message.startsWith('FETCH_TIMEOUT')) {
           code = 'FETCH_TIMEOUT'
-          userMessage = "That URL took too long to respond. Try again, or paste the article text directly."
-        } else if (message.startsWith('EXTRACTION_FAILED')) {
-          code = 'EXTRACTION_FAILED'
-          userMessage = "We couldn't extract readable content — the page may be paywalled or bot-protected."
-        } else if (message.startsWith('LOW_SIGNAL')) {
-          code = 'LOW_SIGNAL'
-          userMessage = 'Not enough content extracted — the page may be paywalled. Paste the article text directly instead.'
+          userMessage = "That URL took too long to respond. Try again, or paste the article text in the box below."
         }
 
         console.error('[syndication/generate] error:', message)
