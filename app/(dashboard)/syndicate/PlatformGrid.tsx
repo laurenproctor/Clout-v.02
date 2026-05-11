@@ -7,6 +7,7 @@ import LinkedInCard from './LinkedInCard'
 import SubstackCard from './SubstackCard'
 import BlogCard from './BlogCard'
 import ThreadsCard from './ThreadsCard'
+import FacebookCard from './FacebookCard'
 
 export type CardState =
   | { status: 'idle' }
@@ -29,7 +30,10 @@ const SKELETON_BARS: Record<Platform, number> = {
   substack: 10,
   blog: 8,
   threads: 4,
+  facebook: 6,
 }
+
+const FULL_WIDTH_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'facebook']
 
 export default function PlatformGrid({
   platforms,
@@ -50,7 +54,7 @@ export default function PlatformGrid({
         if (card.status === 'loading') {
           const n = SKELETON_BARS[platform]
           return (
-            <div key={platform} className={(platform === 'x' || platform === 'linkedin') ? 'col-span-full' : ''}>
+            <div key={platform} className={FULL_WIDTH_PLATFORMS.includes(platform) ? 'col-span-full' : ''}>
               <div className="rounded-lg border border-zinc-200 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-0.5">
@@ -98,6 +102,7 @@ export default function PlatformGrid({
           if (platform === 'x') return <div key={platform} className="col-span-full"><XCard {...sharedProps} /></div>
           if (platform === 'linkedin') return <div key={platform} className="col-span-full"><LinkedInCard {...sharedProps} /></div>
           if (platform === 'threads') return <div key={platform} className="col-span-full"><ThreadsCard {...sharedProps} /></div>
+          if (platform === 'facebook') return <div key={platform} className="col-span-full"><FacebookCard {...sharedProps} /></div>
           if (platform === 'substack') return <SubstackCard key={platform} {...sharedProps} />
           if (platform === 'blog') return <BlogCard key={platform} {...sharedProps} />
         }
