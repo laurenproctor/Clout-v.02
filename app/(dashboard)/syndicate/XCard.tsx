@@ -2,11 +2,7 @@
 
 import { useState } from 'react'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
-import {
-  extractHook,
-  deriveToneTags,
-  estimateTweetCount,
-} from './intelligenceUtils'
+import { deriveToneTags } from './intelligenceUtils'
 
 interface PlatformCardProps {
   content: string
@@ -24,6 +20,13 @@ export default function XCard({
   onRegenerate,
 }: PlatformCardProps) {
   const [showWhy, setShowWhy] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    onCopy()
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div
@@ -36,14 +39,10 @@ export default function XCard({
           <span className="text-xs font-semibold uppercase text-zinc-900">X</span>
           <span className="text-xs text-zinc-400">Short-form · conversational · quotable</span>
         </div>
-        <span className="text-xs text-zinc-400">~{estimateTweetCount(content)} tweets</span>
       </div>
 
-      {/* Hook */}
-      <p className="text-sm font-medium text-zinc-900 leading-snug">{extractHook(content)}</p>
-
       {/* Full post content */}
-      <p className="text-sm text-zinc-500 leading-relaxed whitespace-pre-wrap">{content}</p>
+      <p className="text-sm text-zinc-600 leading-relaxed whitespace-pre-wrap">{content}</p>
 
       {/* Retention Strategy */}
       <div>
@@ -88,9 +87,9 @@ export default function XCard({
       <div className="flex gap-2 flex-wrap pt-1">
         <button
           className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-          onClick={(e) => { e.stopPropagation(); onCopy() }}
+          onClick={(e) => { e.stopPropagation(); handleCopy() }}
         >
-          Copy
+          {copied ? 'Copied' : 'Copy'}
         </button>
         <button
           className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"

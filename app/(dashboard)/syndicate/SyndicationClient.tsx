@@ -5,11 +5,9 @@ import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/syndication/types/intelligence'
 import { PLATFORM_LABELS } from '@/lib/syndication/types/intelligence'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
-import type { SyndicationLens } from '@/lib/syndication/types/lenses'
 import type { CardState } from './PlatformGrid'
 import PlatformGrid from './PlatformGrid'
 import FocusedEditView from './FocusedEditView'
-import { LensSelector } from './LensSelector'
 import { LoadingPhaseIndicator, LOADING_STEPS } from './LoadingPhaseIndicator'
 import { IntelligenceSection } from './IntelligenceSection'
 
@@ -26,14 +24,9 @@ interface FocusedCard {
   content: string
 }
 
-interface Props {
-  availableLenses: SyndicationLens[]
-}
-
-export function SyndicationClient({ availableLenses }: Props) {
+export function SyndicationClient() {
   const [input, setInput] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['x', 'linkedin', 'substack', 'blog'])
-  const [selectedLenses, setSelectedLenses] = useState<string[]>([])
   const [ui, setUi] = useState<UIState>({ status: 'idle' })
   const [cards, setCards] = useState<Partial<Record<Platform, CardState>>>({})
   const [focused, setFocused] = useState<FocusedCard | null>(null)
@@ -46,11 +39,6 @@ export function SyndicationClient({ availableLenses }: Props) {
   const hasResults = ui.status === 'partial' || ui.status === 'complete'
   const isComplete = ui.status === 'complete'
 
-  const selectedLensNames = selectedLenses.map(id => {
-    const lens = availableLenses.find(l => l.id === id)
-    return lens?.name ?? id
-  })
-
   function stopInterval() {
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
@@ -62,14 +50,6 @@ export function SyndicationClient({ availableLenses }: Props) {
     setSelectedPlatforms(prev =>
       prev.includes(platform) ? prev.filter(p => p !== platform) : [...prev, platform],
     )
-  }
-
-  function toggleLens(lensId: string) {
-    setSelectedLenses(prev => {
-      if (prev.includes(lensId)) return prev.filter(l => l !== lensId)
-      if (prev.length >= 2) return prev
-      return [...prev, lensId]
-    })
   }
 
   async function handleGenerate() {
@@ -94,7 +74,6 @@ export function SyndicationClient({ availableLenses }: Props) {
         body: JSON.stringify({
           input: input.trim(),
           platforms: selectedPlatforms,
-          lenses: selectedLenses,
         }),
       })
 
@@ -168,7 +147,6 @@ export function SyndicationClient({ availableLenses }: Props) {
     setUi({ status: 'idle' })
     setCards({})
     setFocused(null)
-    setSelectedLenses([])
     setIntelligence(null)
     setLoadingStep(0)
   }
@@ -185,7 +163,6 @@ export function SyndicationClient({ availableLenses }: Props) {
         body: JSON.stringify({
           input: input.trim(),
           platforms: [platform],
-          lenses: selectedLenses,
         }),
       })
 
@@ -232,7 +209,7 @@ export function SyndicationClient({ availableLenses }: Props) {
         <div className="mb-10">
           <h1 className="text-2xl font-medium text-zinc-900 leading-tight mb-2">Syndication Engine</h1>
           <p className="text-sm text-zinc-500 leading-relaxed max-w-lg">
-            Turn one piece of content into platform-native versions for every major network.
+            Drop a URL and get ready-to-post content for every platform.
           </p>
         </div>
 
@@ -242,8 +219,8 @@ export function SyndicationClient({ availableLenses }: Props) {
             value={input}
             onChange={e => setInput(e.target.value)}
             disabled={isRunning}
-            placeholder="Paste a post, article, thread, or essay — or drop in a URL…"
-            rows={4}
+            placeholder="Drop a URL."
+            rows={3}
             className={cn(
               'w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-300 resize-none',
               'focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-0',
@@ -284,7 +261,7 @@ export function SyndicationClient({ availableLenses }: Props) {
                 'hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed',
               )}
             >
-              {isRunning ? 'Generating…' : 'Generate Versions'}
+              {isRunning ? 'Generating…' : 'Generate Posts'}
             </button>
 
             {isRunning && (
@@ -314,7 +291,7 @@ export function SyndicationClient({ availableLenses }: Props) {
 
             {/* Intelligence section */}
             {isComplete && intelligence && (
-              <IntelligenceSection intelligence={intelligence} selectedLensNames={selectedLensNames} />
+              <IntelligenceSection intelligence={intelligence} />
             )}
 
             {/* Source accordion */}
@@ -323,7 +300,7 @@ export function SyndicationClient({ availableLenses }: Props) {
                 onClick={() => setSourceVisible(v => !v)}
                 className="w-full flex items-center justify-between px-4 py-3 text-xs text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
               >
-                <span className="font-medium">Source Content</span>
+                <span className="font-medium">Source URL</span>
                 <span>{sourceVisible ? '▲' : '▼'}</span>
               </button>
               {sourceVisible && (
@@ -335,13 +312,12 @@ export function SyndicationClient({ availableLenses }: Props) {
 
             {/* Platform versions */}
             <div className="border-t border-zinc-100 pt-6">
-              <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-4">Platform Versions</p>
+              <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-4">Platform Posts</p>
 
               {focused ? (
                 <FocusedEditView
                   platform={focused.platform}
                   content={focused.content}
-                  selectedLenses={selectedLensNames}
                   onChange={content => setFocused({ ...focused, content })}
                   onCopy={() => copyToClipboard(focused.content)}
                   onRegenerate={() => handleRegenerate(focused.platform)}
@@ -352,7 +328,6 @@ export function SyndicationClient({ availableLenses }: Props) {
                   platforms={selectedPlatforms}
                   cards={cards}
                   intelligence={intelligence}
-                  selectedLenses={selectedLensNames}
                   onFocus={(platform, content) => setFocused({ platform, content })}
                   onCopy={copyToClipboard}
                   onRegenerate={handleRegenerate}

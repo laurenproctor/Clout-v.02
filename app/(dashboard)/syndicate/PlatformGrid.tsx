@@ -17,7 +17,6 @@ interface PlatformGridProps {
   platforms: Platform[]
   cards: Partial<Record<Platform, CardState>>
   intelligence: SyndicationIntelligence | null
-  selectedLenses: string[]
   onFocus: (platform: Platform, content: string) => void
   onCopy: (text: string) => void
   onRegenerate: (platform: Platform) => void
@@ -34,7 +33,6 @@ export default function PlatformGrid({
   platforms,
   cards,
   intelligence,
-  selectedLenses,
   onFocus,
   onCopy,
   onRegenerate,
@@ -49,14 +47,24 @@ export default function PlatformGrid({
         if (card.status === 'loading') {
           const n = SKELETON_BARS[platform]
           return (
-            <div key={platform} className="rounded-lg border border-zinc-200 p-4 space-y-2">
-              {Array.from({ length: n }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-3 rounded bg-zinc-100 animate-pulse"
-                  style={{ width: i === n - 1 ? '66%' : '100%' }}
-                />
-              ))}
+            <div key={platform} className={platform === 'x' ? 'col-span-full' : ''}>
+              <div className="rounded-lg border border-zinc-200 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-semibold uppercase text-zinc-900">{PLATFORM_LABELS[platform]}</span>
+                  </div>
+                  <span className="text-xs text-zinc-400 animate-pulse">Generating new version…</span>
+                </div>
+                <div className="space-y-2">
+                  {Array.from({ length: n }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-3 rounded bg-zinc-100 animate-pulse"
+                      style={{ width: i === n - 1 ? '60%' : i % 3 === 1 ? '85%' : '100%' }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )
         }
@@ -84,7 +92,7 @@ export default function PlatformGrid({
             onCopy: () => onCopy(card.content),
             onRegenerate: () => onRegenerate(platform),
           }
-          if (platform === 'x') return <XCard key={platform} {...sharedProps} />
+          if (platform === 'x') return <div key={platform} className="col-span-full"><XCard {...sharedProps} /></div>
           if (platform === 'linkedin') return <LinkedInCard key={platform} {...sharedProps} />
           if (platform === 'substack') return <SubstackCard key={platform} {...sharedProps} />
           if (platform === 'blog') return <BlogCard key={platform} {...sharedProps} />
