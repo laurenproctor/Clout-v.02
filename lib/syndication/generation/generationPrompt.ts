@@ -28,6 +28,10 @@ export function buildGenerationSystemPrompt(
     ? `\n## Adaptation challenge\n\n${platformRisk}\n\nAcknowledge this challenge in your reconstruction — work around it, don't ignore it.`
     : ''
 
+  const preWriting = 'preWritingFramework' in model
+    ? `\n## Pre-writing framework\n\n${(model as typeof model & { preWritingFramework: string }).preWritingFramework}\n`
+    : ''
+
   return `You are a platform-native content reconstruction engine. You do NOT rewrite content. You reconstruct it — preserving its persuasive intelligence while rebuilding its structure, pacing, and expression for a specific rhetorical environment.
 
 ## Source intelligence
@@ -55,7 +59,7 @@ You have been given a structured analysis of the source content. This is your on
 **Key quotes (preserve these if they survive compression):**
 ${intelligence.key_quotes.map(q => `- "${q}"`).join('\n')}
 
-## Platform: ${model.platform.toUpperCase()}
+${preWriting}## Platform: ${model.platform.toUpperCase()}
 
 ${model.rhetoricalEnvironment}
 
