@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { getOutput } from '@/lib/domain/output'
-import { publishLinkedInOutput, markPublished, markFailed } from '@/lib/domain/publishing'
+import { publishLinkedInOutput, acquirePublishLock, markPublished, markFailed } from '@/lib/domain/publishing'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -20,6 +20,14 @@ export async function POST(req: NextRequest) {
   // Idempotency
   if (output.providerPostId) {
     return NextResponse.json({ ok: true, postUrn: output.providerPostId, alreadyPublished: true })
+  }
+
+  const lock = await acquirePublishLock(outputId)
+  if (!lock.ok) {
+    return NextResponse.json(
+      { error: 'Publish already in progress', code: 'publish_in_progress' },
+      { status: 409 },
+    )
   }
 
   try {

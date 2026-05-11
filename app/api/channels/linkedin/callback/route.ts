@@ -1,7 +1,12 @@
 // app/api/channels/linkedin/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { exchangeLinkedInCode, fetchLinkedInProfile } from '@/lib/linkedin'
+import {
+  exchangeLinkedInCode,
+  fetchLinkedInProfile,
+  fetchLinkedInOrganizations,
+} from '@/lib/linkedin'
 import { verifyOAuthState } from '@/lib/oauth-state'
+import { signCookiePayload } from '@/lib/signed-cookie'
 import { upsertChannelCredential } from '@/lib/domain/credentials'
 import { createOrUpdateChannelByAccountId } from '@/lib/domain/channels'
 
@@ -13,23 +18,19 @@ export async function GET(req: NextRequest) {
   const state      = searchParams.get('state')
   const oauthError = searchParams.get('error')
 
-  // User denied or LinkedIn returned error — redirect without writing anything
   if (oauthError || !code || !state) {
     return NextResponse.redirect(`${APP_URL()}/channels?error=linkedin_denied`)
   }
 
-  // Verify signed state before any DB operation — fail closed on any error
   let workspaceId: string
   try {
     const payload = verifyOAuthState(state)
     workspaceId = payload.workspaceId
   } catch {
-    // Expired, tampered, or malformed — treat as auth failure
     return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/linkedin/callback`
-
   const detail = (msg: string) => `&detail=${encodeURIComponent(msg)}`
 
   let tokens: { access_token: string; refresh_token?: string; expires_in: number }
@@ -50,6 +51,42 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
   }
 
+  const expiresAt = Math.floor(Date.now() / 1000) + tokens.expires_in
+
+  // Fetch org pages the user admins — 403 = scope not approved, returns []
+  let orgs: Awaited<ReturnType<typeof fetchLinkedInOrganizations>> = []
+  try {
+    orgs = await fetchLinkedInOrganizations(tokens.access_token)
+  } catch (err) {
+    console.warn('LinkedIn org fetch failed (falling back to personal only):', err)
+  }
+
+  if (orgs.length > 0) {
+    // Show picker: personal profile + all org pages
+    const profiles = [
+      { id: profile.sub,  name: profile.name, email: profile.email, type: 'personal' as const },
+      ...orgs.map(org => ({ id: org.id, name: org.name, type: 'page' as const })),
+    ]
+
+    const cookieValue = signCookiePayload({
+      workspaceId,
+      accessToken:  tokens.access_token,
+      refreshToken: tokens.refresh_token ?? null,
+      expiresAt,
+      profiles,
+    })
+
+    const res = NextResponse.redirect(`${APP_URL()}/channels?select=linkedin`)
+    res.cookies.set('li_pending_profiles', cookieValue, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge:   600,
+      path:     '/',
+    })
+    return res
+  }
+
+  // No org pages — connect directly as personal profile
   try {
     const { channelId } = await createOrUpdateChannelByAccountId({
       workspaceId,
@@ -64,7 +101,7 @@ export async function GET(req: NextRequest) {
       workspaceId,
       accessToken:  tokens.access_token,
       refreshToken: tokens.refresh_token ?? null,
-      expiresAt:    Math.floor(Date.now() / 1000) + tokens.expires_in,
+      expiresAt,
       accountId:    profile.sub,
       accountName:  profile.name,
       accountEmail: profile.email ?? null,

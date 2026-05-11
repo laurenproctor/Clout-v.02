@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function GET() {
   const session = await getSession()
@@ -9,13 +10,26 @@ export async function GET() {
   }
 
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data: channels } = await supabase
     .from('channels')
     .select()
     .eq('workspace_id', session.workspaceId)
     .order('created_at', { ascending: true })
 
-  return NextResponse.json(data ?? [])
+  if (!channels?.length) return NextResponse.json([])
+
+  // Fetch token expiry from credentials (service client — tokens are server-only)
+  const service = createServiceClient()
+  const { data: creds } = await service
+    .from('channel_credentials')
+    .select('channel_id, expires_at')
+    .in('channel_id', channels.map(c => c.id))
+
+  const expiryMap = new Map((creds ?? []).map(c => [c.channel_id, c.expires_at]))
+
+  return NextResponse.json(
+    channels.map(c => ({ ...c, token_expires_at: expiryMap.get(c.id) ?? null }))
+  )
 }
 
 export async function POST(req: NextRequest) {

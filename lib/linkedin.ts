@@ -5,14 +5,23 @@ const OAUTH_BASE = 'https://www.linkedin.com/oauth/v2'
 const API_BASE   = 'https://api.linkedin.com'
 const LI_VERSION = '202401'
 
-export function buildLinkedInAuthUrl(redirectUri: string, state: string): string {
+export function buildLinkedInAuthUrl(
+  redirectUri: string,
+  state: string,
+  opts?: { forceLogin?: boolean },
+): string {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id:     process.env.LINKEDIN_CLIENT_ID!,
     redirect_uri:  redirectUri,
     state,
-    scope: 'openid profile email w_member_social',
+    // w_organization_social + r_organization_admin allow posting as / listing Company Pages.
+    // LinkedIn silently drops scopes the app isn't approved for — org fetch fails gracefully.
+    scope: 'openid profile email w_member_social w_organization_social r_organization_admin',
   })
+  // prompt=login forces LinkedIn to show the sign-in screen even if the user
+  // is already logged in — necessary when connecting a second LinkedIn account.
+  if (opts?.forceLogin) params.set('prompt', 'login')
   return `${OAUTH_BASE}/authorization?${params}`
 }
 
@@ -73,9 +82,58 @@ export async function fetchLinkedInProfile(accessToken: string): Promise<LinkedI
   return res.json()
 }
 
+export interface LinkedInOrganization {
+  id: string    // numeric organization id string
+  name: string
+  urn: string   // urn:li:organization:{id}
+}
+
+export async function fetchLinkedInOrganizations(
+  accessToken: string
+): Promise<LinkedInOrganization[]> {
+  const aclRes = await fetch(
+    `${API_BASE}/rest/organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED`,
+    {
+      headers: {
+        Authorization:               `Bearer ${accessToken}`,
+        'LinkedIn-Version':          LI_VERSION,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    }
+  )
+  // 403 = scope not approved on this app — fall back to profile-only connect
+  if (aclRes.status === 403) return []
+  if (!aclRes.ok) throw new Error(`LinkedIn org ACL fetch failed (${aclRes.status})`)
+
+  const aclData = await aclRes.json()
+  const elements: Array<{ organization?: string }> = aclData.elements ?? []
+  const orgUrns = elements
+    .map(el => el.organization ?? '')
+    .filter(urn => urn.startsWith('urn:li:organization:'))
+
+  if (orgUrns.length === 0) return []
+
+  const results: LinkedInOrganization[] = []
+  for (const urn of orgUrns.slice(0, 10)) {
+    const id = urn.replace('urn:li:organization:', '')
+    const orgRes = await fetch(`${API_BASE}/rest/organizations/${id}`, {
+      headers: {
+        Authorization:               `Bearer ${accessToken}`,
+        'LinkedIn-Version':          LI_VERSION,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    })
+    if (orgRes.ok) {
+      const orgData = await orgRes.json()
+      results.push({ id, urn, name: orgData.localizedName ?? `Organization ${id}` })
+    }
+  }
+  return results
+}
+
 export async function postTextToLinkedIn(
   accessToken: string,
-  personSub: string,
+  authorUrn: string,  // urn:li:person:{sub} OR urn:li:organization:{id}
   text: string
 ): Promise<string> {
   const res = await fetch(`${API_BASE}/rest/posts`, {
@@ -87,7 +145,7 @@ export async function postTextToLinkedIn(
       'X-Restli-Protocol-Version': '2.0.0',
     },
     body: JSON.stringify({
-      author:               `urn:li:person:${personSub}`,
+      author:               authorUrn,
       commentary:           text,
       visibility:           'PUBLIC',
       distribution: {

@@ -4,6 +4,16 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getChannelCredential, isTokenExpired, upsertChannelCredential } from '@/lib/domain/credentials'
 import { createPublishLog } from '@/lib/domain/publish-log'
 import { postTextToLinkedIn, refreshLinkedInToken } from '@/lib/linkedin'
+
+async function getChannelAccountType(channelId: string): Promise<string> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('channels')
+    .select('account_type')
+    .eq('id', channelId)
+    .single()
+  return (data?.account_type as string | null) ?? 'personal'
+}
 import {
   createThreadsTextContainer,
   publishThreadsContainer,
@@ -240,11 +250,16 @@ export async function publishLinkedInOutput(
     )
   }
 
+  const accountType = await getChannelAccountType(output.channelId)
+  const authorUrn = accountType === 'page'
+    ? `urn:li:organization:${cred.accountId}`
+    : `urn:li:person:${cred.accountId}`
+
   const startedAt = Date.now()
   let postUrn: string
 
   try {
-    postUrn = await postTextToLinkedIn(cred.accessToken, cred.accountId, text)
+    postUrn = await postTextToLinkedIn(cred.accessToken, authorUrn, text)
   } catch (err) {
     const durationMs = Date.now() - startedAt
     await createPublishLog({

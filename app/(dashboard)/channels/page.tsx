@@ -53,6 +53,7 @@ interface Channel {
   label: string | null
   account_type: string
   is_active: boolean
+  token_expires_at: number | null  // unix timestamp seconds; null = no credential (newsletter/blog)
 }
 
 interface ReadyOutput {
@@ -72,6 +73,12 @@ interface PendingAccount {
   id: string
   username: string
   name: string
+}
+
+interface PendingLiProfile {
+  id: string
+  name: string
+  type: 'personal' | 'page'
 }
 
 const PLATFORMS: {
@@ -167,6 +174,46 @@ function AccountTypeBadge({ type }: { type: string }) {
   )
 }
 
+const SEVEN_DAYS_S = 7 * 24 * 60 * 60
+const ONE_DAY_S    = 24 * 60 * 60
+
+function tokenExpiryStatus(expiresAt: number | null): 'ok' | 'soon' | 'expired' | 'none' {
+  if (expiresAt === null) return 'none'
+  const nowS = Math.floor(Date.now() / 1000)
+  if (expiresAt < nowS) return 'expired'
+  if (expiresAt < nowS + SEVEN_DAYS_S) return 'soon'
+  return 'ok'
+}
+
+function TokenExpiryWarning({ expiresAt, connectHref }: { expiresAt: number | null; connectHref: string | null }) {
+  const status = tokenExpiryStatus(expiresAt)
+  if (status === 'ok' || status === 'none') return null
+
+  const daysLeft = expiresAt !== null
+    ? Math.max(0, Math.floor((expiresAt - Math.floor(Date.now() / 1000)) / ONE_DAY_S))
+    : 0
+
+  const isExpired = status === 'expired'
+  const label = isExpired
+    ? 'Session expired — reconnect to publish'
+    : daysLeft === 0
+      ? 'Session expires today — reconnect'
+      : `Session expires in ${daysLeft}d — reconnect`
+
+  return (
+    <span className={cn(
+      'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+      isExpired
+        ? 'bg-red-50 text-red-600 border border-red-200'
+        : 'bg-amber-50 text-amber-700 border border-amber-200'
+    )}>
+      {connectHref ? (
+        <a href={connectHref}>{label}</a>
+      ) : label}
+    </span>
+  )
+}
+
 // ─── Picker modal ─────────────────────────────────────────────────────────────
 
 function PickerModal({
@@ -235,6 +282,7 @@ function PublishingContent() {
   // Picker state
   const [fbPages, setFbPages] = useState<PendingPage[] | null>(null)
   const [igAccounts, setIgAccounts] = useState<PendingAccount[] | null>(null)
+  const [liProfiles, setLiProfiles] = useState<PendingLiProfile[] | null>(null)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -295,6 +343,11 @@ function PublishingContent() {
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.accounts) setIgAccounts(data.accounts) })
       router.replace('/channels')
+    } else if (select === 'linkedin') {
+      fetch('/api/channels/linkedin/pending-profiles')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.profiles) setLiProfiles(data.profiles) })
+      router.replace('/channels')
     } else if (connected || error) {
       router.replace('/channels')
     }
@@ -323,6 +376,23 @@ function PublishingContent() {
     } else {
       const data = await res.json().catch(() => ({}))
       flash(data.error ?? 'Failed to connect page.', false)
+    }
+  }
+
+  // ── LinkedIn profile/page picker select
+  async function handleSelectLiProfile(profileId: string) {
+    const res = await fetch('/api/channels/linkedin/select-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileId }),
+    })
+    if (res.ok) {
+      setLiProfiles(null)
+      await loadChannels()
+      flash('LinkedIn account connected.', true)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      flash(data.error ?? 'Failed to connect account.', false)
     }
   }
 
@@ -394,6 +464,19 @@ function PublishingContent() {
         )}>
           {toast.msg}
         </div>
+      )}
+
+      {/* LinkedIn profile/page picker */}
+      {liProfiles && (
+        <PickerModal
+          title="Choose a LinkedIn account to connect"
+          items={liProfiles.map(p => ({
+            id:    p.id,
+            label: p.type === 'page' ? `${p.name} · Company Page` : `${p.name} · Personal Profile`,
+          }))}
+          onSelect={handleSelectLiProfile}
+          onClose={() => setLiProfiles(null)}
+        />
       )}
 
       {/* FB page picker */}
@@ -477,9 +560,10 @@ function PublishingContent() {
                 {/* Connected account rows */}
                 {platformChannels.map(ch => (
                   <div key={ch.id} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 last:border-b-0">
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
                       <p className="text-sm text-zinc-700 truncate">{ch.label ?? 'Connected account'}</p>
                       <AccountTypeBadge type={ch.account_type} />
+                      <TokenExpiryWarning expiresAt={ch.token_expires_at} connectHref={connectHref} />
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
                       {connectHref && (
