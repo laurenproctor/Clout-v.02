@@ -274,24 +274,6 @@ export function SyndicationClient({ availableLenses }: Props) {
             </div>
           </div>
 
-          {/* Lens selector */}
-          {availableLenses.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Lenses</p>
-                {selectedLenses.length === 2 && (
-                  <span className="text-xs text-zinc-300">max 2 selected</span>
-                )}
-              </div>
-              <LensSelector
-                availableLenses={availableLenses}
-                selectedLenses={selectedLenses}
-                onToggle={toggleLens}
-                isRunning={isRunning}
-              />
-            </div>
-          )}
-
           {/* Generate button + loading indicator */}
           <div>
             <button

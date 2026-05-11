@@ -42,18 +42,8 @@ export default function XCard({
       {/* Hook */}
       <p className="text-sm font-medium text-zinc-900 leading-snug">{extractHook(content)}</p>
 
-      {/* Preview */}
-      <p
-        className="text-sm text-zinc-500 leading-relaxed"
-        style={{
-          display: '-webkit-box',
-          WebkitLineClamp: 4,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
-      >
-        {content}
-      </p>
+      {/* Full post content */}
+      <p className="text-sm text-zinc-500 leading-relaxed whitespace-pre-wrap">{content}</p>
 
       {/* Retention Strategy */}
       <div>
