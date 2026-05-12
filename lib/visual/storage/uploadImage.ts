@@ -22,8 +22,9 @@ export async function uploadImageFromUrl(params: {
   providerUrl: string
   workspaceId: string
   assetId: string      // pre-generated UUID; becomes the storage filename
+  subfolder?: string   // optional subfolder, e.g. 'backgrounds' for hybrid-overlay
 }): Promise<UploadResult> {
-  const { providerUrl, workspaceId, assetId } = params
+  const { providerUrl, workspaceId, assetId, subfolder } = params
 
   // Fetch ephemeral image from provider
   const imageRes = await fetch(providerUrl)
@@ -50,8 +51,11 @@ export async function uploadImageFromUrl(params: {
   }
   const ext = extMap[mimeType] ?? 'png'
 
-  // Storage path mirrors brand-assets pattern: first folder = workspaceId
-  const storagePath = `${workspaceId}/${assetId}.${ext}`
+  // Phase 2: background images stored under backgrounds/ subfolder.
+  // Existing Phase 1 assets keep their root-level paths unchanged.
+  const storagePath = subfolder
+    ? `${workspaceId}/${subfolder}/${assetId}.${ext}`
+    : `${workspaceId}/${assetId}.${ext}`
 
   const supabase = await createClient()
   const { error: uploadError } = await supabase.storage

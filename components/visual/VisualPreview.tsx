@@ -6,7 +6,10 @@ import { cn } from '@/lib/utils'
 import type { AspectRatio, VisualIntent } from '@/lib/visual/types/visual'
 
 interface VisualPreviewProps {
-  url: string
+  url: string                  // preferred display URL (composedUrl if available, else originalUrl)
+  backgroundUrl?: string       // raw AI background (for display in debug accordion)
+  composedUrl?: string | null  // final composed image URL (hybrid-overlay)
+  templateId?: string | null   // which template was used
   aspectRatio: AspectRatio
   prompt: string
   visualIntent: VisualIntent | null
@@ -21,6 +24,9 @@ const ASPECT_CLASSES: Record<AspectRatio, string> = {
 
 export function VisualPreview({
   url,
+  backgroundUrl,
+  composedUrl,
+  templateId,
   aspectRatio,
   prompt,
   visualIntent,
@@ -29,15 +35,18 @@ export function VisualPreview({
   const [copied, setCopied] = useState(false)
   const [intentExpanded, setIntentExpanded] = useState(false)
 
+  const isComposed = !!composedUrl
+  const displayUrl = composedUrl ?? url
+
   async function copyUrl() {
-    await navigator.clipboard.writeText(url)
+    await navigator.clipboard.writeText(displayUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   function downloadImage() {
     const link = document.createElement('a')
-    link.href = url
+    link.href = displayUrl
     link.download = `visual-${assetId.slice(0, 8)}.png`
     link.target = '_blank'
     link.rel = 'noopener noreferrer'
@@ -50,11 +59,17 @@ export function VisualPreview({
       <div className={cn('relative w-full bg-zinc-100', ASPECT_CLASSES[aspectRatio])}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={url}
+          src={displayUrl}
           alt="AI generated visual"
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />
+        {/* Template badge — only shown when a composed image exists */}
+        {isComposed && templateId && (
+          <span className="absolute top-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/80 backdrop-blur-sm">
+            {templateId}
+          </span>
+        )}
       </div>
 
       <div className="px-4 py-3 space-y-2">
@@ -77,6 +92,16 @@ export function VisualPreview({
               <><Copy className="h-3.5 w-3.5" /> Copy URL</>
             )}
           </button>
+          {isComposed && backgroundUrl && backgroundUrl !== displayUrl && (
+            <a
+              href={backgroundUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              Background only
+            </a>
+          )}
         </div>
 
         {/* Prompt (truncated) */}
@@ -107,6 +132,7 @@ export function VisualPreview({
                   ['Composition',  visualIntent.compositionStyle],
                   ['Color',        visualIntent.colorMood],
                   ['Risk',         visualIntent.creativeRisk],
+                  ['Render mode',  visualIntent.renderMode],
                   ['Rationale',    visualIntent.platformRationale],
                 ] as [string, string | null][])
                   .filter(([, v]) => v !== null)

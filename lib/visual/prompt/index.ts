@@ -7,10 +7,14 @@
 // Everything in lib/visual/prompt/ is the provider translation layer.
 
 import type { VisualIntent, VisualPlatform, AspectRatio } from '../types/visual'
+import type { TemplateSpec } from '../types/template'
+import type { VisualGrammar } from '../types/grammar'
 import { translateAttentionStrategy, translateCreativeRisk } from './socialTranslation'
 import { getPlatformHint } from './platformHints'
 import { getQualityDirectives } from './qualityDirectives'
 import { formatPromptForProvider } from './providerTranslation'
+import { buildCompositionZoneDirective } from './compositionZone'
+import { buildGrammarDirectives } from '../grammar/imageLanguage'
 
 export function buildImagePrompt(params: {
   intent: VisualIntent
@@ -18,8 +22,11 @@ export function buildImagePrompt(params: {
   aspectRatio: AspectRatio
   styleOverride?: string
   provider?: 'openai'
+  // Phase 2: hybrid-overlay additions
+  templateSpec?: TemplateSpec
+  grammar?: VisualGrammar
 }): string {
-  const { intent, platform, aspectRatio, styleOverride, provider = 'openai' } = params
+  const { intent, platform, aspectRatio, styleOverride, provider = 'openai', templateSpec, grammar } = params
 
   const clauses: string[] = []
 
@@ -52,13 +59,27 @@ export function buildImagePrompt(params: {
   // 8. Style override (from brand imagery profile or user input)
   if (styleOverride) clauses.push(styleOverride)
 
-  // 9. Negative exclusions
+  // 9. Phase 2: Composition zone directive for hybrid-overlay templates
+  //    Tells the AI where negative space must be so React can render typography there.
+  if (templateSpec && intent.renderMode === 'hybrid-overlay') {
+    clauses.push(buildCompositionZoneDirective(templateSpec))
+  }
+
+  // 10. Phase 2: Visual grammar directives — operational image-language constraints
+  //     These constrain entropy, tonal range, texture, and visual exclusions.
+  //     Exclusions matter as much as positive directives.
+  if (grammar) {
+    clauses.push(...buildGrammarDirectives(grammar))
+  }
+
+  // 11. Negative exclusions from VisualIntent
   if (intent.negativeSpace.length > 0) {
     clauses.push(`Avoid: ${intent.negativeSpace.join(', ')}`)
   }
 
-  // 10. Quality directives + no-text rule
-  clauses.push(getQualityDirectives(intent.overlayRecommendation === 'none'))
+  // 12. Quality directives + no-text rule
+  //     For hybrid-overlay, we still want no text — the template renders all typography.
+  clauses.push(getQualityDirectives(true))
 
   return formatPromptForProvider(clauses, provider)
 }

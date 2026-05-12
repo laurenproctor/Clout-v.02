@@ -110,10 +110,20 @@ export async function POST(req: NextRequest) {
       seed,
     })
 
+    const assetV2 = asset as typeof asset & {
+      composedUrl: string | null
+      templateId: string | null
+    }
+
     return NextResponse.json(
       {
         assetId:           asset.id,
-        url:               asset.originalUrl,
+        // composedUrl is the preferred display URL when available (hybrid-overlay);
+        // fall back to originalUrl for fully-generated assets.
+        url:               assetV2.composedUrl ?? asset.originalUrl,
+        backgroundUrl:     asset.originalUrl,
+        composedUrl:       assetV2.composedUrl ?? null,
+        templateId:        assetV2.templateId ?? null,
         visualIntent:      asset.visualIntent,
         prompt:            asset.prompt,
         aspectRatio:       asset.aspectRatio,

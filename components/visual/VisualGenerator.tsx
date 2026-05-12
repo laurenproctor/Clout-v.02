@@ -11,7 +11,10 @@ type GeneratorState = 'idle' | 'generating' | 'done' | 'error'
 
 interface GeneratedResult {
   assetId: string
-  url: string
+  url: string                    // preferred display URL (composedUrl if available)
+  backgroundUrl?: string         // raw AI background
+  composedUrl?: string | null    // final composed image (hybrid-overlay)
+  templateId?: string | null     // which template was used
   visualIntent: VisualIntent | null
   prompt: string
   aspectRatio: AspectRatio
@@ -91,7 +94,8 @@ export function VisualGenerator({
 
   function handleAttach() {
     if (!result || !onAttach) return
-    onAttach(result.assetId, result.url)
+    // Attach the best available URL: composed > original
+    onAttach(result.assetId, result.composedUrl ?? result.url)
     setAttached(true)
   }
 
@@ -151,7 +155,10 @@ export function VisualGenerator({
   return (
     <div className={cn('space-y-3', className)}>
       <VisualPreview
-        url={result!.url}
+        url={result!.composedUrl ?? result!.url}
+        backgroundUrl={result!.backgroundUrl}
+        composedUrl={result!.composedUrl}
+        templateId={result!.templateId}
         aspectRatio={result!.aspectRatio}
         prompt={result!.prompt}
         visualIntent={result!.visualIntent}
