@@ -3,13 +3,14 @@
 import { cn } from '@/lib/utils'
 
 interface StepProgressHeaderProps {
-  currentStep: 1 | 2 | 3
+  currentStep: 1 | 2 | 3 | 4
 }
 
 const STEPS = [
   { number: 1, label: 'Strategic Setup' },
   { number: 2, label: 'Narrative Direction' },
-  { number: 3, label: 'Article' },
+  { number: 3, label: 'Review Article' },
+  { number: 4, label: 'Social Posts' },
 ]
 
 export function StepProgressHeader({ currentStep }: StepProgressHeaderProps) {

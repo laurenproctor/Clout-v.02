@@ -20,6 +20,7 @@ type WorkspaceState =
   | 'generating:phase1-3'
   | 'narrative-review'
   | 'generating:phase4-10'
+  | 'article-review'
   | 'result'
 
 interface ProgressEvent {
@@ -40,6 +41,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   const [selectedHeadline, setSelectedHeadline] = useState<string>('')
   const [showAdvancedControls, setShowAdvancedControls] = useState(false)
   const [blogPackage, setBlogPackage] = useState<GeneratedBlogPackage | null>(null)
+  const [isSocialGenerating, setIsSocialGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const addProgress = useCallback((phase: string, label: string) => {
@@ -87,6 +89,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               if (event.phase === 'hook-exploration') setHookExploration(event.data)
             } else if (event.type === 'paused') {
               receivedPaused = true
+              if (req.title) setSelectedHeadline(req.title)
               setState('narrative-review')
             } else if (event.type === 'error') {
               throw new Error(event.message ?? 'Generation failed')
@@ -158,7 +161,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             } else if (event.type === 'complete') {
               receivedComplete = true
               setBlogPackage(event.data)
-              setState('result')
+              setState('article-review')
             } else if (event.type === 'error') {
               throw new Error(event.message ?? 'Generation failed')
             }
@@ -221,6 +224,27 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
       // non-fatal
     }
   }, [request, narrativeStrategy, blogPackage, selectedHeadline])
+
+  const handleGenerateSocial = useCallback(async () => {
+    if (!blogPackage) return
+    setIsSocialGenerating(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/blog/generate-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blogPackage }),
+      })
+      if (!res.ok) throw new Error('Social post generation failed')
+      const { distribution } = await res.json()
+      setBlogPackage(prev => prev ? { ...prev, distribution } : prev)
+      setState('result')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Social post generation failed')
+    } finally {
+      setIsSocialGenerating(false)
+    }
+  }, [blogPackage])
 
   const isGenerating = state === 'generating:phase1-3' || state === 'generating:phase4-10'
 
@@ -289,7 +313,10 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
                 </div>
 
                 <div className="space-y-3">
-                  {hookExploration.headlineOptions.map((option, i) => (
+                  {(request?.title
+                    ? [{ title: request.title, style: 'executive' as const, strength: 5, why: 'Your provided title' }, ...hookExploration.headlineOptions]
+                    : hookExploration.headlineOptions
+                  ).map((option, i) => (
                     <NarrativeCard
                       key={i}
                       option={option}
@@ -369,23 +396,65 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     )
   }
 
+  // Article review state
+  if (state === 'article-review' && blogPackage) {
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        <StepProgressHeader currentStep={3} />
+        <div className="flex flex-1 min-h-0 gap-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
+            <BlogArticleEditor
+              blogPackage={blogPackage}
+              onRegenerateSection={handleRegenerateSection}
+            />
+            <div className="mt-6 pt-6 border-t border-zinc-100">
+              {error && (
+                <p className="mb-3 text-sm text-red-600">{error}</p>
+              )}
+              <p className="text-sm text-zinc-500 mb-3">
+                Happy with your article? Generate social posts to complete your content package.
+              </p>
+              <button
+                type="button"
+                onClick={handleGenerateSocial}
+                disabled={isSocialGenerating}
+                className="bg-zinc-900 text-white rounded-md px-6 py-3 text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSocialGenerating ? 'Generating Social Posts...' : 'Generate Social Posts'}
+              </button>
+            </div>
+          </div>
+          <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
+            <StrategicInsightsPanel insights={blogPackage.strategicInsights} />
+            <div className="mt-6">
+              <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Result state
   if (state === 'result' && blogPackage) {
     return (
-      <div className="flex h-full min-h-0 gap-0">
-        <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
-          <BlogArticleEditor
-            blogPackage={blogPackage}
-            onRegenerateSection={handleRegenerateSection}
-          />
-          <div className="mt-6">
-            <DistributionCards distribution={blogPackage.distribution} />
+      <div className="flex flex-col h-full min-h-0">
+        <StepProgressHeader currentStep={4} />
+        <div className="flex flex-1 min-h-0 gap-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
+            <BlogArticleEditor
+              blogPackage={blogPackage}
+              onRegenerateSection={handleRegenerateSection}
+            />
+            <div className="mt-6">
+              <DistributionCards distribution={blogPackage.distribution} />
+            </div>
           </div>
-        </div>
-        <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
-          <StrategicInsightsPanel insights={blogPackage.strategicInsights} />
-          <div className="mt-6">
-            <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
+          <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
+            <StrategicInsightsPanel insights={blogPackage.strategicInsights} />
+            <div className="mt-6">
+              <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
+            </div>
           </div>
         </div>
       </div>

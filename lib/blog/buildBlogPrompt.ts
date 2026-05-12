@@ -90,6 +90,13 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
     lines.push('')
   }
 
+  if (r.contentSummary) {
+    lines.push('## Article Content Summary')
+    lines.push(r.contentSummary)
+    lines.push('Ground the article in this content direction. Ensure key points, angles, and subject matter align with this summary.')
+    lines.push('')
+  }
+
   if (ctx.selectedHeadline) {
     lines.push('## Confirmed Headline')
     lines.push(`"${ctx.selectedHeadline}"`)

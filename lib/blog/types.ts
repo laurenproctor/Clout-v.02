@@ -95,6 +95,7 @@ export interface BlogGenerationRequest {
   sourceContent?: string
 
   title?: string
+  contentSummary?: string
   primaryKeyword: string
   secondaryKeywords: string[]
   additionalContext?: string

@@ -3,7 +3,6 @@ import { generateMetadata } from './generateMetadata'
 import { generateOutline } from './generateOutline'
 import { generateSections } from './generateSections'
 import { generateImageSpecs } from './generateImageSpecs'
-import { generateDistribution } from './generateDistribution'
 import { analyzeContent } from './analyzeContent'
 import type { BlogPromptContext } from './buildBlogPrompt'
 import type { NarrativeStrategy, HookExploration, GeneratedBlogPackage } from './types'
@@ -57,20 +56,16 @@ export function runPhase4to10(input: Phase4to10Input): ReadableStream<Uint8Array
         track('sections', 'Sections', sections.totalInputTokens, sections.totalOutputTokens)
         emit({ type: 'phase-complete', phase: 'sections', data: { markdown: sections.markdown, wordCount: sections.wordCount } })
 
-        // Phases 8+9+10 in parallel: all independent once sections exist
+        // Phases 8+9 in parallel: both independent once sections exist
         emit({ type: 'progress', phase: 'image-specs', label: 'Generating image specifications...' })
-        emit({ type: 'progress', phase: 'distribution', label: 'Adapting for platform psychology...' })
         emit({ type: 'progress', phase: 'content-analysis', label: 'Assessing editorial quality...' })
-        const [images, dist, analysis] = await Promise.all([
+        const [images, analysis] = await Promise.all([
           generateImageSpecs(ctx, narrativeStrategy, outline.result, selectedHeadline),
-          generateDistribution(ctx, narrativeStrategy, sections.markdown, selectedHeadline),
           analyzeContent(ctx, narrativeStrategy, sections.markdown, outline.result, meta.result, selectedHeadline),
         ])
         track('image-specs', 'Image Specs', images.inputTokens, images.outputTokens)
-        track('distribution', 'Distribution', dist.inputTokens, dist.outputTokens)
         track('content-analysis', 'Content Analysis', analysis.inputTokens, analysis.outputTokens)
         emit({ type: 'phase-complete', phase: 'image-specs', data: { hero: images.hero, inline: images.inline } })
-        emit({ type: 'phase-complete', phase: 'distribution', data: { linkedin: dist.linkedin, xThread: dist.xThread, newsletter: dist.newsletter } })
 
         const blogPackage: GeneratedBlogPackage = {
           request: ctx.request,
@@ -85,7 +80,7 @@ export function runPhase4to10(input: Phase4to10Input): ReadableStream<Uint8Array
             wordCount: sections.wordCount,
           },
           images: { hero: images.hero, inline: images.inline },
-          distribution: { linkedin: dist.linkedin, xThread: dist.xThread, newsletter: dist.newsletter },
+          distribution: {},
           contentAnalysis: analysis.contentAnalysis,
           strategicInsights: analysis.strategicInsights,
           generationMetadata: {

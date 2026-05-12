@@ -107,6 +107,20 @@ export function StrategicSetupPanel({ lenses, onGenerate, disabled }: StrategicS
             />
           </div>
 
+          {/* Content Summary */}
+          <div>
+            <label className={labelClass}>
+              Content Summary <span className="text-zinc-300 normal-case font-normal">(optional)</span>
+            </label>
+            <textarea
+              placeholder="Describe the article you want to write — key points, angle, or specific content to include"
+              value={values.contentSummary ?? ''}
+              onChange={e => set({ contentSummary: e.target.value || undefined })}
+              rows={3}
+              className={`${inputClass} resize-none`}
+            />
+          </div>
+
           {/* Goal Type */}
           <div>
             <label className={labelClass}>Goal</label>
