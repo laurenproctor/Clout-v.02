@@ -163,7 +163,7 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
         const result = await callClaude({
           systemPrompt: buildSystemPrompt(ctx),
           userMessage: buildUserMessage(ctx.request),
-          maxTokens: 3500,
+          maxTokens: 6000,
         })
 
         const parsed = parseJson<ClaudeResponse>(result.content)
