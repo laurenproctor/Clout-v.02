@@ -88,6 +88,48 @@ export interface ImageProvider {
   }): Promise<GeneratedImage>
 }
 
+// ─── Brand semantic profile ──────────────────────────────────────────────────
+// Output of normalizeBrandIdentity() — semantic interpretation of raw brand DB rows.
+// Never contains raw hex values or unresolved trait lists.
+
+export interface CanonicalTrait {
+  trait:      string  // canonicalized, deduplicated trait name
+  confidence: number  // 0–1; derived from how many raw inputs mapped to this trait
+}
+
+export interface BrandSemanticProfile {
+  // Synthesized identity anchor — stabilizes all downstream generation decisions
+  brandArchetype: string              // e.g. "Editorial Luxury", "Technical Precision"
+
+  // Brand's relationship to time — affects pacing, styling, lighting, render energy
+  temporalCharacter: 'timeless' | 'contemporary' | 'futuristic'
+
+  // Color interpreted as visual language — never raw hex
+  colorProfile: {
+    temperature:       'warm' | 'cool' | 'neutral'
+    contrast:          'high' | 'moderate' | 'low'
+    saturation:        'muted' | 'moderate' | 'vivid'
+    emotionalRegister: string   // e.g. "high authority / editorial weight"
+    paletteCharacter:  string   // e.g. "deep navy foundation, restrained warm gold accent, high contrast"
+  }
+
+  // Density separated into three independent dimensions (compact ≠ minimal)
+  informationDensity:      'high' | 'moderate' | 'low'
+  negativeSpacePreference: 'minimal' | 'balanced' | 'generous'
+  compositionComplexity:   'layered' | 'structured' | 'clean'
+
+  // Canonicalized traits — contradiction-resolved, confidence-scored, max 5
+  canonicalTraits: CanonicalTrait[]
+
+  // Imagery direction — pass-through from brand_imagery_profiles
+  visualStyles:         string[]
+  imageryType:          string | null
+  compositionPreference: string | null
+  overlayTextStyle:     string | null
+  moodTraits:           string[]
+  negativeRules:        string[]
+}
+
 // ─── Orchestrator input ──────────────────────────────────────────────────────
 export interface GenerateImageInput {
   mode: GenerationMode
@@ -100,13 +142,7 @@ export interface GenerateImageInput {
   platform?: VisualPlatform
   emotionalTone?: string
   keyIdea?: string
-  brandImageryProfile?: {
-    visualStyles: string[]
-    imageryType: string | null
-    composition: string | null
-    moodTraits: string[]
-    negativeRules: string[]
-  }
+  brandProfile?: BrandSemanticProfile  // normalized brand identity — produced by normalizeBrandIdentity()
   promptOverride?: string       // skips intent generation (prompt-driven mode)
   visualIntent?: VisualIntent   // caller-supplied intent (skips Claude call)
   aspectRatio?: AspectRatio

@@ -29,7 +29,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     platform,
     emotionalTone,
     keyIdea,
-    brandImageryProfile,
+    brandProfile,
     promptOverride,
     visualIntent: intentOverride,
     aspectRatio = 'landscape',
@@ -63,7 +63,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       platform,
       emotionalTone,
       keyIdea,
-      brandImageryProfile,
+      brandProfile,
     })
     resolvedIntent = result.intent
     intentInputTokens = result.inputTokens
@@ -79,7 +79,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       intent:        resolvedIntent!,
       platform,
       aspectRatio,
-      styleOverride: brandImageryProfile?.composition ?? undefined,
+      styleOverride: brandProfile?.compositionPreference ?? undefined,
     })
   }
 
