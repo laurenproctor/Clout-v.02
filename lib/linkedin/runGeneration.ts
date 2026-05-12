@@ -148,6 +148,19 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
   ].join('\n')
 }
 
+function isOverloaded(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.includes('overloaded') || msg.includes('529') || msg.includes('overloaded_error')
+}
+
+function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err)
+  if (isOverloaded(err)) return 'The AI is currently overloaded. Please try again in a moment.'
+  if (msg.includes('timeout') || msg.includes('timed out')) return 'Generation timed out — try a shorter source or fewer lenses.'
+  if (msg.startsWith('{')) return 'Generation failed. Please try again.'
+  return msg
+}
+
 export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
 
@@ -157,9 +170,7 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
         controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
       }
 
-      try {
-        emit({ type: 'progress', label: 'Core thesis identified' })
-
+      async function generate(attempt: number): Promise<void> {
         const stream = callClaudeStream({
           systemPrompt: buildSystemPrompt(ctx),
           userMessage: buildUserMessage(ctx.request),
@@ -194,12 +205,25 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
           transformationDelta: v.transformationDelta,
         }))
 
-        const generationResult: LinkedInGenerationResult = { variations }
-
-        emit({ type: 'complete', data: generationResult })
+        emit({ type: 'complete', data: { variations } as LinkedInGenerationResult })
         emit({ type: 'coaching', data: parsed.coaching })
+      }
+
+      try {
+        emit({ type: 'progress', label: 'Core thesis identified' })
+        try {
+          await generate(1)
+        } catch (err) {
+          if (isOverloaded(err)) {
+            emit({ type: 'progress', label: 'API busy — retrying...' })
+            await new Promise(r => setTimeout(r, 3000))
+            await generate(2)
+          } else {
+            throw err
+          }
+        }
       } catch (err) {
-        emit({ type: 'error', message: err instanceof Error ? err.message : 'Unknown error' })
+        emit({ type: 'error', message: friendlyError(err) })
       } finally {
         controller.close()
       }
