@@ -53,6 +53,7 @@ export interface LinkedInVariation {
   ctaSuggestions: string[]
   transformationDelta: TransformationDelta
   patternId?: string
+  selectedVisualAssetId?: string | null  // committed visual attachment for this variation
 }
 
 export interface LinkedInGenerationResult {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ImageIcon, RefreshCw, Loader2 } from 'lucide-react'
+import { ImageIcon, RefreshCw, Loader2, Check, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { VisualPreview } from './VisualPreview'
@@ -23,6 +23,7 @@ interface VisualGeneratorProps {
   platform: VisualPlatform
   outputId?: string
   aspectRatio?: AspectRatio
+  onAttach?: (assetId: string, url: string) => void
   className?: string
 }
 
@@ -31,6 +32,7 @@ export function VisualGenerator({
   platform,
   outputId,
   aspectRatio = 'landscape',
+  onAttach,
   className,
 }: VisualGeneratorProps) {
   const [state, setState] = useState<GeneratorState>('idle')
@@ -38,11 +40,13 @@ export function VisualGenerator({
   const [error, setError] = useState<string | null>(null)
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [promptDraft, setPromptDraft] = useState('')
+  const [attached, setAttached] = useState(false)
 
   async function generate(params?: { promptOverride?: string; parentAssetId?: string; generationGroupId?: string }) {
     setState('generating')
     setError(null)
     setEditingPrompt(false)
+    setAttached(false)
 
     try {
       const res = await fetch('/api/visual/generate', {
@@ -74,7 +78,6 @@ export function VisualGenerator({
   }
 
   function handleRegenerate() {
-    // Regeneration is a variation — link to parent to preserve lineage
     generate({
       parentAssetId:     result?.assetId,
       generationGroupId: result?.generationGroupId,
@@ -84,6 +87,12 @@ export function VisualGenerator({
   function handleEditPrompt() {
     setPromptDraft(result?.prompt ?? '')
     setEditingPrompt(true)
+  }
+
+  function handleAttach() {
+    if (!result || !onAttach) return
+    onAttach(result.assetId, result.url)
+    setAttached(true)
   }
 
   // ── Idle ──────────────────────────────────────────────────────────────────
@@ -98,7 +107,7 @@ export function VisualGenerator({
           Generate a platform-optimised image using AI visual strategy derived from this content.
         </p>
         <Button size="sm" onClick={() => generate()}>
-          Generate image
+          Generate visual
         </Button>
       </div>
     )
@@ -149,7 +158,20 @@ export function VisualGenerator({
         assetId={result!.assetId}
       />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        {onAttach && (
+          attached ? (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-green-600 px-3 py-1.5">
+              <Check className="h-3.5 w-3.5" />
+              Attached
+            </span>
+          ) : (
+            <Button size="sm" onClick={handleAttach}>
+              <Paperclip className="h-3.5 w-3.5" />
+              Attach to post
+            </Button>
+          )
+        )}
         <Button
           size="sm"
           variant="outline"

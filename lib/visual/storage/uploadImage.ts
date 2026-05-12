@@ -1,6 +1,10 @@
 // lib/visual/storage/uploadImage.ts
 // Downloads an ephemeral provider URL and uploads to Supabase 'visual-assets' bucket.
 // Pattern mirrors app/api/brand/logo/route.ts:23–32.
+//
+// TODO: Garbage collect visual_assets rows where selectedVisualAssetId is never set
+// (i.e., generated but never attached to published content) after X days.
+// Without lifecycle management, experimentation creates permanent asset bloat.
 
 import { createClient } from '@/lib/supabase/server'
 

@@ -132,11 +132,77 @@ export async function fetchLinkedInOrganizations(
   return results
 }
 
+// Registers a Supabase-hosted image with LinkedIn and uploads it.
+// Returns the LinkedIn image URN (urn:li:image:{id}) for attachment to posts.
+export async function uploadImageToLinkedIn(
+  accessToken: string,
+  authorUrn: string,
+  imageUrl: string
+): Promise<string> {
+  // Step 1 — Initialize upload and receive pre-signed URL
+  const initRes = await fetch(`${API_BASE}/rest/images?action=initializeUpload`, {
+    method: 'POST',
+    headers: {
+      Authorization:               `Bearer ${accessToken}`,
+      'Content-Type':              'application/json',
+      'LinkedIn-Version':          LI_VERSION,
+      'X-Restli-Protocol-Version': '2.0.0',
+    },
+    body: JSON.stringify({ initializeUploadRequest: { owner: authorUrn } }),
+  })
+  if (!initRes.ok) {
+    const text = await initRes.text()
+    throw new Error(`LinkedIn image init failed (${initRes.status}): ${text}`)
+  }
+  const initData = await initRes.json() as { value: { uploadUrl: string; image: string } }
+  const { uploadUrl, image: imageUrn } = initData.value
+
+  // Step 2 — Fetch image binary from Supabase public URL
+  const imgRes = await fetch(imageUrl)
+  if (!imgRes.ok) {
+    throw new Error(`Failed to fetch image for LinkedIn upload (${imgRes.status})`)
+  }
+  const buffer = await imgRes.arrayBuffer()
+
+  // Step 3 — Upload binary to LinkedIn's pre-signed URL (no auth header — URL is pre-authenticated)
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: buffer,
+  })
+  if (!uploadRes.ok) {
+    const text = await uploadRes.text()
+    throw new Error(`LinkedIn image upload failed (${uploadRes.status}): ${text}`)
+  }
+
+  return imageUrn
+}
+
 export async function postTextToLinkedIn(
   accessToken: string,
   authorUrn: string,  // urn:li:person:{sub} OR urn:li:organization:{id}
-  text: string
+  text: string,
+  imageUrn?: string   // urn:li:image:{id} — attach a pre-uploaded LinkedIn image
 ): Promise<string> {
+  const payload: Record<string, unknown> = {
+    author:               authorUrn,
+    commentary:           text,
+    visibility:           'PUBLIC',
+    distribution: {
+      feedDistribution:             'MAIN_FEED',
+      targetEntities:               [],
+      thirdPartyDistributionChannels: [],
+    },
+    lifecycleState:            'PUBLISHED',
+    isReshareDisabledByAuthor: false,
+  }
+
+  if (imageUrn) {
+    payload.content = {
+      media: { id: imageUrn, altText: 'Generated visual' },
+    }
+  }
+
   const res = await fetch(`${API_BASE}/rest/posts`, {
     method: 'POST',
     headers: {
@@ -145,18 +211,7 @@ export async function postTextToLinkedIn(
       'LinkedIn-Version':         LI_VERSION,
       'X-Restli-Protocol-Version': '2.0.0',
     },
-    body: JSON.stringify({
-      author:               authorUrn,
-      commentary:           text,
-      visibility:           'PUBLIC',
-      distribution: {
-        feedDistribution:             'MAIN_FEED',
-        targetEntities:               [],
-        thirdPartyDistributionChannels: [],
-      },
-      lifecycleState:            'PUBLISHED',
-      isReshareDisabledByAuthor: false,
-    }),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const body = await res.text()

@@ -3,7 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getChannelCredential, isTokenExpired, upsertChannelCredential } from '@/lib/domain/credentials'
 import { createPublishLog } from '@/lib/domain/publish-log'
-import { postTextToLinkedIn, refreshLinkedInToken } from '@/lib/linkedin'
+import { postTextToLinkedIn, uploadImageToLinkedIn, refreshLinkedInToken } from '@/lib/linkedin'
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -255,11 +255,38 @@ export async function publishLinkedInOutput(
     ? `urn:li:organization:${cred.accountId}`
     : `urn:li:person:${cred.accountId}`
 
+  // Resolve visual asset if one was attached to this draft
+  let imageUrn: string | undefined
+  const visualAssetId = (output.content as OutputContent & { selectedVisualAssetId?: string }).selectedVisualAssetId
+  if (visualAssetId) {
+    const supabase = createServiceClient()
+    const { data: asset } = await supabase
+      .from('visual_assets')
+      .select('original_url')
+      .eq('id', visualAssetId)
+      .single()
+
+    if (asset?.original_url) {
+      try {
+        imageUrn = await uploadImageToLinkedIn(cred.accessToken, authorUrn, asset.original_url)
+      } catch (uploadErr) {
+        console.error('[publishing/linkedin] image upload failed', {
+          error: uploadErr instanceof Error ? uploadErr.message : String(uploadErr),
+          visualAssetId,
+        })
+        throw Object.assign(
+          new Error(`Failed to upload visual to LinkedIn: ${uploadErr instanceof Error ? uploadErr.message : 'Unknown error'}`),
+          { code: 'image_upload_failed', retryable: true }
+        )
+      }
+    }
+  }
+
   const startedAt = Date.now()
   let postUrn: string
 
   try {
-    postUrn = await postTextToLinkedIn(cred.accessToken, authorUrn, text)
+    postUrn = await postTextToLinkedIn(cred.accessToken, authorUrn, text, imageUrn)
   } catch (err) {
     const durationMs = Date.now() - startedAt
     await createPublishLog({
