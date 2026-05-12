@@ -86,6 +86,7 @@ export function StrategyPanel({
     { value: 'engineers', label: 'Engineers' },
     { value: 'investors', label: 'Investors' },
     { value: 'recruiters', label: 'Recruiters' },
+    { value: 'general_audience', label: 'General Audience' },
   ]
 
   const narrativeStyles: { value: NarrativeStyle; label: string }[] = [

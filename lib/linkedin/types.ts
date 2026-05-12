@@ -14,7 +14,7 @@ export type VoiceRegister =
 
 export type LinkedInAudience =
   | 'founders' | 'enterprise_buyers' | 'marketers' | 'operators'
-  | 'engineers' | 'investors' | 'recruiters'
+  | 'engineers' | 'investors' | 'recruiters' | 'general_audience'
 
 export type LinkedInLength = 'short' | 'medium' | 'long' | 'executive_brief' | 'story_format'
 
