@@ -51,7 +51,9 @@ export function runPhase4to10(input: Phase4to10Input): ReadableStream<Uint8Array
 
         // Phase 7: Sections (sequential — each section informs the next via memory)
         emit({ type: 'progress', phase: 'sections', label: 'Writing article sections...' })
-        const sections = await generateSections(ctx, narrativeStrategy, outline.result, selectedHeadline)
+        const sections = await generateSections(ctx, narrativeStrategy, outline.result, selectedHeadline, (i, total) => {
+          emit({ type: 'progress', phase: 'sections', label: `Writing section ${i} of ${total}...` })
+        })
         track('sections', 'Sections', sections.totalInputTokens, sections.totalOutputTokens)
         emit({ type: 'phase-complete', phase: 'sections', data: { markdown: sections.markdown, wordCount: sections.wordCount } })
 

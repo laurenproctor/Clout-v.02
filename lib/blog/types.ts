@@ -124,6 +124,7 @@ export interface BlogGenerationRequest {
     | 'investor'
     | 'creator'
     | 'researcher'
+    | 'mass_appeal'
 
   narrativeTemperature:
     | 'analytical'

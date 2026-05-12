@@ -92,8 +92,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               throw new Error(event.message ?? 'Generation failed')
             }
           } catch (parseErr) {
-            if (parseErr instanceof Error && parseErr.message !== 'Generation failed') {
-              // skip malformed lines
+            if (parseErr instanceof SyntaxError) {
+              // skip malformed NDJSON lines
             } else {
               throw parseErr
             }
@@ -163,8 +163,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               throw new Error(event.message ?? 'Generation failed')
             }
           } catch (parseErr) {
-            if (parseErr instanceof Error && parseErr.message !== 'Generation failed') {
-              // skip malformed lines
+            if (parseErr instanceof SyntaxError) {
+              // skip malformed NDJSON lines
             } else {
               throw parseErr
             }

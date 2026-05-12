@@ -6,7 +6,8 @@ export async function generateSections(
   ctx: BlogPromptContext,
   narrativeStrategy: NarrativeStrategy,
   outline: OutlineSection[],
-  selectedHeadline: string
+  selectedHeadline: string,
+  onSectionComplete?: (sectionIndex: number, total: number) => void
 ): Promise<{ markdown: string; wordCount: number; totalInputTokens: number; totalOutputTokens: number }> {
   const memory: ArticleMemory = {
     canonicalClaims: [],
@@ -55,6 +56,7 @@ Write ONLY the section content in markdown. Start with the ## or ### heading. No
     sections.push(res.content)
     totalInputTokens += res.inputTokens
     totalOutputTokens += res.outputTokens
+    onSectionComplete?.(i + 1, outline.length)
 
     // Update memory inline (no extra API call — extract key phrases from section text)
     const words = res.content.split(/\s+/)

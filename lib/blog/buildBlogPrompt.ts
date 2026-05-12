@@ -55,6 +55,7 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
     engineer: 'Respect technical depth, precise language, and concrete implementations.',
     creator: 'Emphasize narrative craft, audience psychology, and distribution leverage.',
     researcher: 'Prioritize rigor, nuance, evidence quality, and epistemic care.',
+    mass_appeal: 'Write for a broad general audience. Use plain language, relatable analogies, and real-world examples. Avoid jargon. Make complex ideas instantly accessible without dumbing them down.',
   }
   lines.push(audienceGuidance[r.audienceIdentity] ?? '')
   lines.push('')

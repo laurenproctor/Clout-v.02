@@ -12,6 +12,7 @@ const OPTIONS: Array<{ value: BlogGenerationRequest['audienceIdentity']; label: 
   { value: 'engineer', label: 'Engineer' },
   { value: 'creator', label: 'Creator' },
   { value: 'researcher', label: 'Researcher' },
+  { value: 'mass_appeal', label: 'Mass Appeal' },
 ]
 
 interface AudienceIdentitySelectorProps {
