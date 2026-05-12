@@ -1420,6 +1420,109 @@ export type Database = {
           },
         ]
       }
+      visual_assets: {
+        Row: {
+          id: string
+          workspace_id: string
+          output_id: string | null
+          parent_asset_id: string | null
+          generation_group_id: string
+          variation_reason: string | null
+          provider: string
+          provider_model: string
+          original_url: string
+          storage_path: string
+          prompt: string
+          visual_intent: Json | null
+          generation_mode: string
+          render_mode: string
+          aspect_ratio: string
+          mime_type: string
+          file_size_bytes: number | null
+          seed: number | null
+          status: string
+          primitive_payload: Json | null
+          overlay_payload: Json | null
+          intent_input_tokens: number | null
+          intent_output_tokens: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          output_id?: string | null
+          parent_asset_id?: string | null
+          generation_group_id: string
+          variation_reason?: string | null
+          provider?: string
+          provider_model?: string
+          original_url: string
+          storage_path: string
+          prompt: string
+          visual_intent?: Json | null
+          generation_mode?: string
+          render_mode?: string
+          aspect_ratio?: string
+          mime_type?: string
+          file_size_bytes?: number | null
+          seed?: number | null
+          status?: string
+          primitive_payload?: Json | null
+          overlay_payload?: Json | null
+          intent_input_tokens?: number | null
+          intent_output_tokens?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          output_id?: string | null
+          parent_asset_id?: string | null
+          generation_group_id?: string
+          variation_reason?: string | null
+          provider?: string
+          provider_model?: string
+          original_url?: string
+          storage_path?: string
+          prompt?: string
+          visual_intent?: Json | null
+          generation_mode?: string
+          render_mode?: string
+          aspect_ratio?: string
+          mime_type?: string
+          file_size_bytes?: number | null
+          seed?: number | null
+          status?: string
+          primitive_payload?: Json | null
+          overlay_payload?: Json | null
+          intent_input_tokens?: number | null
+          intent_output_tokens?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visual_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visual_assets_output_id_fkey"
+            columns: ["output_id"]
+            isOneToOne: false
+            referencedRelation: "outputs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visual_assets_parent_asset_id_fkey"
+            columns: ["parent_asset_id"]
+            isOneToOne: false
+            referencedRelation: "visual_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           assigned_operator_id: string | null
