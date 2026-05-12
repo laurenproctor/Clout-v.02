@@ -23,7 +23,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
   const [state, setState] = useState<LinkedInWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<LinkedInGenerationRequest>>({
     length: 'medium',
-    audience: 'founders',
+    audience: 'general_audience',
     lensIds: [],
     narrativeStyle: 'story',
     voiceRegister: 'warm',
