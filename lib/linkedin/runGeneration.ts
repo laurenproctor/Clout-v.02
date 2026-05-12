@@ -1,5 +1,5 @@
 // lib/linkedin/runGeneration.ts
-import { callClaude } from '@/lib/ai/generate'
+import { callClaudeStream } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import type {
   LinkedInGenerationRequest,
@@ -160,18 +160,28 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
       try {
         emit({ type: 'progress', label: 'Core thesis identified' })
 
-        const result = await callClaude({
+        const stream = callClaudeStream({
           systemPrompt: buildSystemPrompt(ctx),
           userMessage: buildUserMessage(ctx.request),
           maxTokens: 6000,
         })
 
-        const parsed = parseJson<ClaudeResponse>(result.content)
+        let accumulated = ''
+        let chunkCount = 0
+
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            accumulated += event.delta.text
+            chunkCount++
+            if (chunkCount === 30) emit({ type: 'progress', label: 'Writing post variations...' })
+            if (chunkCount === 120) emit({ type: 'progress', label: 'Finalizing distribution variants' })
+          }
+        }
+
+        const parsed = parseJson<ClaudeResponse>(accumulated)
         if (!Array.isArray(parsed?.variations) || !parsed?.coaching) {
           throw new Error('Claude returned an unexpected response structure. Try again.')
         }
-
-        emit({ type: 'progress', label: 'Finalizing distribution variants' })
 
         const variations: LinkedInVariation[] = parsed.variations.map((v) => ({
           id: crypto.randomUUID(),
