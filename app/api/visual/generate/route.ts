@@ -91,29 +91,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Load brand imagery profile (optional — soft fail) ────────────────────
-  let brandImageryProfile: Parameters<typeof generateImage>[0]['brandImageryProfile']
-  try {
-    const supabase = await createClient()
-    const { data: imagery } = await supabase
-      .from('brand_imagery_profiles')
-      .select('visual_styles, imagery_type, composition, mood_traits, negative_rules')
-      .eq('workspace_id', session.workspaceId)
-      .single()
-
-    if (imagery) {
-      brandImageryProfile = {
-        visualStyles: imagery.visual_styles ?? [],
-        imageryType:  imagery.imagery_type ?? null,
-        composition:  imagery.composition ?? null,
-        moodTraits:   imagery.mood_traits ?? [],
-        negativeRules: imagery.negative_rules ?? [],
-      }
-    }
-  } catch {
-    // Brand imagery is optional — a missing or errored profile never blocks generation
-  }
-
   // ── Generate ──────────────────────────────────────────────────────────────
   try {
     const asset = await generateImage({
@@ -129,7 +106,6 @@ export async function POST(req: NextRequest) {
       quality,
       emotionalTone,
       keyIdea,
-      brandImageryProfile,
       promptOverride,
       seed,
     })
