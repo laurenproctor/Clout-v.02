@@ -358,6 +358,7 @@ export type Database = {
           is_private: boolean
           notes: string | null
           raw_content: string | null
+          extracted_angles: Json | null
           research_sources: Json | null
           research_summary: string | null
           source: Database["public"]["Enums"]["capture_source"]
@@ -378,6 +379,7 @@ export type Database = {
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          extracted_angles?: Json | null
           research_sources?: Json | null
           research_summary?: string | null
           source: Database["public"]["Enums"]["capture_source"]
@@ -398,6 +400,7 @@ export type Database = {
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          extracted_angles?: Json | null
           research_sources?: Json | null
           research_summary?: string | null
           source?: Database["public"]["Enums"]["capture_source"]
@@ -535,8 +538,10 @@ export type Database = {
           capture_id: string
           completed_at: string | null
           created_at: string
+          angle_id: string | null
           duration_ms: number | null
           error_message: string | null
+          generation_group_id: string | null
           id: string
           lens_id: string
           model: string
@@ -551,8 +556,10 @@ export type Database = {
           capture_id: string
           completed_at?: string | null
           created_at?: string
+          angle_id?: string | null
           duration_ms?: number | null
           error_message?: string | null
+          generation_group_id?: string | null
           id?: string
           lens_id: string
           model: string
@@ -567,8 +574,10 @@ export type Database = {
           capture_id?: string
           completed_at?: string | null
           created_at?: string
+          angle_id?: string | null
           duration_ms?: number | null
           error_message?: string | null
+          generation_group_id?: string | null
           id?: string
           lens_id?: string
           model?: string
@@ -828,6 +837,7 @@ export type Database = {
           content_type: string
           created_at: string
           deleted_at: string | null
+          generation_group_id: string | null
           generation_id: string | null
           id: string
           last_publish_error: string | null
@@ -850,6 +860,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           deleted_at?: string | null
+          generation_group_id?: string | null
           generation_id?: string | null
           id?: string
           last_publish_error?: string | null
@@ -872,6 +883,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           deleted_at?: string | null
+          generation_group_id?: string | null
           generation_id?: string | null
           id?: string
           last_publish_error?: string | null
