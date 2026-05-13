@@ -1,6 +1,6 @@
 # Reliability Status
 
-Updated: 2026-04-25
+Updated: 2026-05-12
 
 ## Legend
 - **GREEN** — reliable, no known issues
@@ -24,3 +24,4 @@ Updated: 2026-04-25
 | Queue | GREEN | Backend worker has retry logic, idempotency, crash recovery. Queue page shows live status. |
 | Weekly Plan widget | GREEN | Dashboard now shows upcoming plan items with inline approve. |
 | Topic mode | GREEN | Full pipeline: Tavily search → Haiku summarise → Sonnet generate. Research failure gracefully degrades. Step logging: research_started, research_complete, generate_complete. |
+| Angle routing | GREEN | Voice and topic captures extract 2–4 strategic angles via Haiku after transcription/research. AngleOptions UI shown on angles_ready state. Best angle generated immediately in background. Studio sibling variants grouped by generation_group_id when present, falling back to generation_id. |
