@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { Lens } from '@/types/domain'
 import type { BlogGenerationRequest, NarrativeStrategy, HookExploration, GeneratedBlogPackage } from '@/lib/blog/types'
 import { StepProgressHeader } from './StepProgressHeader'
@@ -46,7 +46,9 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   const [blogPackage, setBlogPackage] = useState<GeneratedBlogPackage | null>(null)
   const [isSocialGenerating, setIsSocialGenerating] = useState(false)
   const [selectedPlatforms, setSelectedPlatforms] = useState<SocialPlatform[]>(['linkedin', 'xThread', 'newsletter'])
+  const [setupInitialValues, setSetupInitialValues] = useState<Partial<BlogGenerationRequest> | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  const socialSectionRef = useRef<HTMLDivElement>(null)
 
   const addProgress = useCallback((phase: string, label: string) => {
     setProgressEvents(prev => [...prev, { phase, label }])
@@ -261,6 +263,26 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     }
   }, [blogPackage, selectedPlatforms])
 
+  const handleWriteAngle = useCallback((angle: string) => {
+    setSetupInitialValues({ ...(request ?? {}), title: angle })
+    setState('setup')
+  }, [request])
+
+  const handleStepClick = useCallback((step: number) => {
+    if (step === 1) {
+      setSetupInitialValues(request ?? undefined)
+      setState('setup')
+    } else if (step === 2 && hookExploration) {
+      setState('narrative-review')
+    } else if (step === 3 && blogPackage) {
+      setState('article-review')
+    } else if (step === 4) {
+      if (state === 'article-review') {
+        socialSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
+  }, [request, hookExploration, blogPackage, state])
+
   const isGenerating = state === 'generating:phase1-3' || state === 'generating:phase4-10'
 
   // Step 1: setup
@@ -273,9 +295,11 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
           </div>
         )}
         <StrategicSetupPanel
+          key={setupInitialValues ? JSON.stringify(setupInitialValues.title) : 'default'}
           lenses={lenses}
           onGenerate={handleGenerate}
           disabled={false}
+          initialValues={setupInitialValues}
         />
       </div>
     )
@@ -285,7 +309,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   if (state === 'generating:phase1-3') {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <StepProgressHeader currentStep={1} />
+        <StepProgressHeader currentStep={1} clickableSteps={[]} onStepClick={handleStepClick} />
         <div className="flex-1 flex items-center justify-center px-8 py-12">
           <div className="w-full max-w-md">
             <GenerationProgress events={progressEvents} state={state} />
@@ -299,7 +323,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   if (state === 'narrative-review') {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <StepProgressHeader currentStep={2} />
+        <StepProgressHeader currentStep={2} clickableSteps={[1]} onStepClick={handleStepClick} />
         {error && (
           <div className="mx-6 mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -394,7 +418,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   if (state === 'generating:phase4-10') {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <StepProgressHeader currentStep={3} />
+        <StepProgressHeader currentStep={3} clickableSteps={[1, 2]} onStepClick={handleStepClick} />
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-8 py-6">
             <div className="max-w-md mx-auto">
@@ -418,7 +442,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   if (state === 'article-review' && blogPackage) {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <StepProgressHeader currentStep={3} />
+        <StepProgressHeader currentStep={3} clickableSteps={[1, 2, 4]} onStepClick={handleStepClick} />
         <div className="flex flex-1 min-h-0 gap-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
             <BlogArticleEditor
@@ -433,7 +457,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
                 aspectRatio="landscape"
               />
             </div>
-            <div className="mt-6 pt-6 border-t border-zinc-100">
+            <div ref={socialSectionRef} className="mt-6 pt-6 border-t border-zinc-100">
               {error && (
                 <p className="mb-3 text-sm text-red-600">{error}</p>
               )}
@@ -476,7 +500,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             </div>
           </div>
           <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
-            <StrategicInsightsPanel insights={blogPackage.strategicInsights} />
+            <StrategicInsightsPanel insights={blogPackage.strategicInsights} onWriteAngle={handleWriteAngle} />
             <div className="mt-6">
               <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
             </div>
@@ -490,7 +514,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   if (state === 'result' && blogPackage) {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <StepProgressHeader currentStep={4} />
+        <StepProgressHeader currentStep={4} clickableSteps={[1, 2, 3]} onStepClick={handleStepClick} />
         <div className="flex flex-1 min-h-0 gap-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
             <BlogArticleEditor
@@ -502,7 +526,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             </div>
           </div>
           <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
-            <StrategicInsightsPanel insights={blogPackage.strategicInsights} />
+            <StrategicInsightsPanel insights={blogPackage.strategicInsights} onWriteAngle={handleWriteAngle} />
             <div className="mt-6">
               <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
             </div>

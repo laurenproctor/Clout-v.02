@@ -12,6 +12,7 @@ interface StrategicSetupPanelProps {
   lenses: Lens[]
   onGenerate: (request: BlogGenerationRequest) => void
   disabled?: boolean
+  initialValues?: Partial<BlogGenerationRequest>
 }
 
 const GOAL_OPTIONS: Array<{ value: BlogGenerationRequest['goalType']; label: string }> = [
@@ -56,8 +57,10 @@ const DEFAULT_VALUES: Partial<BlogGenerationRequest> = {
 const labelClass = 'text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2 block'
 const inputClass = 'w-full rounded-md border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300'
 
-export function StrategicSetupPanel({ lenses, onGenerate, disabled }: StrategicSetupPanelProps) {
-  const [values, setValues] = useState<Partial<BlogGenerationRequest>>(DEFAULT_VALUES)
+export function StrategicSetupPanel({ lenses, onGenerate, disabled, initialValues }: StrategicSetupPanelProps) {
+  const [values, setValues] = useState<Partial<BlogGenerationRequest>>(
+    initialValues ? { ...DEFAULT_VALUES, ...initialValues } : DEFAULT_VALUES
+  )
 
   function set(patch: Partial<BlogGenerationRequest>) {
     setValues(prev => ({ ...prev, ...patch }))
