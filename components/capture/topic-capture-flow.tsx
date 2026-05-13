@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lens, ResearchSource } from '@/types/domain'
 import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
+import { AngleOptions } from '@/components/capture/angle-options'
 
 const MICROSTATES = [
   'Researching sources…',
@@ -20,7 +21,7 @@ const EXAMPLE_TOPICS = [
   'Why most company values are useless',
 ]
 
-type FlowState = 'idle' | 'researching' | 'drafting' | 'draft_ready' | 'error'
+type FlowState = 'idle' | 'researching' | 'drafting' | 'angles_ready' | 'draft_ready' | 'error'
 
 interface TopicCaptureFlowProps {
   lenses: Lens[]
@@ -50,6 +51,11 @@ export function TopicCaptureFlow({
   const [showSources, setShowSources] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [outputId, setOutputId] = useState<string | null>(null)
+  const [captureId, setCaptureId] = useState<string | null>(null)
+  const [angles, setAngles] = useState<import('@/types/domain').Angle[]>([])
+  const [bestAngleGenerating, setBestAngleGenerating] = useState(false)
+  const [draftAllGenerating, setDraftAllGenerating] = useState(false)
+  const bestOutputIdRef = useRef<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   function advanceMicrostate(idx: number) {
@@ -81,6 +87,7 @@ export function TopicCaptureFlow({
       if (!captureRes.ok) throw new Error('Failed to save topic')
       const capture = await captureRes.json()
       const captureId: string = capture.id
+      setCaptureId(captureId)
 
       // Step 2: Research
       advanceMicrostate(1)
@@ -95,11 +102,44 @@ export function TopicCaptureFlow({
         setResearchFailed(true)
       }
 
-      // Step 3: Shape perspective
+      // Step 3: Extract angles (non-blocking — fallback to direct generate on failure)
       advanceMicrostate(2)
-      setFlowState('drafting')
+      let extractedAngles: import('@/types/domain').Angle[] = []
+      try {
+        const aRes = await fetch(`/api/capture/${captureId}/extract-angles`, { method: 'POST' })
+        if (aRes.ok) {
+          const aData = await aRes.json()
+          extractedAngles = aData.angles ?? []
+        }
+      } catch {
+        // extraction failed — proceed without angles
+      }
 
-      // Step 4: Generate
+      if (extractedAngles.length >= 2) {
+        setAngles(extractedAngles)
+        setFlowState('angles_ready')
+        // Start background generation for best angle immediately
+        const groupId = crypto.randomUUID()
+        setBestAngleGenerating(true)
+        fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            capture_id: captureId,
+            lens_id: selectedLensId,
+            angle_id: extractedAngles[0].id,
+            generation_group_id: groupId,
+          }),
+        })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(gen => { bestOutputIdRef.current = gen.output_id ?? null })
+          .catch(() => { bestOutputIdRef.current = null })
+          .finally(() => setBestAngleGenerating(false))
+        return
+      }
+
+      // No strong angles — generate directly
+      setFlowState('drafting')
       advanceMicrostate(3)
       const genRes = await fetch('/api/generate', {
         method: 'POST',
@@ -126,6 +166,78 @@ export function TopicCaptureFlow({
     }
   }
 
+  async function handleDraftBest() {
+    if (bestOutputIdRef.current) {
+      onComplete(bestOutputIdRef.current)
+      return
+    }
+    const maxWait = 30000
+    const start = Date.now()
+    while (Date.now() - start < maxWait) {
+      if (bestOutputIdRef.current) { onComplete(bestOutputIdRef.current); return }
+      await new Promise(r => setTimeout(r, 400))
+    }
+    setErrorMsg('Draft timed out. Please try again.')
+    setFlowState('error')
+  }
+
+  async function handleDraftOne(angle: import('@/types/domain').Angle) {
+    const captId = captureId
+    if (!captId) return
+    const groupId = crypto.randomUUID()
+    try {
+      const gRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capture_id: captId,
+          lens_id: selectedLensId,
+          angle_id: angle.id,
+          generation_group_id: groupId,
+        }),
+      })
+      if (!gRes.ok) throw new Error('Generation failed')
+      const gen = await gRes.json()
+      if (gen.output_id) onComplete(gen.output_id)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Generation failed')
+      setFlowState('error')
+    }
+  }
+
+  async function handleDraftAll() {
+    const captId = captureId
+    if (!captId || angles.length < 2) return
+    setDraftAllGenerating(true)
+    const groupId = crypto.randomUUID()
+    const cap = Math.min(angles.length, 4)
+    const results = await Promise.allSettled(
+      angles.slice(0, cap).map(angle =>
+        fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            capture_id: captId,
+            lens_id: selectedLensId,
+            angle_id: angle.id,
+            generation_group_id: groupId,
+          }),
+        }).then(r => r.ok ? r.json() : Promise.reject(r.status))
+      )
+    )
+    const first = results.find(r => r.status === 'fulfilled') as PromiseFulfilledResult<{ output_id: string }> | undefined
+    setDraftAllGenerating(false)
+    if (first?.value?.output_id) onComplete(first.value.output_id)
+  }
+
+  function handleSkipAngles() {
+    if (bestOutputIdRef.current) {
+      onComplete(bestOutputIdRef.current)
+    } else {
+      setFlowState('draft_ready')
+    }
+  }
+
   function handleRetry() {
     setFlowState('idle')
     setProgress(0)
@@ -134,6 +246,10 @@ export function TopicCaptureFlow({
     setErrorMsg('')
     setResearchFailed(false)
     setSources([])
+    setAngles([])
+    setBestAngleGenerating(false)
+    setDraftAllGenerating(false)
+    bestOutputIdRef.current = null
   }
 
   // ── IDLE ──────────────────────────────────────────────────────────────────
@@ -253,6 +369,23 @@ export function TopicCaptureFlow({
         )}
 
         <Loader2 className="h-4 w-4 animate-spin text-zinc-400 self-start" />
+      </div>
+    )
+  }
+
+  // ── ANGLES READY ──────────────────────────────────────────────────────────
+  if (flowState === 'angles_ready') {
+    return (
+      <div className="flex flex-col gap-4 py-2">
+        <AngleOptions
+          angles={angles}
+          bestAngleGenerating={bestAngleGenerating}
+          draftAllGenerating={draftAllGenerating}
+          onDraftBest={handleDraftBest}
+          onDraftOne={handleDraftOne}
+          onDraftAll={handleDraftAll}
+          onSkip={handleSkipAngles}
+        />
       </div>
     )
   }
