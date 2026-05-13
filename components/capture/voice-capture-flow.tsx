@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
 import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
+import { AngleOptions } from '@/components/capture/angle-options'
 
 // Set to false in production once real API is wired
 const DEMO_MODE = false
@@ -28,7 +29,7 @@ const DEMO_DRAFT = [
   'That\'s the first meeting. Everything else is paperwork.',
 ]
 
-type FlowState = 'idle' | 'recording' | 'processing' | 'draft_ready' | 'error'
+type FlowState = 'idle' | 'recording' | 'processing' | 'angles_ready' | 'draft_ready' | 'error'
 
 interface VoiceCaptureFlowProps {
   workspaceId: string
@@ -62,6 +63,10 @@ export function VoiceCaptureFlow({
   const [captureId, setCaptureId] = useState<string | null>(null)
   const [outputId, setOutputId] = useState<string | null>(null)
   const [showCollapsible, setShowCollapsible] = useState(false)
+  const [angles, setAngles] = useState<import('@/types/domain').Angle[]>([])
+  const [bestAngleGenerating, setBestAngleGenerating] = useState(false)
+  const [draftAllGenerating, setDraftAllGenerating] = useState(false)
+  const bestOutputIdRef = useRef<string | null>(null)
 
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -159,7 +164,42 @@ export function VoiceCaptureFlow({
       const { transcript: tx } = await tRes.json()
       setTranscript(tx)
 
-      // Generate
+      // Extract angles (non-blocking — fallback to direct generate on failure)
+      let extractedAngles: import('@/types/domain').Angle[] = []
+      try {
+        const aRes = await fetch(`/api/capture/${capture.id}/extract-angles`, { method: 'POST' })
+        if (aRes.ok) {
+          const aData = await aRes.json()
+          extractedAngles = aData.angles ?? []
+        }
+      } catch {
+        // extraction failed — proceed without angles
+      }
+
+      if (extractedAngles.length >= 2) {
+        setAngles(extractedAngles)
+        setFlowState('angles_ready')
+        // Start background generation for best angle immediately
+        const groupId = crypto.randomUUID()
+        setBestAngleGenerating(true)
+        fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            capture_id: capture.id,
+            lens_id: selectedLensId,
+            angle_id: extractedAngles[0].id,
+            generation_group_id: groupId,
+          }),
+        })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(gen => { bestOutputIdRef.current = gen.output_id ?? null })
+          .catch(() => { bestOutputIdRef.current = null })
+          .finally(() => setBestAngleGenerating(false))
+        return
+      }
+
+      // No strong angles — generate directly
       const gRes = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -250,6 +290,78 @@ export function VoiceCaptureFlow({
 
   function handleUseDraft() {
     if (outputId) onComplete(outputId)
+  }
+
+  async function handleDraftBest() {
+    if (bestOutputIdRef.current) {
+      onComplete(bestOutputIdRef.current)
+      return
+    }
+    const maxWait = 30000
+    const start = Date.now()
+    while (Date.now() - start < maxWait) {
+      if (bestOutputIdRef.current) { onComplete(bestOutputIdRef.current); return }
+      await new Promise(r => setTimeout(r, 400))
+    }
+    setErrorMsg('Draft timed out. Please try again.')
+    setFlowState('error')
+  }
+
+  async function handleDraftOne(angle: import('@/types/domain').Angle) {
+    const captId = captureId
+    if (!captId) return
+    const groupId = crypto.randomUUID()
+    try {
+      const gRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          capture_id: captId,
+          lens_id: selectedLensId,
+          angle_id: angle.id,
+          generation_group_id: groupId,
+        }),
+      })
+      if (!gRes.ok) throw new Error('Generation failed')
+      const gen = await gRes.json()
+      if (gen.output_id) onComplete(gen.output_id)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Generation failed')
+      setFlowState('error')
+    }
+  }
+
+  async function handleDraftAll() {
+    const captId = captureId
+    if (!captId || angles.length < 2) return
+    setDraftAllGenerating(true)
+    const groupId = crypto.randomUUID()
+    const cap = Math.min(angles.length, 4)
+    const results = await Promise.allSettled(
+      angles.slice(0, cap).map(angle =>
+        fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            capture_id: captId,
+            lens_id: selectedLensId,
+            angle_id: angle.id,
+            generation_group_id: groupId,
+          }),
+        }).then(r => r.ok ? r.json() : Promise.reject(r.status))
+      )
+    )
+    const first = results.find(r => r.status === 'fulfilled') as PromiseFulfilledResult<{ output_id: string }> | undefined
+    setDraftAllGenerating(false)
+    if (first?.value?.output_id) onComplete(first.value.output_id)
+  }
+
+  function handleSkipAngles() {
+    if (bestOutputIdRef.current) {
+      onComplete(bestOutputIdRef.current)
+    } else {
+      setFlowState('draft_ready')
+    }
   }
 
   function handleRetry() {
@@ -365,6 +477,21 @@ export function VoiceCaptureFlow({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── ANGLES READY ── */}
+      {flowState === 'angles_ready' && (
+        <div className="px-6 py-4">
+          <AngleOptions
+            angles={angles}
+            bestAngleGenerating={bestAngleGenerating}
+            draftAllGenerating={draftAllGenerating}
+            onDraftBest={handleDraftBest}
+            onDraftOne={handleDraftOne}
+            onDraftAll={handleDraftAll}
+            onSkip={handleSkipAngles}
+          />
         </div>
       )}
 
