@@ -14,6 +14,7 @@ import { BlogArticleEditor } from './BlogArticleEditor'
 import { DistributionCards } from './DistributionCards'
 import { StrategicInsightsPanel } from './StrategicInsightsPanel'
 import { ContentAnalysisPanel } from './ContentAnalysisPanel'
+import { VisualGenerator } from '@/components/visual/VisualGenerator'
 
 type WorkspaceState =
   | 'setup'
@@ -407,6 +408,14 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               blogPackage={blogPackage}
               onRegenerateSection={handleRegenerateSection}
             />
+            <div className="mt-6 pt-6 border-t border-zinc-100">
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">Hero Image</p>
+              <VisualGenerator
+                content={`${blogPackage.article.title}\n\n${blogPackage.article.markdown.slice(0, 800)}`}
+                platform="blog"
+                aspectRatio="landscape"
+              />
+            </div>
             <div className="mt-6 pt-6 border-t border-zinc-100">
               {error && (
                 <p className="mb-3 text-sm text-red-600">{error}</p>
