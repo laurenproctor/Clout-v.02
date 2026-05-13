@@ -290,7 +290,15 @@ export function normalizeBrandIdentity(
     ...mapVisualDensity(density),
     canonicalTraits,
     visualStyles,
-    imageryType:          imagery?.imagery_type       ?? null,
+    imageryType:          (() => {
+      const raw = imagery?.imagery_type ?? null
+      if (!raw) return null
+      try {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) return parsed.length ? parsed.join(', ') : null
+      } catch { /* not JSON */ }
+      return raw
+    })(),
     compositionPreference: imagery?.composition       ?? null,
     overlayTextStyle:     imagery?.overlay_text_style ?? null,
     moodTraits,

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 export interface ImagerySettings {
   visual_styles: string[]
-  imagery_type: string | null
+  imagery_type: string[]
   composition: string | null
   overlay_text_style: string | null
   mood_traits: string[]
@@ -127,9 +127,9 @@ function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor }: Card
         </div>
       )}
 
-      {imagery.imagery_type && (
+      {imagery.imagery_type.length > 0 && (
         <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: '0.55rem', color: textColor, opacity: 0.5, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          {imagery.imagery_type}
+          {imagery.imagery_type.join(' · ')}
         </div>
       )}
     </div>

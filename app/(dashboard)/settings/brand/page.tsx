@@ -35,7 +35,7 @@ const DEFAULT_BRAND: BrandSettings = {
 
 const DEFAULT_IMAGERY: ImagerySettings = {
   visual_styles: [],
-  imagery_type: null,
+  imagery_type: [],
   composition: null,
   overlay_text_style: null,
   mood_traits: [],
@@ -92,7 +92,7 @@ export default function BrandSettingsPage() {
       .then(data => {
         if (data) setImagery({
           visual_styles: data.visual_styles ?? [],
-          imagery_type: data.imagery_type ?? null,
+          imagery_type: Array.isArray(data.imagery_type) ? data.imagery_type : (data.imagery_type ? [data.imagery_type] : []),
           composition: data.composition ?? null,
           overlay_text_style: data.overlay_text_style ?? null,
           mood_traits: data.mood_traits ?? [],
@@ -408,15 +408,21 @@ export default function BrandSettingsPage() {
               {/* Imagery Type */}
               <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
                 <h2 className="text-sm font-semibold text-zinc-900">Imagery Type</h2>
+                <p className="text-xs text-zinc-500">Select all that apply.</p>
                 <div className="flex flex-wrap gap-2">
                   {['Photography', 'Illustration', 'Mixed', 'Text-led', 'Abstract'].map(type => (
                     <button
                       key={type}
                       type="button"
-                      onClick={() => updateImagery({ imagery_type: imagery.imagery_type === type ? null : type })}
+                      onClick={() => {
+                        const next = imagery.imagery_type.includes(type)
+                          ? imagery.imagery_type.filter(t => t !== type)
+                          : [...imagery.imagery_type, type]
+                        updateImagery({ imagery_type: next })
+                      }}
                       className={cn(
                         'rounded-full border px-3 py-1 text-xs font-medium transition-all',
-                        imagery.imagery_type === type
+                        imagery.imagery_type.includes(type)
                           ? 'border-zinc-800 bg-zinc-800 text-white'
                           : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-400'
                       )}
