@@ -29,9 +29,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // When source is a URL, scrape the content before generation.
-  // The original URL is preserved in sourceUrl so Claude can embed it in the post.
-  if (request.sourceType === 'url') {
+  // Detect URLs in any source type — not just the URL tab.
+  // If the source content is a bare URL (regardless of which tab was used),
+  // scrape it and embed the URL with a CTA in every post variation.
+  function looksLikeUrl(s: string): boolean {
+    try { return /^https?:\/\//i.test(s.trim()) && Boolean(new URL(s.trim())) }
+    catch { return false }
+  }
+
+  if (request.sourceType === 'url' || looksLikeUrl(request.sourceContent)) {
     const rawUrl = request.sourceContent.trim()
     try {
       const article = await scrapeUrl(rawUrl)
