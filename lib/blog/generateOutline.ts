@@ -26,12 +26,14 @@ Core Argument: ${narrativeStrategy.coreArgument}
 Tension: ${narrativeStrategy.tension}
 Stakes: ${narrativeStrategy.stakes}
 Proof Mechanisms: ${narrativeStrategy.proofMechanisms.join(', ')}
-Target Length: ~${targetWords} words
+Total Target Length: ${targetWords} words EXACTLY
 FAQ Section: ${r.toggles.faqSection}
 Key Takeaways: ${r.toggles.keyTakeaways}
 TL;DR: ${r.toggles.tldr}
 
 Build the outline around the argument, not keyword lists. Each section should advance the core argument.
+
+CRITICAL WORD COUNT RULE: The estimatedWords values across ALL sections MUST sum to exactly ${targetWords}. Do not produce an outline whose sections sum to fewer words than the target. Distribute words proportionally — introductions ~10%, body sections ~75%, conclusion ~15%.
 
 Return ONLY a JSON array of OutlineSection objects:
 [

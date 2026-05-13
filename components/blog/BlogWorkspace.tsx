@@ -15,6 +15,7 @@ import { DistributionCards } from './DistributionCards'
 import { StrategicInsightsPanel } from './StrategicInsightsPanel'
 import { ContentAnalysisPanel } from './ContentAnalysisPanel'
 import { VisualGenerator } from '@/components/visual/VisualGenerator'
+import type { SocialPlatform } from '@/lib/blog/generateDistribution'
 
 type WorkspaceState =
   | 'setup'
@@ -44,6 +45,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   const [editableOutline, setEditableOutline] = useState<string[]>([])
   const [blogPackage, setBlogPackage] = useState<GeneratedBlogPackage | null>(null)
   const [isSocialGenerating, setIsSocialGenerating] = useState(false)
+  const [selectedPlatforms, setSelectedPlatforms] = useState<SocialPlatform[]>(['linkedin', 'xThread', 'newsletter'])
   const [error, setError] = useState<string | null>(null)
 
   const addProgress = useCallback((phase: string, label: string) => {
@@ -246,7 +248,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
       const res = await fetch('/api/blog/generate-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blogPackage }),
+        body: JSON.stringify({ blogPackage, platforms: selectedPlatforms }),
       })
       if (!res.ok) throw new Error('Social post generation failed')
       const { distribution } = await res.json()
@@ -257,7 +259,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     } finally {
       setIsSocialGenerating(false)
     }
-  }, [blogPackage])
+  }, [blogPackage, selectedPlatforms])
 
   const isGenerating = state === 'generating:phase1-3' || state === 'generating:phase4-10'
 
@@ -435,13 +437,38 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               {error && (
                 <p className="mb-3 text-sm text-red-600">{error}</p>
               )}
-              <p className="text-sm text-zinc-500 mb-3">
+              <p className="text-sm text-zinc-500 mb-2">
                 Happy with your article? Generate social posts to complete your content package.
               </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {([
+                  { id: 'linkedin' as SocialPlatform, label: 'LinkedIn' },
+                  { id: 'xThread' as SocialPlatform, label: 'X Thread' },
+                  { id: 'newsletter' as SocialPlatform, label: 'Newsletter' },
+                ] as const).map(({ id, label }) => {
+                  const active = selectedPlatforms.includes(id)
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setSelectedPlatforms(prev =>
+                        active ? prev.filter(p => p !== id) : [...prev, id]
+                      )}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        active
+                          ? 'bg-zinc-900 text-white border-zinc-900'
+                          : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
               <button
                 type="button"
                 onClick={handleGenerateSocial}
-                disabled={isSocialGenerating}
+                disabled={isSocialGenerating || selectedPlatforms.length === 0}
                 className="bg-zinc-900 text-white rounded-md px-6 py-3 text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSocialGenerating ? 'Generating Social Posts...' : 'Generate Social Posts'}

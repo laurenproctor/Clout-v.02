@@ -15,16 +15,26 @@ interface BlogArticleEditorProps {
 
 function markdownToText(md: string): string {
   return md
-    .replace(/^#{1,6}\s+/gm, '')
+    // H1 → UPPERCASE + underline
+    .replace(/^# (.+)$/gm, (_, h) => `\n${h.toUpperCase()}\n${'='.repeat(h.length)}`)
+    // H2 → UPPERCASE with blank line before
+    .replace(/^## (.+)$/gm, (_, h) => `\n${h.toUpperCase()}`)
+    // H3 → title case with blank line before
+    .replace(/^### (.+)$/gm, (_, h) => `\n${h}`)
+    // Bold/italic — strip markers, keep text
     .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\*(.+?)\*/g, '$1')
+    // Code blocks
     .replace(/`{3}[\s\S]*?`{3}/g, '')
     .replace(/`(.+?)`/g, '$1')
+    // Links — keep label
     .replace(/\[(.+?)\]\(.+?\)/g, '$1')
-    .replace(/^[-*+]\s+/gm, '')
-    .replace(/^\d+\.\s+/gm, '')
+    // Lists — use bullet
+    .replace(/^[-*+]\s+/gm, '• ')
+    // Blockquotes
     .replace(/^>\s*/gm, '')
+    // Horizontal rules
     .replace(/^\s*---+\s*$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()

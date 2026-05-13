@@ -7,7 +7,8 @@ export async function generateSections(
   narrativeStrategy: NarrativeStrategy,
   outline: OutlineSection[],
   selectedHeadline: string,
-  onSectionComplete?: (sectionIndex: number, total: number) => void
+  onSectionComplete?: (sectionIndex: number, total: number) => void,
+  totalTargetWords?: number
 ): Promise<{ markdown: string; wordCount: number; totalInputTokens: number; totalOutputTokens: number }> {
   const memory: ArticleMemory = {
     canonicalClaims: [],
@@ -22,10 +23,15 @@ export async function generateSections(
   const sections: string[] = []
   let totalInputTokens = 0
   let totalOutputTokens = 0
+  const effectiveTotalWords = totalTargetWords ?? outline.reduce((s, sec) => s + sec.estimatedWords, 0)
 
   for (let i = 0; i < outline.length; i++) {
     const section = outline[i]
     const system = buildBlogSystemPrompt({ ...ctx, selectedHeadline })
+
+    const wordsWritten = sections.join(' ').split(/\s+/).filter(Boolean).length
+    const wordsRemaining = effectiveTotalWords - wordsWritten
+    const sectionsRemaining = outline.length - i
 
     const user = `Write section ${i + 1} of ${outline.length} of the article.
 
@@ -37,7 +43,10 @@ This section:
 Heading: ${section.heading} (${section.level})
 Purpose: ${section.purpose}
 Key Points: ${section.keyPoints.join('; ')}
-Target Words: ~${section.estimatedWords}
+Required Words: ${section.estimatedWords} words (±5%)
+Words written so far: ${wordsWritten} | Words remaining across ${sectionsRemaining} section(s): ${wordsRemaining}
+
+WORD COUNT IS MANDATORY. Write exactly ${section.estimatedWords} words for this section. Count as you write. Do not cut the section short — develop each key point fully until you reach the target.
 
 Article Memory (do not contradict or repeat):
 - Canonical claims: ${memory.canonicalClaims.join('; ') || 'none yet'}

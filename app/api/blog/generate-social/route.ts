@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
-import { generateDistribution } from '@/lib/blog/generateDistribution'
+import { generateDistribution, type SocialPlatform } from '@/lib/blog/generateDistribution'
 import type { GeneratedBlogPackage } from '@/lib/blog/types'
 import type { BlogPromptContext } from '@/lib/blog/buildBlogPrompt'
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const { blogPackage } = body as { blogPackage: GeneratedBlogPackage }
+  const { blogPackage, platforms } = body as { blogPackage: GeneratedBlogPackage; platforms?: SocialPlatform[] }
 
   if (!blogPackage?.article?.markdown || !blogPackage?.selectedHeadline) {
     return new Response(JSON.stringify({ error: 'blogPackage with article and selectedHeadline is required' }), { status: 400 })
@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
     ctx,
     blogPackage.narrativeStrategy,
     blogPackage.article.markdown,
-    blogPackage.selectedHeadline
+    blogPackage.selectedHeadline,
+    platforms
   )
 
   return new Response(
