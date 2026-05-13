@@ -247,6 +247,8 @@ export function SyndicationClient() {
       const decoder = new TextDecoder()
       let buffer = ''
       let receivedComplete = false
+      // Track completed platform content locally so we can auto-save after complete
+      const completedContent: Partial<Record<Platform, string>> = {}
 
       while (true) {
         const { done, value } = await reader.read()
@@ -272,6 +274,7 @@ export function SyndicationClient() {
             const platform = frame.platform as Platform
             const content = frame.content as string
             setCards(prev => ({ ...prev, [platform]: { status: 'done', content } }))
+            completedContent[platform] = content
             setUi({ status: 'partial' })
           } else if (frame.type === 'platform_error') {
             const platform = frame.platform as Platform
@@ -283,6 +286,19 @@ export function SyndicationClient() {
             receivedComplete = true
             stopInterval()
             setUi({ status: 'complete' })
+            // Auto-save all completed platforms for analytics; store draftIds to prevent duplicates on post/queue
+            for (const [platform, content] of Object.entries(completedContent) as [Platform, string][]) {
+              fetch('/api/syndication/outputs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ platform, content }),
+              })
+                .then(r => (r.ok ? r.json() : null))
+                .then((data: { id: string } | null) => {
+                  if (data?.id) setPublishField(platform, { draftId: data.id, savedAt: new Date() })
+                })
+                .catch(() => null)
+            }
           } else if (frame.type === 'error') {
             const err = frame.error as { message: string }
             stopInterval()

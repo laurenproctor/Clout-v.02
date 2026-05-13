@@ -177,8 +177,19 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               addProgress(event.phase, event.label)
             } else if (event.type === 'complete') {
               receivedComplete = true
-              setBlogPackage(event.data)
+              const pkg = event.data as GeneratedBlogPackage
+              setBlogPackage(pkg)
               setState('article-review')
+              // Auto-save for analytics tracking (fire-and-forget)
+              fetch('/api/blog/outputs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: pkg.article.title,
+                  wordCount: pkg.article.wordCount,
+                  markdown: pkg.article.markdown,
+                }),
+              }).catch(() => null)
             } else if (event.type === 'error') {
               throw new Error(event.message ?? 'Generation failed')
             }

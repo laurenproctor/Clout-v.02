@@ -81,8 +81,18 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             setProgressLabel(event.label ?? 'Generating...')
           } else if (event.type === 'complete') {
             receivedComplete = true
-            setVariations((event.data as { variations: LinkedInVariation[] }).variations)
+            const { variations: generated } = event.data as { variations: LinkedInVariation[] }
+            setVariations(generated)
             setState('result')
+            // Auto-save first variation for analytics tracking (fire-and-forget)
+            if (generated.length > 0) {
+              const v = generated[0]
+              fetch('/api/linkedin/outputs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variation: { body: v.body, hashtags: v.hashtags } }),
+              }).catch(() => null)
+            }
           } else if (event.type === 'coaching') {
             setCoaching(event.data as PostCoaching)
           } else if (event.type === 'error') {
