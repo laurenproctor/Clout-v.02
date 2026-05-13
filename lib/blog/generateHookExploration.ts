@@ -35,7 +35,7 @@ Return ONLY a JSON object matching this exact shape:
 
 Generate 4-5 headline options with genuinely distinct styles and angles.`
 
-  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 1500 })
+  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2000 })
   const result = parseJson<HookExploration>(res.content)
   return { result, inputTokens: res.inputTokens, outputTokens: res.outputTokens }
 }

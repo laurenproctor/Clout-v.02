@@ -27,7 +27,7 @@ Return ONLY a JSON object matching this exact shape:
   "contentAngle": "string — differentiated entry point vs generic treatment"
 }`
 
-  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 1500 })
+  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2000 })
   const result = parseJson<NarrativeStrategy>(res.content)
   return { result, inputTokens: res.inputTokens, outputTokens: res.outputTokens }
 }
