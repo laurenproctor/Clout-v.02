@@ -15,6 +15,15 @@ export interface ResearchSource {
   snippet?: string
   score?: number
 }
+
+export interface Angle {
+  id: string
+  title: string
+  summary: string
+  rationale: string
+  recommendedLensId?: string | null
+}
+
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
@@ -123,6 +132,7 @@ export interface Capture {
   tags: string[]
   researchSources: ResearchSource[] | null
   researchSummary: string | null
+  extractedAngles: Angle[] | null
   createdAt: string
   updatedAt: string
 }
@@ -140,6 +150,8 @@ export interface Generation {
   errorMessage: string | null
   durationMs: number | null
   tokenCount: number | null
+  angleId: string | null
+  generationGroupId: string | null
   createdAt: string
   completedAt: string | null
 }
@@ -183,6 +195,7 @@ export interface Output {
   publishedAt: string | null      // wall-clock publish time
   scheduledAt: string | null      // assigned queue slot
   lastPublishError: string | null  // set on failed publish attempt
+  generationGroupId:    string | null
   approvedForWeek:      boolean
   weekBucket:           string | null
   performanceSnapshot:  Record<string, unknown> | null
