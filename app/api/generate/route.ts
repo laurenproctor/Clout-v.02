@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { capture_id, lens_id } = body
   const channelId = body.channel_id ?? null
+  const angleId: string | null = body.angle_id ?? null
+  const generationGroupId: string | null = body.generation_group_id ?? null
   const t0 = Date.now()
   console.log('[api/generate] start', { capture_id, lens_id })
 
@@ -104,6 +106,14 @@ export async function POST(req: NextRequest) {
     userMessage = `## Research context\n${capture.researchSummary}\n\n## Topic instruction\n${userMessage}`
   }
 
+  // When angle routing: prepend the specific angle to develop
+  if (angleId && capture.extractedAngles) {
+    const angle = capture.extractedAngles.find(a => a.id === angleId)
+    if (angle) {
+      userMessage = `## Angle to develop\nTitle: ${angle.title}\nSummary: ${angle.summary}\n\n## Source content\n${userMessage}`
+    }
+  }
+
   if (!userMessage.trim()) {
     return NextResponse.json({ error: 'Capture has no content to generate from' }, { status: 400 })
   }
@@ -131,6 +141,8 @@ export async function POST(req: NextRequest) {
       status: 'generating',
       model: 'claude-sonnet-4-6',
       prompt_snapshot: systemPrompt,
+      ...(angleId && { angle_id: angleId }),
+      ...(generationGroupId && { generation_group_id: generationGroupId }),
     })
     .select()
     .single()
@@ -178,6 +190,12 @@ export async function POST(req: NextRequest) {
     .eq('id', generation.id)
 
   // Create output
+  // Store angle title in content for VariantsRail labelling
+  if (angleId && capture.extractedAngles) {
+    const angle = capture.extractedAngles.find(a => a.id === angleId)
+    if (angle) content.angle = angle.title
+  }
+
   const { data: output, error: outputError } = await supabase
     .from('outputs')
     .insert({
@@ -186,6 +204,7 @@ export async function POST(req: NextRequest) {
       status: 'draft',
       title: typeof content.hook === 'string' ? content.hook.slice(0, 120) : null,
       content: content as import('@/types/db').Json,
+      ...(generationGroupId && { generation_group_id: generationGroupId }),
     })
     .select()
     .single()
@@ -208,6 +227,7 @@ export async function POST(req: NextRequest) {
     {
       output_id: output.id,
       generation_id: generation.id,
+      generation_group_id: generationGroupId,
       content: output.content,
       raw_content: rawContent,
     },
