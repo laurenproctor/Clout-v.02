@@ -41,6 +41,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   const [hookExploration, setHookExploration] = useState<HookExploration | null>(null)
   const [selectedHeadline, setSelectedHeadline] = useState<string>('')
   const [showAdvancedControls, setShowAdvancedControls] = useState(false)
+  const [editableOutline, setEditableOutline] = useState<string[]>([])
   const [blogPackage, setBlogPackage] = useState<GeneratedBlogPackage | null>(null)
   const [isSocialGenerating, setIsSocialGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +88,13 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               addProgress(event.phase, event.label)
             } else if (event.type === 'phase-complete') {
               if (event.phase === 'narrative-strategy') setNarrativeStrategy(event.data)
-              if (event.phase === 'hook-exploration') setHookExploration(event.data)
+              if (event.phase === 'hook-exploration') {
+                setHookExploration(event.data)
+                const angles: string[] = (event.data?.alternateAngles ?? []).slice(0, 4).map((a: string) => {
+                  const t = a.trim(); return t.charAt(0).toUpperCase() + t.slice(1)
+                })
+                setEditableOutline(angles)
+              }
             } else if (event.type === 'paused') {
               receivedPaused = true
               if (req.title) setSelectedHeadline(req.title)
@@ -119,6 +126,11 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     headline: string
   ) => {
     if (!request || !hookExploration) return
+    // Merge user-edited outline back into alternateAngles so the article prompt uses it
+    const mergedHookExploration = {
+      ...hookExploration,
+      alternateAngles: editableOutline.length > 0 ? editableOutline : hookExploration.alternateAngles,
+    }
     setNarrativeStrategy(editedStrategy)
     setSelectedHeadline(headline)
     setError(null)
@@ -132,7 +144,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
         body: JSON.stringify({
           request,
           narrativeStrategy: editedStrategy,
-          hookExploration,
+          hookExploration: mergedHookExploration,
           selectedHeadline: headline,
         }),
       })
@@ -292,18 +304,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
           </div>
         )}
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {/* Left column: narrative strategy + headline cards */}
+          {/* Left column: direction first, then strategy + controls */}
           <div className="flex-1 overflow-y-auto px-8 py-6">
-            {narrativeStrategy && (
-              <div className="mb-6">
-                <NarrativeStrategyCard
-                  strategy={narrativeStrategy}
-                  editable={false}
-                  onChange={setNarrativeStrategy}
-                />
-              </div>
-            )}
-
             {hookExploration && (
               <>
                 <div className="mb-3">
@@ -329,8 +331,18 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
                   ))}
                 </div>
 
-                {!showAdvancedControls && selectedHeadline && (
+                {selectedHeadline && narrativeStrategy && (
                   <div className="mt-6">
+                    <NarrativeStrategyCard
+                      strategy={narrativeStrategy}
+                      editable={true}
+                      onChange={setNarrativeStrategy}
+                    />
+                  </div>
+                )}
+
+                {!showAdvancedControls && selectedHeadline && (
+                  <div className="mt-4">
                     <button
                       type="button"
                       onClick={() => setShowAdvancedControls(true)}
@@ -342,7 +354,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
                 )}
 
                 {showAdvancedControls && narrativeStrategy && (
-                  <div className="mt-6">
+                  <div className="mt-4">
                     <AdvancedControlsPanel
                       values={request ?? {}}
                       onChange={(v) => setRequest(prev => ({ ...prev, ...v }))}
@@ -359,13 +371,16 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             )}
           </div>
 
-          {/* Right column: preview rail */}
+          {/* Right column: editable preview rail */}
           <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-6 py-6">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-4">Article Preview</p>
             <ArticlePreviewRail
               exploration={hookExploration}
               selectedHeadline={selectedHeadline}
               request={request ?? {}}
+              onHeadlineChange={setSelectedHeadline}
+              editableOutline={editableOutline}
+              onOutlineChange={setEditableOutline}
             />
           </div>
         </div>

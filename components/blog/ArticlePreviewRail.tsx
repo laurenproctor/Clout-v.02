@@ -1,11 +1,15 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import type { HookExploration, BlogGenerationRequest } from '@/lib/blog/types'
 
 interface ArticlePreviewRailProps {
   exploration: HookExploration | null
   selectedHeadline: string
   request: Partial<BlogGenerationRequest>
+  onHeadlineChange?: (headline: string) => void
+  editableOutline?: string[]
+  onOutlineChange?: (h2s: string[]) => void
 }
 
 const READING_TIME: Record<string, string> = {
@@ -29,15 +33,20 @@ function synthesizeMetaDescription(why: string, keyword: string): string {
   return base
 }
 
-function mapAnglesToH2s(angles: string[]): string[] {
-  return angles.slice(0, 4).map(angle => {
-    // Capitalize and trim to make it look like a heading
-    const trimmed = angle.trim()
-    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
-  })
-}
+export function ArticlePreviewRail({
+  exploration,
+  selectedHeadline,
+  request,
+  onHeadlineChange,
+  editableOutline,
+  onOutlineChange,
+}: ArticlePreviewRailProps) {
+  const [localHeadline, setLocalHeadline] = useState(selectedHeadline)
 
-export function ArticlePreviewRail({ exploration, selectedHeadline, request }: ArticlePreviewRailProps) {
+  useEffect(() => {
+    setLocalHeadline(selectedHeadline)
+  }, [selectedHeadline])
+
   if (!exploration || !selectedHeadline) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-64 text-center px-6">
@@ -60,16 +69,42 @@ export function ArticlePreviewRail({ exploration, selectedHeadline, request }: A
   const metaDescription = selectedOption
     ? synthesizeMetaDescription(selectedOption.why, request.primaryKeyword ?? '')
     : ''
-  const outlineH2s = mapAnglesToH2s(exploration.alternateAngles)
   const readTime = READING_TIME[request.length ?? 'standard'] ?? '7 min read'
+
+  const outline = editableOutline ?? []
+
+  function updateH2(index: number, value: string) {
+    const updated = outline.map((h, i) => (i === index ? value : h))
+    onOutlineChange?.(updated)
+  }
+
+  function removeH2(index: number) {
+    onOutlineChange?.(outline.filter((_, i) => i !== index))
+  }
+
+  function addH2() {
+    onOutlineChange?.([...outline, ''])
+  }
 
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Estimated Title</p>
-        <h2 className="text-sm font-semibold text-zinc-900 leading-snug italic">
-          {selectedHeadline}
-        </h2>
+        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Title</p>
+        {onHeadlineChange ? (
+          <textarea
+            value={localHeadline}
+            onChange={e => {
+              setLocalHeadline(e.target.value)
+              onHeadlineChange(e.target.value)
+            }}
+            rows={2}
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 leading-snug focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none"
+          />
+        ) : (
+          <h2 className="text-sm font-semibold text-zinc-900 leading-snug italic">
+            {selectedHeadline}
+          </h2>
+        )}
       </div>
 
       <div>
@@ -81,16 +116,53 @@ export function ArticlePreviewRail({ exploration, selectedHeadline, request }: A
 
       <div>
         <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Article Outline</p>
-        <div className="border border-dashed border-zinc-200 rounded-lg p-3 space-y-1.5">
-          {outlineH2s.length > 0 ? outlineH2s.map((h2, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-xs font-mono text-zinc-300">H2</span>
-              <span className="text-xs text-zinc-500 italic">{h2}</span>
-            </div>
-          )) : (
-            <p className="text-xs text-zinc-400 italic">Outline will be generated</p>
-          )}
-        </div>
+        {onOutlineChange ? (
+          <div className="space-y-1.5">
+            {outline.map((h2, i) => (
+              <div key={i} className="flex items-center gap-1.5 group">
+                <span className="text-xs font-mono text-zinc-300 shrink-0">H2</span>
+                <input
+                  type="text"
+                  value={h2}
+                  onChange={e => updateH2(i, e.target.value)}
+                  placeholder="Section heading..."
+                  className="flex-1 min-w-0 rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeH2(i)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-300 hover:text-zinc-500 shrink-0"
+                  aria-label="Remove section"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addH2}
+              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors mt-1"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
+              Add section
+            </button>
+          </div>
+        ) : (
+          <div className="border border-dashed border-zinc-200 rounded-lg p-3 space-y-1.5">
+            {outline.length > 0 ? outline.map((h2, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs font-mono text-zinc-300">H2</span>
+                <span className="text-xs text-zinc-500 italic">{h2}</span>
+              </div>
+            )) : (
+              <p className="text-xs text-zinc-400 italic">Outline will be generated</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
