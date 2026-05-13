@@ -105,6 +105,24 @@ export async function listOutputsByGenerationId(params: {
   return { ok: true, data: (data as Record<string, unknown>[]).map(toOutput) }
 }
 
+export async function listOutputsByGroupId(params: {
+  generationGroupId: string
+  workspaceId: string
+}): Promise<DomainResult<Output[]>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('outputs')
+    .select('id, workspace_id, generation_id, generation_group_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, scheduled_at, last_publish_error, approved_for_week, week_bucket, performance_snapshot, created_at, updated_at, channels(platform, label)')
+    .eq('generation_group_id', params.generationGroupId)
+    .eq('workspace_id', params.workspaceId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true })
+    .limit(6)
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: (data as Record<string, unknown>[]).map(toOutput) }
+}
+
 export async function updateOutput(params: {
   outputId: string
   content?: OutputContent
