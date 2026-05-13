@@ -16,17 +16,160 @@ const CHANNELS: Array<{ key: Channel; label: string; description: string }> = [
   { key: 'newsletter', label: 'Newsletter', description: 'Intimate, continuation-optimized' },
 ]
 
-export function DistributionCards({ distribution }: DistributionCardsProps) {
-  const [active, setActive] = useState<Channel>('linkedin')
+type ActionState = 'idle' | 'saving' | 'queued' | 'scheduled' | 'error'
+
+async function saveOutput(content: string, channel: Channel): Promise<string> {
+  const res = await fetch('/api/blog/save-social-output', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, channel }),
+  })
+  if (!res.ok) throw new Error('Failed to save')
+  const data = await res.json() as { id: string }
+  return data.id
+}
+
+async function queueOutput(id: string): Promise<void> {
+  const res = await fetch(`/api/outputs/${id}/queue`, { method: 'POST' })
+  if (!res.ok) throw new Error('Failed to queue')
+}
+
+async function scheduleOutput(id: string, scheduledAt: Date): Promise<void> {
+  const res = await fetch(`/api/outputs/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scheduled_at: scheduledAt.toISOString(), status: 'queued' }),
+  })
+  if (!res.ok) throw new Error('Failed to schedule')
+}
+
+function ChannelActions({ content, channel }: { content: string; channel: Channel }) {
   const [copied, setCopied] = useState(false)
+  const [actionState, setActionState] = useState<ActionState>('idle')
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduleValue, setScheduleValue] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const content = distribution[active]
-
-  async function copy() {
-    if (!content) return
+  async function handleCopy() {
     await navigator.clipboard.writeText(content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleQueue() {
+    setActionState('saving')
+    setErrorMsg('')
+    try {
+      const id = await saveOutput(content, channel)
+      await queueOutput(id)
+      setActionState('queued')
+    } catch {
+      setActionState('error')
+      setErrorMsg('Failed to queue')
+      setTimeout(() => setActionState('idle'), 3000)
+    }
+  }
+
+  async function handleScheduleConfirm() {
+    if (!scheduleValue) return
+    setActionState('saving')
+    setErrorMsg('')
+    try {
+      const id = await saveOutput(content, channel)
+      await scheduleOutput(id, new Date(scheduleValue))
+      setActionState('scheduled')
+      setShowSchedule(false)
+      setScheduleValue('')
+    } catch {
+      setActionState('error')
+      setErrorMsg('Failed to schedule')
+      setTimeout(() => { setActionState('idle'); setShowSchedule(false) }, 3000)
+    }
+  }
+
+  const isBusy = actionState === 'saving'
+  const isSettled = actionState === 'queued' || actionState === 'scheduled'
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+
+        {!isSettled && (
+          <>
+            <button
+              type="button"
+              onClick={handleQueue}
+              disabled={isBusy}
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              {actionState === 'saving' && !showSchedule ? 'Saving…' : 'Add to Queue'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowSchedule(v => !v)}
+              disabled={isBusy}
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              Schedule
+            </button>
+          </>
+        )}
+
+        {actionState === 'queued' && (
+          <span className="text-xs font-medium text-emerald-600">Added to queue ✓</span>
+        )}
+        {actionState === 'scheduled' && (
+          <span className="text-xs font-medium text-emerald-600">Scheduled ✓</span>
+        )}
+        {actionState === 'error' && (
+          <span className="text-xs text-red-500">{errorMsg}</span>
+        )}
+      </div>
+
+      {showSchedule && !isSettled && (
+        <div className="flex items-center gap-2 pt-1">
+          <input
+            type="datetime-local"
+            value={scheduleValue}
+            onChange={e => setScheduleValue(e.target.value)}
+            className="flex-1 text-xs border border-zinc-200 rounded-md px-2.5 py-1.5 bg-white text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+          />
+          <button
+            onClick={handleScheduleConfirm}
+            disabled={!scheduleValue || isBusy}
+            className="text-xs font-medium text-zinc-900 px-3 py-1.5 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+          >
+            {isBusy ? 'Saving…' : 'Confirm'}
+          </button>
+          <button
+            onClick={() => { setShowSchedule(false); setScheduleValue('') }}
+            className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function DistributionCards({ distribution }: DistributionCardsProps) {
+  const [active, setActive] = useState<Channel>('linkedin')
+
+  const content = distribution[active]
+
+  // When switching tabs, reset to the first channel with content
+  const availableFirst = CHANNELS.find(ch => !!distribution[ch.key])
+  if (availableFirst && !distribution[active] && availableFirst.key !== active) {
+    setActive(availableFirst.key)
   }
 
   return (
@@ -64,20 +207,12 @@ export function DistributionCards({ distribution }: DistributionCardsProps) {
       {/* Content */}
       <div className="px-5 py-4">
         {content ? (
-          <>
+          <div key={active}>
             <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700 leading-relaxed">
               {content}
             </pre>
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={copy}
-                className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          </>
+            <ChannelActions content={content} channel={active} />
+          </div>
         ) : (
           <p className="text-sm text-zinc-400">No content generated for this channel.</p>
         )}
