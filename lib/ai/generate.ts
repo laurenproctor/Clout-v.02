@@ -163,3 +163,63 @@ Rules:
 - Output ONLY the JSON array. No explanation, no wrapper object.`
   )
 }
+
+export async function extractAngles(content: string): Promise<import('@/types/domain').Angle[]> {
+  const systemPrompt = `You are an editorial strategist. Given a piece of content, identify 2 to 4 DISTINCT high-potential angles for a LinkedIn post.
+
+Rules:
+- Angles must be materially different in framing, not just different words for the same idea.
+  BAD: "AI in hiring", "Hiring with AI", "AI hiring trends"
+  GOOD: "Most hiring teams use AI backwards", "Why speed-hiring kills culture", "Recruiters will become operators"
+- If the content only supports one strong angle, return an empty array.
+- Each angle gets a short title (max 6 words), one-sentence summary, and one-sentence rationale for why it works.
+- Return ONLY a valid JSON array. No markdown, no explanation.
+
+Output format:
+[
+  {
+    "id": "<uuid>",
+    "title": "<max 6 words>",
+    "summary": "<one sentence>",
+    "rationale": "<one sentence why this angle works>",
+    "recommendedLensId": null
+  }
+]`
+
+  const userMessage = content.slice(0, 4000)
+
+  try {
+    const result = await callClaude({
+      systemPrompt,
+      userMessage,
+      model: 'claude-haiku-4-5-20251001',
+      maxTokens: 600,
+    })
+
+    const jsonMatch = result.content.match(/\[[\s\S]*\]/)
+    if (!jsonMatch) return []
+
+    const parsed = JSON.parse(jsonMatch[0])
+    if (!Array.isArray(parsed)) return []
+
+    const angles: import('@/types/domain').Angle[] = parsed
+      .filter((a: unknown): a is Record<string, unknown> =>
+        typeof a === 'object' && a !== null &&
+        typeof (a as Record<string, unknown>).title === 'string' &&
+        typeof (a as Record<string, unknown>).summary === 'string' &&
+        typeof (a as Record<string, unknown>).rationale === 'string'
+      )
+      .slice(0, 4)
+      .map((a: Record<string, unknown>) => ({
+        id: (typeof a.id === 'string' && a.id) ? a.id : crypto.randomUUID(),
+        title: a.title as string,
+        summary: a.summary as string,
+        rationale: a.rationale as string,
+        recommendedLensId: null,
+      }))
+
+    return angles.length >= 2 ? angles : []
+  } catch {
+    return []
+  }
+}
