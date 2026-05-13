@@ -19,11 +19,6 @@ const READING_TIME: Record<string, string> = {
   pillar: '20 min read',
 }
 
-const DISTRIBUTION_CHANNELS = [
-  { label: 'LinkedIn', icon: '🔗' },
-  { label: 'X / Twitter', icon: '𝕏' },
-  { label: 'Newsletter', icon: '✉' },
-]
 
 function synthesizeMetaDescription(why: string, keyword: string): string {
   const base = why.length > 120 ? why.slice(0, 117) + '...' : why
@@ -241,18 +236,6 @@ export function ArticlePreviewRail({
         <span className="text-xs text-zinc-400">{readTime}</span>
       </div>
 
-      <div>
-        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Distribution</p>
-        <div className="space-y-1.5">
-          {DISTRIBUTION_CHANNELS.map(ch => (
-            <div key={ch.label} className="flex items-center gap-2">
-              <span className="text-xs">{ch.icon}</span>
-              <span className="text-xs text-zinc-500">{ch.label}</span>
-              <span className="ml-auto text-xs text-zinc-300 italic">will be generated</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
