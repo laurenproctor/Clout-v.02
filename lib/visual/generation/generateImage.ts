@@ -238,7 +238,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     generation_group_id:  generationGroupId,
     variation_reason:     variationReason ?? null,
     provider:             'openai' as const,
-    provider_model:       'dall-e-3',
+    provider_model:       'gpt-image-1',
     original_url:         upload.publicUrl,
     storage_path:         upload.storagePath,
     prompt:               storedPrompt,

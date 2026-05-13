@@ -136,7 +136,7 @@ export async function generateVisualIntent(
   "lightingStyle": "string — e.g. soft diffused window light, high-contrast dramatic side-light",
   "visualDensity": "minimal | balanced | dense",
   "overlayRecommendation": "none | string describing text or data to overlay",
-  "renderMode": "fully-generated",
+  "renderMode": "${brandProfile ? 'hybrid-overlay' : 'fully-generated'}",
   "creativeRisk": "safe | balanced | experimental",
   "platformRationale": "string — why this approach fits ${platform}",
   "negativeSpace": ["string", "..."]

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
 import { runLinkedInGeneration } from '@/lib/linkedin/runGeneration'
+import { scrapeUrl } from '@/lib/scraper'
 import type { LinkedInGenerationRequest } from '@/lib/linkedin/types'
 
 export const maxDuration = 120
@@ -26,6 +27,31 @@ export async function POST(req: NextRequest) {
       JSON.stringify({ error: 'postType, sourceContent, intent, and audience are required' }),
       { status: 400 }
     )
+  }
+
+  // When source is a URL, scrape the content before generation.
+  // The original URL is preserved in sourceUrl so Claude can embed it in the post.
+  if (request.sourceType === 'url') {
+    const rawUrl = request.sourceContent.trim()
+    try {
+      const article = await scrapeUrl(rawUrl)
+      const scraped = [
+        article.title      ? `# ${article.title}`                     : '',
+        article.author     ? `By ${article.author}`                    : '',
+        article.siteName   ? `Source: ${article.siteName}`             : '',
+        article.excerpt    ? `\n${article.excerpt}`                    : '',
+        article.markdownContent ? `\n${article.markdownContent.slice(0, 6000)}` : '',
+      ].filter(Boolean).join('\n')
+
+      request.sourceContent = scraped || rawUrl
+      request.sourceUrl = rawUrl
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      // If scraping fails, include the URL as context and proceed — don't block generation
+      console.warn('[linkedin/generate] URL scrape failed, proceeding with URL as context:', msg)
+      request.sourceContent = `Source URL: ${rawUrl}\n\n(Full content could not be retrieved — base the post on what this URL likely covers based on context clues.)`
+      request.sourceUrl = rawUrl
+    }
   }
 
   const lensesResult = await listLenses({ workspaceId: session.workspaceId })

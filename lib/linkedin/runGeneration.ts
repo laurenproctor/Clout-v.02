@@ -116,7 +116,7 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     story_format: '~400 words — narrative arc: scene → insight → implication',
   }
 
-  return [
+  const lines = [
     `## Post Brief`,
     ``,
     `**Post type:** ${request.postType}`,
@@ -125,6 +125,19 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     `**Voice register:** ${request.voiceRegister}`,
     `**Target audience:** ${request.audience}`,
     `**Length:** ${request.length} — ${lengthGuide[request.length] ?? '~300 words'}`,
+  ]
+
+  if (request.sourceUrl) {
+    lines.push(``, `## Source URL`, ``, request.sourceUrl, ``)
+    lines.push(
+      `**REQUIRED:** Every post variation body must end with this URL on its own line, preceded by a short contextual CTA.`,
+      `Choose the CTA based on what the link offers (e.g. "Full breakdown:", "Read the research:", "See the full report:", "Get the details:").`,
+      `Do not use generic CTAs like "Click here" or "Check it out". The CTA must match the content and feel native to the post's voice.`,
+      `Format: CTA on one line, then the URL on the next line — both as plain text, no markdown.`,
+    )
+  }
+
+  lines.push(
     ``,
     `## Source Content`,
     ``,
@@ -145,7 +158,9 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     `- transformationDelta with 2–3 short labels describing what makes this variation distinct`,
     ``,
     `Also generate a coaching analysis for the overall content strategy.`,
-  ].join('\n')
+  )
+
+  return lines.join('\n')
 }
 
 function isOverloaded(err: unknown): boolean {

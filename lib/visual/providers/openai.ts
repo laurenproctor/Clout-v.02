@@ -1,18 +1,24 @@
 // lib/visual/providers/openai.ts
-// DALL-E 3 implementation of ImageProvider.
+// gpt-image-1 implementation of ImageProvider.
 // Uses raw fetch — no openai npm package required.
 //
-// CRITICAL: All DALL-E-specific behavior (size vocabulary, parameter names,
+// CRITICAL: All provider-specific behavior (size vocabulary, parameter names,
 // response shape) must remain here. Never leak provider details into
 // generateImage.ts or the prompt compilation layer.
 
 import type { AspectRatio, GeneratedImage, ImageProvider } from '../types/visual'
 
-// DALL-E 3 only accepts these three sizes
-const SIZE_MAP: Record<AspectRatio, '1024x1024' | '1792x1024' | '1024x1792'> = {
+// gpt-image-1 size vocabulary (different from dall-e-3)
+const SIZE_MAP: Record<AspectRatio, '1024x1024' | '1536x1024' | '1024x1536'> = {
   square:    '1024x1024',
-  landscape: '1792x1024',
-  portrait:  '1024x1792',
+  landscape: '1536x1024',
+  portrait:  '1024x1536',
+}
+
+// gpt-image-1 quality mapping
+const QUALITY_MAP: Record<'standard' | 'hd', 'medium' | 'high'> = {
+  standard: 'medium',
+  hd:       'high',
 }
 
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/generations'
@@ -29,12 +35,11 @@ class OpenAIImageProvider implements ImageProvider {
     const startMs = Date.now()
 
     const body: Record<string, unknown> = {
-      model:           'dall-e-3',
+      model:           'gpt-image-1',
       prompt:          input.prompt,
       size:            SIZE_MAP[input.aspectRatio],
-      quality:         input.quality ?? 'standard',
+      quality:         QUALITY_MAP[input.quality ?? 'standard'],
       n:               1,
-      response_format: 'url',
     }
 
     const res = await fetch(OPENAI_IMAGES_URL, {
@@ -55,21 +60,31 @@ class OpenAIImageProvider implements ImageProvider {
     }
 
     const data = await res.json() as {
-      data: Array<{ url: string; revised_prompt?: string }>
+      data: Array<{ url?: string; b64_json?: string; revised_prompt?: string }>
     }
 
     const item = data.data[0]
-    if (!item?.url) throw new Error('OpenAI returned no image URL')
+    if (!item) throw new Error('OpenAI returned no image data')
+
+    // gpt-image-1 may return b64_json instead of url — handle both
+    let providerUrl: string
+    if (item.url) {
+      providerUrl = item.url
+    } else if (item.b64_json) {
+      providerUrl = `data:image/png;base64,${item.b64_json}`
+    } else {
+      throw new Error('OpenAI returned neither url nor b64_json')
+    }
 
     console.log('[visual/openai] generation complete', {
       latencyMs,
-      model:       'dall-e-3',
+      model:       'gpt-image-1',
       aspectRatio: input.aspectRatio,
-      quality:     input.quality ?? 'standard',
+      quality:     QUALITY_MAP[input.quality ?? 'standard'],
     })
 
     return {
-      providerUrl:      item.url,
+      providerUrl,
       revisedPrompt:    item.revised_prompt,
       provider:         'openai',
       providerMetadata: { latencyMs, size: SIZE_MAP[input.aspectRatio] },
@@ -77,7 +92,6 @@ class OpenAIImageProvider implements ImageProvider {
   }
 }
 
-// Singleton factory — callers import this, not the class
 export function getOpenAIProvider(): ImageProvider {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')

@@ -26,23 +26,31 @@ export async function uploadImageFromUrl(params: {
 }): Promise<UploadResult> {
   const { providerUrl, workspaceId, assetId, subfolder } = params
 
-  // Fetch ephemeral image from provider
-  const imageRes = await fetch(providerUrl)
-  if (!imageRes.ok) {
-    const msg = `Failed to fetch image from provider: HTTP ${imageRes.status}`
-    console.error('[visual/storage] fetch error', { status: imageRes.status, providerUrl })
-    throw new Error(msg)
-  }
+  let arrayBuffer: ArrayBuffer
+  let mimeType: string
 
-  const arrayBuffer = await imageRes.arrayBuffer()
+  if (providerUrl.startsWith('data:')) {
+    // gpt-image-1 returns base64 data URIs — decode directly without a fetch
+    const [header, b64] = providerUrl.split(',')
+    mimeType = header.replace('data:', '').replace(';base64', '')
+    const binary = Buffer.from(b64, 'base64')
+    arrayBuffer = binary.buffer.slice(binary.byteOffset, binary.byteOffset + binary.byteLength)
+  } else {
+    // Standard URL — fetch the ephemeral provider URL
+    const imageRes = await fetch(providerUrl)
+    if (!imageRes.ok) {
+      const msg = `Failed to fetch image from provider: HTTP ${imageRes.status}`
+      console.error('[visual/storage] fetch error', { status: imageRes.status, providerUrl })
+      throw new Error(msg)
+    }
+    arrayBuffer = await imageRes.arrayBuffer()
+    const contentType = imageRes.headers.get('content-type') ?? 'image/png'
+    mimeType = contentType.split(';')[0].trim()
+  }
 
   if (arrayBuffer.byteLength > MAX_BYTES) {
     throw new Error(`Image exceeds ${MAX_BYTES / 1024 / 1024} MB limit`)
   }
-
-  // Resolve MIME type from Content-Type header
-  const contentType = imageRes.headers.get('content-type') ?? 'image/png'
-  const mimeType = contentType.split(';')[0].trim()
 
   const extMap: Record<string, string> = {
     'image/png':  'png',

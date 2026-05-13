@@ -24,6 +24,7 @@ export interface LinkedInGenerationRequest {
   postType: LinkedInPostType
   sourceType: LinkedInSourceType
   sourceContent: string
+  sourceUrl?: string          // original URL when sourceType === 'url'; always included in generated posts
   intent: SourceIntent
   narrativeStyle: NarrativeStyle
   voiceRegister: VoiceRegister
