@@ -35,7 +35,7 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
 
   lines.push('## Editorial Parameters')
   lines.push(`Goal: ${r.goalType.replace(/_/g, ' ')}`)
-  lines.push(`Audience: ${r.audienceIdentity}`)
+  lines.push(`Audience: ${r.audienceIdentity === 'custom' && r.audienceCustom ? r.audienceCustom : r.audienceIdentity}`)
   lines.push(`Opinion Strength: ${r.opinionStrength}`)
   lines.push(`Narrative Temperature: ${temperature}`)
   lines.push(`Brand Voice: ${r.brandVoice}`)
@@ -45,7 +45,6 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
   lines.push('')
 
   lines.push('## Audience Context')
-  lines.push(`Writing for: ${r.audienceIdentity}`)
   const audienceGuidance: Record<string, string> = {
     founder: 'Prioritize strategic leverage, market timing, and asymmetric opportunity.',
     operator: 'Focus on implementation, process improvement, and operational leverage.',
@@ -57,7 +56,13 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
     researcher: 'Prioritize rigor, nuance, evidence quality, and epistemic care.',
     mass_appeal: 'Write for a broad general audience. Use plain language, relatable analogies, and real-world examples. Avoid jargon. Make complex ideas instantly accessible without dumbing them down.',
   }
-  lines.push(audienceGuidance[r.audienceIdentity] ?? '')
+  if (r.audienceIdentity === 'custom' && r.audienceCustom) {
+    lines.push(`Writing for: ${r.audienceCustom}`)
+    lines.push(`Calibrate vocabulary, assumed knowledge, and framing specifically for this audience: ${r.audienceCustom}`)
+  } else {
+    lines.push(`Writing for: ${r.audienceIdentity}`)
+    lines.push(audienceGuidance[r.audienceIdentity] ?? '')
+  }
   lines.push('')
 
   lines.push('## Opinion Strength Guidance')

@@ -140,7 +140,9 @@ export function StrategicSetupPanel({ lenses, onGenerate, disabled }: StrategicS
             <label className={labelClass}>Audience</label>
             <AudienceIdentitySelector
               value={values.audienceIdentity ?? 'founder'}
+              customValue={values.audienceCustom}
               onChange={(audienceIdentity) => set({ audienceIdentity })}
+              onCustomChange={(audienceCustom) => set({ audienceCustom })}
             />
           </div>
 

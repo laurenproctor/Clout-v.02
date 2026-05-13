@@ -71,7 +71,9 @@ export function BlogStrategyForm({ lenses, values, onChange }: BlogStrategyFormP
         <label className="text-xs font-medium text-zinc-500 mb-1.5 block">Audience</label>
         <AudienceIdentitySelector
           value={values.audienceIdentity ?? 'founder'}
+          customValue={values.audienceCustom}
           onChange={(audienceIdentity) => set({ audienceIdentity })}
+          onCustomChange={(audienceCustom) => set({ audienceCustom })}
         />
       </div>
 

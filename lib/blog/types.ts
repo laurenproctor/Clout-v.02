@@ -126,6 +126,9 @@ export interface BlogGenerationRequest {
     | 'creator'
     | 'researcher'
     | 'mass_appeal'
+    | 'custom'
+
+  audienceCustom?: string
 
   narrativeTemperature:
     | 'analytical'
