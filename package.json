@@ -37,6 +37,7 @@
     "clsx": "^2.1.1",
     "geist": "^1.7.0",
     "jsdom": "^29.1.1",
+    "jsonrepair": "^3.14.0",
     "lru-cache": "^11.3.6",
     "lucide-react": "^1.8.0",
     "luxon": "^3.7.2",

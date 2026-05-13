@@ -44,7 +44,7 @@ Return ONLY a JSON object:
 
 Inline count: ${r.visualDensity === 'minimal' ? 1 : r.visualDensity === 'balanced' ? 2 : 3}`
 
-  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 1500 })
+  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2500 })
   const result = parseJson<{ hero?: ImageSpec; inline: ImageSpec[] }>(res.content)
   return {
     hero: result.hero,

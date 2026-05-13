@@ -89,7 +89,7 @@ Return ONLY a JSON object:
   }
 }`
 
-  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2000 })
+  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 3000 })
   const parsed = parseJson<{ editorial: ContentAnalysis["editorial"]; distribution: ContentAnalysis["distribution"]; strategicInsights: StrategicInsights }>(res.content)
 
   const contentAnalysis: ContentAnalysis = {

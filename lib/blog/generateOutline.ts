@@ -44,7 +44,7 @@ Return ONLY a JSON array of OutlineSection objects:
   }
 ]`
 
-  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 2000 })
+  const res = await callClaude({ systemPrompt: system, userMessage: user, maxTokens: 4000 })
   const result = parseJson<OutlineSection[]>(res.content)
   return { result, inputTokens: res.inputTokens, outputTokens: res.outputTokens }
 }
