@@ -37,6 +37,7 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
       publishedAt:         o.publishedAt as string | null,
       scheduledAt:         o.scheduledAt as string | null,
       lastPublishError:    o.lastPublishError as string | null,
+      generationGroupId:   null,
       approvedForWeek:     (o.approvedForWeek as boolean) ?? false,
       weekBucket:          o.weekBucket as string | null,
       performanceSnapshot: o.performanceSnapshot as Record<string, unknown> | null,

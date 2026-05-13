@@ -18,6 +18,7 @@ function toCapture(row: Record<string, unknown>): Capture {
     tags: row.tags as string[],
     researchSources: null,
     researchSummary: null,
+    extractedAngles: null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }

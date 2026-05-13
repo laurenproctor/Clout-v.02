@@ -64,6 +64,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     publishedAt:      row.published_at,
     scheduledAt:      row.scheduled_at,
     lastPublishError:    row.last_publish_error,
+    generationGroupId:   null,
     approvedForWeek:     false,
     weekBucket:          null,
     performanceSnapshot: null,

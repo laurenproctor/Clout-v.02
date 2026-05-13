@@ -82,6 +82,7 @@ function mapOutputRow(row: Record<string, unknown>): Output {
     publishedAt:         row.published_at as string | null,
     scheduledAt:         row.scheduled_at as string | null,
     lastPublishError:    row.last_publish_error as string | null,
+    generationGroupId:   null,
     approvedForWeek:     (row.approved_for_week as boolean) ?? false,
     weekBucket:          row.week_bucket as string | null,
     performanceSnapshot: row.performance_snapshot as Record<string, unknown> | null,

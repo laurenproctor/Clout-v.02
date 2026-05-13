@@ -19,6 +19,7 @@ function toCapture(row: Record<string, unknown>): Capture {
     tags: row.tags as string[],
     researchSources: (row.research_sources as ResearchSource[] | null) ?? null,
     researchSummary: (row.research_summary as string | null) ?? null,
+    extractedAngles: (row.extracted_angles as import('@/types/domain').Angle[] | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }

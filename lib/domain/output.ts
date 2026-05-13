@@ -17,6 +17,7 @@ function toOutput(row: Record<string, unknown>): Output {
     publishedAt: (row.published_at as string | null) ?? null,
     scheduledAt: (row.scheduled_at as string | null) ?? null,
     lastPublishError:    (row.last_publish_error as string | null) ?? null,
+    generationGroupId:   (row.generation_group_id as string | null) ?? null,
     approvedForWeek:     (row.approved_for_week as boolean) ?? false,
     weekBucket:          (row.week_bucket as string | null) ?? null,
     performanceSnapshot: (row.performance_snapshot as Record<string, unknown> | null) ?? null,
