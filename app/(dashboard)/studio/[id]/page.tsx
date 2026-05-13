@@ -94,8 +94,13 @@ export default function StudioEditorPage() {
       setHashtags(((content.hashtags as string[] | undefined) ?? []).map(h => h.replace(/^#/, '')))
       if (cRes.ok) setChannels(await cRes.json())
 
-      if (data.generationId) {
-        const vRes = await fetch(`/api/outputs?generation_id=${data.generationId}`)
+      const groupQuery = data.generationGroupId
+        ? `generation_group_id=${data.generationGroupId}`
+        : data.generationId
+        ? `generation_id=${data.generationId}`
+        : null
+      if (groupQuery) {
+        const vRes = await fetch(`/api/outputs?${groupQuery}`)
         if (vRes.ok) {
           const siblings: Output[] = await vRes.json()
           setVariants(siblings.map((s, i) => ({
