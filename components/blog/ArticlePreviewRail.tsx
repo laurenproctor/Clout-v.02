@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { HookExploration, BlogGenerationRequest } from '@/lib/blog/types'
 
 interface ArticlePreviewRailProps {
@@ -31,6 +31,117 @@ function synthesizeMetaDescription(why: string, keyword: string): string {
     return base
   }
   return base
+}
+
+function DraggableOutline({
+  outline,
+  onOutlineChange,
+}: {
+  outline: string[]
+  onOutlineChange: (h2s: string[]) => void
+}) {
+  const dragIndex = useRef<number | null>(null)
+  const [dropTarget, setDropTarget] = useState<number | null>(null)
+
+  function handleDragStart(i: number) {
+    dragIndex.current = i
+  }
+
+  function handleDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault()
+    if (dragIndex.current !== null && dragIndex.current !== i) {
+      setDropTarget(i)
+    }
+  }
+
+  function handleDrop(i: number) {
+    const from = dragIndex.current
+    if (from === null || from === i) return
+    const next = [...outline]
+    const [moved] = next.splice(from, 1)
+    next.splice(i, 0, moved)
+    onOutlineChange(next)
+    dragIndex.current = null
+    setDropTarget(null)
+  }
+
+  function handleDragEnd() {
+    dragIndex.current = null
+    setDropTarget(null)
+  }
+
+  function updateH2(index: number, value: string) {
+    onOutlineChange(outline.map((h, i) => (i === index ? value : h)))
+  }
+
+  function removeH2(index: number) {
+    onOutlineChange(outline.filter((_, i) => i !== index))
+  }
+
+  function addH2() {
+    onOutlineChange([...outline, ''])
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {outline.map((h2, i) => (
+        <div
+          key={i}
+          draggable
+          onDragStart={() => handleDragStart(i)}
+          onDragOver={e => handleDragOver(e, i)}
+          onDrop={() => handleDrop(i)}
+          onDragEnd={handleDragEnd}
+          className={`flex items-center gap-1.5 group rounded transition-colors ${
+            dropTarget === i ? 'bg-zinc-100' : ''
+          }`}
+        >
+          {/* Drag handle */}
+          <span
+            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing shrink-0 text-zinc-300 hover:text-zinc-500"
+            aria-hidden
+          >
+            <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+              <circle cx="3" cy="3" r="1.2" fill="currentColor" />
+              <circle cx="7" cy="3" r="1.2" fill="currentColor" />
+              <circle cx="3" cy="7" r="1.2" fill="currentColor" />
+              <circle cx="7" cy="7" r="1.2" fill="currentColor" />
+              <circle cx="3" cy="11" r="1.2" fill="currentColor" />
+              <circle cx="7" cy="11" r="1.2" fill="currentColor" />
+            </svg>
+          </span>
+          <span className="text-xs font-mono text-zinc-300 shrink-0">H2</span>
+          <input
+            type="text"
+            value={h2}
+            onChange={e => updateH2(i, e.target.value)}
+            placeholder="Section heading..."
+            className="flex-1 min-w-0 rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300"
+          />
+          <button
+            type="button"
+            onClick={() => removeH2(i)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-300 hover:text-zinc-500 shrink-0"
+            aria-label="Remove section"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={addH2}
+        className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors mt-1"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+        Add section
+      </button>
+    </div>
+  )
 }
 
 export function ArticlePreviewRail({
@@ -73,19 +184,6 @@ export function ArticlePreviewRail({
 
   const outline = editableOutline ?? []
 
-  function updateH2(index: number, value: string) {
-    const updated = outline.map((h, i) => (i === index ? value : h))
-    onOutlineChange?.(updated)
-  }
-
-  function removeH2(index: number) {
-    onOutlineChange?.(outline.filter((_, i) => i !== index))
-  }
-
-  function addH2() {
-    onOutlineChange?.([...outline, ''])
-  }
-
   return (
     <div className="space-y-5">
       <div>
@@ -117,40 +215,10 @@ export function ArticlePreviewRail({
       <div>
         <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Article Outline</p>
         {onOutlineChange ? (
-          <div className="space-y-1.5">
-            {outline.map((h2, i) => (
-              <div key={i} className="flex items-center gap-1.5 group">
-                <span className="text-xs font-mono text-zinc-300 shrink-0">H2</span>
-                <input
-                  type="text"
-                  value={h2}
-                  onChange={e => updateH2(i, e.target.value)}
-                  placeholder="Section heading..."
-                  className="flex-1 min-w-0 rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 focus:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeH2(i)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-300 hover:text-zinc-500 shrink-0"
-                  aria-label="Remove section"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addH2}
-              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 transition-colors mt-1"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-              Add section
-            </button>
-          </div>
+          <DraggableOutline
+            outline={outline}
+            onOutlineChange={onOutlineChange}
+          />
         ) : (
           <div className="border border-dashed border-zinc-200 rounded-lg p-3 space-y-1.5">
             {outline.length > 0 ? outline.map((h2, i) => (
