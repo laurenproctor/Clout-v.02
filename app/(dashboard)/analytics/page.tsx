@@ -15,13 +15,15 @@ interface AnalyticsData {
 
 type Preset = '30d' | '3mo' | '6mo' | '1yr' | 'all'
 
-const PRESETS: Array<{ key: Preset; label: string }> = [
-  { key: '30d', label: '30d' },
-  { key: '3mo', label: '3mo' },
-  { key: '6mo', label: '6mo' },
-  { key: '1yr', label: '1yr' },
-  { key: 'all', label: 'All' },
+const PRESETS: Array<{ key: Preset; label: string; shortcut: string }> = [
+  { key: '30d', label: '30d', shortcut: '1' },
+  { key: '3mo', label: '3mo', shortcut: '2' },
+  { key: '6mo', label: '6mo', shortcut: '3' },
+  { key: '1yr', label: '1yr', shortcut: '4' },
+  { key: 'all', label: 'All', shortcut: '5' },
 ]
+
+const PRESET_BY_KEY: Record<string, Preset> = { '1': '30d', '2': '3mo', '3': '6mo', '4': '1yr', '5': 'all' }
 
 function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -130,6 +132,22 @@ export default function AnalyticsPage() {
     fetchData(from, val)
   }
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const preset = PRESET_BY_KEY[e.key]
+      if (preset) {
+        e.preventDefault()
+        applyPreset(preset)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [from, to])
+
   const today = toDateStr(now)
 
   if (loading) {
@@ -174,13 +192,18 @@ export default function AnalyticsPage() {
               <button
                 key={p.key}
                 onClick={() => applyPreset(p.key)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1.5 ${
                   activePreset === p.key
                     ? 'bg-zinc-900 text-white'
                     : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50'
                 }`}
               >
                 {p.label}
+                <kbd className={`rounded border px-1 py-0.5 text-[9px] font-mono ${
+                  activePreset === p.key
+                    ? 'border-zinc-700 bg-zinc-800 text-zinc-400'
+                    : 'border-zinc-200 bg-zinc-100 text-zinc-400'
+                }`}>{p.shortcut}</kbd>
               </button>
             ))}
           </div>

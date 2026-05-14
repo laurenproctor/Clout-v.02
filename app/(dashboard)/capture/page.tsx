@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Lock, Zap, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,21 @@ export default function CapturePage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === '/' && document.activeElement !== searchRef.current) {
+        e.preventDefault()
+        searchRef.current?.focus()
+      } else if (e.key === 'Escape' && document.activeElement === searchRef.current) {
+        setSearch('')
+        searchRef.current?.blur()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   useEffect(() => {
     fetch('/api/capture?private=false&limit=200')
@@ -68,11 +83,15 @@ export default function CapturePage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
-              className="w-full rounded-md border border-zinc-200 bg-white pl-9 pr-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+              ref={searchRef}
+              className="w-full rounded-md border border-zinc-200 bg-white pl-9 pr-8 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
               placeholder="Search captures..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {!search && (
+              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 text-[10px] font-mono text-zinc-400">/</kbd>
+            )}
           </div>
           <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-1">
             {(['all', 'pending', 'ready', 'failed'] as StatusFilter[]).map((s) => (

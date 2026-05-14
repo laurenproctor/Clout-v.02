@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ImageIcon, Check } from 'lucide-react'
 import type { LinkedInVariation } from '@/lib/linkedin/types'
 import { PostEditor } from './PostEditor'
@@ -13,36 +13,89 @@ import { VisualGenerator } from '@/components/visual/VisualGenerator'
 interface VariationCardProps {
   variation: LinkedInVariation
   onChange: (updated: LinkedInVariation) => void
+  initialOutputId?: string | null
 }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
-export function VariationCard({ variation, onChange }: VariationCardProps) {
+export function VariationCard({ variation, onChange, initialOutputId }: VariationCardProps) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [savedOutputId, setSavedOutputId] = useState<string | null>(null)
+  const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+
+  // Sync when async auto-save completes and parent passes back the ID
+  useEffect(() => {
+    if (initialOutputId && !savedOutputId) {
+      setSavedOutputId(initialOutputId)
+      if (saveState === 'idle') setSaveState('saved')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialOutputId])
 
   async function handleSaveDraft() {
     setSaveState('saving')
     try {
-      const res = await fetch('/api/linkedin/outputs', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variation }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(data.error ?? `HTTP ${res.status}`)
+      if (savedOutputId) {
+        // Update existing record with any edits the user made
+        await fetch(`/api/outputs/${savedOutputId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: { body: variation.body, hashtags: variation.hashtags } }),
+        })
+        setSaveState('saved')
+      } else {
+        const res = await fetch('/api/linkedin/outputs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variation }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string }
+          throw new Error(data.error ?? `HTTP ${res.status}`)
+        }
+        const data = await res.json() as { id: string }
+        setSavedOutputId(data.id)
+        setSaveState('saved')
       }
-      const data = await res.json() as { id: string }
-      setSavedOutputId(data.id)
-      setSaveState('saved')
     } catch {
       setSaveState('error')
       setTimeout(() => setSaveState('idle'), 3000)
     }
   }
+
+  async function handleQueue() {
+    if (!savedOutputId) return
+    try {
+      await fetch(`/api/outputs/${savedOutputId}/queue`, { method: 'POST' })
+      setSaveState('queued')
+    } catch {
+      // non-fatal
+    }
+  }
+
+  async function handleConfirmSchedule() {
+    if (!savedOutputId || !scheduleDate) return
+    try {
+      await fetch(`/api/outputs/${savedOutputId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduled_at: new Date(scheduleDate).toISOString(),
+          status: 'queued',
+        }),
+      })
+      setScheduling(false)
+      setScheduleDate('')
+      setSaveState('scheduled')
+    } catch {
+      // non-fatal
+    }
+  }
+
+  const isActioned = saveState === 'queued' || saveState === 'scheduled'
 
   return (
     <div className="border border-zinc-200 rounded-xl p-5 space-y-5 bg-white">
@@ -71,6 +124,18 @@ export function VariationCard({ variation, onChange }: VariationCardProps) {
               Saved
             </span>
           )}
+          {saveState === 'queued' && (
+            <span className="flex items-center gap-1 text-[10px] text-blue-600 mr-1">
+              <Check className="h-3 w-3" />
+              Queued
+            </span>
+          )}
+          {saveState === 'scheduled' && (
+            <span className="flex items-center gap-1 text-[10px] text-blue-600 mr-1">
+              <Check className="h-3 w-3" />
+              Scheduled
+            </span>
+          )}
           {saveState === 'error' && (
             <span className="text-[10px] text-red-500 mr-1">Save failed</span>
           )}
@@ -78,13 +143,54 @@ export function VariationCard({ variation, onChange }: VariationCardProps) {
             type="button"
             className={actionBtn}
             onClick={handleSaveDraft}
-            disabled={saveState === 'saving'}
+            disabled={saveState === 'saving' || isActioned}
           >
             {saveState === 'saving' ? 'Saving...' : 'Save Draft'}
           </button>
-          <button type="button" disabled className={`${actionBtn} cursor-not-allowed opacity-50`}>Queue</button>
-          <button type="button" disabled className={`${actionBtn} cursor-not-allowed opacity-50`}>Schedule</button>
+          <button
+            type="button"
+            className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={handleQueue}
+            disabled={!savedOutputId || isActioned}
+          >
+            Queue
+          </button>
+          <button
+            type="button"
+            className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => { if (savedOutputId && !isActioned) setScheduling(v => !v) }}
+            disabled={!savedOutputId || isActioned}
+          >
+            Schedule
+          </button>
         </div>
+
+        {/* Inline schedule picker */}
+        {scheduling && (
+          <div className="flex items-center gap-2 pt-1 justify-end">
+            <input
+              type="datetime-local"
+              value={scheduleDate}
+              onChange={e => setScheduleDate(e.target.value)}
+              className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+            />
+            <button
+              type="button"
+              onClick={handleConfirmSchedule}
+              disabled={!scheduleDate}
+              className="rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
+            >
+              Confirm
+            </button>
+            <button
+              type="button"
+              onClick={() => { setScheduling(false); setScheduleDate('') }}
+              className="text-xs text-zinc-400 hover:text-zinc-600"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* B. TransformationDelta strip */}

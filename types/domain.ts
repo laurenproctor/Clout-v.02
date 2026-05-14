@@ -27,7 +27,7 @@ export interface Angle {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress'
 export type LensScope = 'system' | 'workspace'
 
 // ─── Core Entities ────────────────────────────────────────────────────────────

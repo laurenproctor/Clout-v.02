@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar, MobileSidebarProvider } from '@/components/shell/sidebar'
 import { TopNav } from '@/components/shell/top-nav'
 import { QuickCaptureProvider } from '@/components/shell/quick-capture-provider'
+import { GlobalNavShortcuts } from '@/components/shell/global-nav-shortcuts'
 import { ErrorBoundary } from '@/components/shell/error-boundary'
 import { getSession, getAuthenticatedUserId } from '@/lib/auth/session'
 import { createWorkspaceForUser } from '@/lib/domain/workspace'
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <QuickCaptureProvider>
+      <GlobalNavShortcuts />
       <MobileSidebarProvider>
         <div className="flex h-screen overflow-hidden bg-zinc-50 text-[120%]">
           <Sidebar />

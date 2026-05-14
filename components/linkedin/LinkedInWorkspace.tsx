@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { Lens } from '@/types/domain'
 import type {
   LinkedInGenerationRequest,
@@ -30,6 +30,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
     sourceType: 'text',
   })
   const [variations, setVariations] = useState<LinkedInVariation[]>([])
+  const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])
   const [coaching, setCoaching] = useState<PostCoaching | null>(null)
   const [progressLabel, setProgressLabel] = useState<string>('Generating...')
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +46,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
     setError(null)
     setState('generating')
     setProgressLabel('Generating...')
+    setSavedVariationIds([])
 
     try {
       const response = await fetch('/api/linkedin/generate', {
@@ -83,16 +85,22 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             receivedComplete = true
             const { variations: generated } = event.data as { variations: LinkedInVariation[] }
             setVariations(generated)
+            setSavedVariationIds(new Array(generated.length).fill(null))
             setState('result')
-            // Auto-save first variation for analytics tracking (fire-and-forget)
-            if (generated.length > 0) {
-              const v = generated[0]
-              fetch('/api/linkedin/outputs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ variation: { body: v.body, hashtags: v.hashtags } }),
-              }).catch(() => null)
-            }
+            // Auto-save all variations so they appear in inbox
+            Promise.all(
+              generated.map(v =>
+                fetch('/api/linkedin/outputs', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ variation: { body: v.body, hashtags: v.hashtags } }),
+                })
+                  .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
+                  .catch(() => null)
+              )
+            ).then(results => {
+              setSavedVariationIds(results.map(r => r?.id ?? null))
+            })
           } else if (event.type === 'coaching') {
             setCoaching(event.data as PostCoaching)
           } else if (event.type === 'error') {
@@ -181,6 +189,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             key={variation.id}
             variation={variation}
             onChange={updated => handleVariationChange(index, updated)}
+            initialOutputId={savedVariationIds[index] ?? null}
           />
         ))}
       </div>

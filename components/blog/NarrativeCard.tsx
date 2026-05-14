@@ -10,6 +10,7 @@ interface NarrativeCardProps {
   onSelect: () => void
   openingHooks: string[]
   editable: boolean
+  isKeyboardFocused?: boolean
 }
 
 const STYLE_BADGES: Record<HeadlineOption['style'], string> = {
@@ -20,7 +21,7 @@ const STYLE_BADGES: Record<HeadlineOption['style'], string> = {
   executive: 'Executive Frame',
 }
 
-export function NarrativeCard({ option, isSelected, onSelect, openingHooks, editable }: NarrativeCardProps) {
+export function NarrativeCard({ option, isSelected, onSelect, openingHooks, editable, isKeyboardFocused }: NarrativeCardProps) {
   const [showHooks, setShowHooks] = useState(false)
 
   return (
@@ -30,6 +31,8 @@ export function NarrativeCard({ option, isSelected, onSelect, openingHooks, edit
         'rounded-xl border p-6 transition-all cursor-pointer',
         isSelected
           ? 'border-zinc-900 bg-white shadow-sm ring-1 ring-zinc-900'
+          : isKeyboardFocused
+          ? 'border-zinc-400 bg-white ring-2 ring-zinc-300'
           : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
       )}
     >

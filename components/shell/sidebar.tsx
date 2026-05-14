@@ -22,6 +22,7 @@ import {
   Network,
   Share2,
   Sparkles,
+  Send,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -110,10 +111,14 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
       </nav>
 
       <div className="border-t border-zinc-200 p-2 space-y-0.5">
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 space-y-1">
           <p className="text-xs text-zinc-300">
             <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 text-zinc-400">⌘K</kbd>
             {' '}Quick capture
+          </p>
+          <p className="text-xs text-zinc-300">
+            <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 text-zinc-400">G</kbd>
+            {' + letter  '}Navigate
           </p>
         </div>
         <button
@@ -138,11 +143,24 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
           Brand
         </Link>
         <Link
+          href="/settings/publishing"
+          onClick={onLinkClick}
+          className={cn(
+            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+            pathname.startsWith('/settings/publishing')
+              ? 'bg-zinc-100 font-medium text-zinc-900'
+              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
+          )}
+        >
+          <Send className="h-4 w-4 shrink-0" />
+          Publishing
+        </Link>
+        <Link
           href="/settings/workspace"
           onClick={onLinkClick}
           className={cn(
             'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            pathname.startsWith('/settings')
+            pathname.startsWith('/settings') && !pathname.startsWith('/settings/publishing') && !pathname.startsWith('/settings/brand')
               ? 'bg-zinc-100 font-medium text-zinc-900'
               : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
           )}
