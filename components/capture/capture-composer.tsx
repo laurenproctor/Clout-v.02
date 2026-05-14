@@ -505,14 +505,14 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
       <div className="rounded-[22px] border border-zinc-200 bg-white shadow-md overflow-hidden">
 
         {/* Mode bar */}
-        <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0">
+        <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0 overflow-x-auto">
           {(['assistant', 'write', 'paste', 'upload', 'voice', 'topic'] as CaptureMode[]).map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => switchMode(mode)}
               className={cn(
-                'pb-3 px-3 text-sm font-medium transition-colors capitalize border-b-2 -mb-px',
+                'pb-3 px-3 text-sm font-medium transition-colors capitalize border-b-2 -mb-px shrink-0',
                 captureMode === mode
                   ? 'border-zinc-900 text-zinc-900'
                   : 'border-transparent text-zinc-400 hover:text-zinc-700'
@@ -727,7 +727,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
         <div className={cn('border-t border-zinc-100 bg-zinc-50/60 px-6 py-4', (captureMode === 'assistant' || captureMode === 'topic' || captureMode === 'voice') && 'hidden')}>
           <div className="flex items-center gap-3 flex-wrap">
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {['LinkedIn', 'X', 'Threads', 'Email', 'Blog'].map((t) => (
                 <button
                   key={t}
