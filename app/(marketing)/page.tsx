@@ -42,7 +42,7 @@ export default function HomePage() {
           Thought leadership, synthesized.
         </p>
         <h1
-          className="text-[32px] leading-[1.1] tracking-[-0.02em] mb-8 md:text-[56px] md:leading-[1.05]"
+          className="text-[32px] leading-[1.1] tracking-[-0.02em] mb-8 sm:text-[44px] md:text-[56px] md:leading-[1.05]"
           style={{ fontFamily: 'var(--font-heading)', color: 'var(--brand-ink)' }}
         >
           Turn daily ideas into powerful<br />thought leadership.
@@ -94,7 +94,7 @@ export default function HomePage() {
             </p>
             <div className="flex-1 h-px" style={{ background: 'var(--brand-border-light)' }} />
           </div>
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-12">
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-3 md:gap-12">
             {[
               {
                 step: '01',
@@ -205,7 +205,7 @@ export default function HomePage() {
       <section className="py-16 md:py-24" style={{ background: 'var(--brand-deep-navy)' }}>
         <div className="mx-auto max-w-2xl px-5 text-center md:px-10">
           <h2
-            className="text-[28px] leading-[1.15] tracking-[-0.01em] text-white mb-6 md:text-[40px] md:leading-[1.1]"
+            className="text-[28px] leading-[1.15] tracking-[-0.01em] text-white mb-6 sm:text-[36px] md:text-[40px] md:leading-[1.1]"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             Your best ideas are already there.<br />We just help you find them.
