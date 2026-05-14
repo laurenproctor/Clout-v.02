@@ -158,7 +158,7 @@ export default function PrivateCaptureDetailPage() {
         {lenses.length === 0 ? (
           <p className="text-sm text-zinc-500">
             No lenses available.{' '}
-            <Link href="/lenses" className="underline">Create a lens</Link> first.
+            <Link href="/settings/lenses" className="underline">Create a lens</Link> first.
           </p>
         ) : (
           <div className="space-y-3">

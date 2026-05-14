@@ -331,7 +331,7 @@ function QuickCreateLens({ onCreated }: { onCreated: (lens: Lens) => void }) {
           >
             Create a lens →
           </button>
-          <Link href="/lenses" className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+          <Link href="/settings/lenses" className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
             Browse lenses
           </Link>
         </div>

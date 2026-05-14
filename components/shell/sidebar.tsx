@@ -24,6 +24,7 @@ import {
   Send,
   ArrowLeft,
   ChevronRight,
+  Rss,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -31,6 +32,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Signal Feed', href: '/feed', icon: Rss },
   { label: 'Inbox', href: '/inbox', icon: Inbox },
   { label: 'Queue', href: '/queue', icon: ListOrdered },
   { label: 'Capture', href: '/capture', icon: Zap },
@@ -45,13 +47,13 @@ const navItems = [
 const adminItems = [
   { label: 'Brand', href: '/settings/brand', icon: Palette },
   { label: 'Publishing', href: '/settings/publishing', icon: Send },
-  { label: 'Schedule', href: '/schedule', icon: CalendarClock },
-  { label: 'Lenses', href: '/lenses', icon: Layers },
-  { label: 'Billing', href: '/billing', icon: CreditCard },
+  { label: 'Schedule', href: '/settings/schedule', icon: CalendarClock },
+  { label: 'Lenses', href: '/settings/lenses', icon: Layers },
+  { label: 'Billing', href: '/settings/billing', icon: CreditCard },
   { label: 'Settings', href: '/settings/workspace', icon: Settings },
 ]
 
-const ADMIN_PATHS = ['/settings', '/schedule', '/billing', '/lenses']
+const ADMIN_PATHS = ['/settings']
 
 type MobileSidebarContextValue = {
   open: boolean
@@ -117,7 +119,10 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
               label === 'Settings'
                 ? pathname.startsWith('/settings') &&
                   !pathname.startsWith('/settings/brand') &&
-                  !pathname.startsWith('/settings/publishing')
+                  !pathname.startsWith('/settings/publishing') &&
+                  !pathname.startsWith('/settings/schedule') &&
+                  !pathname.startsWith('/settings/lenses') &&
+                  !pathname.startsWith('/settings/billing')
                 : pathname === href || pathname.startsWith(href + '/')
             return (
               <Link

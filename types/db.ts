@@ -1092,6 +1092,360 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      // ── GDELT Signal Feed ────────────────────────────────────────────────────
+      signals: {
+        Row: {
+          id: string
+          external_id: string | null
+          source: string
+          title: string
+          summary: string | null
+          source_url: string | null
+          published_at: string | null
+          tone: 'positive' | 'negative' | 'neutral'
+          gdelt_raw_score: number | null
+          coverage_48h_pct: number | null
+          first_seen_at: string
+          refreshed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          external_id?: string | null
+          source?: string
+          title: string
+          summary?: string | null
+          source_url?: string | null
+          published_at?: string | null
+          tone?: 'positive' | 'negative' | 'neutral'
+          gdelt_raw_score?: number | null
+          coverage_48h_pct?: number | null
+          first_seen_at?: string
+          refreshed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          summary?: string | null
+          source_url?: string | null
+          tone?: 'positive' | 'negative' | 'neutral'
+          gdelt_raw_score?: number | null
+          coverage_48h_pct?: number | null
+          refreshed_at?: string | null
+        }
+        Relationships: []
+      }
+      signal_cards: {
+        Row: {
+          id: string
+          signal_id: string | null
+          tab: 'news' | 'services' | 'concepts' | 'competitors'
+          title: string
+          tone: 'positive' | 'negative' | 'neutral'
+          momentum_pct: string | null
+          momentum_bar_width: number
+          tags: string[]
+          gdelt_score: number | null
+          gdelt_score_label: string | null
+          is_trending: boolean
+          concept_surfaced_via: string | null
+          why_now: string | null
+          matched_service: string | null
+          timing_classification: 'evergreen' | 'publish_now' | null
+          competitor_id: string | null
+          opportunity_tier: number | null
+          created_at: string
+          refreshed_at: string | null
+        }
+        Insert: {
+          id?: string
+          signal_id?: string | null
+          tab: 'news' | 'services' | 'concepts' | 'competitors'
+          title: string
+          tone?: 'positive' | 'negative' | 'neutral'
+          momentum_pct?: string | null
+          momentum_bar_width?: number
+          tags?: string[]
+          gdelt_score?: number | null
+          gdelt_score_label?: string | null
+          is_trending?: boolean
+          concept_surfaced_via?: string | null
+          why_now?: string | null
+          matched_service?: string | null
+          timing_classification?: 'evergreen' | 'publish_now' | null
+          competitor_id?: string | null
+          opportunity_tier?: number | null
+          created_at?: string
+          refreshed_at?: string | null
+        }
+        Update: {
+          tab?: 'news' | 'services' | 'concepts' | 'competitors'
+          title?: string
+          tone?: 'positive' | 'negative' | 'neutral'
+          momentum_pct?: string | null
+          momentum_bar_width?: number
+          tags?: string[]
+          gdelt_score?: number | null
+          gdelt_score_label?: string | null
+          is_trending?: boolean
+          concept_surfaced_via?: string | null
+          why_now?: string | null
+          matched_service?: string | null
+          timing_classification?: 'evergreen' | 'publish_now' | null
+          competitor_id?: string | null
+          opportunity_tier?: number | null
+          refreshed_at?: string | null
+        }
+        Relationships: []
+      }
+      signal_entities: {
+        Row: {
+          id: string
+          signal_id: string
+          entity_name: string
+          entity_type: string
+          entity_role: string
+          confidence: number
+        }
+        Insert: {
+          id?: string
+          signal_id: string
+          entity_name: string
+          entity_type: string
+          entity_role?: string
+          confidence?: number
+        }
+        Update: {
+          entity_name?: string
+          entity_type?: string
+          entity_role?: string
+          confidence?: number
+        }
+        Relationships: []
+      }
+      signal_relationships: {
+        Row: {
+          id: string
+          entity_a: string
+          entity_b: string
+          relationship: 'co_occurs' | 'adjacent' | 'precedes'
+          signal_count: number
+          strength: number
+          first_seen: string
+          last_seen: string
+        }
+        Insert: {
+          id?: string
+          entity_a: string
+          entity_b: string
+          relationship: 'co_occurs' | 'adjacent' | 'precedes'
+          signal_count?: number
+          strength?: number
+          first_seen?: string
+          last_seen?: string
+        }
+        Update: {
+          signal_count?: number
+          strength?: number
+          last_seen?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          id: string
+          brand_name: string
+          niche: string | null
+          services: string[]
+          tone_preference: 'authoritative' | 'conversational' | 'provocative'
+          competitors: Json
+          content_topics: string[]
+          onboarding_complete: boolean
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          brand_name?: string
+          niche?: string | null
+          services?: string[]
+          tone_preference?: 'authoritative' | 'conversational' | 'provocative'
+          competitors?: Json
+          content_topics?: string[]
+          onboarding_complete?: boolean
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string
+          niche?: string | null
+          services?: string[]
+          tone_preference?: 'authoritative' | 'conversational' | 'provocative'
+          competitors?: Json
+          content_topics?: string[]
+          onboarding_complete?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      competitor_entities: {
+        Row: {
+          id: string
+          workspace_id: string
+          name: string
+          handle: string | null
+          domain: string | null
+          gdelt_entity_id: string | null
+          platforms: string[]
+          added_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          name: string
+          handle?: string | null
+          domain?: string | null
+          gdelt_entity_id?: string | null
+          platforms?: string[]
+          added_at?: string
+        }
+        Update: {
+          name?: string
+          handle?: string | null
+          domain?: string | null
+          gdelt_entity_id?: string | null
+          platforms?: string[]
+        }
+        Relationships: []
+      }
+      competitor_mentions: {
+        Row: {
+          id: string
+          competitor_id: string
+          card_id: string | null
+          signal_id: string | null
+          headline: string
+          published_at: string | null
+          platform: string | null
+          has_coverage: boolean
+          tone: 'positive' | 'negative' | 'neutral' | null
+          angle_summary: string | null
+          fetched_at: string
+        }
+        Insert: {
+          id?: string
+          competitor_id: string
+          card_id?: string | null
+          signal_id?: string | null
+          headline: string
+          published_at?: string | null
+          platform?: string | null
+          has_coverage?: boolean
+          tone?: 'positive' | 'negative' | 'neutral' | null
+          angle_summary?: string | null
+          fetched_at?: string
+        }
+        Update: {
+          headline?: string
+          published_at?: string | null
+          platform?: string | null
+          has_coverage?: boolean
+          tone?: 'positive' | 'negative' | 'neutral' | null
+          angle_summary?: string | null
+        }
+        Relationships: []
+      }
+      user_signal_interactions: {
+        Row: {
+          id: string
+          user_id: string
+          signal_card_id: string
+          interaction_type: string
+          interaction_data: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          signal_card_id: string
+          interaction_type: string
+          interaction_data?: Json
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
+      draft_cache: {
+        Row: {
+          id: string
+          card_id: string
+          user_id: string
+          format: 'linkedin' | 'twitter' | 'blog' | 'newsletter' | 'instagram'
+          tone: 'authoritative' | 'conversational' | 'provocative' | 'educational'
+          content: string
+          model_id: string
+          prompt_version: string
+          system_prompt_hash: string | null
+          invalidated_at: string | null
+          generated_at: string
+        }
+        Insert: {
+          id?: string
+          card_id: string
+          user_id: string
+          format: 'linkedin' | 'twitter' | 'blog' | 'newsletter' | 'instagram'
+          tone: 'authoritative' | 'conversational' | 'provocative' | 'educational'
+          content: string
+          model_id?: string
+          prompt_version?: string
+          system_prompt_hash?: string | null
+          invalidated_at?: string | null
+          generated_at?: string
+        }
+        Update: {
+          content?: string
+          model_id?: string
+          prompt_version?: string
+          system_prompt_hash?: string | null
+          invalidated_at?: string | null
+        }
+        Relationships: []
+      }
+      concept_clusters: {
+        Row: {
+          id: string
+          cluster_name: string
+          description: string | null
+          entity_identifiers: string[]
+          status: 'emerging' | 'rising' | 'peaking' | 'declining'
+          whitespace_score: number | null
+          coverage_velocity: number | null
+          first_emerged_at: string | null
+          peak_estimated_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          cluster_name: string
+          description?: string | null
+          entity_identifiers?: string[]
+          status?: 'emerging' | 'rising' | 'peaking' | 'declining'
+          whitespace_score?: number | null
+          coverage_velocity?: number | null
+          first_emerged_at?: string | null
+          peak_estimated_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_name?: string
+          description?: string | null
+          entity_identifiers?: string[]
+          status?: 'emerging' | 'rising' | 'peaking' | 'declining'
+          whitespace_score?: number | null
+          coverage_velocity?: number | null
+          first_emerged_at?: string | null
+          peak_estimated_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

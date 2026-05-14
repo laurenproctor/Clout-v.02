@@ -12,7 +12,7 @@ const NAV_MAP: Record<string, string> = {
   s: '/syndicate',
   t: '/studio',
   a: '/analytics',
-  l: '/lenses',
+  l: '/settings/lenses',
 }
 
 export function GlobalNavShortcuts() {

@@ -32,13 +32,13 @@ export function UpgradePrompt({ type, used, limit, onDismiss }: UpgradePromptPro
       </div>
       <div className="mt-3 flex gap-2">
         <Link
-          href="/billing"
+          href="/settings/billing"
           className="rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 transition-colors"
         >
           Upgrade plan →
         </Link>
         <Link
-          href="/billing"
+          href="/settings/billing"
           className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
         >
           View usage

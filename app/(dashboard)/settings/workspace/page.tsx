@@ -135,7 +135,7 @@ export default function WorkspaceSettingsPage() {
             </p>
           </div>
           <Link
-            href="/billing"
+            href="/settings/billing"
             className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
             Manage billing →
