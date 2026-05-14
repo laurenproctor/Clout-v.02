@@ -701,7 +701,7 @@ export async function publishTwitterOutput(
       )
     }
     try {
-      const refreshed = await refreshTwitterToken(cred.refreshToken)
+      const refreshed = await refreshXToken(cred.refreshToken)
       const upsertResult = await upsertChannelCredential({
         channelId:    output.channelId,
         workspaceId:  output.workspaceId,
@@ -737,8 +737,7 @@ export async function publishTwitterOutput(
   let postId: string
 
   try {
-    const { id } = await postTweet(cred.accessToken, text)
-    postId = id
+    postId = await postTweet(cred.accessToken, text)
   } catch (err) {
     const durationMs = Date.now() - startedAt
     await createPublishLog({

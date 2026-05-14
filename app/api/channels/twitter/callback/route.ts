@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   try {
     const { channelId } = await createOrUpdateChannelByAccountId({
       workspaceId,
-      platform:    'twitter',
+      platform:    'x',
       accountId:   user.id,
       accountType: 'personal',
       label:       `@${user.username}`,

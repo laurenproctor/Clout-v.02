@@ -27,7 +27,7 @@ export interface Angle {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
 export type LensScope = 'system' | 'workspace'
 export type EmailType = 'welcome' | 'output_ready' | 'payment_failed'
 export type EmailStatus = 'pending' | 'sent' | 'failed'

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { getOutput } from '@/lib/domain/output'
-import { publishOutput, markPublished, markFailed } from '@/lib/domain/publishing'
+import { publishOutput, markPublished, markFailed, acquirePublishLock } from '@/lib/domain/publishing'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()

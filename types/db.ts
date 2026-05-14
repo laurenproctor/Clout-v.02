@@ -94,6 +94,8 @@ export interface Database {
         Row: {
           id: string
           workspace_id: string
+          first_name: string | null
+          last_name: string | null
           display_name: string | null
           bio: string | null
           industries: string[]
@@ -118,6 +120,8 @@ export interface Database {
         Insert: {
           id?: string
           workspace_id: string
+          first_name?: string | null
+          last_name?: string | null
           display_name?: string | null
           bio?: string | null
           industries?: string[]
@@ -140,6 +144,8 @@ export interface Database {
           updated_at?: string
         }
         Update: {
+          first_name?: string | null
+          last_name?: string | null
           display_name?: string | null
           bio?: string | null
           industries?: string[]
@@ -158,6 +164,7 @@ export interface Database {
           audience_perception?: string[]
           onboarding_completed_at?: string | null
           private_feed_operator_visible?: boolean
+          first_session_dismissed_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -256,6 +263,9 @@ export interface Database {
           notes: string | null
           is_private: boolean
           tags: string[]
+          research_sources: Json | null
+          research_summary: string | null
+          extracted_angles: Json | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -264,7 +274,7 @@ export interface Database {
           id?: string
           workspace_id: string
           created_by: string
-          source: 'text' | 'voice' | 'structured' | 'url'
+          source: 'text' | 'voice' | 'structured' | 'url' | 'topic'
           status?: 'pending' | 'processing' | 'ready' | 'failed'
           raw_content?: string | null
           source_url?: string | null
@@ -287,6 +297,9 @@ export interface Database {
           notes?: string | null
           is_private?: boolean
           tags?: string[]
+          research_sources?: Json | null
+          research_summary?: string | null
+          extracted_angles?: Json | null
           updated_at?: string
           deleted_at?: string | null
         }
@@ -322,6 +335,8 @@ export interface Database {
           error_message?: string | null
           duration_ms?: number | null
           token_count?: number | null
+          generation_group_id?: string | null
+          angle_id?: string | null
           created_at?: string
           completed_at?: string | null
         }
@@ -340,9 +355,11 @@ export interface Database {
         Row: {
           id: string
           workspace_id: string
-          generation_id: string
+          generation_id: string | null
           channel_id: string | null
-          status: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+          generation_group_id: string | null
+          status: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
+          content_type: string | null
           title: string | null
           content: Json
           approved_by: string | null
@@ -362,9 +379,11 @@ export interface Database {
         Insert: {
           id?: string
           workspace_id: string
-          generation_id: string
+          generation_id?: string | null
           channel_id?: string | null
-          status?: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+          generation_group_id?: string | null
+          status?: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
+          content_type?: string | null
           title?: string | null
           content?: Json
           approved_by?: string | null
@@ -383,7 +402,8 @@ export interface Database {
         }
         Update: {
           channel_id?: string | null
-          status?: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+          status?: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
+          content_type?: string | null
           title?: string | null
           content?: Json
           approved_by?: string | null
@@ -457,20 +477,24 @@ export interface Database {
         Row: {
           id: string
           workspace_id: string
-          platform: 'linkedin' | 'newsletter' | 'x'
+          platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
           label: string | null
           config: Json
           is_active: boolean
+          account_id: string | null
+          account_type: string
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           workspace_id: string
-          platform: 'linkedin' | 'newsletter' | 'x'
+          platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
           label?: string | null
           config?: Json
           is_active?: boolean
+          account_id?: string | null
+          account_type?: string
           created_at?: string
           updated_at?: string
         }
@@ -478,6 +502,8 @@ export interface Database {
           label?: string | null
           config?: Json
           is_active?: boolean
+          account_id?: string | null
+          account_type?: string
           updated_at?: string
         }
         Relationships: []
@@ -702,7 +728,7 @@ export interface Database {
           event_type: string
           error_code: string | null
           error_message: string | null
-          metadata: Record<string, unknown>
+          metadata: Json
           created_at: string
         }
         Insert: {
@@ -779,6 +805,291 @@ export interface Database {
           timezone?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      brand_profiles: {
+        Row: {
+          id: string
+          workspace_id: string
+          brand_name: string | null
+          logo_url: string | null
+          primary_color: string
+          secondary_color: string
+          accent_color: string
+          font_heading: string
+          font_body: string
+          font_heading_url: string | null
+          font_body_url: string | null
+          tone_traits: string[]
+          style_traits: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          brand_name?: string | null
+          logo_url?: string | null
+          primary_color?: string
+          secondary_color?: string
+          accent_color?: string
+          font_heading?: string
+          font_body?: string
+          font_heading_url?: string | null
+          font_body_url?: string | null
+          tone_traits?: string[]
+          style_traits?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string | null
+          logo_url?: string | null
+          primary_color?: string
+          secondary_color?: string
+          accent_color?: string
+          font_heading?: string
+          font_body?: string
+          font_heading_url?: string | null
+          font_body_url?: string | null
+          tone_traits?: string[]
+          style_traits?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      brand_imagery_profiles: {
+        Row: {
+          id: string
+          workspace_id: string
+          visual_styles: string[]
+          imagery_type: string | null
+          composition: string | null
+          overlay_text_style: string | null
+          mood_traits: string[]
+          negative_rules: string[]
+          example_board: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          visual_styles?: string[]
+          imagery_type?: string | null
+          composition?: string | null
+          overlay_text_style?: string | null
+          mood_traits?: string[]
+          negative_rules?: string[]
+          example_board?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          visual_styles?: string[]
+          imagery_type?: string | null
+          composition?: string | null
+          overlay_text_style?: string | null
+          mood_traits?: string[]
+          negative_rules?: string[]
+          example_board?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      visual_assets: {
+        Row: {
+          id: string
+          workspace_id: string
+          output_id: string | null
+          parent_asset_id: string | null
+          generation_group_id: string
+          variation_reason: string | null
+          provider: string
+          provider_model: string
+          original_url: string
+          storage_path: string
+          prompt: string
+          visual_intent: Json | null
+          generation_mode: string
+          render_mode: string
+          aspect_ratio: string
+          mime_type: string
+          file_size_bytes: number | null
+          seed: number | null
+          status: string
+          primitive_payload: Json | null
+          overlay_payload: Json | null
+          intent_input_tokens: number | null
+          intent_output_tokens: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          output_id?: string | null
+          parent_asset_id?: string | null
+          generation_group_id: string
+          variation_reason?: string | null
+          provider?: string
+          provider_model?: string
+          original_url: string
+          storage_path: string
+          prompt: string
+          visual_intent?: Json | null
+          generation_mode?: string
+          render_mode?: string
+          aspect_ratio?: string
+          mime_type?: string
+          file_size_bytes?: number | null
+          seed?: number | null
+          status?: string
+          primitive_payload?: Json | null
+          overlay_payload?: Json | null
+          intent_input_tokens?: number | null
+          intent_output_tokens?: number | null
+          created_at?: string
+        }
+        Update: {
+          status?: string
+          output_id?: string | null
+          overlay_payload?: Json | null
+          primitive_payload?: Json | null
+        }
+        Relationships: []
+      }
+      assistant_sessions: {
+        Row: {
+          id: string
+          workspace_id: string
+          capture_id: string | null
+          user_id: string | null
+          status: string
+          metadata: Json
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          capture_id?: string | null
+          user_id?: string | null
+          status?: string
+          metadata?: Record<string, unknown>
+          created_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          status?: string
+          metadata?: Record<string, unknown>
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+      assistant_messages: {
+        Row: {
+          id: string
+          session_id: string
+          workspace_id: string
+          role: string
+          content: string
+          model: string | null
+          tokens_used: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          workspace_id: string
+          role: string
+          content: string
+          model?: string | null
+          tokens_used?: number | null
+          created_at?: string
+        }
+        Update: {
+          content?: string
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
+      assistant_generations: {
+        Row: {
+          id: string
+          session_id: string
+          workspace_id: string
+          output_id: string | null
+          parent_generation_id: string | null
+          status: string
+          inferred_intent: Json | null
+          output_format: string | null
+          provider: string | null
+          model: string | null
+          prompt_version: string | null
+          generation_config: Json | null
+          retry_count: number
+          failure_reason: string | null
+          latency_ms: number | null
+          tokens_input: number | null
+          tokens_output: number | null
+          stream_state: string | null
+          created_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          workspace_id: string
+          output_id?: string | null
+          parent_generation_id?: string | null
+          status?: string
+          inferred_intent?: Json | null
+          output_format?: string | null
+          provider?: string | null
+          model?: string | null
+          prompt_version?: string | null
+          generation_config?: Json | null
+          retry_count?: number
+          failure_reason?: string | null
+          latency_ms?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          stream_state?: string | null
+          created_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          status?: string
+          failure_reason?: string | null
+          latency_ms?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          stream_state?: string | null
+          completed_at?: string | null
+          output_id?: string | null
+        }
+        Relationships: []
+      }
+      assistant_events: {
+        Row: {
+          id: string
+          workspace_id: string
+          session_id: string | null
+          generation_id: string | null
+          event_type: string
+          payload: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          session_id?: string | null
+          generation_id?: string | null
+          event_type: string
+          payload?: Record<string, unknown>
+          created_at?: string
+        }
+        Update: never
         Relationships: []
       }
     }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { DateTime } from 'luxon'
 import { Loader2, CheckCircle2, CalendarClock, X, ChevronDown, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { WeeklyPlanItem, Output, OutputContent, ChannelPlatform } from '@/types/domain'
+import type { WeeklyPlanItem, Output, OutputContent, ChannelPlatform, PerformanceSnapshot } from '@/types/domain'
 import { PostDrawer } from './PostDrawer'
 
 function excerpt(output: Output): string {
@@ -59,7 +59,7 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
       generationGroupId:   null,
       approvedForWeek:     (o.approvedForWeek as boolean) ?? false,
       weekBucket:          o.weekBucket as string | null,
-      performanceSnapshot: o.performanceSnapshot as Record<string, unknown> | null,
+      performanceSnapshot: o.performanceSnapshot as PerformanceSnapshot | null,
       createdAt:           o.createdAt as string,
       updatedAt:           o.updatedAt as string,
       channels:            ch ? { platform: ch.platform as ChannelPlatform, label: ch.label } : undefined,

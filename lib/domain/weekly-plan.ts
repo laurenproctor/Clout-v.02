@@ -86,7 +86,7 @@ function mapOutputRow(row: Record<string, unknown>): Output {
     generationGroupId:   null,
     approvedForWeek:     (row.approved_for_week as boolean) ?? false,
     weekBucket:          row.week_bucket as string | null,
-    performanceSnapshot: row.performance_snapshot as Record<string, unknown> | null,
+    performanceSnapshot: row.performance_snapshot as import('@/types/domain').PerformanceSnapshot | null,
     createdAt:           row.created_at as string,
     updatedAt:           row.updated_at as string,
     channels:            ch ? { platform: ch.platform as import('@/types/domain').ChannelPlatform, label: ch.label } : undefined,
