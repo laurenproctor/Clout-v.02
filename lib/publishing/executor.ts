@@ -80,7 +80,8 @@ export async function processPublishAttempt(
   // Failed — decide whether to retry
   await recordConnectionFailure(connectionId, result.error)
 
-  if (shouldRetry(0, Object.assign(new Error(result.error), { retryable: result.retryable }))) {
+  const retryErr = Object.assign(new Error(result.error), { retryable: result.retryable })
+  if (shouldRetry(0, retryErr)) {
     await transitionPublishedContent(publishedContentId, 'retrying', { errorMessage: result.error })
     // TODO: publishing_events — record retry classification + next retry delay
     // Future: enqueue retry job with nextRetryAt(0)

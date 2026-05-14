@@ -63,6 +63,20 @@ export function SyndicationClient() {
   const isComplete = ui.status === 'complete'
 
   useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (!isRunning && input.trim() && selectedPlatforms.length > 0) handleGenerate()
+      } else if (e.key === 'Escape' && focused) {
+        setFocused(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning, input, selectedPlatforms, focused])
+
+  useEffect(() => {
     fetch('/api/channels')
       .then(r => r.json())
       .then((data: { id: string; platform: string; label: string | null; account_type: string }[]) => {
@@ -464,9 +478,11 @@ export function SyndicationClient() {
               className={cn(
                 'rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors',
                 'hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed',
+                'flex items-center gap-2',
               )}
             >
-              {isRunning ? 'Generating…' : 'Generate Posts'}
+              <span>{isRunning ? 'Generating…' : 'Generate Posts'}</span>
+              {!isRunning && <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 text-[10px] font-mono text-zinc-400">⌘↵</kbd>}
             </button>
 
             {isRunning && (

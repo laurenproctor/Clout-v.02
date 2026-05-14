@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
 import type {
@@ -66,6 +66,18 @@ export function StrategyPanel({
   showGenerateButton,
 }: StrategyPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (canGenerate && !readOnly) onGenerate()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canGenerate, readOnly])
 
   const intents: { value: SourceIntent; label: string }[] = [
     { value: 'build_authority', label: 'Build Authority' },
@@ -256,9 +268,10 @@ export function StrategyPanel({
           <button
             onClick={onGenerate}
             disabled={!canGenerate || readOnly}
-            className="w-full bg-zinc-900 text-white rounded-md px-4 py-2.5 text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full bg-zinc-900 text-white rounded-md px-4 py-2.5 text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Generate LinkedIn Post
+            <span>Generate LinkedIn Post</span>
+            <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 text-[10px] font-mono text-zinc-400">⌘↵</kbd>
           </button>
         </div>
       )}

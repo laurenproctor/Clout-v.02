@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Lens } from '@/types/domain'
 import type { BlogGenerationRequest } from '@/lib/blog/types'
 import { SourceInputTabs } from './SourceInputTabs'
@@ -72,6 +72,18 @@ export function StrategicSetupPanel({ lenses, onGenerate, disabled, initialValue
   }
 
   const canGenerate = !!values.primaryKeyword?.trim() && !disabled
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (canGenerate) handleGenerate()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canGenerate])
 
   return (
     <div className="flex flex-col items-center justify-start min-h-full py-12 px-6">
@@ -173,9 +185,10 @@ export function StrategicSetupPanel({ lenses, onGenerate, disabled, initialValue
             type="button"
             onClick={handleGenerate}
             disabled={!canGenerate}
-            className="w-full bg-zinc-900 text-white rounded-md px-6 py-3 text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-zinc-900 text-white rounded-md px-6 py-3 text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {disabled ? 'Generating Strategic Directions...' : 'Generate Strategic Directions'}
+            <span>{disabled ? 'Generating Strategic Directions...' : 'Generate Strategic Directions'}</span>
+            {!disabled && <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 text-[10px] font-mono text-zinc-400">⌘↵</kbd>}
           </button>
         </div>
       </div>
