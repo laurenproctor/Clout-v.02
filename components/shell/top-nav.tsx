@@ -12,7 +12,6 @@ function getPageTitle(pathname: string): string {
     capture: 'Capture',
     studio: 'Studio',
     lenses: 'Lenses',
-    channels: 'Channels',
     analytics: 'Analytics',
     billing: 'Billing',
     settings: 'Settings',
