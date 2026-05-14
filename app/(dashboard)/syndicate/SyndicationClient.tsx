@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { Platform } from '@/lib/syndication/types/intelligence'
 import { PLATFORM_LABELS } from '@/lib/syndication/types/intelligence'
 import type { SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
+import type { SyndicationLens } from '@/lib/syndication/types/lenses'
 import type { CardState } from './PlatformGrid'
 import PlatformGrid from './PlatformGrid'
 import FocusedEditView from './FocusedEditView'
@@ -43,10 +44,15 @@ export type PublishState = {
   savedAt: Date | null
 }
 
-export function SyndicationClient() {
+interface Props {
+  availableLenses: SyndicationLens[]
+}
+
+export function SyndicationClient({ availableLenses }: Props) {
   const [input, setInput] = useState('')
   const [notes, setNotes] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook'])
+  const [selectedLenses, setSelectedLenses] = useState<string[]>([])
   const [ui, setUi] = useState<UIState>({ status: 'idle' })
   const [cards, setCards] = useState<Partial<Record<Platform, CardState>>>({})
   const [focused, setFocused] = useState<FocusedCard | null>(null)
@@ -113,6 +119,14 @@ export function SyndicationClient() {
     setSelectedPlatforms(prev =>
       prev.includes(platform) ? prev.filter(p => p !== platform) : [...prev, platform],
     )
+  }
+
+  function toggleLens(lensId: string) {
+    setSelectedLenses(prev => {
+      if (prev.includes(lensId)) return prev.filter(l => l !== lensId)
+      if (prev.length >= 2) return prev
+      return [...prev, lensId]
+    })
   }
 
   function setPublishField(platform: Platform, patch: Partial<PublishState>) {
@@ -252,6 +266,7 @@ export function SyndicationClient() {
           input: input.trim(),
           platforms: selectedPlatforms,
           notes: notes.trim() || undefined,
+          lenses: selectedLenses.length > 0 ? selectedLenses : undefined,
         }),
       })
 
@@ -339,6 +354,7 @@ export function SyndicationClient() {
     stopInterval()
     setInput('')
     setNotes('')
+    setSelectedLenses([])
     setUi({ status: 'idle' })
     setCards({})
     setFocused(null)
@@ -364,6 +380,7 @@ export function SyndicationClient() {
           input: input.trim(),
           platforms: [platform],
           notes: effectiveNotes,
+          lenses: selectedLenses.length > 0 ? selectedLenses : undefined,
         }),
       })
 
@@ -469,6 +486,40 @@ export function SyndicationClient() {
               ))}
             </div>
           </div>
+
+          {/* Lens toggles */}
+          {availableLenses.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-zinc-400 uppercase tracking-wide">Lenses</p>
+                {selectedLenses.length === 2 && (
+                  <span className="text-xs text-zinc-300">max 2 selected</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableLenses.map(lens => {
+                  const isSelected = selectedLenses.includes(lens.id)
+                  const isDisabled = isRunning || (!isSelected && selectedLenses.length >= 2)
+                  return (
+                    <button
+                      key={lens.id}
+                      onClick={() => toggleLens(lens.id)}
+                      disabled={isDisabled}
+                      className={cn(
+                        'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                        isSelected
+                          ? 'bg-zinc-900 text-white'
+                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
+                        'disabled:opacity-40 disabled:cursor-not-allowed',
+                      )}
+                    >
+                      {lens.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Generate button + loading indicator */}
           <div>
