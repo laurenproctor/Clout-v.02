@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const oauthError = searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=facebook_denied`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=facebook_denied`)
   }
 
   let workspaceId: string
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const payload = verifyOAuthState(state)
     workspaceId = payload.workspaceId
   } catch {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=session_expired`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/facebook/callback`
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Facebook token exchange failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
   let pages: Awaited<ReturnType<typeof fetchFacebookPages>>
@@ -49,11 +49,11 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Facebook pages fetch failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=profile_fetch_failed${detail(msg)}`)
   }
 
   if (pages.length === 0) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=facebook_no_pages`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=facebook_no_pages`)
   }
 
   // Store all pages + user token in a signed HttpOnly cookie, then let the user pick
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     userTokenExpiresIn: expiresIn,
   })
 
-  const res = NextResponse.redirect(`${APP_URL()}/channels?select=facebook`)
+  const res = NextResponse.redirect(`${APP_URL()}/settings/publishing?select=facebook`)
   res.cookies.set('fb_pending_pages', cookieValue, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',

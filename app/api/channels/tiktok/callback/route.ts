@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const oauthError = searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=tiktok_denied`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=tiktok_denied`)
   }
 
   let workspaceId: string
@@ -21,12 +21,12 @@ export async function GET(req: NextRequest) {
     const payload = verifyOAuthState(state)
     workspaceId = payload.workspaceId
   } catch {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=session_expired`)
   }
 
   const codeVerifier = req.cookies.get('tt_pkce')?.value
   if (!codeVerifier) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=tiktok_pkce_missing`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=tiktok_pkce_missing`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/tiktok/callback`
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('TikTok token exchange failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
   let user: { open_id: string; display_name: string; avatar_url: string }
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('TikTok user fetch failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=profile_fetch_failed${detail(msg)}`)
   }
 
   try {
@@ -72,15 +72,15 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('TikTok credential upsert error:', credResult.error)
-      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
+      return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=credential_db_failed${detail(credResult.error)}`)
     }
 
-    const res = NextResponse.redirect(`${APP_URL()}/channels?connected=tiktok`)
+    const res = NextResponse.redirect(`${APP_URL()}/settings/publishing?connected=tiktok`)
     res.cookies.delete('tt_pkce')
     return res
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('TikTok OAuth callback error:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=connect_failed${detail(msg)}`)
   }
 }

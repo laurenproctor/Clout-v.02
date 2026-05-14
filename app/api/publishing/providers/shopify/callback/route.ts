@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   // 1. Verify Shopify HMAC
   if (!verifyShopifyHmac(params)) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/channels?error=invalid_hmac`
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=invalid_hmac`
     )
   }
 
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     workspaceId = payload.workspaceId
   } catch {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/channels?error=invalid_state`
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=invalid_state`
     )
   }
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session || session.workspaceId !== workspaceId) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/channels?error=session_mismatch`
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=session_mismatch`
     )
   }
 
@@ -73,17 +73,17 @@ export async function GET(req: NextRequest) {
 
     if (!result.ok) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/channels?error=connection_failed`
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=connection_failed`
       )
     }
 
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/channels?connected=shopify`
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?connected=shopify`
     )
   } catch (err) {
     const errCode = err instanceof PublishingError ? err.code : 'unknown'
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/channels?error=${encodeURIComponent(errCode)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=${encodeURIComponent(errCode)}`
     )
   }
 }

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const oauthError = searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=instagram_denied`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=instagram_denied`)
   }
 
   let workspaceId: string
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const payload = verifyOAuthState(state)
     workspaceId = payload.workspaceId
   } catch {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=session_expired`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/instagram/callback`
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Instagram token exchange failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
   let accounts: Awaited<ReturnType<typeof fetchInstagramAccounts>>
@@ -51,11 +51,11 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Instagram account fetch failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=profile_fetch_failed${detail(msg)}`)
   }
 
   if (accounts.length === 0) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=instagram_no_business_account`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=instagram_no_business_account`)
   }
 
   // Single account: connect directly without a picker
@@ -83,13 +83,13 @@ export async function GET(req: NextRequest) {
 
       if (!credResult.ok) {
         console.error('Instagram credential upsert error:', credResult.error)
-        return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
+        return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=credential_db_failed${detail(credResult.error)}`)
       }
 
-      return NextResponse.redirect(`${APP_URL()}/channels?connected=instagram`)
+      return NextResponse.redirect(`${APP_URL()}/settings/publishing?connected=instagram`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
+      return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=connect_failed${detail(msg)}`)
     }
   }
 
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     userTokenExpiresIn: expiresIn,
   })
 
-  const res = NextResponse.redirect(`${APP_URL()}/channels?select=instagram`)
+  const res = NextResponse.redirect(`${APP_URL()}/settings/publishing?select=instagram`)
   res.cookies.set('ig_pending_accounts', cookieValue, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',

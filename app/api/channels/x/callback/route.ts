@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const oauthError = searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=x_denied`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=x_denied`)
   }
 
   let workspaceId: string
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     if (!payload.codeVerifier) throw new Error('Missing PKCE code_verifier in state')
     codeVerifier = payload.codeVerifier
   } catch {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=session_expired`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/x/callback`
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       errorCode:    'token_exchange_failed',
       errorMessage: msg,
     })
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
   let profile: { id: string; name: string; username: string }
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       errorCode:    'profile_fetch_failed',
       errorMessage: msg,
     })
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=profile_fetch_failed${detail(msg)}`)
   }
 
   try {
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
           errorCode:    'channel_db_failed',
           errorMessage: msg,
         })
-        return NextResponse.redirect(`${APP_URL()}/channels?error=channel_db_failed${detail(msg)}`)
+        return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=channel_db_failed${detail(msg)}`)
       }
       channelId = newCh.id
     }
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
         errorCode:    'credential_db_failed',
         errorMessage: credResult.error,
       })
-      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
+      return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=credential_db_failed${detail(credResult.error)}`)
     }
 
     await logProviderEvent({
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
       metadata:  { username: profile.username },
     })
 
-    return NextResponse.redirect(`${APP_URL()}/channels?connected=x`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?connected=x`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('X OAuth callback error:', msg)
@@ -161,6 +161,6 @@ export async function GET(req: NextRequest) {
       errorCode:    'connect_failed',
       errorMessage: msg,
     })
-    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=connect_failed${detail(msg)}`)
   }
 }

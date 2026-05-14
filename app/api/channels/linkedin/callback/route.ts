@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const oauthError = searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=linkedin_denied`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=linkedin_denied`)
   }
 
   let workspaceId: string
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const payload = verifyOAuthState(state)
     workspaceId = payload.workspaceId
   } catch {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=session_expired`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/linkedin/callback`
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('LinkedIn token exchange failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
   let profile: { sub: string; name: string; email?: string }
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('LinkedIn profile fetch failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=profile_fetch_failed${detail(msg)}`)
   }
 
   const expiresAt = Math.floor(Date.now() / 1000) + tokens.expires_in
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
       profiles,
     })
 
-    const res = NextResponse.redirect(`${APP_URL()}/channels?select=linkedin`)
+    const res = NextResponse.redirect(`${APP_URL()}/settings/publishing?select=linkedin`)
     res.cookies.set('li_pending_profiles', cookieValue, {
       httpOnly: true,
       sameSite: 'lax',
@@ -109,13 +109,13 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('LinkedIn credential upsert error:', credResult.error)
-      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
+      return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=credential_db_failed${detail(credResult.error)}`)
     }
 
-    return NextResponse.redirect(`${APP_URL()}/channels?connected=linkedin`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?connected=linkedin`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('LinkedIn OAuth callback error:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=connect_failed${detail(msg)}`)
   }
 }

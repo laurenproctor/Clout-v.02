@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const oauthError = searchParams.get('error')
 
   if (oauthError || !code || !state) {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=threads_denied`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=threads_denied`)
   }
 
   let workspaceId: string
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const payload = verifyOAuthState(state)
     workspaceId = payload.workspaceId
   } catch {
-    return NextResponse.redirect(`${APP_URL()}/channels?error=session_expired`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=session_expired`)
   }
 
   const redirectUri = `${APP_URL()}/api/channels/threads/callback`
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Threads token exchange failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=token_exchange_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
   let profile: { id: string; username: string; name: string }
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Threads profile fetch failed:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=profile_fetch_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=profile_fetch_failed${detail(msg)}`)
   }
 
   try {
@@ -75,13 +75,13 @@ export async function GET(req: NextRequest) {
 
     if (!credResult.ok) {
       console.error('Threads credential upsert error:', credResult.error)
-      return NextResponse.redirect(`${APP_URL()}/channels?error=credential_db_failed${detail(credResult.error)}`)
+      return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=credential_db_failed${detail(credResult.error)}`)
     }
 
-    return NextResponse.redirect(`${APP_URL()}/channels?connected=threads`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?connected=threads`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('Threads OAuth callback error:', msg)
-    return NextResponse.redirect(`${APP_URL()}/channels?error=connect_failed${detail(msg)}`)
+    return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=connect_failed${detail(msg)}`)
   }
 }
