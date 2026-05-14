@@ -233,7 +233,7 @@ export default function BrandSettingsPage() {
         </div>
       </div>
 
-      <div className="flex gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         {/* Left: settings panel */}
         <div className="flex-1 space-y-5 min-w-0">
 
@@ -540,7 +540,7 @@ export default function BrandSettingsPage() {
         </div>
 
         {/* Right: sticky preview — switches based on active tab */}
-        <div className="w-80 shrink-0">
+        <div className="w-full lg:w-80 lg:shrink-0">
           <div className="sticky top-6">
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-3">Live Preview</p>
             {activeTab === 'identity' ? (
