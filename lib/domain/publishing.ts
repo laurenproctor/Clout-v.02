@@ -516,6 +516,22 @@ export async function publishOutput(
       return publishLinkedInOutput(output, opts)
     case 'x':
       return publishXOutput(output, opts)
+    case 'threads': {
+      const { postId } = await publishThreadsOutput(output, opts)
+      return { postUrn: postId, postUrl: postId }
+    }
+    case 'twitter': {
+      const { postId } = await publishTwitterOutput(output, opts)
+      return { postUrn: postId, postUrl: postId }
+    }
+    case 'facebook': {
+      const { postId } = await publishFacebookOutput(output, opts)
+      return { postUrn: postId, postUrl: postId }
+    }
+    case 'wordpress': {
+      const { postId } = await publishWordPressOutput(output, opts)
+      return { postUrn: postId, postUrl: postId }
+    }
     default:
       throw Object.assign(
         new Error(`Publishing not supported for platform: ${channel.platform}`),
@@ -959,58 +975,3 @@ export async function publishWordPressOutput(
   return { postId }
 }
 
-async function getChannelPlatform(channelId: string): Promise<string | null> {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('channels')
-    .select('platform')
-    .eq('id', channelId)
-    .single()
-  return (data?.platform as string | null) ?? null
-}
-
-// Dispatches to the correct platform publisher based on channel.platform.
-// Use this in the scheduler — it handles routing automatically.
-export async function publishOutput(
-  output: Output,
-  opts?: { wasRetry?: boolean }
-): Promise<{ providerPostId: string }> {
-  if (!output.channelId) {
-    throw Object.assign(
-      new Error('No channel assigned to this post.'),
-      { code: 'no_channel', retryable: false }
-    )
-  }
-
-  const platform = await getChannelPlatform(output.channelId)
-
-  if (platform === 'linkedin') {
-    const { postUrn } = await publishLinkedInOutput(output, opts)
-    return { providerPostId: postUrn }
-  }
-
-  if (platform === 'threads') {
-    const { postId } = await publishThreadsOutput(output, opts)
-    return { providerPostId: postId }
-  }
-
-  if (platform === 'twitter') {
-    const { postId } = await publishTwitterOutput(output, opts)
-    return { providerPostId: postId }
-  }
-
-  if (platform === 'facebook') {
-    const { postId } = await publishFacebookOutput(output, opts)
-    return { providerPostId: postId }
-  }
-
-  if (platform === 'wordpress') {
-    const { postId } = await publishWordPressOutput(output, opts)
-    return { providerPostId: postId }
-  }
-
-  throw Object.assign(
-    new Error(`Publishing is not yet supported for platform: ${platform ?? 'unknown'}`),
-    { code: 'unsupported_platform', retryable: false }
-  )
-}
