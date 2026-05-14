@@ -4,18 +4,33 @@ import { useState, useEffect } from 'react'
 import { Plus, Globe } from 'lucide-react'
 import { ConnectionCard } from '@/components/publishing/ConnectionCard'
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
+import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 
 export default function PublishingSettingsPage() {
   const [connections, setConnections]           = useState<ProviderConnectionSafe[]>([])
   const [loading, setLoading]                   = useState(true)
   const [showConnectModal, setShowConnectModal]  = useState(false)
+  const [showShopifyModal, setShowShopifyModal]  = useState(false)
 
   useEffect(() => {
     fetch('/api/publishing/connections')
       .then(r => r.ok ? r.json() : [])
       .then((data: ProviderConnectionSafe[]) => setConnections(data))
       .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('connected') === 'shopify') {
+      fetch('/api/publishing/connections')
+        .then(r => r.ok ? r.json() : [])
+        .then((data: ProviderConnectionSafe[]) => setConnections(data))
+      window.history.replaceState({}, '', '/settings/publishing')
+    }
+    if (params.get('error')) {
+      window.history.replaceState({}, '', '/settings/publishing')
+    }
   }, [])
 
   if (loading) {
@@ -47,13 +62,22 @@ export default function PublishingSettingsPage() {
                 : `${connections.length} site${connections.length === 1 ? '' : 's'} connected`}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowConnectModal(true)}
-            className="flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
-          >
-            <Plus className="h-3.5 w-3.5" /> Connect Site
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowConnectModal(true)}
+              className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              <Plus className="h-3.5 w-3.5" /> WordPress
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowShopifyModal(true)}
+              className="flex items-center gap-1.5 rounded-md bg-[#96BF48] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#85ab3e]"
+            >
+              <Plus className="h-3.5 w-3.5" /> Shopify
+            </button>
+          </div>
         </div>
 
         {connections.length === 0 ? (
@@ -102,6 +126,10 @@ export default function PublishingSettingsPage() {
           onClose={() => setShowConnectModal(false)}
           onConnected={c => setConnections(prev => [c, ...prev])}
         />
+      )}
+
+      {showShopifyModal && (
+        <ConnectShopifyModal onClose={() => setShowShopifyModal(false)} />
       )}
     </div>
   )

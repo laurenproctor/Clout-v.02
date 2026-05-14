@@ -31,6 +31,11 @@ export function PublishToCmsDrawer({
   const [status, setStatus]                  = useState<DrawerStatus>('idle')
   const [error, setError]                    = useState<string | null>(null)
   const [publishedUrl, setPublishedUrl]      = useState<string | null>(null)
+  const [blogs, setBlogs]               = useState<Array<{id: string; title: string; handle: string}>>([])
+  const [blogId, setBlogId]             = useState('')
+  const [loadingBlogs, setLoadingBlogs] = useState(false)
+
+  const selectedConnection = connections.find(c => c.id === connectionId)
 
   useEffect(() => {
     if (!open) return
@@ -44,6 +49,24 @@ export function PublishToCmsDrawer({
       .finally(() => setLoadingConn(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  useEffect(() => {
+    if (!selectedConnection || selectedConnection.provider !== 'shopify') {
+      setBlogs([])
+      setBlogId('')
+      return
+    }
+    setLoadingBlogs(true)
+    fetch(`/api/publishing/providers/shopify/blogs?connectionId=${selectedConnection.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Array<{id: string; title: string; handle: string}>) => {
+        setBlogs(data)
+        const defaultId = (selectedConnection.metadata as Record<string, unknown>)?.['default_blog_id'] as string | undefined
+        setBlogId(defaultId ?? data[0]?.id ?? '')
+      })
+      .finally(() => setLoadingBlogs(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionId])
 
   function handleTitleChange(v: string) {
     setTitle(v)
@@ -64,6 +87,18 @@ export function PublishToCmsDrawer({
     }
 
     try {
+      // If Shopify and blog changed, update connection default
+      if (selectedConnection?.provider === 'shopify' && blogId) {
+        const defaultBlogId = (selectedConnection.metadata as Record<string, unknown>)?.['default_blog_id'] as string | undefined
+        if (blogId !== defaultBlogId) {
+          await fetch(`/api/publishing/connections/${connectionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ default_blog_id: blogId }),
+          })
+        }
+      }
+
       const res = await fetch('/api/publishing/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -137,6 +172,24 @@ export function PublishToCmsDrawer({
               </select>
             )}
           </div>
+
+          {selectedConnection?.provider === 'shopify' && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-400">Target Blog</label>
+              {loadingBlogs ? (
+                <div className="h-9 animate-pulse rounded-md bg-zinc-100" />
+              ) : blogs.length === 0 ? (
+                <p className="rounded-md border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
+                  No blogs found in this store. Create a blog in Shopify admin first.
+                </p>
+              ) : (
+                <select value={blogId} onChange={e => setBlogId(e.target.value)}
+                  className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none">
+                  {blogs.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+                </select>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-400">Title</label>
