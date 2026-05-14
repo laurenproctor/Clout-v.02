@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Building2, Layers, Users, CreditCard } from 'lucide-react'
+import { Building2, Layers, Users, CreditCard, Mail } from 'lucide-react'
 
 const navItems = [
   { label: 'Workspaces', href: '/operator/workspaces', icon: Building2 },
   { label: 'Lenses', href: '/operator/lenses', icon: Layers },
   { label: 'Users', href: '/operator/users', icon: Users },
   { label: 'Billing', href: '/operator/billing', icon: CreditCard },
+  { label: 'Email', href: '/operator/email-preview', icon: Mail },
 ]
 
 export function OperatorSidebar() {

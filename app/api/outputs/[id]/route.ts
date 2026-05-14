@@ -66,6 +66,38 @@ export async function PATCH(
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
+
+  // Dispatch output_ready email when an output is approved
+  if (approve) {
+    const supabase = await createClient()
+    const { data: user } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', session.userId)
+      .single()
+
+    if (user) {
+      const outputTitle = result.data.title ?? 'Untitled output'
+      const outputBody = typeof result.data.content?.body === 'string'
+        ? result.data.content.body
+        : JSON.stringify(result.data.content)
+
+      try {
+        const { dispatchEmail } = await import('@/lib/trigger/jobs/dispatch-email')
+        await dispatchEmail.trigger({
+          type: 'output_ready',
+          outputId: id,
+          userId: session.userId,
+          email: user.email,
+          outputTitle,
+          outputBody,
+        })
+      } catch (err) {
+        console.error('Failed to dispatch output_ready email:', err)
+      }
+    }
+  }
+
   return NextResponse.json(result.data)
 }
 
