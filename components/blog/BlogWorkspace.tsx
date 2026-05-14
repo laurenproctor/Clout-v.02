@@ -320,9 +320,31 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
         body: JSON.stringify({ blogPackage, platforms: selectedPlatforms }),
       })
       if (!res.ok) throw new Error('Social post generation failed')
-      const { distribution } = await res.json()
+      const { distribution } = await res.json() as { distribution: { linkedin?: string; xThread?: string; newsletter?: string } }
       setBlogPackage(prev => prev ? { ...prev, distribution } : prev)
       setState('result')
+      // Auto-save distribution posts so they appear in inbox
+      if (distribution.linkedin) {
+        fetch('/api/linkedin/outputs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variation: { body: distribution.linkedin } }),
+        }).catch(() => null)
+      }
+      if (distribution.xThread) {
+        fetch('/api/syndication/outputs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform: 'x', content: distribution.xThread }),
+        }).catch(() => null)
+      }
+      if (distribution.newsletter) {
+        fetch('/api/syndication/outputs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform: 'substack', content: distribution.newsletter }),
+        }).catch(() => null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Social post generation failed')
     } finally {

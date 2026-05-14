@@ -29,6 +29,14 @@ function TikTokIcon({ className }: { className?: string }) {
   )
 }
 
+function WordPressIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 1.5c1.85 0 3.566.6 4.956 1.597L4.097 16.956A8.476 8.476 0 0 1 3.5 12c0-4.687 3.813-8.5 8.5-8.5zm0 17c-1.85 0-3.566-.6-4.956-1.597l12.859-11.859A8.476 8.476 0 0 1 20.5 12c0 4.687-3.813 8.5-8.5 8.5z" />
+    </svg>
+  )
+}
+
 function FacebookIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -45,7 +53,7 @@ function ThreadsIcon({ className }: { className?: string }) {
   )
 }
 
-type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'threads'
+type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'wordpress'
 
 interface Channel {
   id: string
@@ -136,6 +144,14 @@ const PLATFORMS: {
     tagline: 'Publish to your Facebook Page.',
     available: true,
     connectHref: '/api/channels/facebook/connect',
+  },
+  {
+    key: 'wordpress',
+    name: 'WordPress',
+    Icon: WordPressIcon,
+    tagline: 'Publish directly to your WordPress blog.',
+    available: true,
+    connectHref: null,
   },
   {
     key: 'newsletter',
@@ -307,6 +323,133 @@ function PickerModal({
   )
 }
 
+// ─── WordPress credential modal ───────────────────────────────────────────────
+
+function WordPressConnectModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void
+  onConnected: (label: string) => void
+}) {
+  const [siteUrl, setSiteUrl] = useState('')
+  const [username, setUsername] = useState('')
+  const [appPassword, setAppPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/channels/wordpress/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteUrl: siteUrl.trim(), username: username.trim(), appPassword: appPassword.trim() }),
+      })
+      const data = await res.json().catch(() => ({})) as { label?: string; error?: string }
+      if (!res.ok) {
+        if (data.error === 'invalid_credentials') {
+          setError("Couldn't connect. Check your username and Application Password.")
+        } else if (data.error === 'unreachable') {
+          setError("Couldn't reach a WordPress site at that URL. Make sure the REST API is enabled.")
+        } else if (data.error === 'invalid_url') {
+          setError('Please enter a valid site URL.')
+        } else {
+          setError('Something went wrong. Please try again.')
+        }
+      } else {
+        onConnected(data.label ?? siteUrl)
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputClass = 'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-0'
+  const labelClass = 'block text-xs font-medium text-zinc-700 mb-1'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <p className="text-sm font-semibold text-zinc-900">Connect WordPress</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className={labelClass}>Site URL</label>
+            <input
+              type="text"
+              placeholder="https://yourblog.com"
+              value={siteUrl}
+              onChange={e => setSiteUrl(e.target.value)}
+              required
+              className={inputClass}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Username</label>
+            <input
+              type="text"
+              placeholder="your WordPress username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelClass} style={{ marginBottom: 0 }}>Application Password</label>
+              <a
+                href="https://wordpress.org/documentation/article/application-passwords/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-zinc-400 hover:text-zinc-600 underline"
+              >
+                Where do I find this?
+              </a>
+            </div>
+            <input
+              type="password"
+              placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+              value={appPassword}
+              onChange={e => setAppPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+              className={inputClass}
+            />
+            <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+              Generate one in WordPress Admin → Users → Profile → Application Passwords.
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting || !siteUrl.trim() || !username.trim() || !appPassword.trim()}
+            className="w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {submitting ? 'Connecting…' : 'Connect'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function PublishingContent() {
@@ -325,6 +468,7 @@ function PublishingContent() {
   const [igAccounts, setIgAccounts] = useState<PendingAccount[] | null>(null)
   const [liProfiles, setLiProfiles] = useState<PendingLiProfile[] | null>(null)
   const [showLinkedInPicker, setShowLinkedInPicker] = useState(false)
+  const [showWordPressPicker, setShowWordPressPicker] = useState(false)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -513,6 +657,18 @@ function PublishingContent() {
         <LinkedInTypePicker onClose={() => setShowLinkedInPicker(false)} />
       )}
 
+      {/* WordPress credential modal */}
+      {showWordPressPicker && (
+        <WordPressConnectModal
+          onClose={() => setShowWordPressPicker(false)}
+          onConnected={(label) => {
+            setShowWordPressPicker(false)
+            loadChannels()
+            flash(`WordPress site "${label}" connected.`, true)
+          }}
+        />
+      )}
+
       {/* LinkedIn profile/page picker */}
       {liProfiles && (
         <PickerModal
@@ -591,7 +747,7 @@ function PublishingContent() {
                     )}
                   </div>
                   {/* Connect button (shown in header when not yet connected) */}
-                  {!isConnected && available && connectHref && (
+                  {!isConnected && available && (connectHref || key === 'wordpress') && (
                     key === 'linkedin' ? (
                       <button
                         onClick={() => setShowLinkedInPicker(true)}
@@ -599,9 +755,16 @@ function PublishingContent() {
                       >
                         Connect
                       </button>
+                    ) : key === 'wordpress' ? (
+                      <button
+                        onClick={() => setShowWordPressPicker(true)}
+                        className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
+                      >
+                        Connect
+                      </button>
                     ) : (
                       <a
-                        href={connectHref}
+                        href={connectHref!}
                         className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
                       >
                         Connect
@@ -635,7 +798,7 @@ function PublishingContent() {
                 ))}
 
                 {/* Add another account row */}
-                {isConnected && available && connectHref && (
+                {isConnected && available && (connectHref || key === 'wordpress') && (
                   key === 'linkedin' ? (
                     <button
                       onClick={() => setShowLinkedInPicker(true)}
@@ -644,9 +807,17 @@ function PublishingContent() {
                       <Plus className="h-3 w-3" />
                       Connect another {name} account
                     </button>
+                  ) : key === 'wordpress' ? (
+                    <button
+                      onClick={() => setShowWordPressPicker(true)}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-left"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Connect another WordPress site
+                    </button>
                   ) : (
                     <a
-                      href={connectHref}
+                      href={connectHref!}
                       className="flex items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
                     >
                       <Plus className="h-3 w-3" />

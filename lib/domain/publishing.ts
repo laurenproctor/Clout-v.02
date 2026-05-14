@@ -21,6 +21,7 @@ import {
 } from '@/lib/threads'
 import { postTweet, refreshTwitterToken } from '@/lib/twitter'
 import { postToFacebookPage } from '@/lib/facebook'
+import { createWordPressPost } from '@/lib/wordpress'
 import type { Output, OutputContent, OutputStatus } from '@/types/domain'
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
@@ -649,6 +650,111 @@ export async function publishFacebookOutput(
 
 // ─── Platform dispatcher ──────────────────────────────────────────────────────
 
+async function getChannelAccountId(channelId: string): Promise<string | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('channels')
+    .select('account_id')
+    .eq('id', channelId)
+    .single()
+  return (data?.account_id as string | null) ?? null
+}
+
+function toWordPressHtml(body: string): string {
+  return body
+    .split(/\n{2,}/)
+    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('\n')
+}
+
+export async function publishWordPressOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a WordPress channel.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  if (output.providerPostId) {
+    return { postId: output.providerPostId }
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('WordPress site not connected. Go to Channels and reconnect your site.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+  const cred = credResult.data
+
+  const siteUrl = await getChannelAccountId(output.channelId)
+  if (!siteUrl) {
+    throw Object.assign(
+      new Error('WordPress site URL missing. Please reconnect your site.'),
+      { code: 'missing_account_id', retryable: false }
+    )
+  }
+
+  if (!cred.accountName) {
+    throw Object.assign(
+      new Error('WordPress username missing. Please reconnect your site.'),
+      { code: 'missing_account_name', retryable: false }
+    )
+  }
+
+  const content = output.content as OutputContent
+  const body = (content.body as string | undefined) ?? ''
+  if (!body.trim()) {
+    throw Object.assign(
+      new Error('This draft has no content to post.'),
+      { code: 'no_content', retryable: false }
+    )
+  }
+
+  const startedAt = Date.now()
+  let postId: string
+
+  try {
+    const result = await createWordPressPost(siteUrl, cred.accountName, cred.accessToken, {
+      title: output.title ?? '',
+      content: toWordPressHtml(body),
+    })
+    postId = result.postId
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'wordpress',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'unknown',
+      errorMessage: err instanceof Error ? err.message : 'Unknown error',
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:     output.workspaceId,
+    outputId:        output.id,
+    channelId:       output.channelId,
+    platform:        'wordpress',
+    status:          'success',
+    providerPostId:  postId,
+    wasRetry:        opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { postId }
+}
+
 async function getChannelPlatform(channelId: string): Promise<string | null> {
   const supabase = createServiceClient()
   const { data } = await supabase
@@ -691,6 +797,11 @@ export async function publishOutput(
 
   if (platform === 'facebook') {
     const { postId } = await publishFacebookOutput(output, opts)
+    return { providerPostId: postId }
+  }
+
+  if (platform === 'wordpress') {
+    const { postId } = await publishWordPressOutput(output, opts)
     return { providerPostId: postId }
   }
 
