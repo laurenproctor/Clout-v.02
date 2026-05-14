@@ -12,6 +12,7 @@ import { useAutosave } from '@/hooks/use-autosave'
 import { useAiActions, type SuggestionBlock } from '@/hooks/use-ai-actions'
 import type { Output, OutputContent, OutputStatus } from '@/types/domain'
 import type { AiActionId } from '@/app/api/ai-actions/route'
+import { findProviderCapabilities } from '@/lib/providers/registry'
 
 interface Channel { id: string; platform: string; label: string | null }
 interface Variant  { id: string; label: string; isCurrent: boolean }
@@ -55,6 +56,9 @@ export default function StudioEditorPage() {
   const [postingToLinkedIn, setPostingToLinkedIn] = useState(false)
   const [linkedInPosted,    setLinkedInPosted]    = useState(false)
   const [linkedInPostUrn,   setLinkedInPostUrn]   = useState<string | null>(null)
+  const [postingToX,        setPostingToX]        = useState(false)
+  const [xPosted,           setXPosted]           = useState(false)
+  const [xPostUrl,          setXPostUrl]          = useState<string | null>(null)
   const [publishError,      setPublishError]      = useState<string | null>(null)
 
   const bodyRef = useRef<HTMLTextAreaElement>(null)
@@ -81,18 +85,29 @@ export default function StudioEditorPage() {
         fetch('/api/channels'),
       ])
       if (!oRes.ok) { setLoading(false); return }
+
+      const channelList: Channel[] = cRes.ok ? await cRes.json() : []
+      setChannels(channelList)
+
       const data: Output = await oRes.json()
       setOutput(data)
-      if (data.providerPostId) {
-        setLinkedInPosted(true)
-        setLinkedInPostUrn(data.providerPostId)
-      }
+
       const content = data.content as OutputContent
       setBody(content.body ?? '')
       setTitle(data.title ?? '')
       setChannelId(data.channelId ?? null)
       setHashtags(((content.hashtags as string[] | undefined) ?? []).map(h => h.replace(/^#/, '')))
-      if (cRes.ok) setChannels(await cRes.json())
+
+      if (data.providerPostId) {
+        const assignedCh = channelList.find(c => c.id === data.channelId)
+        if (assignedCh?.platform === 'x') {
+          setXPosted(true)
+          setXPostUrl(data.providerPostUrl ?? null)
+        } else {
+          setLinkedInPosted(true)
+          setLinkedInPostUrn(data.providerPostId)
+        }
+      }
 
       const groupQuery = data.generationGroupId
         ? `generation_group_id=${data.generationGroupId}`
@@ -189,13 +204,36 @@ export default function StudioEditorPage() {
     setPostingToLinkedIn(false)
   }
 
-  function handleCopy(format: 'plain' | 'markdown' | 'linkedin') {
+  async function handlePostToX() {
+    setPostingToX(true)
+    setPublishError(null)
+    const res = await fetch('/api/channels/x/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outputId: id }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setXPosted(true)
+      setXPostUrl(data.postUrl ?? null)
+      const refreshed = await fetch(`/api/outputs/${id}`)
+      if (refreshed.ok) setOutput(await refreshed.json())
+    } else {
+      setPublishError(data.error ?? 'Something went wrong. Please try again.')
+    }
+    setPostingToX(false)
+  }
+
+  function handleCopy(format: 'plain' | 'markdown' | 'linkedin' | 'x') {
     const tags = hashtags.map(h => `#${h}`).join(' ')
     let text = ''
     if (format === 'markdown') {
       text = [title ? `# ${title}` : '', '', body, tags ? `\n${tags}` : ''].filter(Boolean).join('\n').trim()
     } else if (format === 'linkedin') {
       text = [title, '', body, tags ? `\n${tags}` : ''].filter(Boolean).join('\n').trim()
+    } else if (format === 'x') {
+      const full = [title, body, tags].filter(Boolean).join(' ').trim()
+      text = full.length <= 280 ? full : full.slice(0, 277) + '…'
     } else {
       text = [title, body].filter(Boolean).join('\n\n')
     }
@@ -235,8 +273,13 @@ export default function StudioEditorPage() {
     return `Saved ${Math.floor(s / 60)}m ago`
   }
 
-  const assignedChannel = channelId ? channels.find(ch => ch.id === channelId) : null
+  const assignedChannel    = channelId ? channels.find(ch => ch.id === channelId) : null
   const isLinkedInAssigned = assignedChannel?.platform === 'linkedin'
+  const isXAssigned        = assignedChannel?.platform === 'x'
+
+  const caps      = assignedChannel ? findProviderCapabilities(assignedChannel.platform) : null
+  const charLimit = caps?.charLimit ?? 3000
+  const warnAt    = Math.floor(charLimit * 0.93)
 
   if (loading) {
     return (
@@ -402,12 +445,12 @@ export default function StudioEditorPage() {
       <div className="flex items-center justify-between px-4 h-12 flex-shrink-0 border-t border-zinc-800/60">
         <div className="flex items-center gap-3 text-xs text-zinc-700">
           <span>{wordCount}w</span>
-          <span className={cn(charCount > 2800 ? 'text-amber-600' : '')}>{charCount}c</span>
-          {charCount > 2800 && charCount <= 3000 && (
-            <span className="text-amber-500">{3000 - charCount} left</span>
+          <span className={cn(charCount > warnAt ? 'text-amber-600' : '')}>{charCount}c</span>
+          {charCount > warnAt && charCount <= charLimit && (
+            <span className="text-amber-500">{charLimit - charCount} left</span>
           )}
-          {charCount > 3000 && (
-            <span className="text-red-500">+{charCount - 3000} over</span>
+          {charCount > charLimit && (
+            <span className="text-red-500">+{charCount - charLimit} over</span>
           )}
         </div>
 
@@ -431,13 +474,13 @@ export default function StudioEditorPage() {
             </div>
             {showCopyMenu && (
               <div className="absolute bottom-full right-0 mb-1 w-40 rounded-md border border-zinc-800 bg-zinc-950 shadow-xl z-50">
-                {(['plain', 'markdown', 'linkedin'] as const).map(fmt => (
+                {(['plain', 'markdown', 'linkedin', 'x'] as const).map(fmt => (
                   <button
                     key={fmt}
                     onClick={() => handleCopy(fmt)}
                     className="block w-full px-4 py-2.5 text-left text-xs text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200 first:rounded-t-md last:rounded-b-md transition-colors"
                   >
-                    {fmt === 'plain' ? 'Plain text' : fmt === 'markdown' ? 'Markdown' : 'LinkedIn ready'}
+                    {fmt === 'plain' ? 'Plain text' : fmt === 'markdown' ? 'Markdown' : fmt === 'linkedin' ? 'LinkedIn ready' : 'X ready'}
                   </button>
                 ))}
               </div>
@@ -467,7 +510,7 @@ export default function StudioEditorPage() {
               In review
             </span>
           )}
-          {output.status === 'approved' && !linkedInPosted && (
+          {output.status === 'approved' && !linkedInPosted && !xPosted && (
             <div className="flex items-center gap-2">
               {publishError && (
                 <span className="max-w-[220px] text-right text-xs leading-tight text-red-400">
@@ -481,6 +524,14 @@ export default function StudioEditorPage() {
                   className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
                 >
                   {postingToLinkedIn ? 'Posting…' : 'Post to LinkedIn →'}
+                </button>
+              ) : isXAssigned ? (
+                <button
+                  onClick={() => void handlePostToX()}
+                  disabled={postingToX}
+                  className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
+                >
+                  {postingToX ? 'Posting…' : 'Post to X →'}
                 </button>
               ) : (
                 <button
@@ -513,6 +564,29 @@ export default function StudioEditorPage() {
                   className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
                 >
                   View on LinkedIn ↗
+                </a>
+              )}
+              <Link
+                href="/channels"
+                className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
+                Back to Publishing
+              </Link>
+            </div>
+          )}
+          {xPosted && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-md border border-emerald-800/50 bg-emerald-950/50 px-3 py-1.5 text-xs text-emerald-400">
+                Posted to X ✓
+              </span>
+              {xPostUrl && (
+                <a
+                  href={xPostUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+                >
+                  View on X ↗
                 </a>
               )}
               <Link

@@ -347,6 +347,14 @@ export interface Database {
           content: Json
           approved_by: string | null
           approved_at: string | null
+          provider_post_id:  string | null
+          provider_post_url: string | null
+          published_at: string | null
+          scheduled_at: string | null
+          last_publish_error: string | null
+          approved_for_week: boolean
+          week_bucket: string | null
+          performance_snapshot: Json | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -361,6 +369,14 @@ export interface Database {
           content?: Json
           approved_by?: string | null
           approved_at?: string | null
+          provider_post_id?: string | null
+          provider_post_url?: string | null
+          published_at?: string | null
+          scheduled_at?: string | null
+          last_publish_error?: string | null
+          approved_for_week?: boolean
+          week_bucket?: string | null
+          performance_snapshot?: Json | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -372,6 +388,14 @@ export interface Database {
           content?: Json
           approved_by?: string | null
           approved_at?: string | null
+          provider_post_id?: string | null
+          provider_post_url?: string | null
+          published_at?: string | null
+          scheduled_at?: string | null
+          last_publish_error?: string | null
+          approved_for_week?: boolean
+          week_bucket?: string | null
+          performance_snapshot?: Json | null
           updated_at?: string
           deleted_at?: string | null
         }
@@ -433,7 +457,7 @@ export interface Database {
         Row: {
           id: string
           workspace_id: string
-          platform: 'linkedin' | 'newsletter' | 'twitter'
+          platform: 'linkedin' | 'newsletter' | 'x'
           label: string | null
           config: Json
           is_active: boolean
@@ -443,7 +467,7 @@ export interface Database {
         Insert: {
           id?: string
           workspace_id: string
-          platform: 'linkedin' | 'newsletter' | 'twitter'
+          platform: 'linkedin' | 'newsletter' | 'x'
           label?: string | null
           config?: Json
           is_active?: boolean
@@ -628,6 +652,135 @@ export interface Database {
         Update: never
         Relationships: []
       }
+      channel_credentials: {
+        Row: {
+          id: string
+          channel_id: string
+          workspace_id: string
+          access_token: string
+          refresh_token: string | null
+          expires_at: number | null
+          account_id: string | null
+          account_name: string | null
+          account_email: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          channel_id: string
+          workspace_id: string
+          access_token: string
+          refresh_token?: string | null
+          expires_at?: number | null
+          account_id?: string | null
+          account_name?: string | null
+          account_email?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          channel_id?: string
+          workspace_id?: string
+          access_token?: string
+          refresh_token?: string | null
+          expires_at?: number | null
+          account_id?: string | null
+          account_name?: string | null
+          account_email?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_health_logs: {
+        Row: {
+          id: string
+          workspace_id: string
+          channel_id: string | null
+          platform: string
+          event_type: string
+          error_code: string | null
+          error_message: string | null
+          metadata: Record<string, unknown>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          channel_id?: string | null
+          platform: string
+          event_type: string
+          error_code?: string | null
+          error_message?: string | null
+          metadata?: Record<string, unknown>
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
+      publish_logs: {
+        Row: {
+          id: string
+          workspace_id: string
+          output_id: string
+          channel_id: string | null
+          platform: string
+          status: 'success' | 'failed'
+          provider_post_id: string | null
+          error_code: string | null
+          error_message: string | null
+          was_retry: boolean
+          duration_ms: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          output_id: string
+          channel_id?: string | null
+          platform: string
+          status: 'success' | 'failed'
+          provider_post_id?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          was_retry?: boolean
+          duration_ms?: number | null
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
+      scheduling_preferences: {
+        Row: {
+          id: string
+          workspace_id: string
+          posts_per_week: number
+          preferred_days: number[]
+          preferred_times: string[]
+          timezone: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          posts_per_week?: number
+          preferred_days?: number[]
+          preferred_times?: string[]
+          timezone?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          posts_per_week?: number
+          preferred_days?: number[]
+          preferred_times?: string[]
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -639,8 +792,8 @@ export interface Database {
       capture_source: 'text' | 'voice' | 'structured' | 'url'
       capture_status: 'pending' | 'processing' | 'ready' | 'failed'
       generation_status: 'pending' | 'generating' | 'complete' | 'failed'
-      output_status: 'draft' | 'review' | 'approved' | 'published' | 'archived'
-      channel_platform: 'linkedin' | 'newsletter' | 'twitter'
+      output_status: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
+      channel_platform: 'linkedin' | 'newsletter' | 'x'
       lens_scope: 'system' | 'workspace'
       job_type: 'transcribe' | 'generate' | 'summarize' | 'reformat'
       job_status: 'queued' | 'running' | 'done' | 'failed' | 'canceled'

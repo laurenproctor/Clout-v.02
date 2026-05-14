@@ -4,9 +4,10 @@ import { createHmac, timingSafeEqual } from 'crypto'
 const STATE_TTL_SECONDS = 600 // 10 minutes
 
 interface StatePayload {
-  workspaceId: string
-  nonce: string
-  exp: number
+  workspaceId:   string
+  nonce:         string
+  exp:           number
+  codeVerifier?: string  // PKCE only — X OAuth 2.0
 }
 
 function secret(): string {
@@ -15,11 +16,15 @@ function secret(): string {
   return s
 }
 
-export function signOAuthState(workspaceId: string): string {
+export function signOAuthState(
+  workspaceId: string,
+  codeVerifier?: string
+): string {
   const payload: StatePayload = {
     workspaceId,
     nonce: crypto.randomUUID(),
-    exp: Math.floor(Date.now() / 1000) + STATE_TTL_SECONDS,
+    exp:   Math.floor(Date.now() / 1000) + STATE_TTL_SECONDS,
+    ...(codeVerifier ? { codeVerifier } : {}),
   }
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url')
   const sig  = createHmac('sha256', secret()).update(data).digest('base64url')

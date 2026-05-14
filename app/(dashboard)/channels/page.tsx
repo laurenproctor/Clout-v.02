@@ -58,7 +58,7 @@ function ThreadsIcon({ className }: { className?: string }) {
   )
 }
 
-type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'wordpress' | 'shopify'
+type Platform = 'linkedin' | 'newsletter' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'wordpress' | 'shopify'
 
 interface Channel {
   id: string
@@ -120,12 +120,12 @@ const PLATFORMS: {
     connectHref: '/api/channels/threads/connect',
   },
   {
-    key: 'twitter',
-    name: 'X (Twitter)',
+    key: 'x',
+    name: 'X',
     Icon: XIcon,
     tagline: 'Publish directly to your X profile.',
     available: true,
-    connectHref: '/api/channels/twitter/connect',
+    connectHref: '/api/channels/x/connect',
   },
   {
     key: 'instagram',
@@ -549,7 +549,7 @@ function PublishingContent() {
     const select    = searchParams.get('select')
 
     if (connected === 'linkedin')                       flash('LinkedIn connected.', true)
-    else if (connected === 'twitter')                   flash('X (Twitter) connected.', true)
+    else if (connected === 'x')                         flash('X connected.', true)
     else if (connected === 'threads')                   flash('Threads connected.', true)
     else if (connected === 'facebook')                  flash('Facebook connected.', true)
     else if (connected === 'instagram')                 flash('Instagram connected.', true)
@@ -557,7 +557,7 @@ function PublishingContent() {
     else if (connected === 'shopify')                   flash('Shopify store connected.', true)
     else if (error === 'facebook_no_pages')             flash('No Facebook Pages found. Create a Page and try again.', false)
     else if (error === 'instagram_no_business_account') flash('No Instagram Business account found. Link one to a Facebook Page and try again.', false)
-    else if (error === 'twitter_pkce_missing')          flash('Session expired — please try again.', false)
+    else if (error === 'twitter_pkce_missing' || error === 'x_pkce_missing') flash('Session expired — please try again.', false)
     else if (error === 'tiktok_pkce_missing')           flash('Session expired — please try again.', false)
     else if (error === 'session_expired')               flash('Session expired — please try again.', false)
     else if (error === 'token_exchange_failed')         flash('The platform rejected the connection. Check your app credentials.', false)
@@ -654,14 +654,14 @@ function PublishingContent() {
   const PUBLISH_ROUTES: Partial<Record<Platform, string>> = {
     linkedin:  '/api/channels/linkedin/post',
     threads:   '/api/channels/threads/post',
-    twitter:   '/api/channels/twitter/post',
+    x:         '/api/channels/x/post',
     facebook:  '/api/channels/facebook/post',
   }
 
   const PLATFORM_LABELS: Partial<Record<Platform, string>> = {
     linkedin: 'LinkedIn',
     threads:  'Threads',
-    twitter:  'X (Twitter)',
+    x:        'X',
     facebook: 'Facebook',
   }
 

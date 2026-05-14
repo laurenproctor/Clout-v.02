@@ -1,3 +1,4 @@
+// app/api/channels/x/post/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { getOutput } from '@/lib/domain/output'
@@ -18,21 +19,18 @@ export async function POST(req: NextRequest) {
   const output = outputResult.data
 
   if (output.providerPostId) {
-    return NextResponse.json({ ok: true, postUrn: output.providerPostId, postUrl: output.providerPostUrl, alreadyPublished: true })
-  }
-
-  const lock = await acquirePublishLock(outputId)
-  if (!lock.ok) {
-    return NextResponse.json(
-      { error: 'Publish already in progress', code: 'publish_in_progress' },
-      { status: 409 },
-    )
+    return NextResponse.json({
+      ok:               true,
+      tweetId:          output.providerPostId,
+      postUrl:          output.providerPostUrl,
+      alreadyPublished: true,
+    })
   }
 
   try {
     const { postUrn, postUrl } = await publishOutput(output)
     await markPublished(outputId, postUrn, postUrl)
-    return NextResponse.json({ ok: true, postUrn, postUrl })
+    return NextResponse.json({ ok: true, tweetId: postUrn, postUrl })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Publish failed'
     const code    = (err as { code?: string }).code ?? 'unknown'
