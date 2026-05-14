@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
     return (
       <div className="space-y-4 p-6">
         <div className="h-6 w-36 rounded bg-zinc-200 animate-pulse" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => <div key={i} className="h-24 rounded-lg border border-zinc-200 bg-white animate-pulse" />)}
         </div>
         <div className="h-48 rounded-lg border border-zinc-200 bg-white animate-pulse" />
@@ -231,7 +231,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {[
           { label: 'Total captures', value: data.totals.captures },
           { label: 'Total outputs', value: data.totals.outputs },
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
       {/* Captures by month */}
       <div className="rounded-lg border border-zinc-200 bg-white p-6">
         <h2 className="text-sm font-medium text-zinc-900 mb-4">Captures per month</h2>
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-1 overflow-x-auto">
           {data.capturesByMonth.map((d, i) => (
             <div key={d.month} className="flex flex-col items-center gap-1 flex-1 min-w-0">
               <SimpleBar value={d.count} max={maxCaptures} color="bg-zinc-900" />
@@ -262,7 +262,7 @@ export default function AnalyticsPage() {
       {/* Outputs by month */}
       <div className="rounded-lg border border-zinc-200 bg-white p-6">
         <h2 className="text-sm font-medium text-zinc-900 mb-4">Outputs per month</h2>
-        <div className="flex items-end gap-1">
+        <div className="flex items-end gap-1 overflow-x-auto">
           {data.outputsByMonth.map((d, i) => (
             <div key={d.month} className="flex flex-col items-center gap-1 flex-1 min-w-0">
               <SimpleBar value={d.count} max={maxOutputs} color="bg-zinc-500" />
@@ -274,7 +274,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Status breakdown */}
         <div className="rounded-lg border border-zinc-200 bg-white p-6">
           <h2 className="text-sm font-medium text-zinc-900 mb-4">Output status breakdown</h2>
