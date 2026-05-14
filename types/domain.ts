@@ -27,7 +27,7 @@ export interface Angle {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
 export type LensScope = 'system' | 'workspace'
 
 // ─── Core Entities ────────────────────────────────────────────────────────────
@@ -164,6 +164,15 @@ export interface OutputContent {
   [key: string]: unknown
 }
 
+export interface PerformanceSnapshot {
+  impressions: number | null
+  likes: number | null
+  comments: number | null
+  shares: number | null
+  providerPostUrl: string | null
+  syncedAt: string | null
+}
+
 export interface Channel {
   id: string
   workspaceId: string
@@ -198,7 +207,7 @@ export interface Output {
   generationGroupId:    string | null
   approvedForWeek:      boolean
   weekBucket:           string | null
-  performanceSnapshot:  Record<string, unknown> | null
+  performanceSnapshot:  PerformanceSnapshot | null
   createdAt: string
   updatedAt: string
   channels?: OutputChannel

@@ -1605,7 +1605,7 @@ export type Database = {
         | "soft_delete"
       capture_source: "text" | "voice" | "structured" | "url" | "topic"
       capture_status: "pending" | "processing" | "ready" | "failed"
-      channel_platform: "linkedin" | "newsletter" | "twitter" | "threads" | "facebook" | "instagram" | "tiktok" | "wordpress"
+      channel_platform: "linkedin" | "newsletter" | "twitter" | "threads" | "facebook" | "instagram" | "tiktok" | "wordpress" | "shopify"
       generation_status: "pending" | "generating" | "complete" | "failed"
       job_status: "queued" | "running" | "done" | "failed" | "canceled"
       job_type: "transcribe" | "generate" | "summarize" | "reformat"
@@ -1774,7 +1774,7 @@ export const Constants = {
       ],
       capture_source: ["text", "voice", "structured", "url", "topic"],
       capture_status: ["pending", "processing", "ready", "failed"],
-      channel_platform: ["linkedin", "newsletter", "twitter", "threads", "facebook", "instagram", "tiktok", "wordpress"],
+      channel_platform: ["linkedin", "newsletter", "twitter", "threads", "facebook", "instagram", "tiktok", "wordpress", "shopify"],
       generation_status: ["pending", "generating", "complete", "failed"],
       job_status: ["queued", "running", "done", "failed", "canceled"],
       job_type: ["transcribe", "generate", "summarize", "reformat"],

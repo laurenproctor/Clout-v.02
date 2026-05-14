@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Share2, Mail, Globe, ExternalLink, RefreshCw, Unlink, CheckCircle2, Plus, X } from 'lucide-react'
+import { Share2, Mail, Globe, ExternalLink, RefreshCw, Unlink, CheckCircle2, Plus, X, ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -37,6 +38,10 @@ function WordPressIcon({ className }: { className?: string }) {
   )
 }
 
+function ShopifyIcon({ className }: { className?: string }) {
+  return <ShoppingBag className={className} />
+}
+
 function FacebookIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -53,7 +58,7 @@ function ThreadsIcon({ className }: { className?: string }) {
   )
 }
 
-type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'wordpress'
+type Platform = 'linkedin' | 'newsletter' | 'twitter' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'wordpress' | 'shopify'
 
 interface Channel {
   id: string
@@ -62,6 +67,7 @@ interface Channel {
   account_type: string
   is_active: boolean
   token_expires_at: number | null  // unix timestamp seconds; null = no credential (newsletter/blog)
+  _publishingConnection?: boolean  // true for Shopify — stored in publishing_connections, not channels
 }
 
 interface ReadyOutput {
@@ -150,6 +156,14 @@ const PLATFORMS: {
     name: 'WordPress',
     Icon: WordPressIcon,
     tagline: 'Publish directly to your WordPress blog.',
+    available: true,
+    connectHref: null,
+  },
+  {
+    key: 'shopify',
+    name: 'Shopify',
+    Icon: ShopifyIcon,
+    tagline: 'Publish blog articles to your Shopify store.',
     available: true,
     connectHref: null,
   },
@@ -469,6 +483,7 @@ function PublishingContent() {
   const [liProfiles, setLiProfiles] = useState<PendingLiProfile[] | null>(null)
   const [showLinkedInPicker, setShowLinkedInPicker] = useState(false)
   const [showWordPressPicker, setShowWordPressPicker] = useState(false)
+  const [showShopifyPicker, setShowShopifyPicker] = useState(false)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -476,17 +491,49 @@ function PublishingContent() {
   }
 
   const loadChannels = useCallback(async () => {
-    const res = await fetch('/api/channels')
-    if (res.ok) setChannels(await res.json())
+    const [cRes, pubConnRes] = await Promise.all([
+      fetch('/api/channels'),
+      fetch('/api/publishing/connections'),
+    ])
+    const channelData: Channel[] = cRes.ok ? await cRes.json() : []
+    const pubConns: Array<{ id: string; provider: string; label: string; isActive: boolean }> =
+      pubConnRes.ok ? await pubConnRes.json() : []
+    const shopifyChannels: Channel[] = pubConns
+      .filter(c => c.provider === 'shopify' && c.isActive)
+      .map(c => ({
+        id: c.id,
+        platform: 'shopify' as Platform,
+        label: c.label,
+        account_type: 'personal',
+        is_active: true,
+        token_expires_at: null,
+        _publishingConnection: true,
+      }))
+    setChannels([...channelData, ...shopifyChannels])
   }, [])
 
   async function load() {
-    const [cRes, approvedRes, publishedRes] = await Promise.all([
+    const [cRes, approvedRes, publishedRes, pubConnRes] = await Promise.all([
       fetch('/api/channels'),
       fetch('/api/outputs?status=approved'),
       fetch('/api/outputs?status=published'),
+      fetch('/api/publishing/connections'),
     ])
-    if (cRes.ok) setChannels(await cRes.json())
+    const channelData: Channel[] = cRes.ok ? await cRes.json() : []
+    const pubConns: Array<{ id: string; provider: string; label: string; isActive: boolean }> =
+      pubConnRes.ok ? await pubConnRes.json() : []
+    const shopifyChannels: Channel[] = pubConns
+      .filter(c => c.provider === 'shopify' && c.isActive)
+      .map(c => ({
+        id: c.id,
+        platform: 'shopify' as Platform,
+        label: c.label,
+        account_type: 'personal',
+        is_active: true,
+        token_expires_at: null,
+        _publishingConnection: true,
+      }))
+    setChannels([...channelData, ...shopifyChannels])
     const approvedOutputs: ReadyOutput[] = approvedRes.ok ? await approvedRes.json() : []
     const publishedOutputs: ReadyOutput[] = publishedRes.ok ? await publishedRes.json() : []
     setReady(approvedOutputs.slice(0, 10))
@@ -507,6 +554,7 @@ function PublishingContent() {
     else if (connected === 'facebook')                  flash('Facebook connected.', true)
     else if (connected === 'instagram')                 flash('Instagram connected.', true)
     else if (connected === 'tiktok')                    flash('TikTok connected.', true)
+    else if (connected === 'shopify')                   flash('Shopify store connected.', true)
     else if (error === 'facebook_no_pages')             flash('No Facebook Pages found. Create a Page and try again.', false)
     else if (error === 'instagram_no_business_account') flash('No Instagram Business account found. Link one to a Facebook Page and try again.', false)
     else if (error === 'twitter_pkce_missing')          flash('Session expired — please try again.', false)
@@ -541,10 +589,14 @@ function PublishingContent() {
 
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleDisconnect(channelId: string) {
+  async function handleDisconnect(channel: Channel) {
     if (!confirm('Disconnect this account?')) return
-    await fetch(`/api/channels/${channelId}`, { method: 'DELETE' })
-    setChannels(prev => prev.filter(c => c.id !== channelId))
+    if (channel._publishingConnection) {
+      await fetch(`/api/publishing/connections/${channel.id}`, { method: 'DELETE' })
+    } else {
+      await fetch(`/api/channels/${channel.id}`, { method: 'DELETE' })
+    }
+    setChannels(prev => prev.filter(c => c.id !== channel.id))
     flash('Account disconnected.', true)
   }
 
@@ -669,6 +721,11 @@ function PublishingContent() {
         />
       )}
 
+      {/* Shopify OAuth modal */}
+      {showShopifyPicker && (
+        <ConnectShopifyModal onClose={() => setShowShopifyPicker(false)} />
+      )}
+
       {/* LinkedIn profile/page picker */}
       {liProfiles && (
         <PickerModal
@@ -747,7 +804,7 @@ function PublishingContent() {
                     )}
                   </div>
                   {/* Connect button (shown in header when not yet connected) */}
-                  {!isConnected && available && (connectHref || key === 'wordpress') && (
+                  {!isConnected && available && (connectHref || key === 'wordpress' || key === 'shopify') && (
                     key === 'linkedin' ? (
                       <button
                         onClick={() => setShowLinkedInPicker(true)}
@@ -758,6 +815,13 @@ function PublishingContent() {
                     ) : key === 'wordpress' ? (
                       <button
                         onClick={() => setShowWordPressPicker(true)}
+                        className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
+                      >
+                        Connect
+                      </button>
+                    ) : key === 'shopify' ? (
+                      <button
+                        onClick={() => setShowShopifyPicker(true)}
                         className="shrink-0 rounded-lg border border-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 transition-colors"
                       >
                         Connect
@@ -790,7 +854,7 @@ function PublishingContent() {
                           <RefreshCw className="h-3.5 w-3.5" />
                         </a>
                       )}
-                      <button onClick={() => handleDisconnect(ch.id)} className="text-zinc-300 hover:text-red-400 transition-colors" title="Disconnect">
+                      <button onClick={() => handleDisconnect(ch)} className="text-zinc-300 hover:text-red-400 transition-colors" title="Disconnect">
                         <Unlink className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -798,7 +862,7 @@ function PublishingContent() {
                 ))}
 
                 {/* Add another account row */}
-                {isConnected && available && (connectHref || key === 'wordpress') && (
+                {isConnected && available && (connectHref || key === 'wordpress' || key === 'shopify') && (
                   key === 'linkedin' ? (
                     <button
                       onClick={() => setShowLinkedInPicker(true)}
@@ -814,6 +878,14 @@ function PublishingContent() {
                     >
                       <Plus className="h-3 w-3" />
                       Connect another WordPress site
+                    </button>
+                  ) : key === 'shopify' ? (
+                    <button
+                      onClick={() => setShowShopifyPicker(true)}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors text-left"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Connect another Shopify store
                     </button>
                   ) : (
                     <a

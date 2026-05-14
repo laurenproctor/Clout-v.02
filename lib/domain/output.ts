@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Output, OutputVersion, OutputContent, OutputStatus, DomainResult } from '@/types/domain'
+import type { Output, OutputVersion, OutputContent, OutputStatus, ChannelPlatform, PerformanceSnapshot, DomainResult } from '@/types/domain'
 import type { Json } from '@/types/db'
 
 function toOutput(row: Record<string, unknown>): Output {
@@ -20,7 +20,7 @@ function toOutput(row: Record<string, unknown>): Output {
     generationGroupId:   (row.generation_group_id as string | null) ?? null,
     approvedForWeek:     (row.approved_for_week as boolean) ?? false,
     weekBucket:          (row.week_bucket as string | null) ?? null,
-    performanceSnapshot: (row.performance_snapshot as Record<string, unknown> | null) ?? null,
+    performanceSnapshot: (row.performance_snapshot as PerformanceSnapshot | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
@@ -154,6 +154,58 @@ export async function updateOutput(params: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.outputId)
+    .select()
+    .single()
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: toOutput(data as Record<string, unknown>) }
+}
+
+export async function listPublishedOutputs(params: {
+  workspaceId: string
+  platform?: ChannelPlatform
+  since?: string
+  limit?: number
+  offset?: number
+}): Promise<DomainResult<Output[]>> {
+  const supabase = await createClient()
+  let query = supabase
+    .from('outputs')
+    .select('id, workspace_id, generation_id, generation_group_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, scheduled_at, last_publish_error, approved_for_week, week_bucket, performance_snapshot, created_at, updated_at, channels(platform, label)')
+    .eq('workspace_id', params.workspaceId)
+    .eq('status', 'published')
+    .is('deleted_at', null)
+    .order('published_at', { ascending: false })
+    .limit(params.limit ?? 50)
+
+  if (params.since) query = query.gte('published_at', params.since)
+  if (params.offset) query = query.range(params.offset, params.offset + (params.limit ?? 50) - 1)
+
+  const { data, error } = await query
+  if (error) return { ok: false, error: error.message }
+
+  let rows = (data as Record<string, unknown>[]).map(toOutput)
+  if (params.platform) {
+    rows = rows.filter((o) => o.channels?.platform === params.platform)
+  }
+
+  return { ok: true, data: rows }
+}
+
+export async function updatePerformanceSnapshot(params: {
+  outputId: string
+  workspaceId: string
+  snapshot: PerformanceSnapshot
+}): Promise<DomainResult<Output>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('outputs')
+    .update({
+      performance_snapshot: params.snapshot as unknown as Json,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.outputId)
+    .eq('workspace_id', params.workspaceId)
     .select()
     .single()
 
