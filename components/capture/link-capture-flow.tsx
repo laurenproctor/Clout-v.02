@@ -266,7 +266,7 @@ export function LinkCaptureFlow({ url, lensId, onComplete, onError, onReset }: L
 
           {/* ── Draft cards ── */}
           <div className="flex-1 overflow-y-auto">
-            <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+            <div className="p-4 sm:p-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 items-start">
               {drafts.map((draft, i) => {
                 const isRec = i === 0
                 const insight = getAngleInsight(draft.angle)
