@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Layers, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Layers, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Lens {
@@ -17,7 +17,7 @@ export default function OperatorLensesPage() {
   const [lenses, setLenses] = useState<Lens[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+
   const [editingId, setEditingId] = useState<string | null>(null)
 
   // Create form
@@ -206,47 +206,33 @@ export default function OperatorLensesPage() {
       ) : (
         <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
           {lenses.map((lens) => (
-            <div key={lens.id}>
-              <div className="flex items-center gap-4 px-5 py-4">
-                <button
-                  onClick={() => setExpandedId(expandedId === lens.id ? null : lens.id)}
-                  className="flex-1 text-left min-w-0"
-                >
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-zinc-900">{lens.name} ✦</p>
-                    {lens.tags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="rounded-full border border-zinc-100 px-2 py-0.5 text-xs text-zinc-400">{tag}</span>
-                    ))}
-                  </div>
-                  {lens.description && (
-                    <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">{lens.description}</p>
-                  )}
-                </button>
-                <button
-                  onClick={() => handleToggleActive(lens)}
-                  className={cn('shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-                    lens.is_active
-                      ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                      : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
-                  )}>
-                  {lens.is_active ? 'Active' : 'Inactive'}
-                </button>
-                <button
-                  onClick={() => handleDelete(lens.id)}
-                  className="shrink-0 text-xs text-zinc-400 hover:text-red-500 transition-colors"
-                >
-                  Delete
-                </button>
-                {expandedId === lens.id
-                  ? <ChevronUp className="h-4 w-4 shrink-0 text-zinc-400" />
-                  : <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />}
-              </div>
-              {expandedId === lens.id && (
-                <div className="border-t border-zinc-100 px-5 py-4 bg-zinc-50">
-                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">System prompt</p>
-                  <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed">{lens.system_prompt}</p>
+            <div key={lens.id} className="flex items-center gap-4 px-5 py-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-zinc-900">{lens.name} ✦</p>
+                  {lens.tags.slice(0, 3).map((tag) => (
+                    <span key={tag} className="rounded-full border border-zinc-100 px-2 py-0.5 text-xs text-zinc-400">{tag}</span>
+                  ))}
                 </div>
-              )}
+                {lens.description && (
+                  <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">{lens.description}</p>
+                )}
+              </div>
+              <button
+                onClick={() => handleToggleActive(lens)}
+                className={cn('shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                  lens.is_active
+                    ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                    : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                )}>
+                {lens.is_active ? 'Active' : 'Inactive'}
+              </button>
+              <button
+                onClick={() => handleDelete(lens.id)}
+                className="shrink-0 text-xs text-zinc-400 hover:text-red-500 transition-colors"
+              >
+                Delete
+              </button>
             </div>
           ))}
         </div>

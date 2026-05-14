@@ -14,6 +14,7 @@ const PLATFORM_DEFAULTS: Record<Platform, string> = {
   blog: 'Lead with the searchable question this answers; use headers to signal structure',
   threads: 'Open with a single personal observation; let it breathe',
   facebook: 'Open with a personal story hook in the first 250 characters; end with a question that invites the reader\'s own experience',
+  google_business_profile: 'Lead with the operational fact; keep it under 300 characters; no hashtags',
 }
 
 const PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']

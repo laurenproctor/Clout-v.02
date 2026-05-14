@@ -6,6 +6,7 @@ import { SUBSTACK_PLATFORM_MODEL } from './platforms/substack'
 import { BLOG_PLATFORM_MODEL } from './platforms/blog'
 import { THREADS_PLATFORM_MODEL } from './platforms/threads'
 import { FACEBOOK_PLATFORM_MODEL } from './platforms/facebook'
+import { GBP_PLATFORM_MODEL } from './platforms/google-business-profile'
 
 // The registry is the single authoritative source for all platform behavior.
 // Future fields (validator, formatter, publisher, analytics) are commented as
@@ -64,5 +65,12 @@ export const PLATFORM_REGISTRY: Record<Platform, PlatformDefinition> = {
     descriptor: 'Personal · story-driven · conversation-first',
     maxTokens: 600,
     model: FACEBOOK_PLATFORM_MODEL as PlatformBehaviorModel,
+  },
+  google_business_profile: {
+    id: 'google_business_profile',
+    label: 'Google Business Profile',
+    descriptor: 'Local updates · search presence · trust signals',
+    maxTokens: 350,
+    model: GBP_PLATFORM_MODEL as PlatformBehaviorModel,
   },
 }

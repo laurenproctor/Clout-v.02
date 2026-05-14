@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { HookExploration, BlogGenerationRequest } from '@/lib/blog/types'
+import { marked } from 'marked'
+import type { HookExploration, BlogGenerationRequest, OutlineSection } from '@/lib/blog/types'
+
+export type LivePreview = {
+  metadata?: { metaTitle: string; metaDescription: string; slug: string }
+  outline?:  OutlineSection[]
+  markdown?: string
+}
 
 interface ArticlePreviewRailProps {
   exploration: HookExploration | null
@@ -10,6 +17,7 @@ interface ArticlePreviewRailProps {
   onHeadlineChange?: (headline: string) => void
   editableOutline?: string[]
   onOutlineChange?: (h2s: string[]) => void
+  livePreview?: LivePreview
 }
 
 const READING_TIME: Record<string, string> = {
@@ -139,6 +147,15 @@ function DraggableOutline({
   )
 }
 
+function extractPlainText(markdown: string, maxChars = 300): string {
+  const html = marked.parse(markdown, { async: false }) as string
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  if (text.length <= maxChars) return text
+  const truncated = text.slice(0, maxChars)
+  const lastSpace = truncated.lastIndexOf(' ')
+  return (lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated) + '…'
+}
+
 export function ArticlePreviewRail({
   exploration,
   selectedHeadline,
@@ -146,6 +163,7 @@ export function ArticlePreviewRail({
   onHeadlineChange,
   editableOutline,
   onOutlineChange,
+  livePreview,
 }: ArticlePreviewRailProps) {
   const [localHeadline, setLocalHeadline] = useState(selectedHeadline)
 
@@ -172,12 +190,12 @@ export function ArticlePreviewRail({
   }
 
   const selectedOption = exploration.headlineOptions.find(o => o.title === selectedHeadline)
-  const metaDescription = selectedOption
-    ? synthesizeMetaDescription(selectedOption.why, request.primaryKeyword ?? '')
-    : ''
+  const metaDescription = livePreview?.metadata?.metaDescription
+    ?? (selectedOption ? synthesizeMetaDescription(selectedOption.why, request.primaryKeyword ?? '') : '')
   const readTime = READING_TIME[request.length ?? 'standard'] ?? '7 min read'
 
   const outline = editableOutline ?? []
+  const contentExcerpt = livePreview?.markdown ? extractPlainText(livePreview.markdown) : null
 
   return (
     <div className="space-y-5">
@@ -209,7 +227,16 @@ export function ArticlePreviewRail({
 
       <div>
         <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Article Outline</p>
-        {onOutlineChange ? (
+        {livePreview?.outline ? (
+          <div className="border border-dashed border-zinc-200 rounded-lg p-3 space-y-1.5">
+            {livePreview.outline.map((section, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs font-mono text-zinc-300">{section.level === 'h2' ? 'H2' : 'H3'}</span>
+                <span className="text-xs text-zinc-500 italic">{section.heading}</span>
+              </div>
+            ))}
+          </div>
+        ) : onOutlineChange ? (
           <DraggableOutline
             outline={outline}
             onOutlineChange={onOutlineChange}
@@ -227,6 +254,16 @@ export function ArticlePreviewRail({
           </div>
         )}
       </div>
+
+      {contentExcerpt && (
+        <div>
+          <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Content Preview</p>
+          <div className="relative border border-dashed border-zinc-200 rounded-lg p-3 max-h-24 overflow-hidden">
+            <p className="text-xs text-zinc-400 leading-relaxed">{contentExcerpt}</p>
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent rounded-b-lg" />
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

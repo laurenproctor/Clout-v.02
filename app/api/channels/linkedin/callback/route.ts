@@ -4,6 +4,7 @@ import {
   exchangeLinkedInCode,
   fetchLinkedInProfile,
   fetchLinkedInOrganizations,
+  type LinkedInProfile,
 } from '@/lib/linkedin'
 import { verifyOAuthState } from '@/lib/oauth-state'
 import { signCookiePayload } from '@/lib/signed-cookie'
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL()}/settings/publishing?error=token_exchange_failed${detail(msg)}`)
   }
 
-  let profile: { sub: string; name: string; email?: string }
+  let profile: LinkedInProfile
   try {
     profile = await fetchLinkedInProfile(tokens.access_token)
   } catch (err) {
@@ -64,8 +65,8 @@ export async function GET(req: NextRequest) {
   if (orgs.length > 0) {
     // Show picker: personal profile + all org pages
     const profiles = [
-      { id: profile.sub,  name: profile.name, email: profile.email, type: 'personal' as const },
-      ...orgs.map(org => ({ id: org.id, name: org.name, type: 'page' as const })),
+      { id: profile.sub, name: profile.name, email: profile.email, type: 'personal' as const, profileImageUrl: profile.picture ?? null },
+      ...orgs.map(org => ({ id: org.id, name: org.name, type: 'page' as const, profileImageUrl: null })),
     ]
 
     const cookieValue = signCookiePayload({
@@ -90,10 +91,11 @@ export async function GET(req: NextRequest) {
   try {
     const { channelId } = await createOrUpdateChannelByAccountId({
       workspaceId,
-      platform:    'linkedin',
-      accountId:   profile.sub,
-      accountType: 'personal',
-      label:       profile.name,
+      platform:        'linkedin',
+      accountId:       profile.sub,
+      accountType:     'personal',
+      label:           profile.name,
+      profileImageUrl: profile.picture ?? null,
     })
 
     const credResult = await upsertChannelCredential({

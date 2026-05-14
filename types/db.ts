@@ -477,7 +477,7 @@ export interface Database {
         Row: {
           id: string
           workspace_id: string
-          platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
+          platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'google_business_profile'
           label: string | null
           config: Json
           is_active: boolean
@@ -485,11 +485,18 @@ export interface Database {
           account_type: string
           created_at: string
           updated_at: string
+          profile_image_url: string | null
+          google_location_name: string | null
+          google_location_numeric_id: string | null
+          google_account_id: string | null
+          google_location_address: Json | null
+          google_verified: boolean | null
+          google_profile_photo_url: string | null
         }
         Insert: {
           id?: string
           workspace_id: string
-          platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify'
+          platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'google_business_profile'
           label?: string | null
           config?: Json
           is_active?: boolean
@@ -497,6 +504,13 @@ export interface Database {
           account_type?: string
           created_at?: string
           updated_at?: string
+          profile_image_url?: string | null
+          google_location_name?: string | null
+          google_location_numeric_id?: string | null
+          google_account_id?: string | null
+          google_location_address?: Json | null
+          google_verified?: boolean | null
+          google_profile_photo_url?: string | null
         }
         Update: {
           label?: string | null
@@ -505,6 +519,13 @@ export interface Database {
           account_id?: string | null
           account_type?: string
           updated_at?: string
+          profile_image_url?: string | null
+          google_location_name?: string | null
+          google_location_numeric_id?: string | null
+          google_account_id?: string | null
+          google_location_address?: Json | null
+          google_verified?: boolean | null
+          google_profile_photo_url?: string | null
         }
         Relationships: []
       }
@@ -1458,7 +1479,7 @@ export interface Database {
       capture_status: 'pending' | 'processing' | 'ready' | 'failed'
       generation_status: 'pending' | 'generating' | 'complete' | 'failed'
       output_status: 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-      channel_platform: 'linkedin' | 'newsletter' | 'x'
+      channel_platform: 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'google_business_profile'
       lens_scope: 'system' | 'workspace'
       job_type: 'transcribe' | 'generate' | 'summarize' | 'reformat'
       job_status: 'queued' | 'running' | 'done' | 'failed' | 'canceled'

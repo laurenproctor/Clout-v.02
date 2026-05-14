@@ -11,14 +11,20 @@ import PlatformGrid from './PlatformGrid'
 import FocusedEditView from './FocusedEditView'
 import { LoadingPhaseIndicator, LOADING_STEPS } from './LoadingPhaseIndicator'
 import { IntelligenceSection } from './IntelligenceSection'
+import LocalDistributionSection from './LocalDistributionSection'
 
-const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
+const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook', 'google_business_profile']
+// GBP is not toggled on by default — user opts in
+const DEFAULT_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
+// Platforms rendered in the social PlatformGrid (GBP is in LocalDistributionSection)
+const SOCIAL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
 
 const PUBLISH_ROUTE: Partial<Record<Platform, string>> = {
   linkedin: '/api/channels/linkedin/post',
   x: '/api/channels/twitter/post',
   threads: '/api/channels/threads/post',
   facebook: '/api/channels/facebook/post',
+  google_business_profile: '/api/channels/google-business-profile/post',
 }
 
 // Maps syndication platform keys → channel table platform values
@@ -51,7 +57,7 @@ interface Props {
 export function SyndicationClient({ availableLenses }: Props) {
   const [input, setInput] = useState('')
   const [notes, setNotes] = useState('')
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook'])
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(DEFAULT_PLATFORMS)
   const [selectedLenses, setSelectedLenses] = useState<string[]>([])
   const [ui, setUi] = useState<UIState>({ status: 'idle' })
   const [cards, setCards] = useState<Partial<Record<Platform, CardState>>>({})
@@ -596,24 +602,43 @@ export function SyndicationClient({ availableLenses }: Props) {
                   onBack={() => setFocused(null)}
                 />
               ) : (
-                <PlatformGrid
-                  platforms={selectedPlatforms}
-                  cards={cards}
-                  intelligence={intelligence}
-                  onFocus={(platform, content) => setFocused({ platform, content })}
-                  onCopy={copyToClipboard}
-                  onRegenerate={handleRegenerate}
-                  onSaveDraft={handleSaveDraft}
-                  onPublishNow={handlePublishNow}
-                  onSchedule={handleSchedule}
-                  onQueue={handleQueue}
-                  publishState={publishState}
-                  channelAccounts={Object.fromEntries(
-                    ALL_PLATFORMS.map(p => [p, getChannelsForPlatform(p)])
-                  ) as Partial<Record<Platform, { id: string; label: string | null; account_type: string }[]>>}
-                  selectedChannelId={selectedChannelId}
-                  onSelectChannel={handleSelectChannel}
-                />
+                <>
+                  <PlatformGrid
+                    platforms={selectedPlatforms.filter(p => SOCIAL_PLATFORMS.includes(p))}
+                    cards={cards}
+                    intelligence={intelligence}
+                    onFocus={(platform, content) => setFocused({ platform, content })}
+                    onCopy={copyToClipboard}
+                    onRegenerate={handleRegenerate}
+                    onSaveDraft={handleSaveDraft}
+                    onPublishNow={handlePublishNow}
+                    onSchedule={handleSchedule}
+                    onQueue={handleQueue}
+                    publishState={publishState}
+                    channelAccounts={Object.fromEntries(
+                      SOCIAL_PLATFORMS.map(p => [p, getChannelsForPlatform(p)])
+                    ) as Partial<Record<Platform, { id: string; label: string | null; account_type: string }[]>>}
+                    selectedChannelId={selectedChannelId}
+                    onSelectChannel={handleSelectChannel}
+                  />
+                  <LocalDistributionSection
+                    gbpCard={cards['google_business_profile']}
+                    gbpChannels={getChannelsForPlatform('google_business_profile').map(ch => ({
+                      id: ch.id,
+                      label: ch.label,
+                    }))}
+                    selectedChannelId={selectedChannelId['google_business_profile'] ?? null}
+                    publishState={publishState['google_business_profile']}
+                    onSelectChannel={(channelId) => handleSelectChannel('google_business_profile', channelId)}
+                    onFocus={(content) => setFocused({ platform: 'google_business_profile', content })}
+                    onCopy={copyToClipboard}
+                    onRegenerate={(variantNote) => handleRegenerate('google_business_profile', variantNote)}
+                    onSaveDraft={() => handleSaveDraft('google_business_profile')}
+                    onPublishNow={() => handlePublishNow('google_business_profile')}
+                    onSchedule={(d) => handleSchedule('google_business_profile', d)}
+                    onQueue={() => handleQueue('google_business_profile')}
+                  />
+                </>
               )}
             </div>
           </div>

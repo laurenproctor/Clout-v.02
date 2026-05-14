@@ -11,16 +11,22 @@ type ViewMode = 'markdown' | 'html' | 'text'
 interface BlogArticleEditorProps {
   blogPackage: GeneratedBlogPackage
   onRegenerateSection: (sectionIndex: number) => void
+  onPublish?: () => void
+}
+
+function toSentenceCase(str: string): string {
+  if (!str) return str
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
 function markdownToText(md: string): string {
   return md
-    // H1 → UPPERCASE + underline
-    .replace(/^# (.+)$/gm, (_, h) => `\n${h.toUpperCase()}\n${'='.repeat(h.length)}`)
-    // H2 → UPPERCASE with blank line before
-    .replace(/^## (.+)$/gm, (_, h) => `\n${h.toUpperCase()}`)
-    // H3 → title case with blank line before
-    .replace(/^### (.+)$/gm, (_, h) => `\n${h}`)
+    // H1 → sentence case + === underline
+    .replace(/^# (.+?)(?:\s+#+)?$/gm, (_, h) => { const t = toSentenceCase(h.trim()); return `\n${t}\n${'='.repeat(Math.min(t.length, 50))}` })
+    // H2 → sentence case + --- underline
+    .replace(/^## (.+?)(?:\s+#+)?$/gm, (_, h) => { const t = toSentenceCase(h.trim()); return `\n${t}\n${'-'.repeat(Math.min(t.length, 40))}` })
+    // H3 → sentence case
+    .replace(/^### (.+?)(?:\s+#+)?$/gm, (_, h) => `\n${toSentenceCase(h.trim())}`)
     // Bold/italic — strip markers, keep text
     .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -62,7 +68,7 @@ const COPY_LABELS: Record<ViewMode, string> = {
   text: 'Copy Text',
 }
 
-export function BlogArticleEditor({ blogPackage, onRegenerateSection }: BlogArticleEditorProps) {
+export function BlogArticleEditor({ blogPackage, onRegenerateSection, onPublish }: BlogArticleEditorProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('markdown')
   const [regenerating, setRegenerating] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
@@ -104,6 +110,15 @@ export function BlogArticleEditor({ blogPackage, onRegenerateSection }: BlogArti
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {onPublish && (
+            <button
+              type="button"
+              onClick={onPublish}
+              className="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 whitespace-nowrap"
+            >
+              Publish
+            </button>
+          )}
           {/* Format toggle */}
           <div className="flex rounded-md border border-zinc-200 overflow-hidden text-xs font-medium">
             {(['markdown', 'html', 'text'] as ViewMode[]).map((mode) => (

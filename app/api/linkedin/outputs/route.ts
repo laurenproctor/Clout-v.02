@@ -5,9 +5,9 @@ import { z } from 'zod'
 
 const bodySchema = z.object({
   variation: z.object({
-    body:                  z.string().min(1),
-    hashtags:              z.array(z.string()).optional(),
-    selectedVisualAssetId: z.string().uuid().nullable().optional(),
+    body:                 z.string().min(1),
+    hashtags:             z.array(z.string()).optional(),
+    primaryVisualAssetId: z.string().uuid().nullable().optional(),
   }),
   channelId: z.string().uuid().nullable().optional(),
 })
@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
       status:        'draft',
       content_type:  'linkedin',
       content: {
-        body:                  variation.body,
-        hashtags:              variation.hashtags ?? [],
-        selectedVisualAssetId: variation.selectedVisualAssetId ?? null,
+        body:                 variation.body,
+        hashtags:             variation.hashtags ?? [],
+        primaryVisualAssetId: variation.primaryVisualAssetId ?? null,
       },
       channel_id:    channelId ?? null,
       created_at:    now,

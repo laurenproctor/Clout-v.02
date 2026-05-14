@@ -14,6 +14,10 @@ import {
 } from '@/lib/threads'
 import { postToFacebookPage } from '@/lib/facebook'
 import { createWordPressPost } from '@/lib/wordpress'
+import { createLocalPost, normalizeGBPPostState } from '@/lib/channels/google-business-profile/publish'
+import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
+import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/types'
+import { GBPApiError } from '@/lib/channels/google-business-profile/types'
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -532,6 +536,10 @@ export async function publishOutput(
       const { postId } = await publishWordPressOutput(output, opts)
       return { postUrn: postId, postUrl: postId }
     }
+    case 'google_business_profile': {
+      const { postName } = await publishGBPOutput(output, opts)
+      return { postUrn: postName, postUrl: postName }
+    }
     default:
       throw Object.assign(
         new Error(`Publishing not supported for platform: ${channel.platform}`),
@@ -974,3 +982,148 @@ export async function publishWordPressOutput(
   return { postId }
 }
 
+// ─── Google Business Profile ──────────────────────────────────────────────────
+
+export async function publishGBPOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postName: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a Google Business Profile location.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('Google Business Profile account not connected. Go to Channels and reconnect.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+
+  let cred = credResult.data
+
+  if (isTokenExpired(cred.expiresAt)) {
+    if (!cred.refreshToken) {
+      throw Object.assign(
+        new Error('Google session expired. Go to Channels and reconnect your account.'),
+        { code: 'token_expired', retryable: false }
+      )
+    }
+    try {
+      const refreshed = await refreshGBPToken(cred.refreshToken)
+      const upsertResult = await upsertChannelCredential({
+        channelId:    output.channelId,
+        workspaceId:  output.workspaceId,
+        accessToken:  refreshed.accessToken,
+        refreshToken: cred.refreshToken,  // Google doesn't rotate refresh tokens
+        expiresAt:    Math.floor(Date.now() / 1000) + refreshed.expiresIn,
+        accountId:    cred.accountId,
+        accountName:  cred.accountName,
+        accountEmail: cred.accountEmail,
+      })
+      if (!upsertResult.ok) throw new Error('Failed to store refreshed GBP token')
+      cred = upsertResult.data
+    } catch (refreshErr) {
+      if (isAuthError(refreshErr)) {
+        await logProviderEvent({
+          workspaceId:  output.workspaceId,
+          channelId:    output.channelId,
+          platform:     'google_business_profile',
+          eventType:    'refresh_failed',
+          errorCode:    'token_expired',
+          errorMessage: refreshErr instanceof Error ? refreshErr.message : String(refreshErr),
+        })
+        throw Object.assign(
+          new Error('Google session expired and could not be refreshed. Please reconnect your account.'),
+          { code: 'token_expired', retryable: false }
+        )
+      }
+      throw refreshErr
+    }
+  }
+
+  // Fetch the canonical location resource path from the channel row
+  const supabase = createServiceClient()
+  const { data: channel } = await supabase
+    .from('channels')
+    .select('google_location_name')
+    .eq('id', output.channelId)
+    .single()
+
+  if (!channel?.google_location_name) {
+    throw Object.assign(
+      new Error('Google location not found on this channel. Please reconnect.'),
+      { code: 'missing_location', retryable: false }
+    )
+  }
+
+  const content = output.content as OutputContent
+  const summary = content.body?.trim() ?? ''
+  if (!summary) {
+    throw Object.assign(
+      new Error('This draft has no content to post.'),
+      { code: 'no_content', retryable: false }
+    )
+  }
+  if (summary.length > 1500) {
+    throw Object.assign(
+      new Error('Content exceeds Google Business Profile 1500 character limit.'),
+      { code: 'content_too_long', retryable: false }
+    )
+  }
+
+  const topicType: GBPPostTopicType =
+    ((content as Record<string, unknown>).gbpTopicType as GBPPostTopicType | undefined) ?? 'STANDARD'
+
+  const startedAt = Date.now()
+
+  try {
+    const response = await createLocalPost(channel.google_location_name, cred.accessToken, {
+      summary,
+      topicType,
+    })
+
+    const normalizedState = normalizeGBPPostState(response.state)
+    const durationMs = Date.now() - startedAt
+
+    await createPublishLog({
+      workspaceId:    output.workspaceId,
+      outputId:       output.id,
+      channelId:      output.channelId,
+      platform:       'google_business_profile',
+      status:         normalizedState === 'published' ? 'success' : 'failed',
+      providerPostId: response.name,
+      wasRetry:       opts?.wasRetry ?? false,
+      durationMs,
+    })
+
+    if (normalizedState === 'failed') {
+      throw Object.assign(
+        new Error('Google rejected this post. Check the content and try again.'),
+        { code: 'moderation_rejection', retryable: false }
+      )
+    }
+
+    return { postName: response.name }
+  } catch (err) {
+    if (err instanceof GBPApiError) {
+      const durationMs = Date.now() - startedAt
+      await createPublishLog({
+        workspaceId:  output.workspaceId,
+        outputId:     output.id,
+        channelId:    output.channelId,
+        platform:     'google_business_profile',
+        status:       'failed',
+        errorCode:    err.code,
+        errorMessage: err.message,
+        wasRetry:     opts?.wasRetry ?? false,
+        durationMs,
+      })
+      throw Object.assign(err, { code: err.code, retryable: err.code === 'quota_exceeded' })
+    }
+    throw err
+  }
+}

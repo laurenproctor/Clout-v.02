@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useCallback, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Share2, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
@@ -10,6 +10,14 @@ import { PlatformCard, type ConnectedAccount } from '@/components/publishing/Pla
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 
 // ─── Platform icons ───────────────────────────────────────────────────────────
+
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z" />
+    </svg>
+  )
+}
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -38,7 +46,7 @@ function TikTokIcon({ className }: { className?: string }) {
 function WordPressIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 1.5c1.85 0 3.566.6 4.956 1.597L4.097 16.956A8.476 8.476 0 0 1 3.5 12c0-4.687 3.813-8.5 8.5-8.5zm0 17c-1.85 0-3.566-.6-4.956-1.597l12.859-11.859A8.476 8.476 0 0 1 20.5 12c0 4.687-3.813 8.5-8.5 8.5z" />
+      <path fillRule="evenodd" d="M21.469 6.825c.84 1.537 1.318 3.3 1.318 5.175 0 3.979-2.156 7.456-5.363 9.325l3.295-9.527c.615-1.54.82-2.771.82-3.864 0-.405-.026-.78-.07-1.11m-7.981.105c.647-.03 1.232-.105 1.232-.105.582-.075.514-.93-.067-.899 0 0-1.755.135-2.88.135-1.064 0-2.85-.15-2.85-.15-.585-.03-.661.855-.075.885 0 0 .54.061 1.125.09l1.68 4.605-2.37 7.08L5.354 6.9c.649-.03 1.234-.1 1.234-.1.585-.075.516-.93-.065-.896 0 0-1.746.138-2.874.138-.2 0-.438-.008-.69-.015C4.911 3.15 8.235 1.215 12 1.215c2.809 0 5.365 1.072 7.286 2.833-.046-.003-.091-.009-.141-.009-1.06 0-1.812.923-1.812 1.914 0 .89.513 1.643 1.06 2.531.411.72.89 1.643.89 2.977 0 .915-.354 1.994-.821 3.479l-1.075 3.585-3.9-11.61.001.014zM12 22.784c-1.059 0-2.081-.153-3.048-.437l3.237-9.406 3.315 9.087c.024.053.05.101.078.149-1.12.393-2.325.609-3.582.609M1.211 12c0-1.564.336-3.05.935-4.39L7.29 21.709C3.694 19.96 1.212 16.271 1.211 12M12 0C5.385 0 0 5.385 0 12s5.385 12 12 12 12-5.385 12-12S18.615 0 12 0" />
     </svg>
   )
 }
@@ -67,22 +75,46 @@ function ThreadsIcon({ className }: { className?: string }) {
   )
 }
 
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Platform = 'linkedin' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads'
 
 interface Channel {
   id: string
-  platform: Platform
+  platform: string
   label: string | null
   account_type: string
   is_active: boolean
   token_expires_at: number | null
+  profile_image_url?: string | null
+  google_location_name?: string | null
+  google_location_address?: { locality?: string; administrativeArea?: string } | null
+  google_verified?: boolean | null
 }
 
 interface PendingPage    { id: string; name: string }
 interface PendingAccount { id: string; username: string; name: string }
 interface PendingLiProfile { id: string; name: string; type: 'personal' | 'page' }
+interface PendingGBPLocation {
+  locationName: string
+  accountName: string
+  title: string
+  city: string | null
+  state: string | null
+  isVerified: boolean
+  profilePhotoUrl: string | null
+}
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
@@ -98,15 +130,15 @@ const SOCIAL_PLATFORMS: {
     key: 'linkedin',
     name: 'LinkedIn',
     tagline: 'Professional distribution',
-    iconColorClass: 'bg-[#0A66C2]',
-    Icon: Share2,
+    iconColorClass: 'text-[#0A66C2]',
+    Icon: LinkedInIcon,
     connectHref: null,
   },
   {
     key: 'x',
     name: 'X',
     tagline: 'Real-time distribution',
-    iconColorClass: 'bg-zinc-900',
+    iconColorClass: 'text-zinc-900',
     Icon: XIcon,
     connectHref: '/api/channels/x/connect',
   },
@@ -114,7 +146,7 @@ const SOCIAL_PLATFORMS: {
     key: 'threads',
     name: 'Threads',
     tagline: 'Conversational distribution',
-    iconColorClass: 'bg-zinc-900',
+    iconColorClass: 'text-zinc-900',
     Icon: ThreadsIcon,
     connectHref: '/api/channels/threads/connect',
   },
@@ -122,7 +154,7 @@ const SOCIAL_PLATFORMS: {
     key: 'instagram',
     name: 'Instagram',
     tagline: 'Visual distribution',
-    iconColorClass: 'bg-zinc-800',
+    iconColorClass: 'text-[#E1306C]',
     Icon: InstagramIcon,
     connectHref: '/api/channels/instagram/connect',
   },
@@ -130,7 +162,7 @@ const SOCIAL_PLATFORMS: {
     key: 'tiktok',
     name: 'TikTok',
     tagline: 'Short-form distribution',
-    iconColorClass: 'bg-zinc-900',
+    iconColorClass: 'text-zinc-950',
     Icon: TikTokIcon,
     connectHref: '/api/channels/tiktok/connect',
   },
@@ -138,13 +170,13 @@ const SOCIAL_PLATFORMS: {
     key: 'facebook',
     name: 'Facebook',
     tagline: 'Community distribution',
-    iconColorClass: 'bg-[#1877F2]',
+    iconColorClass: 'text-[#1877F2]',
     Icon: FacebookIcon,
     connectHref: '/api/channels/facebook/connect',
   },
 ]
 
-const PLANNED = ['Ghost', 'Substack', 'Beehiiv', 'Webflow', 'HubSpot', 'Notion'] as const
+const PLANNED = ['YouTube', 'Reddit', 'Bluesky', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
@@ -238,6 +270,116 @@ function PickerModal({
   )
 }
 
+function GBPLocationPicker({
+  locations,
+  onConnect,
+  onClose,
+}: {
+  locations: PendingGBPLocation[]
+  onConnect: (locationNames: string[]) => Promise<void>
+  onClose: () => void
+}) {
+  const [search, setSearch]       = useState('')
+  const [selected, setSelected]   = useState<Set<string>>(new Set())
+  const [connecting, setConnecting] = useState(false)
+
+  const sorted   = [...locations].sort((a, b) => a.title.localeCompare(b.title))
+  const q        = search.toLowerCase()
+  const filtered = sorted.filter(loc =>
+    !q ||
+    loc.title.toLowerCase().includes(q) ||
+    loc.city?.toLowerCase().includes(q) ||
+    loc.state?.toLowerCase().includes(q)
+  )
+
+  function toggle(locationName: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(locationName)) next.delete(locationName)
+      else next.add(locationName)
+      return next
+    })
+  }
+
+  async function handleConnect() {
+    if (selected.size === 0 || connecting) return
+    setConnecting(true)
+    await onConnect([...selected])
+    setConnecting(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-semibold text-zinc-900">Connect Google Business Profile</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {locations.length > 4 && (
+          <input
+            type="text"
+            placeholder="Search locations…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="mb-3 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+          />
+        )}
+
+        <div className="max-h-72 overflow-y-auto space-y-0.5">
+          {filtered.map(loc => (
+            <label
+              key={loc.locationName}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 hover:border-zinc-200"
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(loc.locationName)}
+                onChange={() => toggle(loc.locationName)}
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-zinc-900">{loc.title}</p>
+                {(loc.city || loc.state) && (
+                  <p className="text-xs text-zinc-400">
+                    {[loc.city, loc.state].filter(Boolean).join(', ')}
+                  </p>
+                )}
+              </div>
+              {loc.isVerified && (
+                <span className="shrink-0 text-[11px] font-medium text-emerald-600">Verified</span>
+              )}
+            </label>
+          ))}
+          {filtered.length === 0 && (
+            <p className="py-4 text-center text-sm text-zinc-400">No locations match your search.</p>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-4">
+          <span className="text-xs text-zinc-400">
+            {selected.size > 0 ? `${selected.size} selected` : 'Select locations to connect'}
+          </span>
+          <button
+            onClick={handleConnect}
+            disabled={selected.size === 0 || connecting}
+            className={cn(
+              'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+              selected.size > 0 && !connecting
+                ? 'bg-zinc-900 text-white hover:bg-zinc-700'
+                : 'cursor-not-allowed bg-zinc-100 text-zinc-400'
+            )}
+          >
+            {connecting ? 'Connecting…' : 'Connect Selected'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function PublishingInfrastructureContent() {
@@ -253,9 +395,10 @@ function PublishingInfrastructureContent() {
   const [showWordPressPicker, setShowWordPressPicker]  = useState(false)
   const [showShopifyPicker,   setShowShopifyPicker]    = useState(false)
 
-  const [fbPages,    setFbPages]    = useState<PendingPage[] | null>(null)
-  const [igAccounts, setIgAccounts] = useState<PendingAccount[] | null>(null)
-  const [liProfiles, setLiProfiles] = useState<PendingLiProfile[] | null>(null)
+  const [fbPages,      setFbPages]      = useState<PendingPage[] | null>(null)
+  const [igAccounts,   setIgAccounts]   = useState<PendingAccount[] | null>(null)
+  const [liProfiles,   setLiProfiles]   = useState<PendingLiProfile[] | null>(null)
+  const [gbpLocations, setGbpLocations] = useState<PendingGBPLocation[] | null>(null)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -285,13 +428,16 @@ function PublishingInfrastructureContent() {
     const error     = searchParams.get('error')
     const select    = searchParams.get('select')
 
-    if      (connected === 'linkedin')   flash('LinkedIn connected.', true)
-    else if (connected === 'x')          flash('X connected.', true)
-    else if (connected === 'threads')    flash('Threads connected.', true)
-    else if (connected === 'facebook')   flash('Facebook connected.', true)
-    else if (connected === 'instagram')  flash('Instagram connected.', true)
-    else if (connected === 'tiktok')     flash('TikTok connected.', true)
-    else if (connected === 'shopify')    flash('Shopify store connected.', true)
+    if      (connected === 'linkedin')              flash('LinkedIn connected.', true)
+    else if (connected === 'x')                     flash('X connected.', true)
+    else if (connected === 'threads')               flash('Threads connected.', true)
+    else if (connected === 'facebook')              flash('Facebook connected.', true)
+    else if (connected === 'instagram')             flash('Instagram connected.', true)
+    else if (connected === 'tiktok')                flash('TikTok connected.', true)
+    else if (connected === 'shopify')               flash('Shopify store connected.', true)
+    else if (connected === 'google_business_profile') flash('Google Business Profile location connected.', true)
+    else if (error === 'gbp_no_locations')
+      flash('No Google Business Profile locations found on this account.', false)
     else if (error === 'facebook_no_pages')
       flash('No Facebook Pages found. Create a Page and try again.', false)
     else if (error === 'instagram_no_business_account')
@@ -328,6 +474,11 @@ function PublishingInfrastructureContent() {
       fetch('/api/channels/linkedin/pending-profiles')
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.profiles) setLiProfiles(data.profiles) })
+      router.replace('/settings/publishing')
+    } else if (select === 'google_business_profile') {
+      fetch('/api/channels/google-business-profile/pending-locations')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.locations) setGbpLocations(data.locations) })
       router.replace('/settings/publishing')
     } else if (connected || error) {
       router.replace('/settings/publishing')
@@ -396,8 +547,30 @@ function PublishingInfrastructureContent() {
     }
   }
 
+  async function handleSelectGBPLocations(locationNames: string[]) {
+    const res = await fetch('/api/channels/google-business-profile/select-locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locationNames }),
+    })
+    if (res.ok) {
+      setGbpLocations(null)
+      await reloadChannels()
+      flash(
+        locationNames.length === 1
+          ? 'Google Business Profile location connected.'
+          : `${locationNames.length} Google Business Profile locations connected.`,
+        true
+      )
+    } else {
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      flash(data.error ?? 'Failed to connect locations.', false)
+    }
+  }
+
   const wpConnections      = connections.filter(c => c.provider === 'wordpress')
   const shopifyConnections = connections.filter(c => c.provider === 'shopify')
+  const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
 
   const totalConnected =
     socialChannels.filter(c => c.is_active).length +
@@ -482,6 +655,13 @@ function PublishingInfrastructureContent() {
       {showShopifyPicker && (
         <ConnectShopifyModal onClose={() => setShowShopifyPicker(false)} />
       )}
+      {gbpLocations && (
+        <GBPLocationPicker
+          locations={gbpLocations}
+          onConnect={handleSelectGBPLocations}
+          onClose={() => setGbpLocations(null)}
+        />
+      )}
 
       {/* Header */}
       <div className="mb-8">
@@ -540,11 +720,12 @@ function PublishingInfrastructureContent() {
               c => c.platform === key && c.is_active
             )
             const accounts: ConnectedAccount[] = channelsForPlatform.map(c => ({
-              id:             c.id,
-              label:          c.label ?? 'Connected account',
-              accountType:    c.account_type,
-              tokenExpiresAt: c.token_expires_at,
-              reconnectHref:  connectHref ?? undefined,
+              id:              c.id,
+              label:           c.label ?? 'Connected account',
+              accountType:     c.account_type,
+              tokenExpiresAt:  c.token_expires_at,
+              reconnectHref:   connectHref ?? undefined,
+              profileImageUrl: c.profile_image_url ?? undefined,
             }))
 
             const isLinkedIn = key === 'linkedin'
@@ -569,6 +750,37 @@ function PublishingInfrastructureContent() {
         </div>
       </section>
 
+      {/* Local Distribution */}
+      <section className="mb-12">
+        <div className="mb-4 flex items-baseline gap-3">
+          <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">
+            Local Distribution
+          </h2>
+          {gbpChannels.length > 0 && (
+            <span className="text-[11px] text-zinc-400">{gbpChannels.length} location{gbpChannels.length !== 1 ? 's' : ''} connected</span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <PlatformCard
+            name="Google Business Profile"
+            tagline="Search presence · local trust signals"
+            iconColorClass=""
+            icon={<GoogleIcon className="h-5 w-5" />}
+            connected={gbpChannels.map(c => ({
+              id:             c.id,
+              label:          c.label ?? c.google_location_name ?? 'Connected location',
+              accountType:    c.account_type,
+              tokenExpiresAt: c.token_expires_at,
+              reconnectHref:  '/api/channels/google-business-profile/connect',
+            }))}
+            connectHref="/api/channels/google-business-profile/connect"
+            connectLabel="Connect Location"
+            onDisconnect={handleDisconnectChannel}
+            addAnotherHref="/api/channels/google-business-profile/connect"
+          />
+        </div>
+      </section>
+
       {/* Owned Publishing */}
       <section className="mb-12">
         <div className="mb-4 flex items-baseline gap-3">
@@ -585,13 +797,14 @@ function PublishingInfrastructureContent() {
           <PlatformCard
             name="WordPress"
             tagline="Self-hosted publishing infrastructure"
-            iconColorClass="bg-[#21759B]"
+            iconColorClass="text-[#21759B]"
             icon={<WordPressIcon className="h-5 w-5" />}
             connected={wpConnections.map(c => ({
               id:                  c.id,
               label:               c.label,
               consecutiveFailures: c.consecutiveFailureCount,
               lastPublishedAt:     c.lastSuccessfulPublishAt,
+              profileImageUrl:     c.siteUrl ? `${c.siteUrl.replace(/\/$/, '')}/favicon.ico` : undefined,
             }))}
             onConnect={() => setShowWordPressPicker(true)}
             onDisconnect={handleDisconnectConnection}
@@ -602,13 +815,14 @@ function PublishingInfrastructureContent() {
           <PlatformCard
             name="Shopify"
             tagline="Commerce content publishing"
-            iconColorClass="bg-[#5E8E3E]"
+            iconColorClass="text-[#5E8E3E]"
             icon={<ShopifyIcon className="h-5 w-5" />}
             connected={shopifyConnections.map(c => ({
               id:                  c.id,
               label:               c.label,
               consecutiveFailures: c.consecutiveFailureCount,
               lastPublishedAt:     c.lastSuccessfulPublishAt,
+              profileImageUrl:     c.siteUrl ? `${c.siteUrl.replace(/\/$/, '')}/favicon.ico` : undefined,
             }))}
             onConnect={() => setShowShopifyPicker(true)}
             onDisconnect={handleDisconnectConnection}

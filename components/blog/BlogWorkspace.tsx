@@ -7,6 +7,7 @@ import { StepProgressHeader } from './StepProgressHeader'
 import { StrategicSetupPanel } from './StrategicSetupPanel'
 import { NarrativeCard } from './NarrativeCard'
 import { ArticlePreviewRail } from './ArticlePreviewRail'
+import type { LivePreview } from './ArticlePreviewRail'
 import { AdvancedControlsPanel } from './AdvancedControlsPanel'
 import { NarrativeStrategyCard } from './NarrativeStrategyCard'
 import { GenerationProgress } from './GenerationProgress'
@@ -15,6 +16,7 @@ import { DistributionCards } from './DistributionCards'
 import { StrategicInsightsPanel } from './StrategicInsightsPanel'
 import { ContentAnalysisPanel } from './ContentAnalysisPanel'
 import { VisualGenerator } from '@/components/visual/VisualGenerator'
+import { PublishToCmsDrawer } from '@/components/publishing/PublishToCmsDrawer'
 import type { SocialPlatform } from '@/lib/blog/generateDistribution'
 
 type WorkspaceState =
@@ -32,9 +34,10 @@ interface ProgressEvent {
 
 interface BlogWorkspaceProps {
   lenses: Lens[]
+  workspaceId: string
 }
 
-export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
+export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
   const [state, setState] = useState<WorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<BlogGenerationRequest> | null>(null)
   const [progressEvents, setProgressEvents] = useState<ProgressEvent[]>([])
@@ -49,11 +52,30 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
   const [setupInitialValues, setSetupInitialValues] = useState<Partial<BlogGenerationRequest> | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const [keyboardIndex, setKeyboardIndex] = useState(0)
+  const [livePreview, setLivePreview] = useState<LivePreview>({})
+  const [blogSourceId, setBlogSourceId] = useState<string | null>(null)
+  const [blogOutputId, setBlogOutputId] = useState<string | null>(null)
+  const [heroAssetId, setHeroAssetId] = useState<string | null>(null)
+  const [publishDrawerOpen, setPublishDrawerOpen] = useState(false)
   const socialSectionRef = useRef<HTMLDivElement>(null)
 
   const addProgress = useCallback((phase: string, label: string) => {
     setProgressEvents(prev => [...prev, { phase, label }])
   }, [])
+
+  useEffect(() => {
+    if (!heroAssetId || !blogOutputId) return
+    fetch(`/api/outputs/${blogOutputId}`)
+      .then(r => r.ok ? r.json() : Promise.reject('not found'))
+      .then(output => fetch(`/api/outputs/${blogOutputId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: { ...output.content, primaryVisualAssetId: heroAssetId } }),
+      }))
+      .catch(err => {
+        if (process.env.NODE_ENV === 'development') console.warn('[blog] Failed to attach hero image:', err)
+      })
+  }, [heroAssetId, blogOutputId])
 
   // Keyboard shortcuts: narrative-review — ↑/↓ navigate headlines, Enter select, ⌘↵ generate
   useEffect(() => {
@@ -195,6 +217,11 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     setSelectedHeadline(headline)
     setError(null)
     setProgressEvents(prev => [...prev, { phase: 'continue', label: 'Generating article...' }])
+    setLivePreview({})
+    setBlogSourceId(null)
+    setBlogOutputId(null)
+    setHeroAssetId(null)
+    setPublishDrawerOpen(false)
     setState('generating:phase4-10')
 
     try {
@@ -231,12 +258,16 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             const event = JSON.parse(line)
             if (event.type === 'progress') {
               addProgress(event.phase, event.label)
+            } else if (event.type === 'phase-complete') {
+              if (event.phase === 'metadata') setLivePreview(p => ({ ...p, metadata: event.data }))
+              if (event.phase === 'outline')  setLivePreview(p => ({ ...p, outline: event.data }))
+              if (event.phase === 'sections') setLivePreview(p => ({ ...p, markdown: event.data.markdown }))
             } else if (event.type === 'complete') {
               receivedComplete = true
               const pkg = event.data as GeneratedBlogPackage
               setBlogPackage(pkg)
+              setBlogSourceId(crypto.randomUUID())
               setState('article-review')
-              // Auto-save for analytics tracking (fire-and-forget)
               fetch('/api/blog/outputs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -245,7 +276,12 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
                   wordCount: pkg.article.wordCount,
                   markdown: pkg.article.markdown,
                 }),
-              }).catch(() => null)
+              })
+                .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+                .then(d => { if (d?.id) setBlogOutputId(d.id) })
+                .catch(err => {
+                  if (process.env.NODE_ENV === 'development') console.warn('[blog] Failed to save blog output:', err)
+                })
             } else if (event.type === 'error') {
               throw new Error(event.message ?? 'Generation failed')
             }
@@ -328,8 +364,10 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
         fetch('/api/linkedin/outputs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variation: { body: distribution.linkedin } }),
-        }).catch(() => null)
+          body: JSON.stringify({ variation: { body: distribution.linkedin, primaryVisualAssetId: heroAssetId ?? null } }),
+        }).catch(err => {
+          if (process.env.NODE_ENV === 'development') console.warn('[blog] Failed to save LinkedIn output:', err)
+        })
       }
       if (distribution.xThread) {
         fetch('/api/syndication/outputs', {
@@ -350,7 +388,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     } finally {
       setIsSocialGenerating(false)
     }
-  }, [blogPackage, selectedPlatforms])
+  }, [blogPackage, selectedPlatforms, heroAssetId])
 
   const handleWriteAngle = useCallback((angle: string) => {
     setSetupInitialValues({ ...(request ?? {}), title: angle })
@@ -522,6 +560,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               exploration={hookExploration}
               selectedHeadline={selectedHeadline}
               request={request ?? {}}
+              livePreview={livePreview}
             />
           </div>
         </div>
@@ -539,6 +578,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             <BlogArticleEditor
               blogPackage={blogPackage}
               onRegenerateSection={handleRegenerateSection}
+              onPublish={() => setPublishDrawerOpen(true)}
             />
             <div className="mt-6 pt-6 border-t border-zinc-100">
               <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-3">Hero Image</p>
@@ -546,6 +586,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
                 content={`${blogPackage.article.title}\n\n${blogPackage.article.markdown.slice(0, 800)}`}
                 platform="blog"
                 aspectRatio="landscape"
+                onAttach={(assetId) => setHeroAssetId(assetId)}
               />
             </div>
             <div ref={socialSectionRef} className="mt-6 pt-6 border-t border-zinc-100">
@@ -612,6 +653,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             <BlogArticleEditor
               blogPackage={blogPackage}
               onRegenerateSection={handleRegenerateSection}
+              onPublish={() => setPublishDrawerOpen(true)}
             />
             <div className="mt-6">
               <DistributionCards distribution={blogPackage.distribution} />
@@ -628,5 +670,17 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     )
   }
 
-  return null
+  return (
+    <>
+      {blogPackage && blogSourceId && (
+        <PublishToCmsDrawer
+          open={publishDrawerOpen}
+          onClose={() => setPublishDrawerOpen(false)}
+          blogPackage={blogPackage}
+          sourceId={blogSourceId}
+          workspaceId={workspaceId}
+        />
+      )}
+    </>
+  )
 }

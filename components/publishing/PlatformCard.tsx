@@ -4,6 +4,26 @@ import { cn } from '@/lib/utils'
 import { RefreshCw, Unlink, Plus, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 
+function AccountAvatar({ profileImageUrl, label }: { profileImageUrl?: string | null; label: string }) {
+  const [imgError, setImgError] = useState(false)
+  const initial = label.charAt(0).toUpperCase()
+
+  if (profileImageUrl && !imgError) {
+    return (
+      <img
+        src={profileImageUrl}
+        alt=""
+        className="h-full w-full object-cover"
+        onError={() => setImgError(true)}
+      />
+    )
+  }
+
+  return (
+    <span className="text-[10px] font-semibold text-zinc-500">{initial}</span>
+  )
+}
+
 const SEVEN_DAYS_S = 7 * 24 * 60 * 60
 
 function tokenExpiryStatus(
@@ -58,6 +78,7 @@ export interface ConnectedAccount {
   reconnectHref?: string
   consecutiveFailures?: number
   lastPublishedAt?: string | null
+  profileImageUrl?: string | null
 }
 
 export interface PlatformCardProps {
@@ -79,7 +100,7 @@ export function PlatformCard({
   name,
   tagline,
   icon,
-  iconColorClass = 'bg-zinc-900',
+  iconColorClass = 'text-zinc-900',
   connected,
   onConnect,
   connectHref,
@@ -113,8 +134,8 @@ export function PlatformCard({
       <div className="mb-5 flex items-start gap-3">
         <div
           className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors',
-            isConnected ? iconColorClass + ' text-white' : 'bg-zinc-100 text-zinc-400'
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 transition-all duration-200',
+            isConnected ? iconColorClass : 'text-zinc-400 grayscale'
           )}
         >
           {icon}
@@ -154,7 +175,10 @@ export function PlatformCard({
                     : 'border-zinc-100'
                 )}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-2.5">
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100">
+                    <AccountAvatar profileImageUrl={account.profileImageUrl} label={account.label} />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-zinc-900">
                       {account.label}

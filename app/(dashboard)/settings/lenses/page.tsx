@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Layers, Plus, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { Layers, Plus, X, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
 
@@ -9,7 +9,7 @@ export default function LensesPage() {
   const [lenses, setLenses] = useState<Lens[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+
   const [editingId, setEditingId] = useState<string | null>(null)
 
   // Create form state
@@ -240,8 +240,6 @@ export default function LensesPage() {
                       <div className="flex-1">
                         <LensRow
                           lens={lens}
-                          expanded={expandedId === lens.id && editingId !== lens.id}
-                          onToggle={() => { if (editingId !== lens.id) setExpandedId(expandedId === lens.id ? null : lens.id) }}
                           onDelete={async () => {
                             const res = await fetch(`/api/lenses/${lens.id}`, { method: 'DELETE' })
                             if (res.ok) setLenses((prev) => prev.filter((l) => l.id !== lens.id))
@@ -284,8 +282,6 @@ export default function LensesPage() {
                   <LensRow
                     key={lens.id}
                     lens={lens}
-                    expanded={expandedId === lens.id}
-                    onToggle={() => setExpandedId(expandedId === lens.id ? null : lens.id)}
                   />
                 ))}
               </div>
@@ -414,66 +410,42 @@ function EditLensForm({
 
 function LensRow({
   lens,
-  expanded,
-  onToggle,
   onDelete,
 }: {
   lens: Lens
-  expanded: boolean
-  onToggle: () => void
   onDelete?: () => void
 }) {
   return (
-    <div>
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-zinc-50 transition-colors"
-      >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-zinc-900">
-              {lens.name}
-              {lens.scope === 'system' && (
-                <span className="ml-1.5 text-zinc-400">✦</span>
-              )}
-            </p>
-            {lens.tags.length > 0 &&
-              lens.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-zinc-100 px-2 py-0.5 text-xs text-zinc-400"
-                >
-                  {tag}
-                </span>
-              ))}
-          </div>
-          {lens.description && (
-            <p className="mt-0.5 text-xs text-zinc-400 line-clamp-1">{lens.description}</p>
-          )}
-        </div>
-        {lens.scope === 'workspace' && onDelete && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete() }}
-            className="shrink-0 text-zinc-300 hover:text-red-500 transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
-        {expanded ? (
-          <ChevronUp className="h-4 w-4 shrink-0 text-zinc-400" />
-        ) : (
-          <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
-        )}
-      </button>
-      {expanded && (
-        <div className="border-t border-zinc-100 px-5 py-4 bg-zinc-50">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">
-            System prompt
+    <div className="flex w-full items-center gap-4 px-5 py-4">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-zinc-900">
+            {lens.name}
+            {lens.scope === 'system' && (
+              <span className="ml-1.5 text-zinc-400">✦</span>
+            )}
           </p>
-          <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed">
-            {lens.systemPrompt}
-          </p>
+          {lens.tags.length > 0 &&
+            lens.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-zinc-100 px-2 py-0.5 text-xs text-zinc-400"
+              >
+                {tag}
+              </span>
+            ))}
         </div>
+        {lens.description && (
+          <p className="mt-0.5 text-xs text-zinc-400 line-clamp-1">{lens.description}</p>
+        )}
+      </div>
+      {lens.scope === 'workspace' && onDelete && (
+        <button
+          onClick={onDelete}
+          className="shrink-0 text-zinc-300 hover:text-red-500 transition-colors"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       )}
     </div>
   )

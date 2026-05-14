@@ -20,7 +20,7 @@ export default async function BlogCreatePage() {
         </p>
       </div>
       <div className="flex-1 min-h-0">
-        <BlogWorkspace lenses={lenses} />
+        <BlogWorkspace lenses={lenses} workspaceId={session.workspaceId} />
       </div>
     </div>
   )

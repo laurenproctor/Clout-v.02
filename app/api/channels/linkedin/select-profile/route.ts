@@ -8,6 +8,7 @@ interface LiProfile {
   name: string
   email?: string
   type: 'personal' | 'page'
+  profileImageUrl?: string | null
 }
 
 interface PendingPayload {
@@ -47,10 +48,11 @@ export async function POST(req: NextRequest) {
   try {
     const { channelId } = await createOrUpdateChannelByAccountId({
       workspaceId,
-      platform:    'linkedin',
-      accountId:   profile.id,
-      accountType: profile.type,
-      label:       profile.name,
+      platform:        'linkedin',
+      accountId:       profile.id,
+      accountType:     profile.type,
+      label:           profile.name,
+      profileImageUrl: profile.profileImageUrl ?? null,
     })
 
     const credResult = await upsertChannelCredential({

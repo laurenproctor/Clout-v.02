@@ -66,11 +66,29 @@ export function buildGenerationSystemPrompt(
     ? buildDivergenceClause(platform, divergenceContext)
     : ''
 
-  return `You write platform-native posts that promote content and drive people to read it.
+  const isGBP = platform === 'google_business_profile'
 
-Your job: write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through.
+  const intro = isGBP
+    ? `You write local business posts for Google Business Profile — a search visibility surface, not a social network.
 
-${notesSection}${divergenceSection}## What you're promoting
+Your job: write a single Local Update that gives customers discovering this business through search a compelling operational reason to engage. This is not content promotion. This is local trust distribution.
+
+Write like a credible local business communicating directly with customers discovering the business through search. Optimize for clarity, trust, relevance, and immediacy. Prioritize specificity, operational clarity, concise usefulness, and local relevance. Avoid inflated marketing language, vague thought leadership, excessive formatting, and hashtag stuffing.`
+    : `You write platform-native posts that promote content and drive people to read it.
+
+Your job: write a single post for ${model.platform.toUpperCase()} that teases the most compelling idea from this content and makes people want to click through.`
+
+  const whatYourePromoting = isGBP
+    ? `## Source material
+
+**Core idea:** ${intelligence.thesis}
+
+**Audience:** ${intelligence.audience}
+
+**Key insight to consider:** ${intelligence.key_quotes[0] ?? intelligence.thesis}
+
+Adapt this into a local business update — not a promotional post about the source, but an operational local update informed by these ideas.`
+    : `## What you're promoting
 
 **Core idea:** ${intelligence.thesis}
 
@@ -78,9 +96,13 @@ ${notesSection}${divergenceSection}## What you're promoting
 
 **What makes it worth reading:** ${intelligence.spreadability_patterns.join('; ')}
 
-**Key quote to consider using:** ${intelligence.key_quotes[0] ?? ''}
+**Key quote to consider using:** ${intelligence.key_quotes[0] ?? ''}`
 
-${preWriting}## Platform: ${model.platform.toUpperCase()}
+  return `${intro}
+
+${notesSection}${divergenceSection}${whatYourePromoting}
+
+${preWriting}## Platform: ${isGBP ? 'GOOGLE BUSINESS PROFILE' : model.platform.toUpperCase()}
 
 ${model.rhetoricalEnvironment}
 
@@ -106,6 +128,8 @@ export function buildGenerationUserMessage(platform: Platform): string {
     blog: 'blog post',
     threads: 'Threads',
     facebook: 'Facebook post',
+    google_business_profile: 'Google Business Profile',
   }
-  return `Write a promotional post for ${platformNames[platform]}. Output only the final text.`
+  const verb = platform === 'google_business_profile' ? 'Write a Local Update for' : 'Write a promotional post for'
+  return `${verb} ${platformNames[platform]}. Output only the final text.`
 }
