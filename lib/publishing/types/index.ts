@@ -1,5 +1,6 @@
 import type { CanonicalArticle } from '../canonical/types'
 export type { CanonicalArticle }
+import type { RetryCategory } from '../errors'
 
 export type PublishingProviderId =
   | 'wordpress' | 'ghost' | 'webflow' | 'substack'
@@ -118,6 +119,7 @@ export type PublishResult =
       error: string
       code: string
       retryable: boolean
+      retryCategory?: RetryCategory
     }
 
 export interface ConnectionTestResult {
