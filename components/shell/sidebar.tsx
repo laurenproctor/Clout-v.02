@@ -190,19 +190,20 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
             </Link>
           )
         })}
+        <div className="mx-1 my-1 border-t border-zinc-200" />
         <div className="px-3 py-2 space-y-1">
           <p className="text-xs text-zinc-300">
             <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 text-zinc-400">⌘K</kbd>
             {' '}Quick capture
           </p>
-          <p className="text-xs text-zinc-300">
+          <p className="mt-1.5 text-xs text-zinc-300">
             <kbd className="rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 text-zinc-400">G</kbd>
             {' + letter  '}Navigate
           </p>
         </div>
       </nav>
 
-      <div className="border-t border-zinc-200 p-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="p-2 pb-[env(safe-area-inset-bottom)]">
         <Link
           href="/settings/brand"
           onClick={onLinkClick}

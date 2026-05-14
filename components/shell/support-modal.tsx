@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 interface SupportModalProps {
   open: boolean
   onClose: () => void
+  initialCategory?: Category
 }
 
 type Category = 'question' | 'bug' | 'feature' | 'billing' | 'call'
@@ -31,7 +32,7 @@ const PLACEHOLDERS: Record<Category, string> = {
 
 const CALENDLY_URL = 'https://calendly.com/clout'
 
-export function SupportModal({ open, onClose }: SupportModalProps) {
+export function SupportModal({ open, onClose, initialCategory }: SupportModalProps) {
   const pathname = usePathname()
   const [category, setCategory] = useState<Category>('question')
   const [message, setMessage] = useState('')
@@ -44,7 +45,7 @@ export function SupportModal({ open, onClose }: SupportModalProps) {
 
   useEffect(() => {
     if (open) {
-      setCategory('question')
+      setCategory(initialCategory ?? 'question')
       setMessage('')
       setScreenshot(null)
       setSuccess(false)

@@ -227,6 +227,7 @@ export default function PublishingSettingsPage() {
           ))}
           <button
             type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-support', { detail: { category: 'feature' } }))}
             className="px-1 text-xs text-zinc-400 transition-colors hover:text-zinc-600"
           >
             Request Integration →
