@@ -240,7 +240,7 @@ export default function StudioEditorPage() {
 
   if (loading) {
     return (
-      <div className="-m-6 flex items-center justify-center bg-zinc-950" style={{ minHeight: 'calc(100vh - 56px)' }}>
+      <div className="-m-6 flex items-center justify-center bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
         <div className="space-y-3 w-56">
           <div className="h-4 rounded bg-zinc-800 animate-pulse" />
           <div className="h-3 rounded bg-zinc-800 animate-pulse w-3/4" />
@@ -252,7 +252,7 @@ export default function StudioEditorPage() {
 
   if (!output) {
     return (
-      <div className="-m-6 flex items-center justify-center bg-zinc-950" style={{ minHeight: 'calc(100vh - 56px)' }}>
+      <div className="-m-6 flex items-center justify-center bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
         <p className="text-sm text-zinc-600">Draft not found.</p>
       </div>
     )
@@ -262,7 +262,7 @@ export default function StudioEditorPage() {
   const charCount = body.length
 
   return (
-    <div className="-m-6 flex flex-col bg-zinc-950" style={{ minHeight: 'calc(100vh - 56px)' }}>
+    <div className="-m-6 flex flex-col bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
 
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-4 h-12 flex-shrink-0 border-b border-zinc-800/60">
