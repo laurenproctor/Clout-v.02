@@ -57,7 +57,7 @@ export function AiActionsPanel({ open, onClose, running, majorResult, onAction }
         role="dialog"
         aria-label="AI Actions"
         className={cn(
-          'fixed right-0 top-0 bottom-0 z-40 w-[280px] flex flex-col',
+          'fixed right-0 top-0 bottom-0 z-40 w-full sm:w-[280px] flex flex-col',
           'bg-zinc-950 border-l border-zinc-800',
           'transition-transform duration-200 ease-in-out',
           open ? 'translate-x-0' : 'translate-x-full'
