@@ -26,7 +26,7 @@ export interface ProcessPublishParams {
 
 export async function processPublishAttempt(
   params: ProcessPublishParams,
-): Promise<{ ok: boolean; providerUrl?: string; providerContentId?: string; error?: string }> {
+): Promise<{ ok: boolean; providerUrl?: string; providerContentId?: string; error?: string; publishAttemptId: string }> {
   const { workspaceId, publishedContentId, connectionId, article, opts, idempotencyKey } = params
 
   // Generate a correlation ID for this attempt — thread through all logs and events
@@ -38,15 +38,20 @@ export async function processPublishAttempt(
     .digest('hex')
     .slice(0, 16)
 
-  void attemptId  // used in future logging
-
   // Idempotency guard
   const existing = await findExistingPublish(idempotencyKey)
   if (existing?.status === 'published') {
+    console.log(JSON.stringify({
+      event:             'publish.idempotency_hit',
+      publishedContentId,
+      idempotencyKey,
+      existingUrl:       existing.providerUrl,
+    }))
     return {
       ok:                true,
       providerUrl:       existing.providerUrl ?? undefined,
       providerContentId: existing.providerContentId ?? undefined,
+      publishAttemptId:  attemptId,
     }
   }
 
@@ -57,7 +62,7 @@ export async function processPublishAttempt(
   if (!connResult.ok) {
     await transitionPublishedContent(publishedContentId, 'failed', { errorMessage: connResult.error })
     // TODO: publishing_events — record connection lookup failure
-    return { ok: false, error: connResult.error }
+    return { ok: false, error: connResult.error, publishAttemptId: attemptId }
   }
 
   const connection = connResult.data
@@ -74,7 +79,7 @@ export async function processPublishAttempt(
     })
     // TODO: publishing_events — record successful publish with providerContentId + formatter version
     await recordConnectionSuccess(connectionId)
-    return { ok: true, providerUrl: result.providerUrl, providerContentId: result.providerContentId }
+    return { ok: true, providerUrl: result.providerUrl, providerContentId: result.providerContentId, publishAttemptId: attemptId }
   }
 
   // Failed — decide whether to retry
@@ -90,7 +95,7 @@ export async function processPublishAttempt(
     // TODO: publishing_events — record permanent failure + error code
   }
 
-  return { ok: false, error: result.error }
+  return { ok: false, error: result.error, publishAttemptId: attemptId }
 }
 
 // Called by Trigger.dev worker for async/scheduled jobs.

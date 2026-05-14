@@ -93,15 +93,16 @@ export async function POST(req: NextRequest) {
 
   if (result.ok) {
     return NextResponse.json({
-      id:               recordResult.data.id,
+      id:                recordResult.data.id,
       providerContentId: result.providerContentId,
       providerUrl:       result.providerUrl,
       status:            'published',
+      publishAttemptId:  result.publishAttemptId,
     }, { status: 201 })
   }
 
   return NextResponse.json(
-    { error: result.error, id: recordResult.data.id },
+    { error: result.error, id: recordResult.data.id, publishAttemptId: result.publishAttemptId },
     { status: 502 },
   )
 }
