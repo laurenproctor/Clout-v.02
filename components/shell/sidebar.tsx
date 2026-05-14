@@ -23,6 +23,8 @@ import {
   Share2,
   Sparkles,
   Send,
+  ArrowLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -38,11 +40,20 @@ const navItems = [
   { label: 'Content Analyzer', href: '/analyze', icon: Network },
   { label: 'Syndicate', href: '/syndicate', icon: Share2 },
   { label: 'Studio', href: '/studio', icon: PenSquare },
-  { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
   { label: 'Analytics', href: '/analytics', icon: BarChart2 },
-  { label: 'Billing', href: '/billing', icon: CreditCard },
 ]
+
+const adminItems = [
+  { label: 'Brand', href: '/settings/brand', icon: Palette },
+  { label: 'Channels', href: '/channels', icon: Radio },
+  { label: 'Publishing', href: '/settings/publishing', icon: Send },
+  { label: 'Schedule', href: '/schedule', icon: CalendarClock },
+  { label: 'Billing', href: '/billing', icon: CreditCard },
+  { label: 'Settings', href: '/settings/workspace', icon: Settings },
+]
+
+const ADMIN_PATHS = ['/settings', '/channels', '/schedule', '/billing']
 
 type MobileSidebarContextValue = {
   open: boolean
@@ -71,6 +82,67 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
   const pathname = usePathname()
   const [supportOpen, setSupportOpen] = useState(false)
 
+  const isAdminMode = ADMIN_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + '/')
+  )
+
+  // ── Admin sidebar ──────────────────────────────────────────────────────────
+  if (isAdminMode) {
+    return (
+      <>
+        <div className="flex h-14 items-center border-b border-zinc-200 px-4 gap-3">
+          <Link
+            href="/dashboard"
+            onClick={onLinkClick}
+            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </Link>
+          <span className="text-sm font-semibold tracking-tight text-zinc-900">Admin</span>
+        </div>
+
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+          {adminItems.map(({ label, href, icon: Icon }) => {
+            const isActive =
+              label === 'Settings'
+                ? pathname.startsWith('/settings') &&
+                  !pathname.startsWith('/settings/brand') &&
+                  !pathname.startsWith('/settings/publishing')
+                : pathname === href || pathname.startsWith(href + '/')
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onLinkClick}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                  isActive
+                    ? 'bg-zinc-100 font-medium text-zinc-900'
+                    : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
+              </Link>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setSupportOpen(true)}
+            className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+          >
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            Help
+          </button>
+        </nav>
+
+        <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
+      </>
+    )
+  }
+
+  // ── Main sidebar ───────────────────────────────────────────────────────────
   return (
     <>
       <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4">
@@ -120,69 +192,16 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
             {' + letter  '}Navigate
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setSupportOpen(true)}
-          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-        >
-          <HelpCircle className="h-4 w-4 shrink-0" />
-          Help
-        </button>
         <Link
           href="/settings/brand"
           onClick={onLinkClick}
-          className={cn(
-            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            pathname.startsWith('/settings/brand')
-              ? 'bg-zinc-100 font-medium text-zinc-900'
-              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
-          )}
-        >
-          <Palette className="h-4 w-4 shrink-0" />
-          Brand
-        </Link>
-        <Link
-          href="/channels"
-          onClick={onLinkClick}
-          className={cn(
-            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            pathname === '/channels' || pathname.startsWith('/channels/')
-              ? 'bg-zinc-100 font-medium text-zinc-900'
-              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
-          )}
-        >
-          <Radio className="h-4 w-4 shrink-0" />
-          Channels
-        </Link>
-        <Link
-          href="/settings/publishing"
-          onClick={onLinkClick}
-          className={cn(
-            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            pathname.startsWith('/settings/publishing')
-              ? 'bg-zinc-100 font-medium text-zinc-900'
-              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
-          )}
-        >
-          <Send className="h-4 w-4 shrink-0" />
-          Publishing
-        </Link>
-        <Link
-          href="/settings/workspace"
-          onClick={onLinkClick}
-          className={cn(
-            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-            pathname.startsWith('/settings') && !pathname.startsWith('/settings/publishing') && !pathname.startsWith('/settings/brand')
-              ? 'bg-zinc-100 font-medium text-zinc-900'
-              : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'
-          )}
+          className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
         >
           <Settings className="h-4 w-4 shrink-0" />
-          Settings
+          Admin
+          <ChevronRight className="ml-auto h-3.5 w-3.5 text-zinc-400" />
         </Link>
       </div>
-
-      <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
     </>
   )
 }
