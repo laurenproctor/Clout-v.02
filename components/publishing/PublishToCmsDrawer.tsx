@@ -64,6 +64,7 @@ export function PublishToCmsDrawer({
         const defaultId = (selectedConnection.metadata as Record<string, unknown>)?.['default_blog_id'] as string | undefined
         setBlogId(defaultId ?? data[0]?.id ?? '')
       })
+      .catch(() => setBlogs([]))
       .finally(() => setLoadingBlogs(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionId])

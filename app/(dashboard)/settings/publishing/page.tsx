@@ -22,13 +22,7 @@ export default function PublishingSettingsPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get('connected') === 'shopify') {
-      fetch('/api/publishing/connections')
-        .then(r => r.ok ? r.json() : [])
-        .then((data: ProviderConnectionSafe[]) => setConnections(data))
-      window.history.replaceState({}, '', '/settings/publishing')
-    }
-    if (params.get('error')) {
+    if (params.get('connected') || params.get('error')) {
       window.history.replaceState({}, '', '/settings/publishing')
     }
   }, [])

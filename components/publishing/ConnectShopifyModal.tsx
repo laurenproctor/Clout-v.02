@@ -26,6 +26,7 @@ export function ConnectShopifyModal({ onClose }: ConnectShopifyModalProps) {
 
     setSubmitting(true)
     window.location.href = `/api/publishing/providers/shopify/install?shop=${encodeURIComponent(domain)}`
+    setTimeout(() => setSubmitting(false), 8000)
   }
 
   return (

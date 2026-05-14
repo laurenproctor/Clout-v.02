@@ -11,6 +11,12 @@ export async function GET(req: NextRequest) {
   if (!shop) return NextResponse.json({ error: 'shop parameter is required.' }, { status: 400 })
 
   const shopDomain  = normalizeShopDomain(shop)
+
+  // Validate domain looks like a real Shopify store after normalization
+  if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(shopDomain)) {
+    return NextResponse.json({ error: 'Invalid Shopify store domain.' }, { status: 400 })
+  }
+
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/publishing/providers/shopify/callback`
   const state       = signOAuthState(session.workspaceId)
   const authUrl     = buildShopifyAuthUrl(shopDomain, redirectUri, state)
