@@ -249,7 +249,7 @@ export default function AnalyticsPage() {
         <h2 className="text-sm font-medium text-zinc-900 mb-4">Captures per month</h2>
         <div className="flex items-end gap-1 overflow-x-auto">
           {data.capturesByMonth.map((d, i) => (
-            <div key={d.month} className="flex flex-col items-center gap-1 flex-1 min-w-0">
+            <div key={d.month} className="flex flex-col items-center gap-1 flex-1 min-w-[28px]">
               <SimpleBar value={d.count} max={maxCaptures} color="bg-zinc-900" />
               <span className="text-xs text-zinc-400 truncate w-full text-center">
                 {i % labelEvery === 0 ? monthLabel(d.month, spansYears) : ''}
@@ -264,7 +264,7 @@ export default function AnalyticsPage() {
         <h2 className="text-sm font-medium text-zinc-900 mb-4">Outputs per month</h2>
         <div className="flex items-end gap-1 overflow-x-auto">
           {data.outputsByMonth.map((d, i) => (
-            <div key={d.month} className="flex flex-col items-center gap-1 flex-1 min-w-0">
+            <div key={d.month} className="flex flex-col items-center gap-1 flex-1 min-w-[28px]">
               <SimpleBar value={d.count} max={maxOutputs} color="bg-zinc-500" />
               <span className="text-xs text-zinc-400 truncate w-full text-center">
                 {i % labelEvery === 0 ? monthLabel(d.month, spansYears) : ''}
