@@ -18,11 +18,10 @@ export function buildShopifyAuthUrl(
 ): string {
   const shop = normalizeShopDomain(shopDomain)
   const params = new URLSearchParams({
-    client_id: process.env.SHOPIFY_CLIENT_ID!,
+    client_id:    process.env.SHOPIFY_CLIENT_ID!,
     scope:        SCOPES,
     redirect_uri: redirectUri,
     state,
-    'grant_options[]': 'per-user',
   })
   return `https://${shop}/admin/oauth/authorize?${params.toString()}`
 }

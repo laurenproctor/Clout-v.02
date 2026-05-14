@@ -121,6 +121,13 @@ export const shopifyProvider: PublishingProvider = {
     }
 
     const startedAt = performance.now()
+    console.log(JSON.stringify({
+      event:         'shopify.publish.start',
+      provider:      'shopify',
+      version:       SHOPIFY_PROVIDER_VERSION,
+      connectionId:  connection.id,
+      idempotencyKey,
+    }))
     try {
       const { shopDomain, accessToken } = getCredentials(connection)
       const blogId = getDefaultBlogId(connection)

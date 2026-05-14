@@ -92,11 +92,16 @@ export function PublishToCmsDrawer({
       if (selectedConnection?.provider === 'shopify' && blogId) {
         const defaultBlogId = (selectedConnection.metadata as Record<string, unknown>)?.['default_blog_id'] as string | undefined
         if (blogId !== defaultBlogId) {
-          await fetch(`/api/publishing/connections/${connectionId}`, {
+          const patchRes = await fetch(`/api/publishing/connections/${connectionId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ default_blog_id: blogId }),
           })
+          if (!patchRes.ok) {
+            setError('Failed to update target blog. Please try again.')
+            setStatus('error')
+            return
+          }
         }
       }
 
