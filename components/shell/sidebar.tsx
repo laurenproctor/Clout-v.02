@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -40,7 +40,6 @@ const navItems = [
   { label: 'Content Analyzer', href: '/analyze', icon: Network },
   { label: 'Syndicate', href: '/syndicate', icon: Share2 },
   { label: 'Studio', href: '/studio', icon: PenSquare },
-  { label: 'Lenses', href: '/lenses', icon: Layers },
   { label: 'Analytics', href: '/analytics', icon: BarChart2 },
 ]
 
@@ -49,11 +48,12 @@ const adminItems = [
   { label: 'Channels', href: '/channels', icon: Radio },
   { label: 'Publishing', href: '/settings/publishing', icon: Send },
   { label: 'Schedule', href: '/schedule', icon: CalendarClock },
+  { label: 'Lenses', href: '/lenses', icon: Layers },
   { label: 'Billing', href: '/billing', icon: CreditCard },
   { label: 'Settings', href: '/settings/workspace', icon: Settings },
 ]
 
-const ADMIN_PATHS = ['/settings', '/channels', '/schedule', '/billing']
+const ADMIN_PATHS = ['/settings', '/channels', '/schedule', '/billing', '/lenses']
 
 type MobileSidebarContextValue = {
   open: boolean
@@ -80,7 +80,18 @@ export function useMobileSidebar() {
 
 function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClose?: () => void }) {
   const pathname = usePathname()
-  const [supportOpen, setSupportOpen] = useState(false)
+  const [supportOpen, setSupportOpen]       = useState(false)
+  const [supportCategory, setSupportCategory] = useState<'question' | 'bug' | 'feature' | 'billing' | 'call'>('question')
+
+  useEffect(() => {
+    function handler(e: Event) {
+      const category = (e as CustomEvent<{ category: string }>).detail?.category
+      setSupportCategory((category as typeof supportCategory) ?? 'question')
+      setSupportOpen(true)
+    }
+    window.addEventListener('open-support', handler)
+    return () => window.removeEventListener('open-support', handler)
+  }, [])
 
   const isAdminMode = ADMIN_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + '/')
@@ -137,7 +148,7 @@ function NavContent({ onLinkClick, onClose }: { onLinkClick?: () => void; onClos
           </button>
         </nav>
 
-        <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
+        <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} initialCategory={supportCategory} />
       </>
     )
   }
