@@ -489,7 +489,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
           </div>
 
           {/* Right column: editable preview rail */}
-          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:py-6">
+          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:px-6 lg:py-6">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-4">Article Preview</p>
             <ArticlePreviewRail
               exploration={hookExploration}
@@ -516,7 +516,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               <GenerationProgress events={progressEvents} state={state} />
             </div>
           </div>
-          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:py-6">
+          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:px-6 lg:py-6">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-4">Article Preview</p>
             <ArticlePreviewRail
               exploration={hookExploration}
