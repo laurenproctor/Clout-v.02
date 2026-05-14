@@ -27,6 +27,7 @@ export function SignalCard({
   footerLeft,
 }: SignalCardProps) {
   const [panelOpen, setPanelOpen] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   const handleGenerate = useCallback(() => {
     if (panelOpen) {
@@ -52,13 +53,16 @@ export function SignalCard({
 
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         border: `1px solid ${tokens.colors.cardBorder}`,
         borderRadius: tokens.borderRadius.card,
-        boxShadow: tokens.boxShadow.card,
+        boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.10)' : tokens.boxShadow.card,
         backgroundColor: tokens.colors.cardBackground,
         marginBottom: '12px',
         overflow: 'hidden',
+        transition: 'box-shadow 0.15s ease',
       }}
     >
       <div style={{ padding: tokens.spacing.cardBodyPadding }}>

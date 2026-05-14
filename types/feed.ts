@@ -16,6 +16,15 @@ export type CardTone = 'positive' | 'negative' | 'neutral'
 
 export type OpportunityTier = 1 | 2 | 3
 
+export type FeedPhase = 'onboarding' | 'generating' | 'feed'
+
+export interface OnboardingDraft {
+  content_topics: string[]
+  services: string[]
+  competitors: string[]
+  editorial_voices: string[]
+}
+
 // Signal card — @transitional presentation/rendering layer
 // Do not add canonical intelligence fields here. Use signals/signal_entities instead.
 export interface SignalCard {
