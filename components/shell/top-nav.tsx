@@ -30,7 +30,7 @@ export function TopNav() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="md:hidden rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100"
+          className="md:hidden rounded-md p-2 text-zinc-500 hover:bg-zinc-100"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
