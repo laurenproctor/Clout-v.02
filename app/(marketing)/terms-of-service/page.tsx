@@ -141,7 +141,7 @@ export default function TermsPage() {
       </header>
 
       {/* Body */}
-      <div className="flex px-10 py-16 gap-16 max-w-6xl">
+      <div className="flex px-5 py-10 gap-16 md:px-10 md:py-16 max-w-6xl">
 
         {/* Sticky TOC — desktop only */}
         <aside className="hidden lg:block w-56 shrink-0">
