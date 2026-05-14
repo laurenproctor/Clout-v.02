@@ -19,7 +19,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Connection is not a Shopify connection.' }, { status: 400 })
   }
 
-  const shopDomain  = connection.metadata['shop_domain'] as string
+  const shopDomain = connection.metadata['shop_domain'] as string | undefined
+  if (!shopDomain) {
+    return NextResponse.json({ error: 'Connection is missing shop domain. Please reconnect your store.' }, { status: 400 })
+  }
   const accessToken = decryptSecret(connection.encryptedAccessToken)
 
   try {

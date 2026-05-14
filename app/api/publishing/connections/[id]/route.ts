@@ -34,6 +34,20 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
+
+  // Only workspace owners and admins can update connections
+  const supabaseAuth = await createClient()
+  const { data: member } = await supabaseAuth
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', session.workspaceId)
+    .eq('user_id', session.userId)
+    .single()
+
+  if (!member || !(['owner', 'admin'] as string[]).includes(member.role as string)) {
+    return NextResponse.json({ error: 'Insufficient permissions.' }, { status: 403 })
+  }
+
   const body = await req.json() as { default_blog_id?: string; label?: string }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,9 +65,10 @@ export async function PATCH(
       .eq('workspace_id', session.workspaceId)
       .single()
 
-    if (conn) {
-      updates.metadata = { ...(conn.metadata as Record<string, unknown>), default_blog_id: body.default_blog_id }
+    if (!conn) {
+      return NextResponse.json({ error: 'Connection not found.' }, { status: 404 })
     }
+    updates.metadata = { ...(conn.metadata as Record<string, unknown>), default_blog_id: body.default_blog_id }
   }
 
   const { error } = await supabase

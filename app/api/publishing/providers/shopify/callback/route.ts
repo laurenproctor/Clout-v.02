@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     const errCode = err instanceof PublishingError ? err.code : 'unknown'
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=${errCode}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/publishing?error=${encodeURIComponent(errCode)}`
     )
   }
 }
