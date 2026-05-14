@@ -418,9 +418,9 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
             {error}
           </div>
         )}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
           {/* Left column: direction first, then strategy + controls */}
-          <div className="flex-1 overflow-y-auto px-8 py-6">
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:px-8 lg:py-6">
             {hookExploration && (
               <>
                 <div className="mb-3">
@@ -489,7 +489,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
           </div>
 
           {/* Right column: editable preview rail */}
-          <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-6 py-6">
+          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:py-6">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-4">Article Preview</p>
             <ArticlePreviewRail
               exploration={hookExploration}
@@ -510,13 +510,13 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     return (
       <div className="flex flex-col h-full min-h-0">
         <StepProgressHeader currentStep={3} clickableSteps={[1, 2]} onStepClick={handleStepClick} />
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:px-8 lg:py-6">
             <div className="max-w-md mx-auto">
               <GenerationProgress events={progressEvents} state={state} />
             </div>
           </div>
-          <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-6 py-6">
+          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:py-6">
             <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-4">Article Preview</p>
             <ArticlePreviewRail
               exploration={hookExploration}
@@ -534,8 +534,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     return (
       <div className="flex flex-col h-full min-h-0">
         <StepProgressHeader currentStep={3} clickableSteps={[1, 2, 4]} onStepClick={handleStepClick} />
-        <div className="flex flex-1 min-h-0 gap-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:px-8 lg:py-6 min-w-0">
             <BlogArticleEditor
               blogPackage={blogPackage}
               onRegenerateSection={handleRegenerateSection}
@@ -591,7 +591,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               </button>
             </div>
           </div>
-          <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
+          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:py-6">
             <StrategicInsightsPanel insights={blogPackage.strategicInsights} onWriteAngle={handleWriteAngle} />
             <div className="mt-6">
               <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
@@ -607,8 +607,8 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
     return (
       <div className="flex flex-col h-full min-h-0">
         <StepProgressHeader currentStep={4} clickableSteps={[1, 2, 3]} onStepClick={handleStepClick} />
-        <div className="flex flex-1 min-h-0 gap-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:px-8 lg:py-6 min-w-0">
             <BlogArticleEditor
               blogPackage={blogPackage}
               onRegenerateSection={handleRegenerateSection}
@@ -617,7 +617,7 @@ export function BlogWorkspace({ lenses }: BlogWorkspaceProps) {
               <DistributionCards distribution={blogPackage.distribution} />
             </div>
           </div>
-          <div className="w-72 shrink-0 border-l border-zinc-100 overflow-y-auto px-4 py-6">
+          <div className="w-full lg:w-72 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-100 overflow-y-auto px-4 py-4 lg:py-6">
             <StrategicInsightsPanel insights={blogPackage.strategicInsights} onWriteAngle={handleWriteAngle} />
             <div className="mt-6">
               <ContentAnalysisPanel analysis={blogPackage.contentAnalysis} />
