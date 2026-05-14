@@ -67,3 +67,24 @@ export function finalizeHtmlForWordPress(html: string): string {
     '<a href="$1" target="_blank" rel="noopener noreferrer"',
   )
 }
+
+// Prepares HTML for Shopify: strips unsupported embeds, removes scripts/iframes,
+// sanitizes attributes Shopify's Liquid rendering rejects.
+// NOTE: regex-based sanitization is an intentional V1 transitional compromise.
+// Long-term: replace with DOM-aware sanitization via rehype/sanitize-html/unified.
+export function finalizeHtmlForShopify(html: string): string {
+  return html
+    // Strip script tags (Shopify rejects inline scripts in article body)
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    // Strip iframes (embeds not supported in Shopify article body)
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    // Strip style attributes (Shopify applies theme styles)
+    .replace(/\s+style="[^"]*"/gi, '')
+    // Strip class attributes (Shopify adds its own classes)
+    .replace(/\s+class="[^"]*"/gi, '')
+    // Add target="_blank" to external links
+    .replace(
+      /<a\s+href="(https?:\/\/[^"]+)"/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer"',
+    )
+}
