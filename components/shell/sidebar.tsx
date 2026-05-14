@@ -10,7 +10,6 @@ import {
   Lock,
   PenSquare,
   Layers,
-  Radio,
   BarChart2,
   CreditCard,
   Settings,
@@ -45,7 +44,6 @@ const navItems = [
 
 const adminItems = [
   { label: 'Brand', href: '/settings/brand', icon: Palette },
-  { label: 'Channels', href: '/channels', icon: Radio },
   { label: 'Publishing', href: '/settings/publishing', icon: Send },
   { label: 'Schedule', href: '/schedule', icon: CalendarClock },
   { label: 'Lenses', href: '/lenses', icon: Layers },
@@ -53,7 +51,7 @@ const adminItems = [
   { label: 'Settings', href: '/settings/workspace', icon: Settings },
 ]
 
-const ADMIN_PATHS = ['/settings', '/channels', '/schedule', '/billing', '/lenses']
+const ADMIN_PATHS = ['/settings', '/schedule', '/billing', '/lenses']
 
 type MobileSidebarContextValue = {
   open: boolean
