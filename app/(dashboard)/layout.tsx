@@ -23,11 +23,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <QuickCaptureProvider>
       <GlobalNavShortcuts />
       <MobileSidebarProvider>
-        <div className="flex h-screen overflow-hidden bg-zinc-50 text-[120%]">
+        <div className="flex h-dvh overflow-hidden bg-zinc-50 text-[120%]">
           <Sidebar />
           <div className="flex flex-1 flex-col overflow-hidden">
             <TopNav />
-            <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <main className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6">
               <ErrorBoundary>{children}</ErrorBoundary>
             </main>
           </div>
