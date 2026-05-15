@@ -47,6 +47,7 @@ const SKELETON_BARS: Record<Platform, number> = {
   threads: 4,
   facebook: 6,
   google_business_profile: 4,
+  medium: 10,
 }
 
 const FULL_WIDTH_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'facebook']

@@ -94,6 +94,7 @@ export interface PlatformCardProps {
   onAddAnother?: () => void
   addAnotherHref?: string
   addAnotherLabel?: string
+  infoNote?: string
 }
 
 export function PlatformCard({
@@ -109,6 +110,7 @@ export function PlatformCard({
   onAddAnother,
   addAnotherHref,
   addAnotherLabel,
+  infoNote,
 }: PlatformCardProps) {
   const isConnected = connected.length > 0
   const isDegraded = connected.some((a) => (a.consecutiveFailures ?? 0) >= 3)
@@ -262,6 +264,13 @@ export function PlatformCard({
             {connectLabel}
           </button>
         ) : null}
+
+        {/* API constraints info note */}
+        {infoNote && (
+          <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
+            {infoNote}
+          </p>
+        )}
       </div>
     </div>
   )

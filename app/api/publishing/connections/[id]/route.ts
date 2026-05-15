@@ -48,7 +48,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Insufficient permissions.' }, { status: 403 })
   }
 
-  const body = await req.json() as { default_blog_id?: string; label?: string }
+  const body = await req.json() as { default_blog_id?: string; selected_publication_id?: string; label?: string }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceClient() as any
@@ -56,8 +56,8 @@ export async function PATCH(
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (body.label) updates.label = body.label
 
-  // Merge metadata update for default_blog_id — fetch current metadata first
-  if (body.default_blog_id) {
+  // Merge metadata updates — fetch current metadata first
+  if (body.default_blog_id || body.selected_publication_id !== undefined) {
     const { data: conn } = await supabase
       .from('publishing_connections')
       .select('metadata')
@@ -68,7 +68,12 @@ export async function PATCH(
     if (!conn) {
       return NextResponse.json({ error: 'Connection not found.' }, { status: 404 })
     }
-    updates.metadata = { ...(conn.metadata as Record<string, unknown>), default_blog_id: body.default_blog_id }
+    const existing = conn.metadata as Record<string, unknown>
+    updates.metadata = {
+      ...existing,
+      ...(body.default_blog_id           ? { default_blog_id: body.default_blog_id } : {}),
+      ...(body.selected_publication_id !== undefined ? { selected_publication_id: body.selected_publication_id } : {}),
+    }
   }
 
   const { error } = await supabase

@@ -68,6 +68,24 @@ export function finalizeHtmlForWordPress(html: string): string {
   )
 }
 
+// Prepares HTML for Medium: strips scripts/iframes, removes inline styles,
+// ensures images use absolute URLs, converts embeds to plain links.
+// NOTE: regex-based sanitization is an intentional V1 transitional compromise.
+// Long-term: replace with DOM-aware sanitization via rehype/sanitize-html/unified.
+export function finalizeHtmlForMedium(html: string): string {
+  return html
+    // Strip script tags
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    // Strip iframes — convert to plain link below
+    .replace(/<iframe\b[^>]*src="([^"]*)"[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+      (_match, src) => `<p><a href="${src}">${src}</a></p>`)
+    // Strip inline style attributes
+    .replace(/\s+style="[^"]*"/gi, '')
+    // Reject relative image src — Medium requires absolute URLs
+    .replace(/<img\s+([^>]*?)src="(?!https?:\/\/)([^"]*)"([^>]*)>/gi,
+      (_match, before, _src, after) => `<!-- image removed: relative URL not supported -->${before}${after}`)
+}
+
 // Prepares HTML for Shopify: strips unsupported embeds, removes scripts/iframes,
 // sanitizes attributes Shopify's Liquid rendering rejects.
 // NOTE: regex-based sanitization is an intentional V1 transitional compromise.

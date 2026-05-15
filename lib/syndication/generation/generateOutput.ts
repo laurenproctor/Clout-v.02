@@ -16,7 +16,7 @@ export async function generateOutput(
   notes?: string,
   divergenceContext?: DivergenceContext,
 ): Promise<SyndicationOutput> {
-  const maxTokens = PLATFORM_REGISTRY[platform].maxTokens
+  const maxTokens = PLATFORM_REGISTRY[platform].generation.maxTokens
 
   const result = await callClaude({
     systemPrompt: buildGenerationSystemPrompt(platform, intelligence, sourceUrl, notes, divergenceContext),

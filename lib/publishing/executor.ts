@@ -38,7 +38,9 @@ export async function processPublishAttempt(
     .digest('hex')
     .slice(0, 16)
 
-  // Idempotency guard
+  // ── Stage 1: Pre-publish lock ─────────────────────────────────────────────
+  // Guard against duplicate publishes (especially critical for create-only providers
+  // like Medium where a retry creates a new post with no delete API).
   const existing = await findExistingPublish(idempotencyKey)
   if (existing?.status === 'published') {
     console.log(JSON.stringify({
@@ -55,6 +57,16 @@ export async function processPublishAttempt(
     }
   }
 
+  if (existing?.status === 'processing') {
+    const ageMinutes = (Date.now() - new Date(existing.createdAt).getTime()) / 60_000
+    if (ageMinutes < 5) {
+      console.log(JSON.stringify({ event: 'publish.in_progress', publishedContentId, idempotencyKey, ageMinutes }))
+      return { ok: false, error: 'Publish already in progress. Try again in a few minutes.', publishAttemptId: attemptId }
+    }
+    // Stuck job — treat as recoverable; proceed to attempt
+    console.log(JSON.stringify({ event: 'publish.stuck_job_recovery', publishedContentId, idempotencyKey, ageMinutes }))
+  }
+
   // Transition to processing
   await transitionPublishedContent(publishedContentId, 'processing')
 
@@ -66,9 +78,67 @@ export async function processPublishAttempt(
   }
 
   const connection = connResult.data
-  const provider   = getProvider(connection.provider)
+
+  // ── Account-level circuit breaker ─────────────────────────────────────────
+  // Pause connections that have repeatedly failed with provider outages.
+  // Prevents thundering-herd retries during platform-wide incidents.
+  if (
+    connection.consecutiveFailureCount >= 5 &&
+    connection.lastErrorMessage?.includes('provider_outage')
+  ) {
+    const lastFailed = connection.lastFailedPublishAt
+      ? new Date(connection.lastFailedPublishAt).getTime()
+      : 0
+    const pausedUntil = lastFailed + 15 * 60 * 1000
+    if (Date.now() < pausedUntil) {
+      const resumesInMin = Math.ceil((pausedUntil - Date.now()) / 60_000)
+      console.log(JSON.stringify({
+        event:             'publish.circuit_breaker_open',
+        publishedContentId,
+        connectionId,
+        consecutiveFailures: connection.consecutiveFailureCount,
+        resumesInMin,
+      }))
+      await transitionPublishedContent(publishedContentId, 'failed', {
+        errorMessage: `Provider paused during outage recovery. Retry in ~${resumesInMin} min.`,
+      })
+      return { ok: false, error: `Provider paused during outage recovery. Retry in ~${resumesInMin} min.`, publishAttemptId: attemptId }
+    }
+  }
+
+  const provider = getProvider(connection.provider)
   // TODO: structured logging — log provider timing start
-  const result     = await provider.publish(connection, article, opts, idempotencyKey)
+  let result: Awaited<ReturnType<typeof provider.publish>>
+  try {
+    result = await provider.publish(connection, article, opts, idempotencyKey)
+  } catch (err) {
+    // ── Stage 5: Reconciliation path (ambiguous failure) ────────────────────
+    // Network timeout after HTTP request was dispatched — provider may or may not
+    // have received the request. For create-only providers (Medium) this is especially
+    // dangerous: a retry could create a duplicate post with no way to delete it.
+    const isTimeout = err instanceof Error && (
+      err.message.includes('timeout') ||
+      err.message.includes('ECONNRESET') ||
+      err.message.includes('fetch failed')
+    )
+    const ambiguousError = isTimeout
+      ? `Network timeout — ${connection.provider} may or may not have received the publish request. Verify on the platform before retrying.`
+      : (err instanceof Error ? err.message : 'Unknown error during publish')
+
+    console.log(JSON.stringify({
+      event:             'publish.ambiguous_failure',
+      publishedContentId,
+      idempotencyKey,
+      connectionId,
+      provider:          connection.provider,
+      isTimeout,
+      error:             ambiguousError,
+    }))
+
+    await transitionPublishedContent(publishedContentId, 'failed', { errorMessage: ambiguousError })
+    await recordConnectionFailure(connectionId, ambiguousError)
+    return { ok: false, error: ambiguousError, publishAttemptId: attemptId }
+  }
   // TODO: structured logging — log provider timing end + result status
 
   if (result.ok) {

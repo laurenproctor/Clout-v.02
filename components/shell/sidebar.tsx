@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Rss,
   PanelLeft,
+  Activity,
+  Newspaper,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -43,6 +45,8 @@ const navItems = [
   { label: 'Syndicate', href: '/syndicate', icon: Share2 },
   { label: 'Studio', href: '/studio', icon: PenSquare },
   { label: 'Analytics', href: '/analytics', icon: BarChart2 },
+  { label: 'Monitoring', href: '', icon: Activity, comingSoon: true },
+  { label: 'Press', href: '', icon: Newspaper, comingSoon: true },
 ]
 
 const adminItems = [
@@ -105,6 +109,7 @@ function NavItem({
   isActive,
   collapsed,
   onClick,
+  comingSoon,
 }: {
   href: string
   icon: React.ElementType
@@ -112,7 +117,41 @@ function NavItem({
   isActive: boolean
   collapsed: boolean
   onClick?: () => void
+  comingSoon?: boolean
 }) {
+  if (comingSoon) {
+    return (
+      <div className="group relative">
+        <div
+          className={cn(
+            'flex items-center rounded-md py-2 text-sm cursor-default',
+            collapsed ? 'justify-center px-2' : 'gap-2.5 px-3',
+            'text-zinc-300'
+          )}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          <span
+            className={cn(
+              'overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 flex items-center gap-1.5',
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[180px] opacity-100'
+            )}
+          >
+            {label}
+            <span className="text-[9px] font-medium uppercase tracking-wide text-zinc-300 bg-zinc-100 rounded px-1 py-0.5 leading-none">
+              Soon
+            </span>
+          </span>
+        </div>
+        {collapsed && (
+          <div className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity whitespace-nowrap group-hover:opacity-100">
+            {label} — coming soon
+            <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-zinc-900" />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="group relative">
       <Link
@@ -299,17 +338,18 @@ function NavContent({
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(href + '/')
+        {navItems.map(({ label, href, icon: Icon, comingSoon }) => {
+          const isActive = !comingSoon && (pathname === href || pathname.startsWith(href + '/'))
           return (
             <NavItem
-              key={href}
+              key={label}
               href={href}
               icon={Icon}
               label={label}
               isActive={isActive}
               collapsed={!!collapsed}
               onClick={onLinkClick}
+              comingSoon={comingSoon}
             />
           )
         })}

@@ -10,13 +10,13 @@ interface DivergenceContext {
 function buildDivergenceClause(platform: Platform, ctx: DivergenceContext): string {
   if (ctx.alreadyGenerated.length === 0) return ''
 
-  const platformLabel = PLATFORM_REGISTRY[platform].label
+  const platformLabel = PLATFORM_REGISTRY[platform].identity.label
   const alreadyLines: string[] = []
 
   ctx.alreadyGenerated.forEach((p, i) => {
     const opener = ctx.generatedOpeners?.[i]
     const angle = ctx.generatedAngles?.[i]
-    const pLabel = PLATFORM_REGISTRY[p].label
+    const pLabel = PLATFORM_REGISTRY[p].identity.label
     if (opener || angle) {
       alreadyLines.push(`- ${pLabel}: "${opener ?? angle}"`)
     } else {
@@ -129,6 +129,7 @@ export function buildGenerationUserMessage(platform: Platform): string {
     threads: 'Threads',
     facebook: 'Facebook post',
     google_business_profile: 'Google Business Profile',
+    medium: 'Medium article',
   }
   const verb = platform === 'google_business_profile' ? 'Write a Local Update for' : 'Write a promotional post for'
   return `${verb} ${platformNames[platform]}. Output only the final text.`

@@ -75,6 +75,14 @@ function ThreadsIcon({ className }: { className?: string }) {
   )
 }
 
+function MediumIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M13.54 12a6.8 6.8 0 0 1-6.77 6.82A6.8 6.8 0 0 1 0 12a6.8 6.8 0 0 1 6.77-6.82A6.8 6.8 0 0 1 13.54 12zm7.42 0c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
+    </svg>
+  )
+}
+
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -176,7 +184,7 @@ const SOCIAL_PLATFORMS: {
   },
 ]
 
-const PLANNED = ['YouTube', 'Reddit', 'Bluesky', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch'] as const
+const PLANNED = ['YouTube', 'Reddit', 'Bluesky', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch', 'Notion'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
@@ -435,6 +443,7 @@ function PublishingInfrastructureContent() {
     else if (connected === 'instagram')             flash('Instagram connected.', true)
     else if (connected === 'tiktok')                flash('TikTok connected.', true)
     else if (connected === 'shopify')               flash('Shopify store connected.', true)
+    else if (connected === 'medium')                flash('Medium connected.', true)
     else if (connected === 'google_business_profile') flash('Google Business Profile location connected.', true)
     else if (error === 'gbp_no_locations')
       flash('No Google Business Profile locations found on this account.', false)
@@ -570,6 +579,7 @@ function PublishingInfrastructureContent() {
 
   const wpConnections      = connections.filter(c => c.provider === 'wordpress')
   const shopifyConnections = connections.filter(c => c.provider === 'shopify')
+  const mediumConnections  = connections.filter(c => c.provider === 'medium')
   const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
 
   const totalConnected =
@@ -829,6 +839,22 @@ function PublishingInfrastructureContent() {
             onAddAnother={() => setShowShopifyPicker(true)}
             addAnotherLabel="Add another Shopify store"
             connectLabel="Connect Shopify"
+          />
+          <PlatformCard
+            name="Medium"
+            tagline="Editorial · longform · authority-native"
+            iconColorClass="text-zinc-900"
+            icon={<MediumIcon className="h-5 w-5" />}
+            connected={mediumConnections.map(c => ({
+              id:                  c.id,
+              label:               c.label,
+              consecutiveFailures: c.consecutiveFailureCount,
+              lastPublishedAt:     c.lastSuccessfulPublishAt,
+            }))}
+            connectHref="/api/publishing/providers/medium/connect"
+            onDisconnect={handleDisconnectConnection}
+            connectLabel="Connect Medium"
+            infoNote="Posts are create-only. Edits and deletions must be made on medium.com. Scheduling is supported via Clout's publish queue."
           />
         </div>
       </section>

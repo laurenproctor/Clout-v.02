@@ -2,6 +2,14 @@ import type { CanonicalArticle } from '../canonical/types'
 export type { CanonicalArticle }
 import type { RetryCategory } from '../errors'
 
+// ─── Provider stability ───────────────────────────────────────────────────────
+// Single-dimension approximation for V1.
+// stable:       well-documented, actively maintained API
+// legacy:       static API, underdocumented, no active development (e.g. Medium v1)
+// experimental: API-in-progress or known instability
+// Future: per-dimension matrix { publishing, analytics, auth, rendering, webhooks }
+export type ProviderStability = 'stable' | 'legacy' | 'experimental'
+
 export type PublishingProviderId =
   | 'wordpress' | 'ghost' | 'webflow' | 'substack'
   | 'medium' | 'shopify' | 'notion' | 'hubspot' | 'beehiiv'
@@ -36,7 +44,8 @@ export interface ProviderCapabilities {
     canonicalUrl: boolean
   }
   scheduling: {
-    supported: boolean
+    nativeScheduling: boolean      // platform API supports server-side scheduling natively
+    platformScheduling: boolean    // Clout queue can simulate scheduling via Trigger.dev
     requiresBackgroundJob: boolean
   }
   content: {
@@ -139,6 +148,7 @@ export interface ValidationResult {
 export interface PublishingProvider {
   readonly id: PublishingProviderId
   readonly label: string
+  readonly stability: ProviderStability
   readonly authMethods: ReadonlyArray<'application_password' | 'oauth' | 'api_key'>
   readonly capabilities: ProviderCapabilities
 

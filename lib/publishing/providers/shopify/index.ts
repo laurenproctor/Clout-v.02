@@ -28,7 +28,7 @@ const SHOPIFY_CAPABILITIES: ProviderCapabilities = {
   // but only through the API — the merchant-facing UI treats them separately.
   seo:        { metaTitle: true, metaDescription: true, canonicalUrl: false },
   // NOTE: Shopify has no native scheduled publishing via API in 2024-10.
-  scheduling: { supported: false, requiresBackgroundJob: false },
+  scheduling: { nativeScheduling: false, platformScheduling: false, requiresBackgroundJob: false },
   content:    { html: true, markdown: false, blocks: false },
 }
 
@@ -60,6 +60,7 @@ function getDefaultBlogId(connection: ProviderConnection): string {
 export const shopifyProvider: PublishingProvider = {
   id:           'shopify' as PublishingProviderId,
   label:        'Shopify',
+  stability:    'stable',
   authMethods:  ['oauth'],
   capabilities: SHOPIFY_CAPABILITIES,
 

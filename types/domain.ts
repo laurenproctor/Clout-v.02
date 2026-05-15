@@ -233,6 +233,16 @@ export interface Output {
   approvedForWeek:      boolean
   weekBucket:           string | null
   performanceSnapshot:  PerformanceSnapshot | null
+  // ─── Content lineage (graph-ready) ──────────────────────────────────────────
+  // Tracks derivation chains for analytics attribution, duplicate detection,
+  // resonance learning, and narrative evolution.
+  // sourceContentIds supports multi-parent derivation (articles assembled from
+  // multiple sources, newsletters from multiple outputs, synthesis workflows).
+  // sourcePlatform uses open string to outlive providers and platform availability.
+  sourceContentIds?:         string[] | null
+  primarySourceContentId?:   string | null
+  derivationType?:           'expansion' | 'compression' | 'teaser' | 'thread' | 'newsletter' | 'translation' | null
+  sourcePlatform?:           string | null
   createdAt: string
   updatedAt: string
   channels?: OutputChannel

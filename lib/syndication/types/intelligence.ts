@@ -1,4 +1,4 @@
-export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads' | 'facebook' | 'google_business_profile'
+export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads' | 'facebook' | 'google_business_profile' | 'medium'
 
 export type SyndicationPhase =
   | 'extracting'
@@ -39,6 +39,7 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   threads: 'Threads',
   facebook: 'Facebook',
   google_business_profile: 'Google Business Profile',
+  medium: 'Medium',
 }
 
 export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
@@ -49,4 +50,5 @@ export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
   threads: 'Social · conversational · reply-native',
   facebook: 'Personal · story-driven · conversation-first',
   google_business_profile: 'Local updates · search presence · trust signals',
+  medium: 'Editorial · longform · authority-native',
 }

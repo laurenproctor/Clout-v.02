@@ -78,15 +78,18 @@ export default function DashboardPage() {
   // Draft card click-outside ref
   const draftRef = useRef<HTMLDivElement>(null)
 
+  const loadStats = useCallback(async () => {
+    const res = await fetch('/api/dashboard/stats')
+    if (res.ok) setStats(await res.json())
+  }, [])
+
   const load = useCallback(async () => {
-    const [profileRes, genRes, captureRes, outputsRes, allCaptureRes, allOutputsRes, draftRes] = await Promise.all([
+    const [profileRes, genRes, captureRes, outputsRes, recentOutputsRes] = await Promise.all([
       fetch('/api/profile'),
       fetch('/api/onboarding/generation'),
       fetch('/api/capture?limit=1'),
       fetch('/api/outputs?limit=1'),
-      fetch('/api/capture?private=false&limit=200'),
       fetch('/api/outputs?limit=5'),
-      fetch('/api/outputs?status=draft&limit=200'),
     ])
 
     let prof: RawProfile | null = null
@@ -101,9 +104,6 @@ export default function DashboardPage() {
       setDraftText(g?.draft_post ?? '')
     }
 
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-
     if (captureRes.ok) {
       const caps: Capture[] = await captureRes.json()
       setHasCapture(caps.length > 0)
@@ -114,29 +114,26 @@ export default function DashboardPage() {
       setHasOutput(outs.length > 0)
     }
 
-    if (allCaptureRes.ok) {
-      const caps: Capture[] = await allCaptureRes.json()
-      const thisMonth = caps.filter((c) => c.createdAt >= monthStart).length
-      setStats((prev) => ({ ...prev, capturesThisMonth: thisMonth }))
+    if (recentOutputsRes.ok) {
+      setRecentOutputs(await recentOutputsRes.json())
     }
 
-    if (allOutputsRes.ok) {
-      const outputs: Output[] = await allOutputsRes.json()
-      setRecentOutputs(outputs)
-      setStats((prev) => ({ ...prev, outputsGenerated: outputs.length }))
-    }
-
-    if (draftRes.ok) {
-      const drafts: Output[] = await draftRes.json()
-      setStats((prev) => ({ ...prev, draftsAwaitingReview: drafts.length }))
-    }
-
+    await loadStats()
     setLoading(false)
-  }, [])
+  }, [loadStats])
 
   useEffect(() => {
     load()
   }, [load])
+
+  // Re-fetch stats whenever the user returns to this tab (e.g. after creating a post elsewhere)
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') loadStats()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [loadStats])
 
   const isFirstSession =
     !!profile?.onboarding_completed_at && !profile?.first_session_dismissed_at
@@ -215,7 +212,8 @@ export default function DashboardPage() {
         setQuickCapture('')
         setCaptureSuccess(true)
         setTimeout(() => setCaptureSuccess(false), 3000)
-        load()
+        loadStats()
+        setHasCapture(true)
       }
     } catch {}
     setCapturing(false)

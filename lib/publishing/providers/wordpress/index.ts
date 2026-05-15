@@ -18,7 +18,7 @@ const WORDPRESS_CAPABILITIES: ProviderCapabilities = {
   taxonomy:   { categories: true,  tags: true,  customTaxonomies: false },
   media:      { featuredImages: true, galleries: false, embeds: false },
   seo:        { metaTitle: false, metaDescription: false, canonicalUrl: false },
-  scheduling: { supported: true,  requiresBackgroundJob: false },
+  scheduling: { nativeScheduling: true, platformScheduling: true, requiresBackgroundJob: false },
   content:    { html: true, markdown: false, blocks: false },
 }
 
@@ -37,6 +37,7 @@ function getDecryptedCredentials(connection: ProviderConnection): { username: st
 export const wordPressProvider: PublishingProvider = {
   id:           'wordpress' as PublishingProviderId,
   label:        'WordPress',
+  stability:    'stable',
   authMethods:  ['application_password'],
   capabilities: WORDPRESS_CAPABILITIES,
 
