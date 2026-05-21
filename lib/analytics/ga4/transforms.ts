@@ -31,9 +31,9 @@ export function transformGA4Rows(
     landing_page: row.landingPage,
     session_count: row.sessions,
     engaged_sessions: row.engagedSessions,
-    avg_engagement_time: row.avgEngagementTime || null,
+    avg_engagement_time: row.avgEngagementTime != null ? row.avgEngagementTime : null,
     conversions: row.conversions,
-    revenue: row.totalRevenue || null,
+    revenue: row.totalRevenue != null ? row.totalRevenue : null,
     event_date: `${row.date.slice(0, 4)}-${row.date.slice(4, 6)}-${row.date.slice(6, 8)}`,
   }))
 }
