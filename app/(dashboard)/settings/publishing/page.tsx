@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useCallback, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { X } from 'lucide-react'
+import { X, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
@@ -579,8 +579,23 @@ function PublishingInfrastructureContent() {
 
   const wpConnections      = connections.filter(c => c.provider === 'wordpress')
   const shopifyConnections = connections.filter(c => c.provider === 'shopify')
-  const mediumConnections  = connections.filter(c => c.provider === 'medium')
   const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
+
+  const [feedUrl, setFeedUrl]     = useState<string | null>(null)
+  const [feedCopied, setFeedCopied] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/feeds/token')
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { feedUrl: string } | null) => { if (d?.feedUrl) setFeedUrl(d.feedUrl) })
+  }, [])
+
+  async function copyFeedUrl() {
+    if (!feedUrl) return
+    await navigator.clipboard.writeText(feedUrl)
+    setFeedCopied(true)
+    setTimeout(() => setFeedCopied(false), 2000)
+  }
 
   const totalConnected =
     socialChannels.filter(c => c.is_active).length +
@@ -854,22 +869,61 @@ function PublishingInfrastructureContent() {
             addAnotherLabel="Add another Shopify store"
             connectLabel="Connect Shopify"
           />
-          <PlatformCard
-            name="Medium"
-            tagline="Editorial · longform · authority-native"
-            iconColorClass="text-zinc-900"
-            icon={<MediumIcon className="h-5 w-5" />}
-            connected={mediumConnections.map(c => ({
-              id:                  c.id,
-              label:               c.label,
-              consecutiveFailures: c.consecutiveFailureCount,
-              lastPublishedAt:     c.lastSuccessfulPublishAt,
-            }))}
-            connectHref="/api/publishing/providers/medium/connect"
-            onDisconnect={handleDisconnectConnection}
-            connectLabel="Connect Medium"
-            infoNote="Posts are create-only. Edits and deletions must be made on medium.com. Scheduling is supported via Clout's publish queue."
-          />
+          {/* Medium — RSS import (Medium v1 API no longer accepts new connections) */}
+          <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-900">
+                <MediumIcon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <h3 className="font-[Signifier,_Georgia,_serif] text-base font-semibold leading-tight text-zinc-900">
+                  Medium
+                </h3>
+                <p className="mt-0.5 text-xs text-zinc-500">Editorial · longform · authority-native</p>
+              </div>
+            </div>
+
+            <div className="mt-auto space-y-4">
+              <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-widest text-zinc-400">Your RSS feed</p>
+                <div className="flex items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate font-mono text-[11px] text-zinc-600">
+                    {feedUrl ?? 'Loading…'}
+                  </p>
+                  <button
+                    onClick={copyFeedUrl}
+                    disabled={!feedUrl}
+                    className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-700 disabled:opacity-40"
+                    title="Copy feed URL"
+                  >
+                    {feedCopied
+                      ? <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      : <Copy className="h-3.5 w-3.5" />
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <ol className="space-y-1.5 text-xs text-zinc-500">
+                <li className="flex gap-2">
+                  <span className="shrink-0 font-medium text-zinc-700">1.</span>
+                  Copy the feed URL above
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0 font-medium text-zinc-700">2.</span>
+                  Go to medium.com → Settings → RSS Import, paste the URL
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0 font-medium text-zinc-700">3.</span>
+                  Medium polls it periodically and imports new articles as drafts
+                </li>
+              </ol>
+
+              <p className="text-[11px] leading-relaxed text-zinc-400">
+                Articles published via Clout to WordPress, Ghost, or any other provider appear in this feed automatically. Medium preserves the original canonical URL on import.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
