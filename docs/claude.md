@@ -59,7 +59,9 @@ If a change doesn't serve this, don't build it.
 
 ## Design Rules
 
-- Zinc color palette only. No custom colors, no gradients.
+- Base chrome uses the zinc palette (backgrounds, borders, text, icons).
+- Semantic goal colors (authority, conversation, leads, loyalty, education, subscribers, positioning, retention) are allowed — defined in `styles/tokens.css` and exposed via `@theme inline`. Use only via the CSS variable system, never hardcoded hex in components.
+- No gradients.
 - Geist font is applied at root layout — do not override.
 - Empty states: zinc-100 circle icon background + title (zinc-900) + description (zinc-500) + optional CTA.
 - Buttons: `bg-zinc-900 text-white` (primary), `border border-zinc-200 text-zinc-700` (secondary).
