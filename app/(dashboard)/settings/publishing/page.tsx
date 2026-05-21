@@ -712,6 +712,20 @@ function PublishingInfrastructureContent() {
         ))}
       </div>
 
+      {/* Editorial Intelligence link */}
+      <a
+        href="/settings/analytics"
+        className="mb-8 flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3.5 hover:bg-zinc-50 transition-colors"
+      >
+        <div>
+          <p className="text-sm font-medium text-zinc-900">Editorial Intelligence</p>
+          <p className="text-xs text-zinc-500 mt-0.5">Connect Google Analytics 4 and Search Console to measure content attribution</p>
+        </div>
+        <svg className="w-4 h-4 text-zinc-400 shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+
       {/* Distribution Channels */}
       <section className="mb-12">
         <div className="mb-4 flex items-baseline gap-3">
