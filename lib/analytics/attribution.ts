@@ -8,7 +8,7 @@ interface OutputWithJoins {
   channel_id: string | null
   generation_group_id: string | null
   channels: { platform: string } | null
-  generations: { lens_id: string } | null
+  generations: { lens_id: string; lenses: { lens_type: string | null } | null } | null
 }
 
 export async function tagOutputWithAttribution(params: {
@@ -22,7 +22,7 @@ export async function tagOutputWithAttribution(params: {
   // so the Supabase client cannot infer the join shape.
   const { data: output } = await (supabase as any)
     .from('outputs')
-    .select('id, workspace_id, generation_id, channel_id, generation_group_id, channels(platform), generations(lens_id)')
+    .select('id, workspace_id, generation_id, channel_id, generation_group_id, channels(platform), generations(lens_id, lenses(lens_type))')
     .eq('id', params.outputId)
     .eq('workspace_id', params.workspaceId)
     .single() as { data: OutputWithJoins | null }
@@ -31,6 +31,7 @@ export async function tagOutputWithAttribution(params: {
 
   const platform = output.channels?.platform ?? 'unknown'
   const lensId = output.generations?.lens_id ?? null
+  const narrativeType = output.generations?.lenses?.lens_type ?? null
   const canonicalId = output.generation_group_id ?? params.outputId
 
   const utmParams = buildUTMParams({
@@ -52,5 +53,6 @@ export async function tagOutputWithAttribution(params: {
       utm_campaign: utmParams.utm_campaign,
       utm_content: utmParams.utm_content ?? null,
       lens_id: lensId,
+      narrative_type: narrativeType,
     }, { onConflict: 'output_id' })
 }

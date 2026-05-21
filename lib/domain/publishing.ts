@@ -18,6 +18,7 @@ import { createLocalPost, normalizeGBPPostState } from '@/lib/channels/google-bu
 import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
 import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/types'
 import { GBPApiError } from '@/lib/channels/google-business-profile/types'
+import { buildUTMParams, injectUTMIntoContent } from '@/lib/analytics/utm'
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -48,7 +49,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, provider_post_url, published_at, scheduled_at, last_publish_error, created_at, updated_at')
+    .select('id, workspace_id, generation_id, generation_group_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, provider_post_url, published_at, scheduled_at, last_publish_error, created_at, updated_at')
     .eq('status', 'queued')
     .lte('scheduled_at', new Date().toISOString())
     .is('deleted_at', null)
@@ -72,7 +73,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     publishedAt:      row.published_at,
     scheduledAt:      row.scheduled_at,
     lastPublishError:    row.last_publish_error,
-    generationGroupId:   null,
+    generationGroupId:   row.generation_group_id ?? null,
     approvedForWeek:     false,
     weekBucket:          null,
     performanceSnapshot: null,
@@ -522,29 +523,41 @@ export async function publishOutput(
     )
   }
 
+  // Inject UTM params into any external website links in the post body.
+  // This ensures GA4 can attribute sessions back to the specific content piece
+  // when a reader clicks through to the creator's site. We only tag URLs that
+  // aren't social platform URLs (those are the post destination, not the creator's site).
+  const canonicalId = output.generationGroupId ?? output.id
+  const utmParams = buildUTMParams({ platform: channel.platform, canonicalId, outputId: output.id })
+  const body = output.content.body ?? ''
+  const injectedBody = injectUTMIntoContent(body, utmParams)
+  const outputToPublish = injectedBody !== body
+    ? { ...output, content: { ...output.content, body: injectedBody } }
+    : output
+
   switch (channel.platform) {
     case 'linkedin':
-      return publishLinkedInOutput(output, opts)
+      return publishLinkedInOutput(outputToPublish, opts)
     case 'x':
-      return publishXOutput(output, opts)
+      return publishXOutput(outputToPublish, opts)
     case 'threads': {
-      const { postId } = await publishThreadsOutput(output, opts)
+      const { postId } = await publishThreadsOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl: postId }
     }
     case 'twitter': {
-      const { postId } = await publishTwitterOutput(output, opts)
+      const { postId } = await publishTwitterOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl: postId }
     }
     case 'facebook': {
-      const { postId } = await publishFacebookOutput(output, opts)
+      const { postId } = await publishFacebookOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl: postId }
     }
     case 'wordpress': {
-      const { postId } = await publishWordPressOutput(output, opts)
+      const { postId } = await publishWordPressOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl: postId }
     }
     case 'google_business_profile': {
-      const { postName } = await publishGBPOutput(output, opts)
+      const { postName } = await publishGBPOutput(outputToPublish, opts)
       return { postUrn: postName, postUrl: postName }
     }
     default:

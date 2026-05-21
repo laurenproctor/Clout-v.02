@@ -47,3 +47,29 @@ export function appendUTMToUrl(baseUrl: string, utmParams: UTMParams): string {
     return baseUrl
   }
 }
+
+// Hostnames that should never receive UTM tagging — these are the platforms the
+// content is being published ON, not the creator's destination website.
+const SKIP_UTM_HOSTNAMES = new Set([
+  'linkedin.com', 'twitter.com', 'x.com', 'threads.net', 'facebook.com',
+  'instagram.com', 'tiktok.com', 'youtube.com', 'youtu.be', 't.co',
+  'medium.com', 'substack.com', 'wordpress.com', 'shopify.com',
+])
+
+function shouldTagUrl(rawUrl: string): boolean {
+  try {
+    const hostname = new URL(rawUrl).hostname.replace(/^www\./, '')
+    return !SKIP_UTM_HOSTNAMES.has(hostname)
+  } catch {
+    return false
+  }
+}
+
+// Finds http/https URLs in post body text and appends UTM params to any that
+// point to the creator's own website (skipping known social/publisher domains).
+export function injectUTMIntoContent(body: string, utmParams: UTMParams): string {
+  return body.replace(/https?:\/\/[^\s<>"')\]]+/g, (url) => {
+    if (!shouldTagUrl(url)) return url
+    return appendUTMToUrl(url, utmParams)
+  })
+}
