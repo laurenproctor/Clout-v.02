@@ -299,6 +299,13 @@ create table outputs (
   approved_for_week   boolean not null default false,
   week_bucket         date,
   performance_snapshot jsonb,
+  concept_id          uuid,
+  narrative_role      text check (narrative_role in ('contrarian','framework','evidence','cta','tension','founder')),
+  narrative_arc_id    uuid,
+  narrative_arc_name  text,
+  goal                text check (goal in ('authority','conversation','leads','loyalty','education','subscribers','positioning','retention')),
+  funnel_stage        text check (funnel_stage in ('top','awareness','trust','consideration','conversion','retention')),
+  resonance_prediction text check (resonance_prediction in ('high','medium','low')),
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz

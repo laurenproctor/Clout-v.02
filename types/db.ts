@@ -372,6 +372,13 @@ export interface Database {
           approved_for_week: boolean
           week_bucket: string | null
           performance_snapshot: Json | null
+          concept_id: string | null
+          narrative_role: string | null
+          narrative_arc_id: string | null
+          narrative_arc_name: string | null
+          goal: string | null
+          funnel_stage: string | null
+          resonance_prediction: string | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -396,6 +403,13 @@ export interface Database {
           approved_for_week?: boolean
           week_bucket?: string | null
           performance_snapshot?: Json | null
+          concept_id?: string | null
+          narrative_role?: string | null
+          narrative_arc_id?: string | null
+          narrative_arc_name?: string | null
+          goal?: string | null
+          funnel_stage?: string | null
+          resonance_prediction?: string | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -416,6 +430,13 @@ export interface Database {
           approved_for_week?: boolean
           week_bucket?: string | null
           performance_snapshot?: Json | null
+          concept_id?: string | null
+          narrative_role?: string | null
+          narrative_arc_id?: string | null
+          narrative_arc_name?: string | null
+          goal?: string | null
+          funnel_stage?: string | null
+          resonance_prediction?: string | null
           updated_at?: string
           deleted_at?: string | null
         }
