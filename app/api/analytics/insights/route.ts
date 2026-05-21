@@ -47,8 +47,8 @@ Example: ["Insight one.", "Insight two.", "Insight three."]`
       const parsed = JSON.parse(repaired)
       const validated = InsightsSchema.parse(parsed)
       return NextResponse.json({ insights: validated })
-    } catch {
-      // retry once on parse/validation failure
+    } catch (err) {
+      console.error(`insights attempt ${attempt + 1} failed:`, err)
     }
   }
 

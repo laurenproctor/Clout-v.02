@@ -102,12 +102,15 @@ export async function GET(req: NextRequest) {
     .map(([source, sessions]) => ({ source, sessions }))
 
   // Search ranking opportunities: high impressions, avg_position > 10
-  const queryMap = new Map<string, { clicks: number; impressions: number; position: number }>()
+  const queryMap = new Map<string, { clicks: number; impressions: number; position: number; positionWeightSum: number }>()
   for (const r of searchMetrics) {
-    const ex = queryMap.get(r.query) ?? { clicks: 0, impressions: 0, position: 0 }
+    const ex = queryMap.get(r.query) ?? { clicks: 0, impressions: 0, position: 0, positionWeightSum: 0 }
     ex.clicks += r.clicks
     ex.impressions += r.impressions
-    ex.position = r.avg_position ?? 0
+    // Impression-weighted average position across pages and dates
+    const w = r.impressions ?? 0
+    ex.positionWeightSum += (r.avg_position ?? 0) * w
+    ex.position = ex.impressions > 0 ? ex.positionWeightSum / ex.impressions : 0
     queryMap.set(r.query, ex)
   }
   const rankingOpportunities = [...queryMap.entries()]
