@@ -14,12 +14,6 @@ ALTER TABLE outputs
   ADD COLUMN IF NOT EXISTS resonance_prediction text
     CHECK (resonance_prediction IN ('high','medium','low'));
 
--- Backfill concept_id from generation_group_id for existing outputs
-UPDATE outputs
-SET concept_id = generation_group_id::uuid
-WHERE concept_id IS NULL
-  AND generation_group_id IS NOT NULL;
-
 -- Index concept_id for the calendar grouping query
 CREATE INDEX IF NOT EXISTS idx_outputs_concept_id
   ON outputs (concept_id)
