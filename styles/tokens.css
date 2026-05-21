@@ -189,3 +189,57 @@
   --tracking-heading: -0.02em;
   --tracking-body:     0em;
 }
+
+/* --------------------------------------------------------------------------
+   NARRATIVE GOAL COLORS — semantic, load-bearing for calendar UI
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Authority */
+  --goal-authority-bg: #eff6ff;
+  --goal-authority-border: #bfdbfe;
+  --goal-authority-accent: #3b82f6;
+  --goal-authority-text: #1d4ed8;
+
+  /* Conversation */
+  --goal-conversation-bg: #fffbeb;
+  --goal-conversation-border: #fde68a;
+  --goal-conversation-accent: #f59e0b;
+  --goal-conversation-text: #b45309;
+
+  /* Leads */
+  --goal-leads-bg: #f0fdf4;
+  --goal-leads-border: #bbf7d0;
+  --goal-leads-accent: #22c55e;
+  --goal-leads-text: #15803d;
+
+  /* Loyalty */
+  --goal-loyalty-bg: #f5f3ff;
+  --goal-loyalty-border: #ddd6fe;
+  --goal-loyalty-accent: #a78bfa;
+  --goal-loyalty-text: #6d28d9;
+
+  /* Education */
+  --goal-education-bg: #ecfeff;
+  --goal-education-border: #a5f3fc;
+  --goal-education-accent: #22d3ee;
+  --goal-education-text: #0e7490;
+
+  /* Subscribers */
+  --goal-subscribers-bg: #fff1f2;
+  --goal-subscribers-border: #fecdd3;
+  --goal-subscribers-accent: #fb7185;
+  --goal-subscribers-text: #9f1239;
+
+  /* Positioning */
+  --goal-positioning-bg: #eef2ff;
+  --goal-positioning-border: #c7d2fe;
+  --goal-positioning-accent: #818cf8;
+  --goal-positioning-text: #3730a3;
+
+  /* Retention */
+  --goal-retention-bg: #fdf4ff;
+  --goal-retention-border: #e9d5ff;
+  --goal-retention-accent: #c084fc;
+  --goal-retention-text: #7e22ce;
+}
