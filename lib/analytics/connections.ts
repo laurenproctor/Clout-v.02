@@ -6,8 +6,9 @@ const ALG = 'aes-256-gcm'
 
 function getTokenSecret(): Buffer {
   const secret = process.env.ANALYTICS_TOKEN_SECRET
-  if (!secret || secret.length < 32) throw new Error('ANALYTICS_TOKEN_SECRET must be at least 32 characters')
-  return Buffer.from(secret.slice(0, 32), 'utf8')
+  const buf = secret ? Buffer.from(secret, 'utf8') : Buffer.alloc(0)
+  if (buf.length < 32) throw new Error('ANALYTICS_TOKEN_SECRET must be at least 32 bytes')
+  return buf.subarray(0, 32)
 }
 
 function encryptToken(plaintext: string): string {
@@ -67,11 +68,12 @@ export async function upsertAnalyticsConnection(row: {
 export async function deleteAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc') {
   const supabase = createServiceClient()
   // analytics_connections table added in migration — not yet in generated types
-  await (supabase as any)
+  const { error } = await (supabase as any)
     .from('analytics_connections')
     .delete()
     .eq('workspace_id', workspaceId)
     .eq('provider', provider)
+  if (error) throw new Error(`Failed to delete analytics connection: ${error.message}`)
 }
 
 export async function getAccessToken(workspaceId: string, provider: 'ga4' | 'gsc'): Promise<string> {
@@ -102,6 +104,9 @@ export async function getAccessToken(workspaceId: string, provider: 'ga4' | 'gsc
   }
 
   const data = await res.json() as { access_token: string; expires_in: number }
+  if (!data.access_token) {
+    throw new Error(`Google token refresh returned no access_token`)
+  }
   const newExpiresAt = now + data.expires_in
 
   const supabase = createServiceClient()

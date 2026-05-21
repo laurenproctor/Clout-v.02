@@ -8,15 +8,21 @@ export async function POST() {
 
   const conn = await getAnalyticsConnection(session.workspaceId, 'ga4')
   if (conn?.access_token) {
-    // Best-effort revocation — don't fail if it errors
+    // We only revoke the ga4 token — ga4 and gsc share the same underlying Google
+    // OAuth credential, so a single revocation invalidates both. Best-effort: don't
+    // fail the disconnect if Google's revoke endpoint is unavailable.
     await fetch(`https://oauth2.googleapis.com/revoke?token=${conn.access_token}`, { method: 'POST' })
       .catch(() => {})
   }
 
-  await Promise.all([
-    deleteAnalyticsConnection(session.workspaceId, 'ga4'),
-    deleteAnalyticsConnection(session.workspaceId, 'gsc'),
-  ])
+  try {
+    await Promise.all([
+      deleteAnalyticsConnection(session.workspaceId, 'ga4'),
+      deleteAnalyticsConnection(session.workspaceId, 'gsc'),
+    ])
+  } catch (err) {
+    return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

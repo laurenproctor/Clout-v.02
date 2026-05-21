@@ -33,49 +33,51 @@ export async function GET(req: NextRequest) {
   }
 
   const redirectUri = `${APP_URL}/api/integrations/google/callback`
-  const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: redirectUri,
-      grant_type: 'authorization_code',
-    }),
-  })
 
-  if (!tokenRes.ok) {
-    return NextResponse.redirect(`${APP_URL}/settings/analytics?error=token_exchange_failed`)
+  let tokens: { access_token: string; refresh_token?: string; expires_in: number }
+  try {
+    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    if (!tokenRes.ok) {
+      return NextResponse.redirect(`${APP_URL}/settings/analytics?error=token_exchange_failed`)
+    }
+
+    tokens = await tokenRes.json() as typeof tokens
+
+    const expiresAt = Math.floor(Date.now() / 1000) + tokens.expires_in
+
+    // Store same tokens for both ga4 and gsc (same Google account covers both scopes)
+    await Promise.all([
+      upsertAnalyticsConnection({
+        workspace_id: workspaceId,
+        provider: 'ga4',
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token ?? null,
+        expires_at: expiresAt,
+        connected_by: session.userId,
+      }),
+      upsertAnalyticsConnection({
+        workspace_id: workspaceId,
+        provider: 'gsc',
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token ?? null,
+        expires_at: expiresAt,
+        connected_by: session.userId,
+      }),
+    ])
+  } catch {
+    return NextResponse.redirect(`${APP_URL}/settings/analytics?error=server_error`)
   }
-
-  const tokens = await tokenRes.json() as {
-    access_token: string
-    refresh_token?: string
-    expires_in: number
-  }
-
-  const expiresAt = Math.floor(Date.now() / 1000) + tokens.expires_in
-
-  // Store same tokens for both ga4 and gsc (same Google account covers both scopes)
-  await Promise.all([
-    upsertAnalyticsConnection({
-      workspace_id: workspaceId,
-      provider: 'ga4',
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token ?? null,
-      expires_at: expiresAt,
-      connected_by: session.userId,
-    }),
-    upsertAnalyticsConnection({
-      workspace_id: workspaceId,
-      provider: 'gsc',
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token ?? null,
-      expires_at: expiresAt,
-      connected_by: session.userId,
-    }),
-  ])
 
   return NextResponse.redirect(`${APP_URL}/settings/analytics?connected=google`)
 }
