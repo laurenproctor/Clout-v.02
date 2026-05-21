@@ -45,7 +45,7 @@ export async function tagOutputWithAttribution(params: {
     .upsert({
       output_id: params.outputId,
       workspace_id: params.workspaceId,
-      canonical_content_id: output.generation_group_id,
+      canonical_content_id: canonicalId,
       platform,
       utm_source: utmParams.utm_source,
       utm_medium: utmParams.utm_medium,
