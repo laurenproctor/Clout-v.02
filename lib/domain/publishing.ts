@@ -76,6 +76,13 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     approvedForWeek:     false,
     weekBucket:          null,
     performanceSnapshot: null,
+    narrativeRole: null,
+    narrativeArcId: null,
+    narrativeArcName: null,
+    goal: null,
+    funnelStage: null,
+    resonancePrediction: null,
+    conceptId: null,
     createdAt:           row.created_at,
     updatedAt:           row.updated_at,
   }))

@@ -22,6 +22,13 @@ function toOutput(row: Record<string, unknown>): Output {
     approvedForWeek:     (row.approved_for_week as boolean) ?? false,
     weekBucket:          (row.week_bucket as string | null) ?? null,
     performanceSnapshot: (row.performance_snapshot as PerformanceSnapshot | null) ?? null,
+    narrativeRole: null,
+    narrativeArcId: null,
+    narrativeArcName: null,
+    goal: null,
+    funnelStage: null,
+    resonancePrediction: null,
+    conceptId: null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
