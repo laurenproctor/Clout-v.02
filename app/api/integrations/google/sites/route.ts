@@ -8,7 +8,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const conn = await getAnalyticsConnection(session.workspaceId, 'gsc')
-  if (!conn) return NextResponse.json({ connected: false, sites: [] })
+  if (!conn) return NextResponse.json({ connected: false, sites: [], selectedUrl: null })
 
   try {
     const sites = await listGSCSites(session.workspaceId)

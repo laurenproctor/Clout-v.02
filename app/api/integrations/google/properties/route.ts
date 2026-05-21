@@ -8,7 +8,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const conn = await getAnalyticsConnection(session.workspaceId, 'ga4')
-  if (!conn) return NextResponse.json({ connected: false, properties: [] })
+  if (!conn) return NextResponse.json({ connected: false, properties: [], selectedId: null })
 
   try {
     const properties = await listGA4Properties(session.workspaceId)

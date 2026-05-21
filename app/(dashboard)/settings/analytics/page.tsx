@@ -28,18 +28,21 @@ export default function AnalyticsSettingsPage() {
   }
 
   const loadConnections = useCallback(async () => {
-    const [propsRes, sitesRes] = await Promise.all([
-      fetch('/api/integrations/google/properties').then((r) => r.json()),
-      fetch('/api/integrations/google/sites').then((r) => r.json()),
-    ])
-    setState({
-      connected: propsRes.connected || sitesRes.connected,
-      properties: propsRes.properties ?? [],
-      sites: sitesRes.sites ?? [],
-      selectedPropertyId: propsRes.selectedId ?? null,
-      selectedSiteUrl: sitesRes.selectedUrl ?? null,
-    })
-    setLoading(false)
+    try {
+      const [propsRes, sitesRes] = await Promise.all([
+        fetch('/api/integrations/google/properties').then((r) => r.json()),
+        fetch('/api/integrations/google/sites').then((r) => r.json()),
+      ])
+      setState({
+        connected: propsRes.connected || sitesRes.connected,
+        properties: propsRes.properties ?? [],
+        sites: sitesRes.sites ?? [],
+        selectedPropertyId: propsRes.selectedId ?? null,
+        selectedSiteUrl: sitesRes.selectedUrl ?? null,
+      })
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -52,21 +55,23 @@ export default function AnalyticsSettingsPage() {
   }, [])
 
   async function handleSelectProperty(prop: PropertyInfo) {
-    await fetch('/api/integrations/google/select-property', {
+    const res = await fetch('/api/integrations/google/select-property', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ propertyId: prop.propertyId, propertyName: prop.displayName }),
     })
+    if (!res.ok) { showToast('Failed to save GA4 property', false); return }
     setState((s) => ({ ...s, selectedPropertyId: prop.propertyId }))
     showToast(`GA4 property set to "${prop.displayName}"`, true)
   }
 
   async function handleSelectSite(site: SiteInfo) {
-    await fetch('/api/integrations/google/select-site', {
+    const res = await fetch('/api/integrations/google/select-site', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ siteUrl: site.siteUrl }),
     })
+    if (!res.ok) { showToast('Failed to save Search Console site', false); return }
     setState((s) => ({ ...s, selectedSiteUrl: site.siteUrl }))
     showToast(`Search Console site set to "${site.siteUrl}"`, true)
   }
