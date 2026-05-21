@@ -1,6 +1,8 @@
 // Domain-level types — aligned with supabase/schema.sql
 // Used across lib/domain/ and components
 
+import type { NarrativeRole, NarrativeGoal, FunnelStage, ResonancePrediction } from './calendar'
+
 // ─── Enums / Literals ────────────────────────────────────────────────────────
 
 export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'viewer'
@@ -233,6 +235,13 @@ export interface Output {
   approvedForWeek:      boolean
   weekBucket:           string | null
   performanceSnapshot:  PerformanceSnapshot | null
+  narrativeRole: NarrativeRole | null
+  narrativeArcId: string | null
+  narrativeArcName: string | null
+  goal: NarrativeGoal | null
+  funnelStage: FunnelStage | null
+  resonancePrediction: ResonancePrediction | null
+  conceptId: string | null
   // ─── Content lineage (graph-ready) ──────────────────────────────────────────
   // Tracks derivation chains for analytics attribution, duplicate detection,
   // resonance learning, and narrative evolution.
