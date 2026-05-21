@@ -8,6 +8,7 @@ import {
   markFailed,
   shouldRetry,
 } from '@/lib/domain/publishing'
+import { tagOutputWithAttribution } from '@/lib/analytics/attribution'
 
 const MAX_RETRIES = 3
 const RETRY_DELAYS_MS = [2000, 5000, 10000]
@@ -76,6 +77,8 @@ export const publishScheduledPostsTask = schedules.task({
       if (postUrn) {
         await markPublished(post.id, postUrn, postUrl ?? undefined)
         published++
+        tagOutputWithAttribution({ outputId: post.id, workspaceId: post.workspaceId })
+          .catch((err) => logger.error('attribution tagging failed', { outputId: post.id, error: String(err) }))
         await logger.info('publish-scheduled: published', { outputId: post.id, postUrn })
       } else {
         const message = lastError instanceof Error
