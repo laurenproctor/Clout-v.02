@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
-import { listOutputs, listOutputsByGenerationId, listOutputsByGroupId } from '@/lib/domain/output'
+import { listOutputs, listOutputsByGenerationId, listOutputsByGroupId, listOutputsByConceptId } from '@/lib/domain/output'
 import type { OutputStatus } from '@/types/domain'
 
 export async function GET(req: NextRequest) {
@@ -10,6 +10,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const generationId = searchParams.get('generation_id')
   const generationGroupId = searchParams.get('generation_group_id')
+  const conceptId = searchParams.get('conceptId')
+
+  if (conceptId) {
+    const result = await listOutputsByConceptId({
+      conceptId,
+      workspaceId: session.workspaceId,
+    })
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 500 })
+    return NextResponse.json(result.data)
+  }
 
   if (generationGroupId) {
     const result = await listOutputsByGroupId({

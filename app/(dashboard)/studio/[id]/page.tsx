@@ -1,21 +1,37 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { VariantsRail } from '@/components/studio/variants-rail'
 import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
 import { InlineSuggestion } from '@/components/studio/inline-suggestion'
+import { PlatformTabs } from '@/components/studio/PlatformTabs'
+import { PlatformPreview } from '@/components/studio/PlatformPreview'
 import { useAutosave } from '@/hooks/use-autosave'
 import { useAiActions, type SuggestionBlock } from '@/hooks/use-ai-actions'
-import type { Output, OutputContent, OutputStatus } from '@/types/domain'
+import type { Output, OutputContent, OutputStatus, ChannelPlatform } from '@/types/domain'
 import type { AiActionId } from '@/app/api/ai-actions/route'
 import { findProviderCapabilities } from '@/lib/providers/registry'
 
-interface Channel { id: string; platform: string; label: string | null }
-interface Variant  { id: string; label: string; isCurrent: boolean }
+interface FullChannel {
+  id: string
+  platform: ChannelPlatform
+  label: string | null
+  account_id: string | null
+  [key: string]: unknown
+}
+
+interface Variant { id: string; label: string; isCurrent: boolean }
+
+interface PlatformTab {
+  postId: string
+  platform: ChannelPlatform
+  accountName: string
+  status: string
+}
 
 const STATUS_DOT: Record<OutputStatus, string> = {
   draft:      'bg-zinc-600',
@@ -33,12 +49,18 @@ function deriveLabel(angle: string | undefined | null, idx: number): string {
   return String.fromCharCode(65 + idx)
 }
 
+function channelDisplayName(ch: FullChannel): string {
+  return ch.label ?? ch.account_id ?? ch.platform
+}
+
 export default function StudioEditorPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
 
   const [output,   setOutput]   = useState<Output | null>(null)
-  const [channels, setChannels] = useState<Channel[]>([])
+  const [channels, setChannels] = useState<FullChannel[]>([])
   const [variants, setVariants] = useState<Variant[]>([])
+  const [siblings, setSiblings] = useState<Output[]>([])
   const [loading,  setLoading]  = useState(true)
 
   const [title,        setTitle]        = useState('')
@@ -60,6 +82,9 @@ export default function StudioEditorPage() {
   const [xPosted,           setXPosted]           = useState(false)
   const [xPostUrl,          setXPostUrl]          = useState<string | null>(null)
   const [publishError,      setPublishError]      = useState<string | null>(null)
+
+  // Platform tabs state — tracks the "active tab" for concept siblings
+  const [activeTabId, setActiveTabId] = useState<string>(id)
 
   const bodyRef = useRef<HTMLTextAreaElement>(null)
 
@@ -86,7 +111,7 @@ export default function StudioEditorPage() {
       ])
       if (!oRes.ok) { setLoading(false); return }
 
-      const channelList: Channel[] = cRes.ok ? await cRes.json() : []
+      const channelList: FullChannel[] = cRes.ok ? await cRes.json() : []
       setChannels(channelList)
 
       const data: Output = await oRes.json()
@@ -97,6 +122,7 @@ export default function StudioEditorPage() {
       setTitle(data.title ?? '')
       setChannelId(data.channelId ?? null)
       setHashtags(((content.hashtags as string[] | undefined) ?? []).map(h => h.replace(/^#/, '')))
+      setActiveTabId(id)
 
       if (data.providerPostId) {
         const assignedCh = channelList.find(c => c.id === data.channelId)
@@ -109,6 +135,7 @@ export default function StudioEditorPage() {
         }
       }
 
+      // Load variants (generation group siblings)
       const groupQuery = data.generationGroupId
         ? `generation_group_id=${data.generationGroupId}`
         : data.generationId
@@ -117,14 +144,24 @@ export default function StudioEditorPage() {
       if (groupQuery) {
         const vRes = await fetch(`/api/outputs?${groupQuery}`)
         if (vRes.ok) {
-          const siblings: Output[] = await vRes.json()
-          setVariants(siblings.map((s, i) => ({
+          const variantList: Output[] = await vRes.json()
+          setVariants(variantList.map((s, i) => ({
             id: s.id,
             label: deriveLabel((s.content as OutputContent & { angle?: string }).angle, i),
             isCurrent: s.id === id,
           })))
         }
       }
+
+      // Load concept siblings for platform tabs
+      if (data.conceptId) {
+        const sRes = await fetch(`/api/outputs?conceptId=${data.conceptId}`)
+        if (sRes.ok) {
+          const siblingList: Output[] = await sRes.json()
+          setSiblings(siblingList)
+        }
+      }
+
       setLoading(false)
     }
     load()
@@ -281,6 +318,41 @@ export default function StudioEditorPage() {
   const charLimit = caps?.charLimit ?? 3000
   const warnAt    = Math.floor(charLimit * 0.93)
 
+  // Build platform tabs from concept siblings
+  const platformTabs: PlatformTab[] = siblings
+    .filter(s => s.channelId)
+    .reduce<PlatformTab[]>((acc, s) => {
+      const ch = channels.find(c => c.id === s.channelId)
+      if (!ch) return acc
+      acc.push({
+        postId: s.id,
+        platform: ch.platform,
+        accountName: channelDisplayName(ch),
+        status: s.status,
+      })
+      return acc
+    }, [])
+
+  // Determine which sibling post to preview
+  const previewOutput = activeTabId === id
+    ? { body, title }
+    : (() => {
+        const sib = siblings.find(s => s.id === activeTabId)
+        if (!sib) return { body, title }
+        const c = sib.content as OutputContent
+        return { body: c.body ?? '', title: sib.title ?? '' }
+      })()
+
+  // Channel for the active preview tab
+  const activePreviewOutput = siblings.find(s => s.id === activeTabId)
+  const activePreviewChannel = activePreviewOutput?.channelId
+    ? channels.find(c => c.id === activePreviewOutput.channelId)
+    : assignedChannel
+
+  const previewPlatform: ChannelPlatform = activePreviewChannel?.platform ?? assignedChannel?.platform ?? 'linkedin'
+  const previewAccountName = activePreviewChannel ? channelDisplayName(activePreviewChannel) : (assignedChannel ? channelDisplayName(assignedChannel) : '')
+  const previewHandle = previewAccountName.toLowerCase().replace(/\s+/g, '')
+
   if (loading) {
     return (
       <div className="-m-6 flex items-center justify-center bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
@@ -304,14 +376,18 @@ export default function StudioEditorPage() {
   const wordCount = body.trim() ? body.trim().split(/\s+/).filter(Boolean).length : 0
   const charCount = body.length
 
+  const showPlatformTabs = platformTabs.length > 1
+  const showPreviewPanel = previewAccountName !== '' || assignedChannel !== null
+
   return (
     <div className="-m-6 flex flex-col bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
 
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-4 h-12 flex-shrink-0 border-b border-zinc-800/60">
         <div className="flex items-center gap-3">
-          <Link href="/studio" className="text-zinc-600 hover:text-zinc-400 transition-colors">
-            <ArrowLeft className="h-4 w-4" />
+          <Link href="/calendar" className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-400 transition-colors text-xs">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Calendar
           </Link>
           <div className="flex items-center gap-1.5">
             <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[output.status])} />
@@ -338,7 +414,7 @@ export default function StudioEditorPage() {
                 channelId === ch.id ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-600 hover:text-zinc-400'
               )}
             >
-              {ch.label ?? ch.platform}
+              {channelDisplayName(ch)}
             </button>
           ))}
         </div>
@@ -362,83 +438,127 @@ export default function StudioEditorPage() {
         </div>
       </div>
 
-      {/* ── Editor area ── */}
-      <div className="flex flex-1 overflow-hidden relative">
-        <VariantsRail variants={variants} />
+      {/* ── Main content: editor + preview ── */}
+      <div className="flex flex-1 overflow-hidden">
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-4 py-10 md:px-8 lg:px-12 space-y-6">
+        {/* ── Left: editor area ── */}
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
 
-            <input
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              disabled={!isEditable}
-              placeholder="Opening line…"
-              className={cn(
-                'w-full bg-transparent text-xl font-semibold text-zinc-100 placeholder:text-zinc-700',
-                'border-none outline-none leading-snug disabled:cursor-default'
-              )}
+          {/* Platform tabs (concept siblings) */}
+          {showPlatformTabs && (
+            <PlatformTabs
+              tabs={platformTabs}
+              activePostId={activeTabId}
+              onSelectTab={(postId) => {
+                if (postId === id) {
+                  setActiveTabId(id)
+                } else {
+                  setActiveTabId(postId)
+                  router.push(`/studio/${postId}`)
+                }
+              }}
             />
+          )}
 
-            {suggestions.filter(s => s.field === 'title').map(s => (
-              <InlineSuggestion key={s.id} block={s} onApply={applySuggestion} onDismiss={dismissSuggestion} />
-            ))}
+          <div className="flex flex-1 overflow-hidden relative">
+            <VariantsRail variants={variants} />
 
-            <textarea
-              ref={bodyRef}
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              disabled={!isEditable}
-              placeholder="Write your post…"
-              rows={12}
-              className={cn(
-                'w-full bg-transparent text-base text-zinc-300 placeholder:text-zinc-700',
-                'border-none outline-none resize-none leading-relaxed disabled:cursor-default'
-              )}
-            />
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-2xl mx-auto px-4 py-10 md:px-8 lg:px-12 space-y-6">
 
-            {suggestions.filter(s => s.field === 'body').map(s => (
-              <InlineSuggestion key={s.id} block={s} onApply={applySuggestion} onDismiss={dismissSuggestion} />
-            ))}
-
-            <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/40 pt-4">
-              {hashtags.map(tag => (
-                <span key={tag} className="flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-xs text-zinc-500">
-                  #{tag}
-                  {isEditable && (
-                    <button
-                      type="button"
-                      onClick={() => setHashtags(p => p.filter(t => t !== tag))}
-                      className="ml-0.5 text-zinc-700 hover:text-zinc-400 transition-colors"
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
-              ))}
-              {isEditable && (
                 <input
-                  className="flex-1 min-w-[100px] bg-transparent text-xs text-zinc-500 placeholder:text-zinc-700 outline-none"
-                  placeholder="Add tag…"
-                  value={hashtagInput}
-                  onChange={e => setHashtagInput(e.target.value.replace(/^#/, ''))}
-                  onKeyDown={handleHashtagKey}
-                  onBlur={handleHashtagBlur}
+                  type="text"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  disabled={!isEditable}
+                  placeholder="Opening line…"
+                  className={cn(
+                    'w-full bg-transparent text-xl font-semibold text-zinc-100 placeholder:text-zinc-700',
+                    'border-none outline-none leading-snug disabled:cursor-default'
+                  )}
                 />
-              )}
+
+                {suggestions.filter(s => s.field === 'title').map(s => (
+                  <InlineSuggestion key={s.id} block={s} onApply={applySuggestion} onDismiss={dismissSuggestion} />
+                ))}
+
+                <textarea
+                  ref={bodyRef}
+                  value={body}
+                  onChange={e => setBody(e.target.value)}
+                  disabled={!isEditable}
+                  placeholder="Write your post…"
+                  rows={12}
+                  className={cn(
+                    'w-full bg-transparent text-base text-zinc-300 placeholder:text-zinc-700',
+                    'border-none outline-none resize-none leading-relaxed disabled:cursor-default'
+                  )}
+                />
+
+                {suggestions.filter(s => s.field === 'body').map(s => (
+                  <InlineSuggestion key={s.id} block={s} onApply={applySuggestion} onDismiss={dismissSuggestion} />
+                ))}
+
+                <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800/40 pt-4">
+                  {hashtags.map(tag => (
+                    <span key={tag} className="flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-xs text-zinc-500">
+                      #{tag}
+                      {isEditable && (
+                        <button
+                          type="button"
+                          onClick={() => setHashtags(p => p.filter(t => t !== tag))}
+                          className="ml-0.5 text-zinc-700 hover:text-zinc-400 transition-colors"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                  {isEditable && (
+                    <input
+                      className="flex-1 min-w-[100px] bg-transparent text-xs text-zinc-500 placeholder:text-zinc-700 outline-none"
+                      placeholder="Add tag…"
+                      value={hashtagInput}
+                      onChange={e => setHashtagInput(e.target.value.replace(/^#/, ''))}
+                      onKeyDown={handleHashtagKey}
+                      onBlur={handleHashtagBlur}
+                    />
+                  )}
+                </div>
+
+              </div>
             </div>
 
+            <AiActionsPanel
+              open={aiPanelOpen}
+              onClose={() => setAiPanelOpen(false)}
+              running={running}
+              majorResult={majorResult}
+              onAction={(action: AiActionId) => void runAction(action, title, body)}
+            />
           </div>
         </div>
 
-        <AiActionsPanel
-          open={aiPanelOpen}
-          onClose={() => setAiPanelOpen(false)}
-          running={running}
-          majorResult={majorResult}
-          onAction={(action: AiActionId) => void runAction(action, title, body)}
-        />
+        {/* ── Right: platform preview (520px, light) ── */}
+        {showPreviewPanel && (
+          <div
+            className="hidden lg:flex flex-col flex-shrink-0 border-l border-zinc-800/60 bg-zinc-50 overflow-y-auto"
+            style={{ width: 520 }}
+          >
+            <div className="px-6 py-5">
+              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">
+                Preview
+              </p>
+              <PlatformPreview
+                platform={previewPlatform}
+                accountName={previewAccountName}
+                handle={previewHandle}
+                body={previewOutput.body}
+                subject={previewOutput.title || undefined}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Bottom bar ── */}
