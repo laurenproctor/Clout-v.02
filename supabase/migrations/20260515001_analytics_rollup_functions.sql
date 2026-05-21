@@ -5,13 +5,13 @@
 -- Attribution join uses deterministic UTM campaign prefix (clout_c_) to avoid collisions.
 
 create or replace function compute_lens_performance(p_workspace_id uuid)
-returns void language plpgsql security definer as $$
+returns void language plpgsql security definer set search_path = public as $$
 begin
   insert into lens_performance (workspace_id, lens_id, avg_traffic, avg_conversion_rate, computed_for_date, computed_at)
   select
     ca.workspace_id,
     ca.lens_id,
-    avg(ae.session_count)                                                    as avg_traffic,
+    sum(ae.session_count) / nullif(count(distinct ca.output_id), 0) as avg_traffic,
     case when sum(ae.session_count) = 0 then null
          else sum(ae.conversions)::numeric / nullif(sum(ae.session_count), 0)
     end                                                                      as avg_conversion_rate,
@@ -30,7 +30,7 @@ end;
 $$;
 
 create or replace function compute_narrative_performance(p_workspace_id uuid)
-returns void language plpgsql security definer as $$
+returns void language plpgsql security definer set search_path = public as $$
 begin
   insert into narrative_performance (workspace_id, narrative_type, avg_engagement_rate, avg_conversion_rate, avg_session_duration, sample_size, computed_for_date, computed_at)
   select
