@@ -21,6 +21,7 @@ export async function POST() {
       deleteAnalyticsConnection(session.workspaceId, 'gsc'),
     ])
   } catch (err) {
+    console.error('Failed to delete analytics connections:', err)
     return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 })
   }
 
