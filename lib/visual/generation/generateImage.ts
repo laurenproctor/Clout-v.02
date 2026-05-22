@@ -50,6 +50,9 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     keyIdea,
     brandProfile,
     promptOverride,
+    visualObjective,
+    audienceFrame,
+    lensType,
     visualIntent: intentOverride,
     aspectRatio = 'landscape',
     quality = 'standard',
@@ -77,6 +80,9 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       emotionalTone,
       keyIdea,
       brandProfile,
+      visualObjective,
+      audienceFrame,
+      lensType,
     })
     resolvedIntent = result.intent
     intentInputTokens = result.inputTokens

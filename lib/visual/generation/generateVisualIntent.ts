@@ -7,7 +7,7 @@
 
 import { callClaude } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
-import type { VisualIntent, VisualPlatform, BrandSemanticProfile } from '../types/visual'
+import type { VisualIntent, VisualPlatform, BrandSemanticProfile, VisualObjective, LensType } from '../types/visual'
 
 const SYSTEM_PROMPT = `You are a visual strategist for professional content creators.
 
@@ -28,12 +28,15 @@ export interface GenerateVisualIntentInput {
   emotionalTone?: string
   keyIdea?: string
   brandProfile?: BrandSemanticProfile
+  visualObjective?: VisualObjective
+  audienceFrame?: string
+  lensType?: LensType
 }
 
 export async function generateVisualIntent(
   input: GenerateVisualIntentInput
 ): Promise<{ intent: VisualIntent; inputTokens: number; outputTokens: number }> {
-  const { content, platform, emotionalTone, keyIdea, brandProfile } = input
+  const { content, platform, emotionalTone, keyIdea, brandProfile, visualObjective, audienceFrame, lensType } = input
 
   const lines: string[] = []
 
@@ -54,6 +57,51 @@ export async function generateVisualIntent(
   if (keyIdea) {
     lines.push('## Core idea to express visually')
     lines.push(keyIdea)
+    lines.push('')
+  }
+
+  if (visualObjective) {
+    const objectiveDescriptions: Record<string, string> = {
+      authority:           'Position the creator as a definitive expert. Signal credibility, restraint, and institutional weight.',
+      education:           'Clarify a concept or process. Prioritize structure, legibility, and conceptual transparency.',
+      conversation:        'Invite reaction and dialogue. Create tension, provocation, or an open loop the viewer must resolve.',
+      engagement:          'Maximize scroll-stopping power. Prioritize novelty, contrast, or unexpected visual metaphor.',
+      emotional_resonance: 'Evoke a specific emotional state. Prioritize warmth, intimacy, or human presence over information.',
+      lead_generation:     'Signal transformation or outcome. Prioritize aspiration, social proof, and implied benefit.',
+    }
+    lines.push('## Strategic visual objective')
+    lines.push(`${visualObjective}: ${objectiveDescriptions[visualObjective] ?? ''}`)
+    lines.push('This objective should influence your attention strategy, creative risk level, and composition decisions.')
+    lines.push('')
+  }
+
+  if (audienceFrame) {
+    const audienceInfluence: Record<string, string> = {
+      Investors:      'Restrained, institutional, credibility-first. High negative space, editorial weight.',
+      Engineers:      'Structured, diagrammatic, precision composition. Cooler palette, minimal decoration.',
+      Consumers:      'Emotional, lifestyle-oriented, warm palette. Implied human presence.',
+      Executives:     'Premium editorial, generous negative space, classical composition.',
+      Creators:       'Culturally native, socially fluent composition, contemporary styling.',
+      Developers:     'Technical clarity, structured layout, precision over warmth.',
+      Journalists:    'Factual gravitas, documentary visual language, credibility cues.',
+      Operators:      'Practical and direct, functional composition, trustworthy register.',
+      'General Public': 'Accessible, emotionally warm, universally legible visual language.',
+    }
+    lines.push('## Target audience')
+    const influence = audienceInfluence[audienceFrame]
+    lines.push(influence ? `${audienceFrame}: ${influence}` : audienceFrame)
+    lines.push('Adjust composition density, typography tendency, realism level, and emotional register accordingly.')
+    lines.push('')
+  }
+
+  if (lensType) {
+    const lensInfluence: Record<string, string> = {
+      framework: 'Framework lens: Cleaner, more conceptual, structured, sparse. Composition should imply system thinking and clarity over decoration.',
+      authority:  'Authority lens: Restrained, editorial, institutional, credibility-first. Composition should signal weight and expertise without ornamentation.',
+      signal:     'Signal lens: Culturally timely, faster visual pacing, socially native composition. Contemporary framing that reads as fluent, not trend-chasing.',
+    }
+    lines.push('## Lens context')
+    lines.push(lensInfluence[lensType] ?? `${lensType} lens`)
     lines.push('')
   }
 

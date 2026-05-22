@@ -130,6 +130,11 @@ export interface BrandSemanticProfile {
   negativeRules:        string[]
 }
 
+// ─── Strategic context types ─────────────────────────────────────────────────
+export type VisualObjective = 'authority' | 'education' | 'conversation' | 'engagement' | 'emotional_resonance' | 'lead_generation'
+
+export type LensType = 'framework' | 'authority' | 'signal'
+
 // ─── Orchestrator input ──────────────────────────────────────────────────────
 export interface GenerateImageInput {
   mode: GenerationMode
@@ -148,6 +153,9 @@ export interface GenerateImageInput {
   aspectRatio?: AspectRatio
   quality?: 'standard' | 'hd'
   seed?: number                 // stored for reproducibility; passed to provider when supported
+  visualObjective?: VisualObjective
+  audienceFrame?: string     // e.g. 'Executives', 'Engineers', 'Investors', 'Consumers', 'Creators'
+  lensType?: LensType
 }
 
 // ─── Persisted asset ────────────────────────────────────────────────────────
