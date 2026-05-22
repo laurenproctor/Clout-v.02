@@ -19,7 +19,7 @@ const STEPS = [
   },
   {
     headline: 'Whose narratives compete for your audience\'s attention?',
-    subheadline: 'Clout identifies narrative gaps your competitors have not yet addressed.',
+    subheadline: 'Enter competitor website URLs — Clout tracks their content strategy to surface gaps you can own.',
   },
   {
     headline: 'How should Clout interpret and frame emerging signals?',
@@ -73,7 +73,7 @@ export function OnboardingFlow({ userDisplayName, onComplete }: OnboardingFlowPr
       niche: draft.content_topics.slice(0, 3).join(', '),
       services: draft.services,
       tone_preference: mapVoicesToTone(draft.editorial_voices),
-      competitors: draft.competitors.map(name => ({ name, handle: '', url: '' })),
+      competitors: draft.competitors.map(url => ({ name: url, handle: '', url })),
       content_topics: draft.content_topics,
     })
   }
