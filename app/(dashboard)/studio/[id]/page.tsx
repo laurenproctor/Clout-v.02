@@ -10,6 +10,7 @@ import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
 import { InlineSuggestion } from '@/components/studio/inline-suggestion'
 import { PlatformTabs } from '@/components/studio/PlatformTabs'
 import { PlatformPreview } from '@/components/studio/PlatformPreview'
+import { VisualsTab } from '@/components/studio/visuals-tab'
 import { useAutosave } from '@/hooks/use-autosave'
 import { useAiActions, type SuggestionBlock } from '@/hooks/use-ai-actions'
 import type { Output, OutputContent, OutputStatus, ChannelPlatform } from '@/types/domain'
@@ -68,6 +69,8 @@ export default function StudioEditorPage() {
   const [hashtags,     setHashtags]     = useState<string[]>([])
   const [hashtagInput, setHashtagInput] = useState('')
   const [channelId,    setChannelId]    = useState<string | null>(null)
+
+  const [rightTab, setRightTab] = useState<'preview' | 'visuals'>('preview')
 
   const [aiPanelOpen,   setAiPanelOpen]   = useState(false)
   const [showCopyMenu,  setShowCopyMenu]  = useState(false)
@@ -352,6 +355,7 @@ export default function StudioEditorPage() {
   const previewPlatform: ChannelPlatform = activePreviewChannel?.platform ?? assignedChannel?.platform ?? 'linkedin'
   const previewAccountName = activePreviewChannel ? channelDisplayName(activePreviewChannel) : (assignedChannel ? channelDisplayName(assignedChannel) : '')
   const previewHandle = previewAccountName.toLowerCase().replace(/\s+/g, '')
+  const visualsPlatform: string = assignedChannel?.platform ?? previewPlatform ?? 'linkedin'
 
   if (loading) {
     return (
@@ -539,24 +543,76 @@ export default function StudioEditorPage() {
           </div>
         </div>
 
-        {/* ── Right: platform preview (520px, light) ── */}
+        {/* ── Right: preview + visuals tabs ── */}
         {showPreviewPanel && (
           <div
-            className="hidden lg:flex flex-col flex-shrink-0 border-l border-zinc-800/60 bg-zinc-50 overflow-y-auto"
-            style={{ width: 520 }}
+            className="hidden lg:flex flex-col flex-shrink-0 border-l border-zinc-800/60 overflow-hidden"
+            style={{ width: 320 }}
           >
-            <div className="px-6 py-5">
-              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">
+            {/* Tab bar */}
+            <div className="flex flex-shrink-0 border-b border-zinc-800/60">
+              <button
+                onClick={() => setRightTab('preview')}
+                className={cn(
+                  'flex-1 py-2.5 text-[11px] font-medium text-center transition-colors border-b-2 -mb-px',
+                  rightTab === 'preview'
+                    ? 'text-zinc-200 border-zinc-400'
+                    : 'text-zinc-600 border-transparent hover:text-zinc-400',
+                )}
+              >
                 Preview
-              </p>
-              <PlatformPreview
-                platform={previewPlatform}
-                accountName={previewAccountName}
-                handle={previewHandle}
-                body={previewOutput.body}
-                subject={previewOutput.title || undefined}
-              />
+              </button>
+              <button
+                onClick={() => setRightTab('visuals')}
+                className={cn(
+                  'flex-1 py-2.5 text-[11px] font-medium text-center transition-colors border-b-2 -mb-px',
+                  rightTab === 'visuals'
+                    ? 'text-zinc-200 border-zinc-400'
+                    : 'text-zinc-600 border-transparent hover:text-zinc-400',
+                )}
+              >
+                Visuals
+              </button>
             </div>
+
+            {/* Preview tab */}
+            {rightTab === 'preview' && (
+              <div className="flex-1 bg-zinc-50 overflow-y-auto px-6 py-5">
+                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">
+                  {previewAccountName || assignedChannel?.platform || 'Preview'}
+                </p>
+                <PlatformPreview
+                  platform={previewPlatform}
+                  accountName={previewAccountName}
+                  handle={previewHandle}
+                  body={previewOutput.body}
+                  subject={previewOutput.title || undefined}
+                />
+                {platformTabs.length > 1 && (
+                  <PlatformTabs
+                    tabs={platformTabs}
+                    activePostId={activeTabId}
+                    onSelectTab={(postId) => {
+                      if (postId === id) {
+                        setActiveTabId(id)
+                      } else {
+                        setActiveTabId(postId)
+                        router.push(`/studio/${postId}`)
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Visuals tab */}
+            {rightTab === 'visuals' && (
+              <VisualsTab
+                outputId={id}
+                content={body}
+                platform={visualsPlatform}
+              />
+            )}
           </div>
         )}
       </div>
