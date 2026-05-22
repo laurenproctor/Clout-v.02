@@ -264,6 +264,9 @@ export function SyndicationClient({ availableLenses }: Props) {
       setLoadingStep(prev => Math.min(prev + 1, LOADING_STEPS.length - 1))
     }, 1200)
 
+    const abortController = new AbortController()
+    const abortTimeout = setTimeout(() => abortController.abort(), 90_000)
+
     try {
       const res = await fetch('/api/syndication/generate', {
         method: 'POST',
@@ -274,6 +277,7 @@ export function SyndicationClient({ availableLenses }: Props) {
           notes: notes.trim() || undefined,
           lenses: selectedLenses.length > 0 ? selectedLenses : undefined,
         }),
+        signal: abortController.signal,
       })
 
       const reader = res.body?.getReader()
@@ -342,6 +346,8 @@ export function SyndicationClient({ availableLenses }: Props) {
         }
       }
 
+      clearTimeout(abortTimeout)
+
       if (!receivedComplete) {
         stopInterval()
         setUi(prev =>
@@ -350,9 +356,11 @@ export function SyndicationClient({ availableLenses }: Props) {
             : { status: 'error', message: 'Generation timed out or was interrupted. Please try again.' }
         )
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(abortTimeout)
       stopInterval()
-      setUi({ status: 'error', message: 'Something went wrong. Check the URL and try again.' })
+      const isTimeout = err instanceof Error && err.name === 'AbortError'
+      setUi({ status: 'error', message: isTimeout ? 'Generation timed out. Please try again.' : 'Something went wrong. Check the URL and try again.' })
     }
   }
 
@@ -378,6 +386,9 @@ export function SyndicationClient({ availableLenses }: Props) {
 
     const effectiveNotes = [notes.trim(), variantNote].filter(Boolean).join('\n\n') || undefined
 
+    const regenAbortController = new AbortController()
+    const regenAbortTimeout = setTimeout(() => regenAbortController.abort(), 90_000)
+
     try {
       const res = await fetch('/api/syndication/generate', {
         method: 'POST',
@@ -388,6 +399,7 @@ export function SyndicationClient({ availableLenses }: Props) {
           notes: effectiveNotes,
           lenses: selectedLenses.length > 0 ? selectedLenses : undefined,
         }),
+        signal: regenAbortController.signal,
       })
 
       const reader = res.body?.getReader()
@@ -419,10 +431,13 @@ export function SyndicationClient({ availableLenses }: Props) {
           }
         }
       }
-    } catch {
+      clearTimeout(regenAbortTimeout)
+    } catch (err) {
+      clearTimeout(regenAbortTimeout)
+      const isTimeout = err instanceof Error && err.name === 'AbortError'
       setCards(prev => ({
         ...prev,
-        [platform]: { status: 'error', message: 'Regeneration failed. Try again.' },
+        [platform]: { status: 'error', message: isTimeout ? 'Regeneration timed out. Try again.' : 'Regeneration failed. Try again.' },
       }))
     }
   }
