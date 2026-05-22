@@ -451,6 +451,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          extracted_angles: Json | null
           id: string
           is_private: boolean
           notes: string | null
@@ -469,6 +470,7 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          extracted_angles?: Json | null
           id?: string
           is_private?: boolean
           notes?: string | null
@@ -487,6 +489,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          extracted_angles?: Json | null
           id?: string
           is_private?: boolean
           notes?: string | null
