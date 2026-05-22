@@ -51,6 +51,7 @@ const adminItems = [
   { label: 'Lenses', href: '/settings/lenses', icon: Layers },
   { label: 'Brand', href: '/settings/brand', icon: Palette },
   { label: 'Publishing', href: '/settings/publishing', icon: Send },
+  { label: 'Signal Feed', href: '/settings/feed', icon: Rss },
   { label: 'Intelligence', href: '/settings/analytics', icon: BarChart2 },
   { label: 'Schedule', href: '/settings/schedule', icon: CalendarClock },
   { label: 'Billing', href: '/settings/billing', icon: CreditCard },
@@ -265,7 +266,8 @@ function NavContent({
                   !pathname.startsWith('/settings/schedule') &&
                   !pathname.startsWith('/settings/lenses') &&
                   !pathname.startsWith('/settings/billing') &&
-                  !pathname.startsWith('/settings/analytics')
+                  !pathname.startsWith('/settings/analytics') &&
+                  !pathname.startsWith('/settings/feed')
                 : pathname === href || pathname.startsWith(href + '/')
             return (
               <NavItem
