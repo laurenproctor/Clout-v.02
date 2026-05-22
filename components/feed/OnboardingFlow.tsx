@@ -114,6 +114,7 @@ export function OnboardingFlow({ userDisplayName, onComplete }: OnboardingFlowPr
                 <button
                   key={label}
                   onClick={() => setStep(index as 0 | 1 | 2 | 3)}
+                  aria-current={isActive ? 'step' : undefined}
                   style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
                 >
                   <div style={{
