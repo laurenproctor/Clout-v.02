@@ -860,3 +860,8 @@ create policy "workspace members can update sessions"
       where user_id = (select id from users where clerk_id = auth.uid()::text)
     )
   );
+
+-- Sessions are versioned and append-only; deactivate with is_active=false, never hard-delete
+create policy "sessions are not deletable by users"
+  on visual_generation_sessions for delete
+  using (false);
