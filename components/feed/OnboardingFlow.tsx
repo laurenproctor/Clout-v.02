@@ -27,6 +27,8 @@ const STEPS = [
   },
 ]
 
+const STEP_LABELS = ['Topics', 'Focus Areas', 'Competitors', 'Voice'] as const
+
 interface OnboardingFlowProps {
   userDisplayName: string
   onComplete: (payload: OnboardingPayload) => void
@@ -40,8 +42,6 @@ export function OnboardingFlow({ userDisplayName, onComplete }: OnboardingFlowPr
     competitors: [],
     editorial_voices: [],
   })
-
-  const progress = ((step + 1) / STEPS.length) * 100
 
   const isValid = [
     draft.content_topics.length >= 3,
@@ -100,34 +100,42 @@ export function OnboardingFlow({ userDisplayName, onComplete }: OnboardingFlowPr
       }}>
         <div style={{ width: '100%', maxWidth: '620px' }}>
 
-          {/* Progress bar */}
+          {/* Named step navigator */}
           <div style={{
-            height: '3px',
-            backgroundColor: '#e5e7eb',
-            borderRadius: '2px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '4px',
             marginBottom: '32px',
-            overflow: 'hidden',
           }}>
-            <div style={{
-              height: '100%',
-              width: `${progress}%`,
-              backgroundColor: '#1a1560',
-              borderRadius: '2px',
-              transition: 'width 0.3s ease',
-            }} />
+            {STEP_LABELS.map((label, index) => {
+              const isActive = index === step
+              const isVisited = index < step
+              return (
+                <button
+                  key={label}
+                  onClick={() => setStep(index as 0 | 1 | 2 | 3)}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <div style={{
+                    height: '3px',
+                    borderRadius: '2px',
+                    backgroundColor: isActive ? '#1a1560' : isVisited ? '#9ca3af' : '#e5e7eb',
+                    marginBottom: '6px',
+                  }} />
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#1a1560' : '#9ca3af',
+                    textTransform: 'uppercase' as const,
+                    letterSpacing: '0.06em',
+                    display: 'block',
+                  }}>
+                    {label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
-
-          {/* Step indicator */}
-          <p style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: '#9ca3af',
-            marginBottom: '10px',
-          }}>
-            {step + 1} of {STEPS.length}
-          </p>
 
           {/* Headline */}
           <h1 style={{
