@@ -87,3 +87,55 @@ export async function fetchInstagramAccount(
   const accounts = await fetchInstagramAccounts(userAccessToken)
   return accounts[0] ?? null
 }
+
+// Step 1 of 2: create an IMAGE media container. The image must be a publicly
+// accessible HTTPS URL. Returns the container ID (creation_id).
+export async function createInstagramImageContainer(
+  accessToken: string,
+  igUserId: string,
+  imageUrl: string,
+  caption: string,
+): Promise<{ id: string }> {
+  const params = new URLSearchParams({
+    media_type:   'IMAGE',
+    image_url:    imageUrl,
+    caption,
+    access_token: accessToken,
+  })
+  const res = await fetch(`${GRAPH_BASE}/${igUserId}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    const err = new Error(`Instagram media container creation failed (${res.status}): ${text}`) as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
+  return res.json()
+}
+
+// Step 2 of 2: publish the container. Returns the published post ID.
+export async function publishInstagramContainer(
+  accessToken: string,
+  igUserId: string,
+  creationId: string,
+): Promise<{ id: string }> {
+  const params = new URLSearchParams({
+    creation_id:  creationId,
+    access_token: accessToken,
+  })
+  const res = await fetch(`${GRAPH_BASE}/${igUserId}/media_publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    const err = new Error(`Instagram media publish failed (${res.status}): ${text}`) as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
+  return res.json()
+}
