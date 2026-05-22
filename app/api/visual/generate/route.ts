@@ -2,7 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/visual/generation/generateImage'
-import type { VisualPlatform, AspectRatio, GenerationMode } from '@/lib/visual/types/visual'
+import type { VisualPlatform, AspectRatio, GenerationMode, VisualObjective, LensType } from '@/lib/visual/types/visual'
+
+// ── Rate limiting (in-memory, per-workspace) ─────────────────────────────
+type RateBucket = { count: number; windowStart: number }
+const standardBuckets = new Map<string, RateBucket>()
+const hdBuckets        = new Map<string, RateBucket>()
+
+function isRateLimited(map: Map<string, RateBucket>, key: string, windowMs: number, max: number): boolean {
+  const now = Date.now()
+  const b   = map.get(key)
+  if (!b || now - b.windowStart > windowMs) {
+    map.set(key, { count: 1, windowStart: now })
+    return false
+  }
+  if (b.count >= max) return true
+  b.count++
+  return false
+}
 
 export const maxDuration = 120 // DALL-E HD can take 45–60s; upload adds more
 
@@ -37,6 +54,9 @@ export async function POST(req: NextRequest) {
     generationGroupId,
     variationReason,
     seed,
+    visualObjective,
+    audienceFrame,
+    lensType,
   } = body as {
     outputId?:          string
     content?:           string
@@ -50,6 +70,23 @@ export async function POST(req: NextRequest) {
     generationGroupId?: string
     variationReason?:   string
     seed?:              number
+    visualObjective?:   string
+    audienceFrame?:     string
+    lensType?:          string
+  }
+
+  // ── Rate limiting ──────────────────────────────────────────────────────────
+  if (isRateLimited(standardBuckets, session.workspaceId, 10_000, 1)) {
+    return NextResponse.json(
+      { error: 'Give it a moment before building another direction.' },
+      { status: 429 }
+    )
+  }
+  if (quality === 'hd' && isRateLimited(hdBuckets, session.workspaceId, 3_600_000, 5)) {
+    return NextResponse.json(
+      { error: 'HD generation limit reached. Try again in an hour.' },
+      { status: 429 }
+    )
   }
 
   // ── Validate ──────────────────────────────────────────────────────────────
@@ -108,12 +145,25 @@ export async function POST(req: NextRequest) {
       keyIdea,
       promptOverride,
       seed,
+      visualObjective:    visualObjective as VisualObjective | undefined,
+      audienceFrame,
+      lensType:           lensType as LensType | undefined,
     })
 
     const assetV2 = asset as typeof asset & {
       composedUrl: string | null
       templateId: string | null
     }
+
+    console.info('[visual/generate] generated', {
+      workspaceId: session.workspaceId,
+      outputId,
+      quality,
+      mode,
+      visualObjective,
+      audienceFrame,
+      lensType,
+    })
 
     return NextResponse.json(
       {
