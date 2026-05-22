@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, ChevronDown } from 'lucide-react'
+import { ArrowLeft, FileText, Sparkles, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { VariantsRail } from '@/components/studio/variants-rail'
 import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
@@ -63,6 +63,7 @@ export default function StudioEditorPage() {
   const [variants, setVariants] = useState<Variant[]>([])
   const [siblings, setSiblings] = useState<Output[]>([])
   const [loading,  setLoading]  = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const [title,        setTitle]        = useState('')
   const [body,         setBody]         = useState('')
@@ -112,7 +113,11 @@ export default function StudioEditorPage() {
         fetch(`/api/outputs/${id}`),
         fetch('/api/channels'),
       ])
-      if (!oRes.ok) { setLoading(false); return }
+      if (!oRes.ok) {
+        setLoadError(oRes.status === 404 ? 'This draft could not be found.' : 'Failed to load draft. Please try again.')
+        setLoading(false)
+        return
+      }
 
       const channelList: FullChannel[] = cRes.ok ? await cRes.json() : []
       setChannels(channelList)
@@ -369,10 +374,19 @@ export default function StudioEditorPage() {
     )
   }
 
-  if (!output) {
+  if (loadError || !output) {
     return (
-      <div className="-m-6 flex items-center justify-center bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
-        <p className="text-sm text-zinc-600">Draft not found.</p>
+      <div className="-m-6 flex flex-col items-center justify-center gap-4 bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
+        <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center">
+          <FileText className="h-5 w-5 text-zinc-600" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-medium text-zinc-300">{loadError ?? 'Draft not found.'}</p>
+          <p className="text-xs text-zinc-600">The draft may have been deleted or you may not have access.</p>
+        </div>
+        <Link href="/calendar" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+          ← Back to calendar
+        </Link>
       </div>
     )
   }
