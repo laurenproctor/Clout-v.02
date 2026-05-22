@@ -13,3 +13,9 @@ export function mapVoicesToTone(voices: string[]): TonePreference {
   if (scores.conversational === max) return 'conversational'
   return 'provocative'
 }
+
+export function mapToneToVoices(tone: TonePreference): string[] {
+  if (tone === 'authoritative') return ['Analytical', 'Executive', 'Technical']
+  if (tone === 'conversational') return ['Educational', 'Cultural']
+  return ['Contrarian', 'Visionary']
+}
