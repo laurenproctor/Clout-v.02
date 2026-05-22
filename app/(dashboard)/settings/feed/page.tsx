@@ -29,7 +29,7 @@ export default function SignalFeedSettingsPage() {
 
   useEffect(() => {
     fetch('/api/feed/settings')
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(r))
       .then((data: FeedSettings) => {
         setSettings(data)
         setLoading(false)
