@@ -48,9 +48,9 @@ export async function GET() {
       .order('published_at', { ascending: false })
 
     // Build mention index by competitor_id (latest mention per competitor)
-    const mentionByCompetitor = new Map<string, { headline: string; angle_summary: string | null; has_coverage: boolean; published_at: string | null }>()
+    const mentionByCompetitor = new Map<string, { headline: string; angle_summary: string | null; has_coverage: boolean | null; published_at: string | null }>()
     for (const m of mentions ?? []) {
-      if (!mentionByCompetitor.has(m.competitor_id)) {
+      if (m.competitor_id && !mentionByCompetitor.has(m.competitor_id)) {
         mentionByCompetitor.set(m.competitor_id, m)
       }
     }
@@ -59,7 +59,7 @@ export async function GET() {
       id: string
       competitor_id: string | null
       title: string
-      created_at: string
+      created_at: string | null
       momentum_pct: string | null
       momentum_bar_width: number | null
     }) => {
@@ -71,7 +71,7 @@ export async function GET() {
         competitor_name: entity?.name ?? 'Unknown',
         competitor_handle: entity?.handle ?? '',
         headline: mention?.headline ?? card.title,
-        date: mention?.published_at ?? card.created_at,
+        date: mention?.published_at ?? card.created_at ?? new Date().toISOString(),
         has_coverage: mention?.has_coverage ?? false,
         momentum_text: card.momentum_pct ?? '',
         momentum_flat: (card.momentum_bar_width ?? 0) < 5,

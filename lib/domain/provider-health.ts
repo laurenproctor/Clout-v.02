@@ -27,7 +27,7 @@ export async function logProviderEvent(input: LogProviderEventInput): Promise<vo
     event_type:    input.eventType,
     error_code:    input.errorCode ?? null,
     error_message: input.errorMessage ?? null,
-    metadata:      input.metadata ?? {},
+    metadata:      (input.metadata ?? {}) as import('@/types/db').Json,
   })
   // Never throw — health logging must not break the publish path
   if (error) console.error('provider-health: failed to write log', error.message)

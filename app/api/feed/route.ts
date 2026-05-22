@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       .eq('user_id', userId)
       .eq('interaction_type', 'dismissed')
 
-    const dismissedIds = (dismissedRows ?? []).map((r: { signal_card_id: string }) => r.signal_card_id)
+    const dismissedIds = (dismissedRows ?? []).map((r: { signal_card_id: string | null }) => r.signal_card_id).filter((id): id is string => id !== null)
 
     // Competitor-covered signal IDs (for whitespace computation)
     const { data: workspaceCompetitors } = await supabase

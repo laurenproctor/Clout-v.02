@@ -456,6 +456,8 @@ export type Database = {
           is_private: boolean
           notes: string | null
           raw_content: string | null
+          research_sources: Json | null
+          research_summary: string | null
           source: Database["public"]["Enums"]["capture_source"]
           source_url: string | null
           status: Database["public"]["Enums"]["capture_status"]
@@ -475,6 +477,8 @@ export type Database = {
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          research_sources?: Json | null
+          research_summary?: string | null
           source: Database["public"]["Enums"]["capture_source"]
           source_url?: string | null
           status?: Database["public"]["Enums"]["capture_status"]
@@ -494,6 +498,8 @@ export type Database = {
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          research_sources?: Json | null
+          research_summary?: string | null
           source?: Database["public"]["Enums"]["capture_source"]
           source_url?: string | null
           status?: Database["public"]["Enums"]["capture_status"]
@@ -583,10 +589,17 @@ export type Database = {
           account_type: string
           config: Json
           created_at: string
+          google_account_id: string | null
+          google_location_address: Json | null
+          google_location_name: string | null
+          google_location_numeric_id: string | null
+          google_profile_photo_url: string | null
+          google_verified: boolean | null
           id: string
           is_active: boolean
           label: string | null
           platform: Database["public"]["Enums"]["channel_platform"]
+          profile_image_url: string | null
           updated_at: string
           workspace_id: string
         }
@@ -595,10 +608,17 @@ export type Database = {
           account_type?: string
           config?: Json
           created_at?: string
+          google_account_id?: string | null
+          google_location_address?: Json | null
+          google_location_name?: string | null
+          google_location_numeric_id?: string | null
+          google_profile_photo_url?: string | null
+          google_verified?: boolean | null
           id?: string
           is_active?: boolean
           label?: string | null
           platform: Database["public"]["Enums"]["channel_platform"]
+          profile_image_url?: string | null
           updated_at?: string
           workspace_id: string
         }
@@ -607,10 +627,17 @@ export type Database = {
           account_type?: string
           config?: Json
           created_at?: string
+          google_account_id?: string | null
+          google_location_address?: Json | null
+          google_location_name?: string | null
+          google_location_numeric_id?: string | null
+          google_profile_photo_url?: string | null
+          google_verified?: boolean | null
           id?: string
           is_active?: boolean
           label?: string | null
           platform?: Database["public"]["Enums"]["channel_platform"]
+          profile_image_url?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -801,6 +828,57 @@ export type Database = {
         }
         Relationships: []
       }
+      email_events: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          last_attempted_at: string | null
+          payload: Json | null
+          recipient_email: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          type: string
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          last_attempted_at?: string | null
+          payload?: Json | null
+          recipient_email: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          last_attempted_at?: string | null
+          payload?: Json | null
+          recipient_email?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       draft_cache: {
         Row: {
           card_id: string | null
@@ -860,11 +938,13 @@ export type Database = {
       }
       generations: {
         Row: {
+          angle_id: string | null
           capture_id: string
           completed_at: string | null
           created_at: string
           duration_ms: number | null
           error_message: string | null
+          generation_group_id: string | null
           id: string
           lens_id: string
           model: string
@@ -876,11 +956,13 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          angle_id?: string | null
           capture_id: string
           completed_at?: string | null
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          generation_group_id?: string | null
           id?: string
           lens_id: string
           model: string
@@ -892,11 +974,13 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          angle_id?: string | null
           capture_id?: string
           completed_at?: string | null
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          generation_group_id?: string | null
           id?: string
           lens_id?: string
           model?: string
@@ -1158,6 +1242,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           funnel_stage: string | null
+          generation_group_id: string | null
           generation_id: string | null
           goal: string | null
           id: string
@@ -1167,6 +1252,7 @@ export type Database = {
           narrative_role: string | null
           performance_snapshot: Json | null
           provider_post_id: string | null
+          provider_post_url: string | null
           published_at: string | null
           resonance_prediction: string | null
           scheduled_at: string | null
@@ -1187,6 +1273,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           funnel_stage?: string | null
+          generation_group_id?: string | null
           generation_id?: string | null
           goal?: string | null
           id?: string
@@ -1196,6 +1283,7 @@ export type Database = {
           narrative_role?: string | null
           performance_snapshot?: Json | null
           provider_post_id?: string | null
+          provider_post_url?: string | null
           published_at?: string | null
           resonance_prediction?: string | null
           scheduled_at?: string | null
@@ -1216,6 +1304,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           funnel_stage?: string | null
+          generation_group_id?: string | null
           generation_id?: string | null
           goal?: string | null
           id?: string
@@ -1225,6 +1314,7 @@ export type Database = {
           narrative_role?: string | null
           performance_snapshot?: Json | null
           provider_post_id?: string | null
+          provider_post_url?: string | null
           published_at?: string | null
           resonance_prediction?: string | null
           scheduled_at?: string | null
@@ -1414,6 +1504,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      provider_health_logs: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          platform: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          platform: string
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          platform?: string
+          workspace_id?: string
+        }
+        Relationships: []
       }
       publish_logs: {
         Row: {
@@ -2642,7 +2768,7 @@ export type Database = {
         | "assign"
         | "restore"
         | "soft_delete"
-      capture_source: "text" | "voice" | "structured" | "url"
+      capture_source: "text" | "voice" | "structured" | "url" | "topic"
       capture_status: "pending" | "processing" | "ready" | "failed"
       channel_platform:
         | "linkedin"
@@ -2650,6 +2776,12 @@ export type Database = {
         | "twitter"
         | "wordpress"
         | "shopify"
+        | "x"
+        | "threads"
+        | "facebook"
+        | "instagram"
+        | "tiktok"
+        | "google_business_profile"
       draft_format: "linkedin" | "twitter" | "blog" | "newsletter" | "instagram"
       draft_tone:
         | "authoritative"
@@ -2826,7 +2958,7 @@ export const Constants = {
         "restore",
         "soft_delete",
       ],
-      capture_source: ["text", "voice", "structured", "url"],
+      capture_source: ["text", "voice", "structured", "url", "topic"],
       capture_status: ["pending", "processing", "ready", "failed"],
       channel_platform: [
         "linkedin",
@@ -2834,6 +2966,12 @@ export const Constants = {
         "twitter",
         "wordpress",
         "shopify",
+        "x",
+        "threads",
+        "facebook",
+        "instagram",
+        "tiktok",
+        "google_business_profile",
       ],
       draft_format: ["linkedin", "twitter", "blog", "newsletter", "instagram"],
       draft_tone: [
