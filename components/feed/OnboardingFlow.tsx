@@ -94,9 +94,9 @@ export function OnboardingFlow({ userDisplayName, onComplete }: OnboardingFlowPr
         minHeight: '100vh',
         backgroundColor: '#f8f8fb',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '32px 16px',
+        padding: '64px 16px 32px',
       }}>
         <div style={{ width: '100%', maxWidth: '620px' }}>
 
