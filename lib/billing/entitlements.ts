@@ -71,17 +71,18 @@ function check(
 export async function canCreateWorkspace(userId: string): Promise<EntitlementResult> {
   const supabase = createServiceClient()
 
-  const { count: ownedCount } = await supabase
-    .from('workspace_members')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('role', 'owner')
-
-  const { data: subs } = await supabase
-    .from('workspace_members')
-    .select('workspaces(subscriptions(plan))')
-    .eq('user_id', userId)
-    .eq('role', 'owner')
+  const [{ count: ownedCount }, { data: subs }] = await Promise.all([
+    supabase
+      .from('workspace_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('role', 'owner'),
+    supabase
+      .from('workspace_members')
+      .select('workspaces(subscriptions(plan))')
+      .eq('user_id', userId)
+      .eq('role', 'owner'),
+  ])
 
   const plans = (subs ?? []).flatMap((m) => {
     const ws = m.workspaces as unknown as { subscriptions: { plan: string } | null } | null
