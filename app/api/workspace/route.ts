@@ -52,13 +52,22 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json()
+
+  if (body.brand_color !== undefined && !/^#[0-9a-fA-F]{3,8}$/.test(body.brand_color)) {
+    return NextResponse.json({ error: 'Invalid brand_color' }, { status: 400 })
+  }
+
+  const updates: { name?: string; brand_color?: string | null; updated_at?: string } = {}
+  if (body.name?.trim()) updates.name = body.name.trim()
+  if (body.brand_color !== undefined) updates.brand_color = body.brand_color
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+  }
+  updates.updated_at = new Date().toISOString()
+
   const { data, error } = await supabase
     .from('workspaces')
-    .update({
-      ...(body.name?.trim() && { name: body.name.trim() }),
-      ...(body.brand_color !== undefined && { brand_color: body.brand_color }),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq('id', session.workspaceId)
     .select()
     .single()

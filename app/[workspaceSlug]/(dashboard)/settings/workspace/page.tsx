@@ -86,13 +86,15 @@ export default function WorkspaceSettingsPage() {
 
   async function handleSaveIdentity() {
     setSaving(true)
-    await fetch('/api/workspace', {
+    const res = await fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, brand_color: brandColor }),
     })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    if (res.ok) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    }
     setSaving(false)
   }
 
@@ -117,11 +119,12 @@ export default function WorkspaceSettingsPage() {
   async function handleDelete() {
     if (deleteConfirm !== data?.slug) return
     setDeleting(true)
-    const res = await fetch('/api/workspace', { method: 'DELETE' })
-    if (res.ok) {
-      router.push('/')
+    try {
+      const res = await fetch('/api/workspace', { method: 'DELETE' })
+      if (res.ok) router.push('/')
+    } finally {
+      setDeleting(false)
     }
-    setDeleting(false)
   }
 
   if (loading) {
