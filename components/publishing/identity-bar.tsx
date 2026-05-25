@@ -50,6 +50,7 @@ export function IdentityBar({ outputId }: { outputId?: string }) {
 
   const initials = workspace.name
     .split(' ')
+    .filter(w => w.length > 0)
     .map(w => w[0])
     .join('')
     .toUpperCase()
