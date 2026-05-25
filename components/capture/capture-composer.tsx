@@ -553,7 +553,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
 
         {/* Mode bar */}
         <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0 overflow-x-auto">
-          {(['assistant', 'write', 'paste', 'upload', 'voice', 'topic'] as CaptureMode[]).map((mode) => (
+          {(['assistant', 'voice', 'write', 'paste', 'upload', 'topic'] as CaptureMode[]).map((mode) => (
             <button
               key={mode}
               type="button"

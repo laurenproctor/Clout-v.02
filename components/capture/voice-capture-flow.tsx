@@ -72,6 +72,22 @@ export function VoiceCaptureFlow({
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const progressRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mimeTypeRef = useRef<string>('audio/webm')
+
+  function getSupportedMimeType(): string {
+    const types = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ]
+    if (typeof MediaRecorder === 'undefined') return ''
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) return type
+    }
+    return ''
+  }
 
   const clearTimers = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -89,15 +105,26 @@ export function VoiceCaptureFlow({
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000)
       return
     }
+
+    if (typeof MediaRecorder === 'undefined') {
+      setErrorMsg('Audio recording is not supported in this browser. Try Chrome or Safari 14.5+.')
+      setFlowState('error')
+      return
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      const mimeType = getSupportedMimeType()
+      const recorderOptions = mimeType ? { mimeType } : {}
+      const recorder = new MediaRecorder(stream, recorderOptions)
+      mimeTypeRef.current = recorder.mimeType || mimeType || 'audio/webm'
       chunksRef.current = []
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        await handleUploadAndProcess(blob)
+        const actualMimeType = mimeTypeRef.current
+        const blob = new Blob(chunksRef.current, { type: actualMimeType })
+        await handleUploadAndProcess(blob, actualMimeType)
       }
       recorder.start()
       mediaRef.current = recorder
@@ -122,7 +149,7 @@ export function VoiceCaptureFlow({
 
   // ── Upload → Transcribe → Generate ──
 
-  async function handleUploadAndProcess(blob: Blob) {
+  async function handleUploadAndProcess(blob: Blob, mimeType: string = 'audio/webm') {
     setFlowState('processing')
     setProgress(0)
     setMicrostateIdx(0)
@@ -130,7 +157,9 @@ export function VoiceCaptureFlow({
     try {
       // Upload audio via server-side API (uses service role, bypasses RLS)
       const uploadForm = new FormData()
-      uploadForm.append('file', blob, 'recording.webm')
+      const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm'
+      uploadForm.append('file', blob, `recording.${ext}`)
+      uploadForm.append('mimeType', mimeType)
       const uploadRes = await fetch('/api/capture/audio-upload', {
         method: 'POST',
         body: uploadForm,

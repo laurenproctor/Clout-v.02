@@ -57,9 +57,11 @@ export async function POST(
 
   const audioBuffer = await fileData.arrayBuffer()
   const filename = (capture.audio_path as string).split('/').pop() ?? 'audio.webm'
+  const ext = filename.split('.').pop() ?? 'webm'
+  const mimeType = ext === 'mp4' ? 'audio/mp4' : ext === 'ogg' ? 'audio/ogg' : 'audio/webm'
 
   const formData = new FormData()
-  formData.append('file', new Blob([audioBuffer], { type: 'audio/webm' }), filename)
+  formData.append('file', new Blob([audioBuffer], { type: mimeType }), filename)
   formData.append('model', 'whisper-1')
   formData.append('language', 'en')
 

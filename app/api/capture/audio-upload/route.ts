@@ -8,19 +8,22 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
+  const clientMimeType = formData.get('mimeType') as string | null
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 })
   }
 
-  const supabase = createServiceClient()
-  const filename = `${session.workspaceId}/${Date.now()}.webm`
+  const mimeType = clientMimeType || file.type || 'audio/webm'
+  const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm'
+  const filename = `${session.workspaceId}/${Date.now()}.${ext}`
 
+  const supabase = createServiceClient()
   const arrayBuffer = await file.arrayBuffer()
   const { data, error } = await supabase.storage
     .from('voice-captures')
     .upload(filename, arrayBuffer, {
-      contentType: 'audio/webm',
+      contentType: mimeType,
       upsert: false,
     })
 
@@ -30,6 +33,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Upload failed: ${detail}` }, { status: 500 })
   }
 
-  console.log('[api/capture/audio-upload] success', { path: data.path, sizeBytes: file.size })
+  console.log('[api/capture/audio-upload] success', { path: data.path, sizeBytes: file.size, mimeType })
   return NextResponse.json({ path: data.path })
 }
