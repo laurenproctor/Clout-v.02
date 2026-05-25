@@ -28,7 +28,8 @@ export async function GET() {
   }
 
   const rawCompetitors = (profile.competitors ?? []) as Array<{ name: string; handle: string; url: string }>
-  const competitors = rawCompetitors.map(c => c.name)
+  // Return url field (domain) when available — CompetitorInput is URL-based
+  const competitors = rawCompetitors.map(c => c.url || c.name).filter(Boolean)
 
   const editorial_voices = profile.tone_preference
     ? mapToneToVoices(profile.tone_preference as TonePreference)

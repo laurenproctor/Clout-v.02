@@ -166,6 +166,13 @@ export interface UserSignalInteraction {
   created_at: string
 }
 
+export interface FeedStats {
+  totalSignals: number
+  domainsTracked: number
+  emergingFrameworks: number
+  lastRefreshed: string | null
+}
+
 // Concept cluster (near-term; schema exists, ingestion pipeline populates)
 export type ConceptClusterStatus = 'emerging' | 'rising' | 'peaking' | 'declining'
 

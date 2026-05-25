@@ -1,14 +1,26 @@
 'use client'
 
 import { tokens } from '@/lib/feed/tokens'
+import type { FeedStats } from '@/types/feed'
 
-const STATS = [
+const FALLBACK_STATS = [
   { label: 'System-wide signals monitored today', value: '847' },
   { label: 'Narrative domains tracked', value: '12' },
   { label: 'Emerging frameworks detected across monitored sectors', value: '3' },
 ]
 
-export function EditorialBriefingCard() {
+interface EditorialBriefingCardProps {
+  stats?: FeedStats | null
+}
+
+export function EditorialBriefingCard({ stats }: EditorialBriefingCardProps) {
+  const displayStats = stats
+    ? [
+        { label: 'System-wide signals monitored today', value: stats.totalSignals.toLocaleString() },
+        { label: 'Narrative domains tracked', value: stats.domainsTracked.toLocaleString() },
+        { label: 'Emerging frameworks detected across monitored sectors', value: stats.emergingFrameworks.toLocaleString() },
+      ]
+    : FALLBACK_STATS
   return (
     <div style={{
       backgroundColor: '#f5f3ff',
@@ -53,7 +65,7 @@ export function EditorialBriefingCard() {
 
       {/* Stats */}
       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '12px' }}>
-        {STATS.map(({ label, value }) => (
+        {displayStats.map(({ label, value }) => (
           <div key={label}>
             <div style={{ fontSize: '20px', fontWeight: 700, color: '#1a1560', lineHeight: 1 }}>{value}</div>
             <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '3px' }}>{label}</div>

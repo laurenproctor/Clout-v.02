@@ -45,6 +45,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 
+    // Fire background ingestion so the new user's topics are immediately available
+    const ingestUrl = new URL('/api/admin/ingest-signals', req.url).toString()
+    fetch(ingestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-secret': process.env.ADMIN_SECRET ?? '',
+      },
+      body: JSON.stringify({ userId: session.userId }),
+    }).catch(() => {})
+
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

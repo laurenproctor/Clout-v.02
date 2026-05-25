@@ -15,6 +15,7 @@ import { ExampleSignalCard } from './ExampleSignalCard'
 import type {
   FeedTab,
   FeedPhase,
+  FeedStats,
   SignalCard as SignalCardType,
   CompetitorCard as CompetitorCardType,
   OnboardingPayload,
@@ -57,6 +58,7 @@ export function SignalFeed({
   const [competitorCache, setCompetitorCache] = useState<CompetitorCache>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
 
   const fetchTab = useCallback(async (tab: FeedTab) => {
     setLoading(true)
@@ -80,10 +82,14 @@ export function SignalFeed({
     }
   }, [])
 
-  // Load initial tab when in feed phase
+  // Load initial tab and stats when entering feed phase
   useEffect(() => {
     if (feedPhase === 'feed') {
       fetchTab(initialTab)
+      fetch('/api/feed/stats')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data) setFeedStats(data) })
+        .catch(() => {})
     }
   }, [feedPhase]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -218,7 +224,7 @@ export function SignalFeed({
         {/* Empty state — editorial default */}
         {!loading && !error && isEmpty && (
           <>
-            <EditorialBriefingCard />
+            <EditorialBriefingCard stats={feedStats} />
             {EXAMPLE_TOPICS.map((topic, i) => (
               <ExampleSignalCard key={topic} topic={topic} index={i} />
             ))}

@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/terms-of-service(.*)',
   '/api/webhooks(.*)',
   '/api/trigger(.*)',
+  '/api/admin(.*)',  // Admin routes use x-admin-secret / cron bearer auth, not Clerk
   '/',
 ])
 
