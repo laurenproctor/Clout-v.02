@@ -2646,6 +2646,41 @@ export type Database = {
           },
         ]
       }
+      workspace_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database['public']['Enums']['workspace_role']
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: Database['public']['Enums']['workspace_role']
+          token?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database['public']['Enums']['workspace_role']
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       workspace_members: {
         Row: {
           invited_by: string | null
