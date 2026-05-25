@@ -12,6 +12,7 @@ import FocusedEditView from './FocusedEditView'
 import { LoadingPhaseIndicator, LOADING_STEPS } from './LoadingPhaseIndicator'
 import { IntelligenceSection } from './IntelligenceSection'
 import LocalDistributionSection from './LocalDistributionSection'
+import { IdentityBar } from '@/components/publishing/identity-bar'
 
 const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook', 'google_business_profile']
 // GBP is not toggled on by default — user opts in
@@ -456,6 +457,11 @@ export function SyndicationClient({ availableLenses }: Props) {
           <p className="text-sm text-zinc-500 leading-relaxed max-w-lg">
             Drop a URL, add optional context, and get ready-to-post content for every platform.
           </p>
+        </div>
+
+        {/* Identity bar */}
+        <div className="mb-8">
+          <IdentityBar />
         </div>
 
         {/* Input section */}

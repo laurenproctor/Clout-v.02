@@ -16,6 +16,7 @@ import { useAiActions, type SuggestionBlock } from '@/hooks/use-ai-actions'
 import type { Output, OutputContent, OutputStatus, ChannelPlatform } from '@/types/domain'
 import type { AiActionId } from '@/app/api/ai-actions/route'
 import { findProviderCapabilities } from '@/lib/providers/registry'
+import { IdentityBar } from '@/components/publishing/identity-bar'
 
 interface FullChannel {
   id: string
@@ -454,6 +455,11 @@ export default function StudioEditorPage() {
             AI Actions
           </button>
         </div>
+      </div>
+
+      {/* ── Identity bar ── */}
+      <div className="px-4 py-2 border-b border-zinc-800/60 flex-shrink-0">
+        <IdentityBar outputId={id} />
       </div>
 
       {/* ── Main content: editor + preview ── */}

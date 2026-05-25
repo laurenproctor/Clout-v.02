@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
 import { LinkedInWorkspace } from '@/components/linkedin/LinkedInWorkspace'
+import { IdentityBar } from '@/components/publishing/identity-bar'
 
 export default async function LinkedInCreatePage() {
   const session = await getSession()
@@ -18,6 +19,9 @@ export default async function LinkedInCreatePage() {
         <p className="text-xs text-zinc-400 mt-0.5">
           AI-assisted strategic publishing — frame, position, distribute.
         </p>
+      </div>
+      <div className="px-8 py-3 border-b border-zinc-100">
+        <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
         <LinkedInWorkspace lenses={lenses} />
