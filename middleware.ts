@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
@@ -9,10 +11,34 @@ const isPublicRoute = createRouteMatcher([
   '/',
 ])
 
-export default clerkMiddleware(async (auth, req) => {
+// Paths that are not workspace-scoped — don't extract a slug from them
+const isNonWorkspacePath = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/onboarding(.*)',
+  '/api(.*)',
+  '/privacy-policy(.*)',
+  '/terms-of-service(.*)',
+])
+
+export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (!isPublicRoute(req)) {
     await auth.protect()
   }
+
+  // Extract workspace slug from first path segment and inject as header.
+  // e.g. /amlon/feed → x-workspace-slug: amlon
+  // The workspace layout validates membership; middleware just propagates the slug.
+  if (!isNonWorkspacePath(req)) {
+    const slug = req.nextUrl.pathname.split('/')[1]
+    if (slug) {
+      const res = NextResponse.next()
+      res.headers.set('x-workspace-slug', slug)
+      return res
+    }
+  }
+
+  return NextResponse.next()
 })
 
 export const config = {
