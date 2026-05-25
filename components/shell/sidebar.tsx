@@ -31,34 +31,40 @@ import {
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { WorkspaceSwitcher } from '@/components/shell/workspace-switcher'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
-const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Signal Feed', href: '/feed', icon: Rss },
-  { label: 'Calendar', href: '/calendar', icon: CalendarDays },
-  { label: 'Capture', href: '/capture', icon: Zap },
-  { label: 'Create', href: '/create', icon: Sparkles },
-  { label: 'Private', href: '/private', icon: Lock },
-  { label: 'Content Analyzer', href: '/analyze', icon: Network },
-  { label: 'Syndicate', href: '/syndicate', icon: Share2 },
-  { label: 'Studio', href: '/studio', icon: PenSquare },
-  { label: 'Analytics', href: '/analytics', icon: BarChart2 },
+const navItems = (slug: string) => [
+  { label: 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
+  { label: 'Signal Feed', href: `/${slug}/feed`, icon: Rss },
+  { label: 'Calendar', href: `/${slug}/calendar`, icon: CalendarDays },
+  { label: 'Capture', href: `/${slug}/capture`, icon: Zap },
+  { label: 'Create', href: `/${slug}/create`, icon: Sparkles },
+  { label: 'Private', href: `/${slug}/private`, icon: Lock },
+  { label: 'Content Analyzer', href: `/${slug}/analyze`, icon: Network },
+  { label: 'Syndicate', href: `/${slug}/syndicate`, icon: Share2 },
+  { label: 'Studio', href: `/${slug}/studio`, icon: PenSquare },
+  { label: 'Analytics', href: `/${slug}/analytics`, icon: BarChart2 },
   { label: 'Monitoring', href: '', icon: Activity, comingSoon: true },
   { label: 'Press', href: '', icon: Newspaper, comingSoon: true },
 ]
 
-const adminItems = [
-  { label: 'Lenses', href: '/settings/lenses', icon: Layers },
-  { label: 'Brand', href: '/settings/brand', icon: Palette },
-  { label: 'Publishing', href: '/settings/publishing', icon: Send },
-  { label: 'Signal Feed', href: '/settings/feed', icon: Rss },
-  { label: 'Intelligence', href: '/settings/analytics', icon: BarChart2 },
-  { label: 'Schedule', href: '/settings/schedule', icon: CalendarClock },
-  { label: 'Billing', href: '/settings/billing', icon: CreditCard },
-  { label: 'Settings', href: '/settings/workspace', icon: Settings },
+const adminItems = (slug: string) => [
+  { label: 'Lenses', href: `/${slug}/settings/lenses`, icon: Layers },
+  { label: 'Brand', href: `/${slug}/settings/brand`, icon: Palette },
+  { label: 'Publishing', href: `/${slug}/settings/publishing`, icon: Send },
+  { label: 'Signal Feed', href: `/${slug}/settings/feed`, icon: Rss },
+  { label: 'Intelligence', href: `/${slug}/settings/analytics`, icon: BarChart2 },
+  { label: 'Schedule', href: `/${slug}/settings/schedule`, icon: CalendarClock },
+  { label: 'Billing', href: `/${slug}/settings/billing`, icon: CreditCard },
+  { label: 'Settings', href: `/${slug}/settings/workspace`, icon: Settings },
 ]
 
-const ADMIN_PATHS = ['/settings']
+function isAdminPath(pathname: string) {
+  // Extract everything after the slug: /slug/settings/brand → /settings/brand
+  const afterSlug = '/' + pathname.split('/').slice(2).join('/')
+  return afterSlug.startsWith('/settings')
+}
 
 type MobileSidebarContextValue = {
   open: boolean
@@ -197,6 +203,7 @@ function NavContent({
   onToggleCollapse?: () => void
 }) {
   const pathname = usePathname()
+  const { slug } = useWorkspace()
   const [supportOpen, setSupportOpen]         = useState(false)
   const [supportCategory, setSupportCategory] = useState<'question' | 'bug' | 'feature' | 'billing' | 'call'>('question')
 
@@ -210,9 +217,7 @@ function NavContent({
     return () => window.removeEventListener('open-support', handler)
   }, [])
 
-  const isAdminMode = ADMIN_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(p + '/')
-  )
+  const isAdminMode = isAdminPath(pathname)
 
   const toggleBtn = onToggleCollapse && (
     <button
@@ -244,7 +249,7 @@ function NavContent({
           {!collapsed && (
             <>
               <Link
-                href="/dashboard"
+                href={`/${slug}/dashboard`}
                 onClick={onLinkClick}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
               >
@@ -257,17 +262,18 @@ function NavContent({
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-          {adminItems.map(({ label, href, icon: Icon }) => {
+          {adminItems(slug).map(({ label, href, icon: Icon }) => {
+            const settingsBase = `/${slug}/settings`
             const isActive =
               label === 'Settings'
-                ? pathname.startsWith('/settings') &&
-                  !pathname.startsWith('/settings/brand') &&
-                  !pathname.startsWith('/settings/publishing') &&
-                  !pathname.startsWith('/settings/schedule') &&
-                  !pathname.startsWith('/settings/lenses') &&
-                  !pathname.startsWith('/settings/billing') &&
-                  !pathname.startsWith('/settings/analytics') &&
-                  !pathname.startsWith('/settings/feed')
+                ? pathname.startsWith(settingsBase) &&
+                  !pathname.startsWith(`${settingsBase}/brand`) &&
+                  !pathname.startsWith(`${settingsBase}/publishing`) &&
+                  !pathname.startsWith(`${settingsBase}/schedule`) &&
+                  !pathname.startsWith(`${settingsBase}/lenses`) &&
+                  !pathname.startsWith(`${settingsBase}/billing`) &&
+                  !pathname.startsWith(`${settingsBase}/analytics`) &&
+                  !pathname.startsWith(`${settingsBase}/feed`)
                 : pathname === href || pathname.startsWith(href + '/')
             return (
               <NavItem
@@ -317,30 +323,41 @@ function NavContent({
   // ── Main sidebar ───────────────────────────────────────────────────────────
   return (
     <>
-      <div
-        className={cn(
-          'flex h-14 items-center border-b border-zinc-200',
-          collapsed ? 'justify-center px-3' : 'justify-between px-4'
+      <div className="border-b border-zinc-200 px-2 py-2">
+        {onToggleCollapse && !collapsed && (
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <WorkspaceSwitcher />
+            </div>
+            {toggleBtn}
+          </div>
         )}
-      >
-        {!collapsed && (
-          <span className="text-sm font-semibold tracking-tight text-zinc-900">Clout</span>
+        {onToggleCollapse && collapsed && (
+          <div className="flex justify-center">
+            {toggleBtn}
+          </div>
         )}
-        {toggleBtn}
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-            aria-label="Close menu"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        {!onToggleCollapse && (
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <WorkspaceSwitcher />
+            </div>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                aria-label="Close menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-        {navItems.map(({ label, href, icon: Icon, comingSoon }) => {
+        {navItems(slug).map(({ label, href, icon: Icon, comingSoon }) => {
           const isActive = !comingSoon && (pathname === href || pathname.startsWith(href + '/'))
           return (
             <NavItem
@@ -378,7 +395,7 @@ function NavContent({
       <div className="p-2 pb-[env(safe-area-inset-bottom)]">
         <div className="group relative">
           <Link
-            href="/settings/brand"
+            href={`/${slug}/settings/brand`}
             onClick={onLinkClick}
             className={cn(
               'flex items-center rounded-md py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900',
