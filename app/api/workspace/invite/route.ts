@@ -1,71 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = await createClient()
-
-  // Check caller is owner or admin
-  const { data: caller } = await supabase
+  const supabase = createServiceClient()
+  const { data: actor } = await supabase
     .from('workspace_members')
     .select('role')
     .eq('workspace_id', session.workspaceId)
     .eq('user_id', session.userId)
     .single()
 
-  if (!caller || !['owner', 'admin'].includes(caller.role as string)) {
+  if (!actor || !['owner', 'admin'].includes(actor.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const body = await req.json()
-  const { email, role = 'editor' } = body
+  const email = body.email?.trim().toLowerCase()
+  const role = body.role ?? 'editor'
 
-  if (!email?.trim()) {
-    return NextResponse.json({ error: 'Email required' }, { status: 400 })
-  }
-
-  const validRoles = ['admin', 'editor', 'viewer']
-  if (!validRoles.includes(role)) {
+  if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
+  if (!['admin', 'editor', 'viewer'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
   }
 
-  // Look up user by email
-  const { data: user } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', email.trim().toLowerCase())
-    .is('deleted_at', null)
-    .single()
-
-  if (!user) {
-    return NextResponse.json(
-      { error: 'No Clout account found for that email. They need to sign up first.' },
-      { status: 404 }
-    )
-  }
-
-  // Check not already a member
-  const { data: existing } = await supabase
-    .from('workspace_members')
-    .select('user_id')
-    .eq('workspace_id', session.workspaceId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (existing) {
-    return NextResponse.json({ error: 'User is already a member' }, { status: 409 })
-  }
-
-  const { error } = await supabase.from('workspace_members').insert({
+  const { error } = await supabase.from('workspace_invites').insert({
     workspace_id: session.workspaceId,
-    user_id: user.id,
+    email,
     role,
     invited_by: session.userId,
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'This email already has a pending invite' }, { status: 409 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true }, { status: 201 })
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const url = new URL(req.url)
+  const inviteId = url.searchParams.get('id')
+  if (!inviteId) return NextResponse.json({ error: 'Invite ID required' }, { status: 400 })
+
+  const supabase = createServiceClient()
+  await supabase
+    .from('workspace_invites')
+    .delete()
+    .eq('id', inviteId)
+    .eq('workspace_id', session.workspaceId)
+
   return NextResponse.json({ ok: true })
 }
