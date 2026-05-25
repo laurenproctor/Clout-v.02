@@ -4,20 +4,11 @@ import { TopNav } from '@/components/shell/top-nav'
 import { QuickCaptureProvider } from '@/components/shell/quick-capture-provider'
 import { GlobalNavShortcuts } from '@/components/shell/global-nav-shortcuts'
 import { ErrorBoundary } from '@/components/shell/error-boundary'
-import { getSession, getAuthenticatedUserId } from '@/lib/auth/session'
-import { createWorkspaceForUser } from '@/lib/domain/workspace'
+import { getAuthenticatedUserId } from '@/lib/auth/session'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  let session = await getSession()
-
-  // Auto-provision a workspace so users can skip onboarding
-  if (!session) {
-    const user = await getAuthenticatedUserId()
-    if (!user) redirect('/sign-in')
-    await createWorkspaceForUser({ userId: user.userId, name: 'My Workspace' })
-    session = await getSession()
-    if (!session) redirect('/sign-in')
-  }
+  const user = await getAuthenticatedUserId()
+  if (!user) redirect('/sign-in')
 
   return (
     <QuickCaptureProvider>
