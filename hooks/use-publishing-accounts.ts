@@ -13,7 +13,10 @@ export function usePublishingAccounts(workspaceId: string) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/publishing/accounts')
+    const controller = new AbortController()
+    setLoading(true)
+
+    fetch('/api/publishing/accounts', { signal: controller.signal })
       .then(r => r.ok ? r.json() : { accounts: [] })
       .then(d => {
         const accs: PublishingAccount[] = d.accounts ?? []
@@ -22,8 +25,11 @@ export function usePublishingAccounts(workspaceId: string) {
         const stored = localStorage.getItem(STORAGE_KEY(workspaceId))
         if (stored) {
           try {
-            const parsed: string[] = JSON.parse(stored)
-            const valid = parsed.filter(id => accs.some(a => a.credentialId === id))
+            const parsed = JSON.parse(stored)
+            if (!Array.isArray(parsed)) throw new Error('invalid')
+            const valid = (parsed as unknown[]).filter(
+              (id): id is string => typeof id === 'string' && accs.some(a => a.credentialId === id)
+            )
             setSelected(new Set(valid))
           } catch {
             setSelected(new Set(accs.map(a => a.credentialId)))
@@ -33,6 +39,12 @@ export function usePublishingAccounts(workspaceId: string) {
         }
         setLoading(false)
       })
+      .catch(err => {
+        if (err instanceof Error && err.name === 'AbortError') return
+        setLoading(false)
+      })
+
+    return () => controller.abort()
   }, [workspaceId])
 
   const toggle = useCallback((credentialId: string) => {
@@ -43,10 +55,14 @@ export function usePublishingAccounts(workspaceId: string) {
       } else {
         next.add(credentialId)
       }
-      localStorage.setItem(STORAGE_KEY(workspaceId), JSON.stringify([...next]))
       return next
     })
-  }, [workspaceId])
+  }, [])
+
+  useEffect(() => {
+    if (loading) return
+    localStorage.setItem(STORAGE_KEY(workspaceId), JSON.stringify([...selected]))
+  }, [selected, workspaceId, loading])
 
   const byPlatform = accounts.reduce<Record<string, PublishingAccount[]>>((acc, a) => {
     if (!acc[a.platform]) acc[a.platform] = []
