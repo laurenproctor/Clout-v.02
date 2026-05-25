@@ -76,7 +76,10 @@ create table workspaces (
   assigned_operator_id uuid references users(id) on delete set null,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
-  deleted_at           timestamptz
+  deleted_at           timestamptz,
+  avatar_url           text,
+  brand_color          text,
+  slug_changed_at      timestamptz
 );
 create unique index workspaces_slug_idx on workspaces(slug) where deleted_at is null;
 create index workspaces_operator_idx on workspaces(assigned_operator_id)
@@ -92,6 +95,23 @@ create table workspace_members (
 );
 create index workspace_members_user_idx on workspace_members(user_id);
 create index workspace_members_role_idx on workspace_members(workspace_id, role);
+
+-- Slug history: old slugs from ANY workspace (including deleted) are never re-claimable
+create table workspace_slug_history (
+  old_slug     text primary key,
+  workspace_id uuid not null references workspaces(id) on delete cascade,
+  changed_at   timestamptz not null default now()
+);
+create index workspace_slug_history_workspace_idx on workspace_slug_history(workspace_id);
+
+alter table workspace_slug_history enable row level security;
+
+create policy "workspace_slug_history_select" on workspace_slug_history
+  for select using (
+    workspace_id in (
+      select workspace_id from workspace_members where user_id = auth_user_id()
+    )
+  );
 
 -- ============================================================
 -- PROFILES

@@ -2695,32 +2695,41 @@ export type Database = {
       workspaces: {
         Row: {
           assigned_operator_id: string | null
+          avatar_url: string | null
+          brand_color: string | null
           created_at: string
           deleted_at: string | null
           id: string
           name: string
           plan: Database["public"]["Enums"]["subscription_plan"]
           slug: string
+          slug_changed_at: string | null
           updated_at: string
         }
         Insert: {
           assigned_operator_id?: string | null
+          avatar_url?: string | null
+          brand_color?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
           name: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           slug: string
+          slug_changed_at?: string | null
           updated_at?: string
         }
         Update: {
           assigned_operator_id?: string | null
+          avatar_url?: string | null
+          brand_color?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
           name?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           slug?: string
+          slug_changed_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2731,6 +2740,32 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      workspace_slug_history: {
+        Row: {
+          changed_at: string
+          old_slug: string
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          old_slug: string
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          old_slug?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_slug_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
         ]
       }
     }
