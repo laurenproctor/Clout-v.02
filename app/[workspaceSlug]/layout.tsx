@@ -16,20 +16,19 @@ export default async function WorkspaceLayout({ children, params }: Props) {
 
   const supabase = createServiceClient()
 
-  // Try to find current workspace + membership in one query
-  const { data: membership } = await supabase
-    .from('workspace_members')
-    .select('role, workspaces(id, name, slug, plan, avatar_url, brand_color, deleted_at)')
-    .eq('user_id', user.userId)
-    .filter('workspaces.slug', 'eq', workspaceSlug)
-    .filter('workspaces.deleted_at', 'is', null)
+  // Look up workspace by slug
+  const { data: workspace } = await supabase
+    .from('workspaces')
+    .select('id, name, slug, plan, avatar_url, brand_color')
+    .eq('slug', workspaceSlug)
+    .is('deleted_at', null)
     .maybeSingle()
 
-  if (!membership || !membership.workspaces) {
+  if (!workspace) {
     // Check slug history — old slug → redirect to current slug
     const { data: history } = await supabase
       .from('workspace_slug_history')
-      .select('workspace_id, workspaces(slug)')
+      .select('workspaces(slug)')
       .eq('old_slug', workspaceSlug)
       .maybeSingle()
 
@@ -41,28 +40,28 @@ export default async function WorkspaceLayout({ children, params }: Props) {
     notFound()
   }
 
-  const ws = membership.workspaces as {
-    id: string
-    name: string
-    slug: string
-    plan: string
-    avatar_url: string | null
-    brand_color: string | null
-    deleted_at: string | null
-  }
+  // Verify user is a member of this workspace
+  const { data: member } = await supabase
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', workspace.id)
+    .eq('user_id', user.userId)
+    .maybeSingle()
 
-  const workspace: WorkspaceContextValue = {
-    id: ws.id,
-    name: ws.name,
-    slug: ws.slug,
-    plan: ws.plan as WorkspaceContextValue['plan'],
-    avatarUrl: ws.avatar_url,
-    brandColor: ws.brand_color,
-    userRole: membership.role as WorkspaceContextValue['userRole'],
+  if (!member) notFound()
+
+  const wsContext: WorkspaceContextValue = {
+    id: workspace.id,
+    name: workspace.name,
+    slug: workspace.slug,
+    plan: workspace.plan as WorkspaceContextValue['plan'],
+    avatarUrl: workspace.avatar_url,
+    brandColor: workspace.brand_color,
+    userRole: member.role as WorkspaceContextValue['userRole'],
   }
 
   return (
-    <WorkspaceProvider workspace={workspace}>
+    <WorkspaceProvider workspace={wsContext}>
       {children}
     </WorkspaceProvider>
   )
