@@ -137,6 +137,14 @@ create policy "workspace_invites_delete" on workspace_invites
     )
   );
 
+create policy "workspace_invites_update_accept" on workspace_invites
+  for update using (
+    email = (select email from users where id = auth_user_id())
+  )
+  with check (
+    accepted_at is not null
+  );
+
 -- Slug history: old slugs from ANY workspace (including deleted) are never re-claimable
 create table workspace_slug_history (
   old_slug     text primary key,

@@ -38,3 +38,11 @@ create policy "workspace_invites_delete" on workspace_invites
       where user_id = auth_user_id() and role in ('owner', 'admin')
     )
   );
+
+create policy "workspace_invites_update_accept" on workspace_invites
+  for update using (
+    email = (select email from users where id = auth_user_id())
+  )
+  with check (
+    accepted_at is not null
+  );
