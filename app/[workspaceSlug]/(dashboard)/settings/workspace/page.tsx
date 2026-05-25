@@ -1,269 +1,329 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useWorkspace } from '@/components/providers/workspace-provider'
+import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
+import * as Dialog from '@radix-ui/react-dialog'
 
-interface WorkspaceData {
-  workspace: { id: string; name: string; slug: string; plan: string } | null
-  memberCount: number
-  userRole: string
+type WorkspaceData = {
+  id: string
+  name: string
+  slug: string
+  plan: string
+  avatar_url: string | null
+  brand_color: string | null
+  slug_changed_at: string | null
 }
 
-const PLAN_LABELS: Record<string, string> = {
-  free: 'Free', pro: 'Pro', business: 'Business', enterprise: 'Enterprise',
+type SubscriptionData = {
+  plan: string
+  status: string
+  current_period_end: string | null
 }
+
+type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'rate_limited'
 
 export default function WorkspaceSettingsPage() {
+  const activeWorkspace = useWorkspace()
+  const router = useRouter()
   const [data, setData] = useState<WorkspaceData | null>(null)
-  const [name, setName] = useState('')
+  const [sub, setSub] = useState<SubscriptionData | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const [name, setName] = useState('')
+  const [brandColor, setBrandColor] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+
+  const [slug, setSlug] = useState('')
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
+  const [slugDaysLeft, setSlugDaysLeft] = useState<number | null>(null)
+  const [slugSaving, setSlugSaving] = useState(false)
+  const [slugError, setSlugError] = useState<string | null>(null)
+
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetch('/api/workspace')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d) {
-          setData(d)
-          setName(d.workspace?.name ?? '')
+      .then(r => r.ok ? r.json() : null)
+      .then((ws) => {
+        if (ws?.workspace) {
+          setData(ws.workspace)
+          setName(ws.workspace.name ?? '')
+          setBrandColor(ws.workspace.brand_color ?? '#18181b')
+          setSlug(ws.workspace.slug ?? '')
+          if (ws.workspace.slug_changed_at) {
+            const days = DateTime.now().diff(
+              DateTime.fromISO(ws.workspace.slug_changed_at), 'days'
+            ).days
+            if (days < 30) setSlugDaysLeft(Math.ceil(30 - days))
+          }
         }
+        if (ws?.subscription) setSub(ws.subscription)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
   }, [])
 
-  async function handleSave() {
+  useEffect(() => {
+    if (!slug || slug === data?.slug || slugDaysLeft !== null) return
+    setSlugStatus('checking')
+    const t = setTimeout(async () => {
+      const res = await fetch(`/api/workspace/slug-check?slug=${encodeURIComponent(slug)}`)
+      if (res.ok) {
+        const { available } = await res.json()
+        setSlugStatus(available ? 'available' : 'taken')
+      }
+    }, 200)
+    return () => clearTimeout(t)
+  }, [slug, data?.slug, slugDaysLeft])
+
+  const canEdit = activeWorkspace.userRole === 'owner' || activeWorkspace.userRole === 'admin'
+  const isRateLimited = slugDaysLeft !== null
+
+  async function handleSaveIdentity() {
     setSaving(true)
-    setError(null)
-    const res = await fetch('/api/workspace', {
+    await fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, brand_color: brandColor }),
     })
-    if (res.ok) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } else {
-      const d = await res.json()
-      setError(d.error ?? 'Save failed')
-    }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
     setSaving(false)
   }
 
-  const canEdit = data?.userRole === 'owner' || data?.userRole === 'admin'
-  const isDirty = name !== (data?.workspace?.name ?? '')
+  async function handleSaveSlug() {
+    setSlugSaving(true)
+    setSlugError(null)
+    const res = await fetch('/api/workspace/slug', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug }),
+    })
+    if (res.ok) {
+      const { slug: newSlug } = await res.json()
+      router.replace(`/${newSlug}/settings/workspace`)
+    } else {
+      const d = await res.json()
+      setSlugError(d.error ?? 'Failed to save')
+    }
+    setSlugSaving(false)
+  }
+
+  async function handleDelete() {
+    if (deleteConfirm !== data?.slug) return
+    setDeleting(true)
+    const res = await fetch('/api/workspace', { method: 'DELETE' })
+    if (res.ok) {
+      router.push('/')
+    }
+    setDeleting(false)
+  }
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
-        <div className="h-6 w-48 rounded bg-zinc-200 animate-pulse" />
-        <div className="h-48 rounded-lg border border-zinc-200 bg-white animate-pulse" />
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-40 rounded-lg border border-zinc-200 bg-zinc-50 animate-pulse" />
+        ))}
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-zinc-900">Workspace</h1>
-        <p className="mt-0.5 text-sm text-zinc-500">Settings for your workspace.</p>
-      </div>
-
-      {/* General */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-medium text-zinc-900">General</h2>
+    <div className="space-y-8 max-w-2xl">
+      {/* Identity */}
+      <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-zinc-900">Identity</h2>
 
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Workspace name
-          </label>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Workspace name</label>
           <input
-            className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={e => setName(e.target.value)}
             disabled={!canEdit}
-            placeholder="Workspace name"
+            className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Slug
-          </label>
-          <p className="mt-1.5 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 font-mono">
-            {data?.workspace?.slug ?? '—'}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">Slug cannot be changed after creation.</p>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Brand color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={brandColor}
+              onChange={e => setBrandColor(e.target.value)}
+              disabled={!canEdit}
+              className="h-8 w-8 rounded border border-zinc-200 cursor-pointer disabled:opacity-50"
+            />
+            <input
+              value={brandColor}
+              onChange={e => setBrandColor(e.target.value)}
+              disabled={!canEdit}
+              className="w-28 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-mono text-zinc-900 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-zinc-100">
-          <p className="text-sm text-zinc-500">
-            <span className="font-medium text-zinc-900">{data?.memberCount ?? 0}</span>{' '}
-            {data?.memberCount === 1 ? 'member' : 'members'}
-            {' · '}
-            <span className="capitalize">{data?.userRole}</span>
-          </p>
-          {canEdit && (
+        <button
+          onClick={handleSaveIdentity}
+          disabled={!canEdit || saving}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-zinc-800 transition-colors"
+        >
+          {saved ? 'Saved' : saving ? 'Saving...' : 'Save changes'}
+        </button>
+      </section>
+
+      {/* Workspace URL */}
+      <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
+        <h2 className="text-sm font-semibold text-zinc-900">Workspace URL</h2>
+        <p className="text-xs text-zinc-500">
+          This is your unique URL on Clout. Changing it will redirect old links for 30 days.
+        </p>
+
+        <div className={cn('flex items-center overflow-hidden rounded-md border', {
+          'border-zinc-200 opacity-60': isRateLimited || !canEdit,
+          'border-zinc-300': !isRateLimited && canEdit && slugStatus === 'idle',
+          'border-emerald-400': slugStatus === 'available',
+          'border-red-400': slugStatus === 'taken',
+        })}>
+          <span className="border-r border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-400 whitespace-nowrap">
+            clout.so/
+          </span>
+          <input
+            value={slug}
+            onChange={e => { setSlug(e.target.value); setSlugStatus('idle') }}
+            disabled={isRateLimited || !canEdit}
+            className="flex-1 px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none bg-white disabled:bg-zinc-50"
+          />
+          {!isRateLimited && canEdit && (
             <button
-              onClick={handleSave}
-              disabled={saving || !isDirty}
-              className={cn(
-                'rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                saving || !isDirty
-                  ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                  : 'bg-zinc-900 text-white hover:bg-zinc-700'
-              )}
+              onClick={handleSaveSlug}
+              disabled={slugSaving || slugStatus !== 'available' || slug === data?.slug}
+              className="border-l border-zinc-200 px-4 py-2 text-sm font-medium bg-zinc-900 text-white disabled:bg-zinc-200 disabled:text-zinc-400"
             >
-              {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save'}
+              Save
             </button>
           )}
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-      </div>
+        {slug !== data?.slug && !isRateLimited && (
+          <div className="flex items-center gap-1.5">
+            {slugStatus === 'available' && (
+              <>
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="text-xs text-zinc-500">{slug} is available</span>
+                {data?.slug_changed_at && (
+                  <span className="ml-auto text-xs text-zinc-400">
+                    Last changed {DateTime.fromISO(data.slug_changed_at).toRelativeCalendar()}
+                  </span>
+                )}
+              </>
+            )}
+            {slugStatus === 'taken' && (
+              <>
+                <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                <span className="text-xs text-red-600">{slug} is already taken</span>
+              </>
+            )}
+            {slugStatus === 'checking' && (
+              <span className="text-xs text-zinc-400">Checking...</span>
+            )}
+          </div>
+        )}
+
+        {isRateLimited && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 flex items-start gap-2">
+            <span className="text-base leading-none">⏳</span>
+            <div>
+              <p className="text-xs font-semibold text-amber-800">
+                Slug changed {30 - (slugDaysLeft ?? 30)} days ago
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                You can change your slug again in <strong>{slugDaysLeft} day{slugDaysLeft === 1 ? '' : 's'}</strong>.
+                Slugs are locked for 30 days to protect existing links.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {slugError && <p className="text-xs text-red-600">{slugError}</p>}
+      </section>
 
       {/* Plan */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-medium text-zinc-900">Plan</h2>
-            <p className="mt-0.5 text-sm text-zinc-500">
-              {PLAN_LABELS[data?.workspace?.plan ?? 'free'] ?? 'Free'}
-            </p>
-          </div>
-          <Link
-            href="/settings/billing"
-            className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-          >
-            Manage billing →
-          </Link>
-        </div>
-      </div>
+      <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-2">
+        <h2 className="text-sm font-semibold text-zinc-900">Plan</h2>
+        <p className="text-sm text-zinc-500 capitalize">
+          {sub?.plan ?? activeWorkspace.plan} plan
+          {sub?.current_period_end && (
+            <span className="text-zinc-400">
+              {' '}· Renews {DateTime.fromISO(sub.current_period_end).toLocaleString(DateTime.DATE_MED)}
+            </span>
+          )}
+        </p>
+        <a
+          href={`/${activeWorkspace.slug}/settings/billing`}
+          className="text-xs font-medium text-zinc-600 underline"
+        >
+          Manage billing →
+        </a>
+      </section>
 
-      {/* Members */}
-      <MembersSection workspaceId={data?.workspace?.id ?? ''} userRole={data?.userRole ?? 'viewer'} />
-    </div>
-  )
-}
-
-function MembersSection({ workspaceId, userRole }: { workspaceId: string; userRole: string }) {
-  const [members, setMembers] = useState<Array<{
-    user_id: string
-    role: string
-    joined_at: string
-    users: { email: string; full_name: string | null } | null
-  }>>([])
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState('editor')
-  const [inviting, setInviting] = useState(false)
-  const [inviteError, setInviteError] = useState<string | null>(null)
-  const [inviteSuccess, setInviteSuccess] = useState(false)
-
-  const canInvite = userRole === 'owner' || userRole === 'admin'
-
-  useEffect(() => {
-    fetch('/api/workspace/members')
-      .then((r) => r.ok ? r.json() : [])
-      .then(setMembers)
-      .catch(() => {})
-  }, [])
-
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email.trim()) return
-    setInviting(true)
-    setInviteError(null)
-
-    const res = await fetch('/api/workspace/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), role }),
-    })
-
-    if (res.ok) {
-      setEmail('')
-      setInviteSuccess(true)
-      setTimeout(() => setInviteSuccess(false), 3000)
-      // Reload members
-      const updated = await fetch('/api/workspace/members')
-      if (updated.ok) setMembers(await updated.json())
-    } else {
-      const data = await res.json()
-      setInviteError(data.error ?? 'Failed to add member')
-    }
-    setInviting(false)
-  }
-
-  function timeAgo(dateStr: string): string {
-    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
-    if (days === 0) return 'Today'
-    if (days < 30) return `${days}d ago`
-    return `${Math.floor(days / 30)}mo ago`
-  }
-
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
-      <h2 className="text-sm font-medium text-zinc-900">Team members</h2>
-
-      {/* Member list */}
-      <div className="divide-y divide-zinc-100">
-        {members.map((m) => (
-          <div key={m.user_id} className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-zinc-900">
-                {m.users?.full_name ?? m.users?.email ?? m.user_id.slice(0, 8)}
-              </p>
-              <p className="text-xs text-zinc-400">{m.users?.email}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-zinc-400">{timeAgo(m.joined_at)}</span>
-              <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-600 capitalize">
-                {m.role}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Invite form */}
-      {canInvite && (
-        <form onSubmit={handleInvite} className="space-y-3 border-t border-zinc-100 pt-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Add member</p>
-          <p className="text-xs text-zinc-400">
-            They must already have a Clout account. Enter their email address.
+      {/* Danger zone */}
+      {activeWorkspace.userRole === 'owner' && (
+        <section className="rounded-lg border border-red-200 bg-white p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-red-700">Danger zone</h2>
+          <p className="text-xs text-zinc-500">
+            Permanently deletes this workspace, all its content, and all member access. This cannot be undone.
           </p>
-          <div className="flex gap-2">
-            <input
-              type="email"
-              className="flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-              placeholder="colleague@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <select
-              className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="editor">Editor</option>
-              <option value="admin">Admin</option>
-              <option value="viewer">Viewer</option>
-            </select>
-            <button
-              type="submit"
-              disabled={inviting || !email.trim()}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-40"
-            >
-              {inviting ? 'Adding...' : inviteSuccess ? 'Added ✓' : 'Add'}
-            </button>
-          </div>
-          {inviteError && <p className="text-xs text-red-600">{inviteError}</p>}
-        </form>
+          <button
+            onClick={() => setShowDelete(true)}
+            className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Delete workspace
+          </button>
+        </section>
       )}
+
+      <Dialog.Root open={showDelete} onOpenChange={setShowDelete}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+            <Dialog.Title className="text-base font-semibold text-zinc-900 mb-2">
+              Delete workspace
+            </Dialog.Title>
+            <p className="text-sm text-zinc-500 mb-4">
+              This will permanently delete <strong>{data?.name}</strong> and all its data.
+              Type <strong>{data?.slug}</strong> to confirm.
+            </p>
+            <input
+              value={deleteConfirm}
+              onChange={e => setDeleteConfirm(e.target.value)}
+              placeholder={data?.slug}
+              className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm font-mono mb-4 focus:border-zinc-400 focus:outline-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowDelete(false)}
+                className="rounded-md border border-zinc-200 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteConfirm !== data?.slug || deleting}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-red-700"
+              >
+                {deleting ? 'Deleting...' : 'Delete workspace'}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }
