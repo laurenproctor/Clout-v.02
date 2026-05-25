@@ -57,6 +57,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ u
     return NextResponse.json({ error: 'Cannot remove yourself' }, { status: 400 })
   }
 
+  const { data: targetMember } = await supabase
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', session.workspaceId)
+    .eq('user_id', targetUserId)
+    .single()
+
+  if (!targetMember) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+  if (targetMember.role === 'owner') {
+    return NextResponse.json({ error: 'Cannot remove the workspace owner' }, { status: 403 })
+  }
+
   await supabase
     .from('workspace_members')
     .delete()

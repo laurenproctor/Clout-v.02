@@ -53,6 +53,17 @@ export async function DELETE(req: NextRequest) {
   if (!inviteId) return NextResponse.json({ error: 'Invite ID required' }, { status: 400 })
 
   const supabase = createServiceClient()
+  const { data: actor } = await supabase
+    .from('workspace_members')
+    .select('role')
+    .eq('workspace_id', session.workspaceId)
+    .eq('user_id', session.userId)
+    .single()
+
+  if (!actor || !['owner', 'admin'].includes(actor.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   await supabase
     .from('workspace_invites')
     .delete()
