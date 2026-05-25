@@ -134,7 +134,7 @@ export default function TeamPage() {
           {members.map(m => (
             <div key={m.userId} className="flex items-center gap-3 px-6 py-3">
               <div className="h-7 w-7 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-medium text-zinc-600 shrink-0">
-                {(m.fullName ?? m.email)[0].toUpperCase()}
+                {(m.fullName ?? m.email || '?')[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-zinc-900 truncate">{m.fullName ?? m.email}</p>
