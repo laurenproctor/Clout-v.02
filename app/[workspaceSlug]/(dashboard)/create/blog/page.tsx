@@ -1,14 +1,29 @@
-// app/(dashboard)/create/blog/page.tsx
-import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth/session'
+// app/[workspaceSlug]/(dashboard)/create/blog/page.tsx
+import { redirect, notFound } from 'next/navigation'
+import { getAuthenticatedUserId } from '@/lib/auth/session'
+import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
 import { BlogWorkspace } from '@/components/blog/BlogWorkspace'
 
-export default async function BlogCreatePage() {
-  const session = await getSession()
-  if (!session) redirect('/sign-in')
+export default async function BlogCreatePage({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>
+}) {
+  const { workspaceSlug } = await params
+  const user = await getAuthenticatedUserId()
+  if (!user) redirect('/sign-in')
 
-  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const supabase = createServiceClient()
+  const { data: workspace } = await supabase
+    .from('workspaces')
+    .select('id')
+    .eq('slug', workspaceSlug)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!workspace) notFound()
+
+  const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
 
   return (
@@ -20,7 +35,7 @@ export default async function BlogCreatePage() {
         </p>
       </div>
       <div className="flex-1 min-h-0">
-        <BlogWorkspace lenses={lenses} workspaceId={session.workspaceId} />
+        <BlogWorkspace lenses={lenses} workspaceId={workspace.id} />
       </div>
     </div>
   )

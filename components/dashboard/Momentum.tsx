@@ -12,12 +12,13 @@ function formatHour(hour: number): string {
 
 export function Momentum() {
   const [summary, setSummary] = useState<PerformanceSummary | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch('/api/performance/summary')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => setSummary(d))
-      .catch(() => {})
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((d: PerformanceSummary) => setSummary(d))
+      .catch(() => setError(true))
   }, [])
 
   return (
@@ -27,7 +28,9 @@ export function Momentum() {
         <h2 className="text-sm font-medium text-zinc-900">Momentum</h2>
       </div>
 
-      {!summary ? (
+      {error ? (
+        <p className="py-4 text-center text-xs text-zinc-400">Could not load stats</p>
+      ) : !summary ? (
         <div className="flex items-center justify-center py-4">
           <Loader2 className="h-4 w-4 animate-spin text-zinc-300" />
         </div>

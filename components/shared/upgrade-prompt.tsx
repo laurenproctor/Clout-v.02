@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 interface UpgradePromptProps {
   type: 'capture' | 'generation'
@@ -8,6 +11,7 @@ interface UpgradePromptProps {
 }
 
 export function UpgradePrompt({ type, used, limit, onDismiss }: UpgradePromptProps) {
+  const { slug } = useWorkspace()
   const label = type === 'capture' ? 'captures' : 'generations'
 
   return (
@@ -32,13 +36,13 @@ export function UpgradePrompt({ type, used, limit, onDismiss }: UpgradePromptPro
       </div>
       <div className="mt-3 flex gap-2">
         <Link
-          href="/settings/billing"
+          href={`/${slug}/settings/billing`}
           className="rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 transition-colors"
         >
           Upgrade plan →
         </Link>
         <Link
-          href="/settings/billing"
+          href={`/${slug}/settings/billing`}
           className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
         >
           View usage

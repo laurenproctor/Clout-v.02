@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Loader2, ExternalLink, Check } from 'lucide-react'
+import Link from 'next/link'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import { blogPackageToCanonical } from '@/lib/publishing/canonical/from-blog'
 import { generateSlug } from '@/lib/publishing/canonical/normalizer'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
@@ -21,6 +23,7 @@ type DrawerStatus = 'idle' | 'publishing' | 'success' | 'error'
 export function PublishToCmsDrawer({
   open, onClose, blogPackage, sourceId, workspaceId,
 }: PublishToCmsDrawerProps) {
+  const { slug: workspaceSlug } = useWorkspace()
   const [connections, setConnections]        = useState<ProviderConnectionSafe[]>([])
   const [loadingConnections, setLoadingConn] = useState(true)
   const [connectionId, setConnectionId]      = useState('')
@@ -167,7 +170,7 @@ export function PublishToCmsDrawer({
             ) : connections.length === 0 ? (
               <p className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-500">
                 No publishing destinations.{' '}
-                <a href="/settings/publishing" className="text-zinc-900 underline">Add one in Settings.</a>
+                <Link href={`/${workspaceSlug}/settings/publishing`} className="text-zinc-900 underline">Add one in Settings.</Link>
               </p>
             ) : (
               <select value={connectionId} onChange={e => setConnectionId(e.target.value)}

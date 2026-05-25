@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PenSquare, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Output, OutputContent } from '@/types/domain'
 
 type FilterStatus = 'all' | 'draft' | 'review' | 'approved'
@@ -18,6 +19,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function StudioPage() {
+  const { slug } = useWorkspace()
   const [outputs, setOutputs] = useState<Output[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterStatus>('all')
@@ -96,7 +98,7 @@ export default function StudioPage() {
                 Create a capture and run it through a Lens to generate content.
               </p>
               <Link
-                href="/capture/new"
+                href={`/${slug}/capture/new`}
                 className="mt-4 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
               >
                 New capture
@@ -121,7 +123,7 @@ export default function StudioPage() {
           {filtered.map((output) => (
             <Link
               key={output.id}
-              href={`/studio/${output.id}`}
+              href={`/${slug}/studio/${output.id}`}
               className="flex items-start gap-4 px-5 py-4 hover:bg-zinc-50 transition-colors"
             >
               <div className="flex-1 min-w-0">

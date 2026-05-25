@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, PrivateEnrichment } from '@/types/domain'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 type Tab = 'raw' | 'enriched'
 
@@ -18,6 +19,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function PrivatePage() {
+  const { slug } = useWorkspace()
   const [activeTab, setActiveTab] = useState<Tab>('raw')
   const [activeTag, setActiveTag] = useState('All')
   const [captures, setCaptures] = useState<Capture[]>([])
@@ -63,7 +65,7 @@ export default function PrivatePage() {
           </p>
         </div>
         <Link
-          href="/capture/new"
+          href={`/${slug}/capture/new`}
           className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
         >
           <Lock className="h-3.5 w-3.5" />
@@ -124,7 +126,7 @@ export default function PrivatePage() {
             {captures.map((capture) => (
               <Link
                 key={capture.id}
-                href={`/private/${capture.id}`}
+                href={`/${slug}/private/${capture.id}`}
                 className="block px-5 py-4 hover:bg-zinc-50 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -196,6 +198,7 @@ export default function PrivatePage() {
 }
 
 function EmptyState({ enriched }: { enriched?: boolean }) {
+  const { slug } = useWorkspace()
   return (
     <div className="rounded-lg border border-zinc-200 bg-white">
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -211,7 +214,7 @@ function EmptyState({ enriched }: { enriched?: boolean }) {
             : 'Use the 🔒 toggle when capturing to keep something just for you.'}
         </p>
         <Link
-          href="/capture/new"
+          href={`/${slug}/capture/new`}
           className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
         >
           Add your first private thought

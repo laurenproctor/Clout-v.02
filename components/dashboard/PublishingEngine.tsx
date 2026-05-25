@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Zap, AlertCircle, Loader2 } from 'lucide-react'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 interface Stats {
   queued: number
@@ -12,13 +13,15 @@ interface Stats {
 }
 
 export function PublishingEngine() {
+  const { slug } = useWorkspace()
   const [stats, setStats] = useState<Stats | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch('/api/publishing/stats')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => setStats(d))
-      .catch(() => {})
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((d: Stats) => setStats(d))
+      .catch(() => setError(true))
   }, [])
 
   return (
@@ -28,16 +31,18 @@ export function PublishingEngine() {
         <h2 className="text-sm font-medium text-zinc-900">Publishing Engine</h2>
       </div>
 
-      {!stats ? (
+      {error ? (
+        <p className="py-4 text-center text-xs text-zinc-400">Could not load stats</p>
+      ) : !stats ? (
         <div className="flex items-center justify-center py-4">
           <Loader2 className="h-4 w-4 animate-spin text-zinc-300" />
         </div>
       ) : (
         <div className="space-y-2">
-          <StatRow label="Queued" value={stats.queued + stats.publishing} href="/queue" />
-          <StatRow label="Published" value={stats.published} href="/queue" />
+          <StatRow label="Queued" value={stats.queued + stats.publishing} href={`/${slug}/queue`} />
+          <StatRow label="Published" value={stats.published} href={`/${slug}/queue`} />
           {stats.failed > 0 && (
-            <Link href="/queue" className="flex items-center justify-between rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm hover:bg-red-100 transition-colors">
+            <Link href={`/${slug}/queue`} className="flex items-center justify-between rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm hover:bg-red-100 transition-colors">
               <span className="flex items-center gap-2 text-red-600">
                 <AlertCircle className="h-3.5 w-3.5" />
                 {stats.failed} failed — attention needed

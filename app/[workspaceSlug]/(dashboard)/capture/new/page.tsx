@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import { CaptureComposer } from '@/components/capture/capture-composer'
 
 const HEADLINES: { heading: string; subheading: string }[] = [
@@ -34,6 +35,7 @@ export default function NewCapturePage() {
 }
 
 function NewCaptureInner() {
+  const { slug } = useWorkspace()
   const searchParams = useSearchParams()
   const [headline] = useState(() => HEADLINES[Math.floor(Math.random() * HEADLINES.length)])
 
@@ -44,7 +46,7 @@ function NewCaptureInner() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/capture" className="text-zinc-400 hover:text-zinc-700 transition-colors">
+        <Link href={`/${slug}/capture`} className="text-zinc-400 hover:text-zinc-700 transition-colors">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>

@@ -1,15 +1,30 @@
-// app/(dashboard)/create/linkedin/page.tsx
-import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth/session'
+// app/[workspaceSlug]/(dashboard)/create/linkedin/page.tsx
+import { redirect, notFound } from 'next/navigation'
+import { getAuthenticatedUserId } from '@/lib/auth/session'
+import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
 import { LinkedInWorkspace } from '@/components/linkedin/LinkedInWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
-export default async function LinkedInCreatePage() {
-  const session = await getSession()
-  if (!session) redirect('/sign-in')
+export default async function LinkedInCreatePage({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>
+}) {
+  const { workspaceSlug } = await params
+  const user = await getAuthenticatedUserId()
+  if (!user) redirect('/sign-in')
 
-  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const supabase = createServiceClient()
+  const { data: workspace } = await supabase
+    .from('workspaces')
+    .select('id')
+    .eq('slug', workspaceSlug)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (!workspace) notFound()
+
+  const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
 
   return (

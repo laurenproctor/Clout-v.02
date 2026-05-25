@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Try again
             </button>
             <Link
-              href="/dashboard"
+              href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : ''}/dashboard`}
               className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Go to dashboard

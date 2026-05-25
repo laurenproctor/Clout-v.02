@@ -6,10 +6,12 @@ import Link from 'next/link'
 import { ArrowLeft, Lock, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, PrivateEnrichment, Lens } from '@/types/domain'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 export default function PrivateCaptureDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { slug } = useWorkspace()
 
   const [capture, setCapture] = useState<Capture | null>(null)
   const [enrichment, setEnrichment] = useState<PrivateEnrichment | null>(null)
@@ -59,7 +61,7 @@ export default function PrivateCaptureDetailPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        router.push(`/studio/${data.output_id}`)
+        router.push(`/${slug}/studio/${data.output_id}`)
       } else {
         setError(data.error ?? 'Generation failed')
       }
@@ -83,7 +85,7 @@ export default function PrivateCaptureDetailPage() {
     return (
       <div className="mx-auto max-w-3xl">
         <p className="text-sm text-zinc-500">Capture not found.</p>
-        <Link href="/private" className="mt-2 text-sm text-zinc-900 underline">Back to Private Feed</Link>
+        <Link href={`/${slug}/private`} className="mt-2 text-sm text-zinc-900 underline">Back to Private Feed</Link>
       </div>
     )
   }
@@ -94,7 +96,7 @@ export default function PrivateCaptureDetailPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/private" className="text-zinc-400 hover:text-zinc-700 transition-colors">
+        <Link href={`/${slug}/private`} className="text-zinc-400 hover:text-zinc-700 transition-colors">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex items-center gap-2">
@@ -158,7 +160,7 @@ export default function PrivateCaptureDetailPage() {
         {lenses.length === 0 ? (
           <p className="text-sm text-zinc-500">
             No lenses available.{' '}
-            <Link href="/settings/lenses" className="underline">Create a lens</Link> first.
+            <Link href={`/${slug}/settings/lenses`} className="underline">Create a lens</Link> first.
           </p>
         ) : (
           <div className="space-y-3">

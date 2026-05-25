@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 interface Variant {
   id: string
@@ -15,6 +16,7 @@ interface Props {
 
 export function VariantsRail({ variants }: Props) {
   const router = useRouter()
+  const { slug } = useWorkspace()
   if (variants.length <= 1) return null
 
   return (
@@ -22,7 +24,7 @@ export function VariantsRail({ variants }: Props) {
       {variants.map((v) => (
         <button
           key={v.id}
-          onClick={() => { if (!v.isCurrent) router.push(`/studio/${v.id}`) }}
+          onClick={() => { if (!v.isCurrent) router.push(`/${slug}/studio/${v.id}`) }}
           title={v.label}
           className={cn(
             'w-7 h-7 rounded-md flex items-center justify-center font-semibold transition-colors text-[11px]',

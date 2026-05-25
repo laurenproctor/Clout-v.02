@@ -3,6 +3,7 @@
 import { PlatformPill } from './PlatformPill'
 import type { CalendarPost } from '@/types/calendar'
 import { useRouter } from 'next/navigation'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 interface PlatformVariantStripProps {
   posts: CalendarPost[]
@@ -14,6 +15,7 @@ export function PlatformVariantStrip({
   maxVisible = 4,
 }: PlatformVariantStripProps) {
   const router = useRouter()
+  const { slug } = useWorkspace()
   const visible = posts.slice(0, maxVisible)
   const overflow = posts.length - maxVisible
 
@@ -24,7 +26,7 @@ export function PlatformVariantStrip({
           key={post.id}
           onClick={(e) => {
             e.stopPropagation()
-            router.push(`/studio/${post.id}`)
+            router.push(`/${slug}/studio/${post.id}`)
           }}
         >
           <PlatformPill post={post} />

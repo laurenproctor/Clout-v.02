@@ -1,6 +1,9 @@
+'use client'
+
 // components/create/CreateCard.tsx
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { ContentType } from '@/lib/content/contentTypes'
 
 interface CreateCardProps {
@@ -10,6 +13,7 @@ interface CreateCardProps {
 }
 
 export function CreateCard({ type, variant }: CreateCardProps) {
+  const { slug } = useWorkspace()
   const Icon = type.icon
   const isActive = type.status === 'active'
 
@@ -74,7 +78,7 @@ export function CreateCard({ type, variant }: CreateCardProps) {
   )
 
   if (isActive && type.route) {
-    return <Link href={type.route}>{cardContent}</Link>
+    return <Link href={`/${slug}${type.route}`}>{cardContent}</Link>
   }
 
   return cardContent

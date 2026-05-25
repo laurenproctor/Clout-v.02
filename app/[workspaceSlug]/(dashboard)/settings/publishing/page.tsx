@@ -2,6 +2,8 @@
 
 import { useEffect, useState, Suspense, useCallback, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import { X, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
@@ -394,6 +396,7 @@ function GBPLocationPicker({
 function PublishingInfrastructureContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
+  const { slug }     = useWorkspace()
 
   const [socialChannels, setSocialChannels]   = useState<Channel[]>([])
   const [connections, setConnections]         = useState<ProviderConnectionSafe[]>([])
@@ -745,8 +748,8 @@ function PublishingInfrastructureContent() {
       </div>
 
       {/* Editorial Intelligence link */}
-      <a
-        href="/settings/analytics"
+      <Link
+        href={`/${slug}/settings/analytics`}
         className="mb-8 flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3.5 hover:bg-zinc-50 transition-colors"
       >
         <div>
@@ -756,7 +759,7 @@ function PublishingInfrastructureContent() {
         <svg className="w-4 h-4 text-zinc-400 shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-      </a>
+      </Link>
 
       {/* Distribution Channels */}
       <section className="mb-12">

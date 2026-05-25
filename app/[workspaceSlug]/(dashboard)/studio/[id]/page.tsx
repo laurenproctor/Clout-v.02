@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Sparkles, ChevronDown } from 'lucide-react'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import { cn } from '@/lib/utils'
 import { VariantsRail } from '@/components/studio/variants-rail'
 import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
@@ -58,6 +59,7 @@ function channelDisplayName(ch: FullChannel): string {
 export default function StudioEditorPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { slug } = useWorkspace()
 
   const [output,   setOutput]   = useState<Output | null>(null)
   const [channels, setChannels] = useState<FullChannel[]>([])
@@ -385,7 +387,7 @@ export default function StudioEditorPage() {
           <p className="text-sm font-medium text-zinc-300">{loadError ?? 'Draft not found.'}</p>
           <p className="text-xs text-zinc-600">The draft may have been deleted or you may not have access.</p>
         </div>
-        <Link href="/calendar" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+        <Link href={`/${slug}/calendar`} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
           ← Back to calendar
         </Link>
       </div>
@@ -404,7 +406,7 @@ export default function StudioEditorPage() {
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-4 h-12 flex-shrink-0 border-b border-zinc-800/60">
         <div className="flex items-center gap-3">
-          <Link href="/calendar" className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-400 transition-colors text-xs">
+          <Link href={`/${slug}/calendar`} className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-400 transition-colors text-xs">
             <ArrowLeft className="h-3.5 w-3.5" />
             Calendar
           </Link>
@@ -478,7 +480,7 @@ export default function StudioEditorPage() {
                   setActiveTabId(id)
                 } else {
                   setActiveTabId(postId)
-                  router.push(`/studio/${postId}`)
+                  router.push(`/${slug}/studio/${postId}`)
                 }
               }}
             />
@@ -617,7 +619,7 @@ export default function StudioEditorPage() {
                         setActiveTabId(id)
                       } else {
                         setActiveTabId(postId)
-                        router.push(`/studio/${postId}`)
+                        router.push(`/${slug}/studio/${postId}`)
                       }
                     }}
                   />
@@ -763,7 +765,7 @@ export default function StudioEditorPage() {
                 </a>
               )}
               <Link
-                href="/channels"
+                href={`/${slug}/channels`}
                 className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
               >
                 Back to Publishing
@@ -786,7 +788,7 @@ export default function StudioEditorPage() {
                 </a>
               )}
               <Link
-                href="/channels"
+                href={`/${slug}/channels`}
                 className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
               >
                 Back to Publishing

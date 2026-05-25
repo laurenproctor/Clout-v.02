@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 type Tab = 'overview' | 'content' | 'lenses' | 'attribution' | 'search'
 type Preset = '30d' | '3mo' | '6mo' | '1yr'
@@ -107,6 +109,7 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
 }
 
 function ConnectPrompt() {
+  const { slug } = useWorkspace()
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-10 text-center">
       <p className="text-sm font-medium text-zinc-900 mb-2">Connect Google Analytics to unlock intelligence</p>
@@ -114,12 +117,12 @@ function ConnectPrompt() {
         Clout will automatically attribute every piece of content you publish to traffic, conversions,
         and search rankings — by lens, narrative type, and channel.
       </p>
-      <a
-        href="/settings/analytics"
+      <Link
+        href={`/${slug}/settings/analytics`}
         className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
       >
         Connect Google Analytics
-      </a>
+      </Link>
     </div>
   )
 }

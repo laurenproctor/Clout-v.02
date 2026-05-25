@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { PlatformIcon } from '@/components/platform-icons'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { CalendarPost } from '@/types/calendar'
 import { cn } from '@/lib/utils'
 
@@ -21,11 +22,12 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
 
 export function PlatformPostRow({ post }: PlatformPostRowProps) {
   const router = useRouter()
+  const { slug } = useWorkspace()
   const status = STATUS_LABEL[post.status] ?? STATUS_LABEL.draft
 
   return (
     <button
-      onClick={() => router.push(`/studio/${post.id}`)}
+      onClick={() => router.push(`/${slug}/studio/${post.id}`)}
       className={cn(
         'flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-left',
         'bg-zinc-50 border border-zinc-100 hover:bg-white hover:border-zinc-300',

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import { ChevronDown, Loader2, Lock, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
@@ -63,6 +64,7 @@ interface CaptureComposerProps {
 
 export function CaptureComposer({ initialContent = '', initialMode = 'assistant', onClose }: CaptureComposerProps) {
   const router = useRouter()
+  const { slug } = useWorkspace()
 
   const [source, setSource] = useState<CaptureSource>('text')
   const [content, setContent] = useState(initialContent)
@@ -180,7 +182,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
 
   function navigate(path: string) {
     onClose?.()
-    router.push(path)
+    router.push(`/${slug}${path}`)
   }
 
   async function handleSubmit(e: React.FormEvent) {

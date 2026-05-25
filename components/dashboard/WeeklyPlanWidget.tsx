@@ -6,6 +6,7 @@ import { DateTime } from 'luxon'
 import { CheckCircle2, ArrowRight, Loader2, CalendarClock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Output, OutputContent, WeeklyPlanItem } from '@/types/domain'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 function excerpt(output: Output): string {
   const body = (output.content as OutputContent).body ?? ''
@@ -56,20 +57,29 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
 }
 
 export function WeeklyPlanWidget() {
+  const { slug } = useWorkspace()
   const [items, setItems] = useState<WeeklyPlanItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   // Track which items are being approved (optimistic)
   const [approving, setApproving] = useState<Set<string>>(new Set())
   // Track which items have been approved (for exit animation)
   const [approved, setApproved] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/weekly-plan')
-    if (res.ok) {
-      const data: Record<string, unknown>[] = await res.json()
-      setItems(data.slice(0, 3).map(mapItem))
+    try {
+      const res = await fetch('/api/weekly-plan')
+      if (res.ok) {
+        const data: Record<string, unknown>[] = await res.json()
+        setItems(data.slice(0, 3).map(mapItem))
+      } else {
+        setError(true)
+      }
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -114,7 +124,7 @@ export function WeeklyPlanWidget() {
           )}
         </div>
         <Link
-          href="/inbox"
+          href={`/${slug}/inbox`}
           className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors"
         >
           Review all <ArrowRight className="h-3 w-3" />
@@ -131,12 +141,16 @@ export function WeeklyPlanWidget() {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <div className="px-5 pb-5 text-center py-6">
+          <p className="text-xs text-zinc-400">Could not load plan</p>
+        </div>
       ) : items.length === 0 ? (
         <div className="px-5 pb-5 text-center py-6">
           <p className="text-sm font-medium text-zinc-900">All caught up ✓</p>
           <p className="mt-0.5 text-xs text-zinc-400">No drafts waiting for approval.</p>
           <Link
-            href="/studio"
+            href={`/${slug}/studio`}
             className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
           >
             Go to Studio <ArrowRight className="h-3 w-3" />

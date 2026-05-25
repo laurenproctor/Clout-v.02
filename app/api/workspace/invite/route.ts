@@ -64,11 +64,13 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await supabase
+  const { error } = await supabase
     .from('workspace_invites')
     .delete()
     .eq('id', inviteId)
     .eq('workspace_id', session.workspaceId)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

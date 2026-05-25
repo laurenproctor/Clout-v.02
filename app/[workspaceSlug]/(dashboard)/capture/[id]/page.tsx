@@ -5,12 +5,14 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Capture, Lens } from '@/types/domain'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
 
 export default function CaptureDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { slug } = useWorkspace()
 
   const [capture, setCapture] = useState<Capture | null>(null)
   const [lenses, setLenses] = useState<Lens[]>([])
@@ -55,7 +57,7 @@ export default function CaptureDetailPage() {
     setDeleting(true)
     const res = await fetch(`/api/capture/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      router.push('/capture')
+      router.push(`/${slug}/capture`)
     }
     setDeleting(false)
   }
@@ -113,7 +115,7 @@ export default function CaptureDetailPage() {
         setError(data.error ?? 'Generation failed')
         return
       }
-      router.push(`/studio/${data.output_id}`)
+      router.push(`/${slug}/studio/${data.output_id}`)
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -134,7 +136,7 @@ export default function CaptureDetailPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-sm text-zinc-500">Capture not found.</p>
-        <Link href="/capture" className="mt-2 text-sm text-zinc-900 underline">
+        <Link href={`/${slug}/capture`} className="mt-2 text-sm text-zinc-900 underline">
           Back to captures
         </Link>
       </div>
@@ -146,7 +148,7 @@ export default function CaptureDetailPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/capture" className="text-zinc-400 hover:text-zinc-700 transition-colors">
+        <Link href={`/${slug}/capture`} className="text-zinc-400 hover:text-zinc-700 transition-colors">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <h1 className="text-xl font-semibold text-zinc-900">Capture</h1>
@@ -312,6 +314,7 @@ export default function CaptureDetailPage() {
 }
 
 function QuickCreateLens({ onCreated }: { onCreated: (lens: Lens) => void }) {
+  const { slug } = useWorkspace()
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
@@ -331,7 +334,7 @@ function QuickCreateLens({ onCreated }: { onCreated: (lens: Lens) => void }) {
           >
             Create a lens →
           </button>
-          <Link href="/settings/lenses" className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+          <Link href={`/${slug}/settings/lenses`} className="rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
             Browse lenses
           </Link>
         </div>
@@ -403,6 +406,7 @@ function QuickCreateLens({ onCreated }: { onCreated: (lens: Lens) => void }) {
 }
 
 function ExistingOutputs({ captureId }: { captureId: string }) {
+  const { slug } = useWorkspace()
   const [outputs, setOutputs] = useState<Array<{
     id: string
     title: string | null
@@ -426,7 +430,7 @@ function ExistingOutputs({ captureId }: { captureId: string }) {
         {outputs.map((output) => (
           <Link
             key={output.id}
-            href={`/studio/${output.id}`}
+            href={`/${slug}/studio/${output.id}`}
             className="flex items-center justify-between rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 hover:bg-zinc-100 transition-colors"
           >
             <span className="text-sm text-zinc-800 truncate">

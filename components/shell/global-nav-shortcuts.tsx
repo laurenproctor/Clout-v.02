@@ -2,25 +2,27 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-
-const NAV_MAP: Record<string, string> = {
-  d: '/dashboard',
-  i: '/inbox',
-  q: '/queue',
-  c: '/capture',
-  w: '/create',
-  s: '/syndicate',
-  t: '/studio',
-  a: '/analytics',
-  l: '/settings/lenses',
-}
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 export function GlobalNavShortcuts() {
   const router = useRouter()
+  const { slug } = useWorkspace()
   const waitingRef = useRef(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    const navMap: Record<string, string> = {
+      d: `/${slug}/dashboard`,
+      i: `/${slug}/inbox`,
+      q: `/${slug}/queue`,
+      c: `/${slug}/capture`,
+      w: `/${slug}/create`,
+      s: `/${slug}/syndicate`,
+      t: `/${slug}/studio`,
+      a: `/${slug}/analytics`,
+      l: `/${slug}/settings/lenses`,
+    }
+
     function handleKeyDown(e: KeyboardEvent) {
       // Never fire inside inputs or with modifier keys
       const el = e.target as HTMLElement
@@ -36,7 +38,7 @@ export function GlobalNavShortcuts() {
         if (timeoutRef.current) clearTimeout(timeoutRef.current)
         waitingRef.current = false
 
-        const route = NAV_MAP[e.key.toLowerCase()]
+        const route = navMap[e.key.toLowerCase()]
         if (route) {
           e.preventDefault()
           router.push(route)
@@ -57,7 +59,7 @@ export function GlobalNavShortcuts() {
       window.removeEventListener('keydown', handleKeyDown)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [router])
+  }, [router, slug])
 
   return null
 }

@@ -129,7 +129,11 @@ export async function POST(req: NextRequest) {
       .join('\n')
 
     // Generate via OpenAI
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const openaiKey = process.env.OPENAI_API_KEY
+    if (!openaiKey) {
+      return NextResponse.json({ error: 'OpenAI is not configured' }, { status: 503 })
+    }
+    const openai = new OpenAI({ apiKey: openaiKey })
 
     const systemPrompt = buildSystemPrompt(
       profile.brand_name,

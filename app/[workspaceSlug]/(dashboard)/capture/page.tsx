@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Lock, Zap, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Capture } from '@/types/domain'
 
 type StatusFilter = 'all' | 'pending' | 'ready' | 'failed'
@@ -18,6 +19,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function CapturePage() {
+  const { slug } = useWorkspace()
   const [captures, setCaptures] = useState<Capture[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -62,14 +64,14 @@ export default function CapturePage() {
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Link
-            href="/private"
+            href={`/${slug}/private`}
             className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
           >
             <Lock className="h-3.5 w-3.5" />
             Private
           </Link>
           <Link
-            href="/capture/new"
+            href={`/${slug}/capture/new`}
             className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
           >
             + New Capture
@@ -128,7 +130,7 @@ export default function CapturePage() {
                 Paste a thought, record your voice, paste a URL, or fill out a quick form.
               </p>
               <Link
-                href="/capture/new"
+                href={`/${slug}/capture/new`}
                 className="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
               >
                 New capture
@@ -150,7 +152,7 @@ export default function CapturePage() {
           {filtered.map((capture) => (
             <Link
               key={capture.id}
-              href={`/capture/${capture.id}`}
+              href={`/${slug}/capture/${capture.id}`}
               className="flex items-start gap-4 px-5 py-4 hover:bg-zinc-50 transition-colors"
             >
               <div className="flex-1 min-w-0">

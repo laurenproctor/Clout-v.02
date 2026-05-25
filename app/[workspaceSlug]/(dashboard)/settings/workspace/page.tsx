@@ -6,6 +6,8 @@ import { useWorkspace } from '@/components/providers/workspace-provider'
 import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
 import * as Dialog from '@radix-ui/react-dialog'
+import { CreateWorkspaceModal } from '@/components/shell/create-workspace-modal'
+import { useCanCreateWorkspace } from '@/hooks/use-entitlements'
 
 type WorkspaceData = {
   id: string
@@ -46,6 +48,8 @@ export default function WorkspaceSettingsPage() {
   const [showDelete, setShowDelete] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+  const canCreate = useCanCreateWorkspace()
 
   useEffect(() => {
     fetch('/api/workspace')
@@ -276,6 +280,25 @@ export default function WorkspaceSettingsPage() {
         </a>
       </section>
 
+      {/* Create workspace */}
+      <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
+        <h2 className="text-sm font-semibold text-zinc-900">Create a new workspace</h2>
+        <p className="text-xs text-zinc-500">
+          Workspaces are separate environments with their own content, channels, and team members.
+        </p>
+        <button
+          onClick={() => setShowCreate(true)}
+          disabled={canCreate === false}
+          title={canCreate === false ? 'Upgrade your plan to create more workspaces' : undefined}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-zinc-800 transition-colors"
+        >
+          Create workspace
+        </button>
+        {canCreate === false && (
+          <p className="text-xs text-zinc-400">You've reached the workspace limit for your plan.</p>
+        )}
+      </section>
+
       {/* Danger zone */}
       {activeWorkspace.userRole === 'owner' && (
         <section className="rounded-lg border border-red-200 bg-white p-6 space-y-3">
@@ -291,6 +314,15 @@ export default function WorkspaceSettingsPage() {
           </button>
         </section>
       )}
+
+      <CreateWorkspaceModal
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        onCreated={(slug) => {
+          document.cookie = `clout-active-workspace=${slug}; path=/; max-age=31536000; SameSite=Lax`
+          router.push(`/${slug}/dashboard`)
+        }}
+      />
 
       <Dialog.Root open={showDelete} onOpenChange={setShowDelete}>
         <Dialog.Portal>

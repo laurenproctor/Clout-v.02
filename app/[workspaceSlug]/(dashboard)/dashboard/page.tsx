@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Check, Circle, Loader2, RotateCcw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, Output } from '@/types/domain'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import { PublishingEngine } from '@/components/dashboard/PublishingEngine'
 import { Momentum } from '@/components/dashboard/Momentum'
 import { WeeklyPlanWidget } from '@/components/dashboard/WeeklyPlanWidget'
@@ -52,6 +53,7 @@ function getCadence(channels: string[]): string {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { slug } = useWorkspace()
 
   const [profile, setProfile] = useState<RawProfile | null>(null)
   const [generation, setGeneration] = useState<Generation | null>(null)
@@ -192,7 +194,7 @@ export default function DashboardPage() {
       if (!genRes.ok) return
 
       const { output_id } = await genRes.json()
-      router.push(`/studio/${output_id}`)
+      router.push(`/${slug}/studio/${output_id}`)
     } finally {
       setSavingToStudio(false)
     }
@@ -270,7 +272,7 @@ export default function DashboardPage() {
             <div className="rounded-xl border border-zinc-200 bg-white p-5">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">Your market positioning</p>
               <p className="text-sm text-zinc-700 leading-relaxed italic">"{positioningFull}"</p>
-              <Link href="/settings/profile" className="mt-3 inline-block text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
+              <Link href={`/${slug}/settings/profile`} className="mt-3 inline-block text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
                 Edit in Settings →
               </Link>
             </div>
@@ -397,7 +399,7 @@ export default function DashboardPage() {
             />
             <div className="flex flex-col gap-2 shrink-0">
               <Link
-                href="/capture/new?mode=voice"
+                href={`/${slug}/capture/new?mode=voice`}
                 className="flex items-center justify-center h-10 w-10 rounded-lg border border-zinc-200 text-lg text-zinc-500 hover:border-zinc-400 transition-colors"
                 title="Voice capture"
               >
@@ -435,9 +437,9 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="space-y-1">
-            <ChecklistItem done={profileComplete} label="Complete your profile" href="/settings/profile" />
-            <ChecklistItem done={hasCapture} label="Capture your first idea" href="/capture/new" />
-            <ChecklistItem done={hasOutput} label="Publish your first post" href="/channels" />
+            <ChecklistItem done={profileComplete} label="Complete your profile" href={`/${slug}/settings/profile`} />
+            <ChecklistItem done={hasCapture} label="Capture your first idea" href={`/${slug}/capture/new`} />
+            <ChecklistItem done={hasOutput} label="Publish your first post" href={`/${slug}/channels`} />
           </div>
           <p className="text-xs text-zinc-400">
             {allComplete
@@ -452,13 +454,13 @@ export default function DashboardPage() {
           <p className="text-sm text-zinc-500 mb-4">Publish directly to LinkedIn and X without leaving Clout.</p>
           <div className="flex gap-2 flex-wrap">
             <Link
-              href="/channels"
+              href={`/${slug}/channels`}
               className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
             >
               Connect LinkedIn
             </Link>
             <Link
-              href="/channels"
+              href={`/${slug}/channels`}
               className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Connect X
@@ -478,7 +480,7 @@ export default function DashboardPage() {
           <p className="mt-0.5 text-sm text-zinc-500">Your thought leadership command center.</p>
         </div>
         <Link
-          href="/capture/new"
+          href={`/${slug}/capture/new`}
           className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors self-start sm:self-auto"
         >
           + New Capture
@@ -550,7 +552,7 @@ export default function DashboardPage() {
                 Start by capturing a raw thought. Clout will turn it into publish-ready content in under 60 seconds.
               </p>
               <Link
-                href="/capture/new"
+                href={`/${slug}/capture/new`}
                 className="mt-4 rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
               >
                 Create your first capture
@@ -562,7 +564,7 @@ export default function DashboardPage() {
             {recentOutputs.map((output) => (
               <Link
                 key={output.id}
-                href={`/studio/${output.id}`}
+                href={`/${slug}/studio/${output.id}`}
                 className="flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-50 transition-colors"
               >
                 <div className="flex-1 min-w-0">
