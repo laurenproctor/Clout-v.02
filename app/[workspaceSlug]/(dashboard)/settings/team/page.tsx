@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { useCanInviteMember } from '@/hooks/use-entitlements'
 
 type Member = {
   userId: string
@@ -33,6 +34,7 @@ export default function TeamPage() {
   const [inviteError, setInviteError] = useState<string | null>(null)
 
   const canManage = workspace.userRole === 'owner' || workspace.userRole === 'admin'
+  const canInvite = useCanInviteMember()
 
   function load() {
     fetch('/api/workspace/team')
@@ -114,7 +116,8 @@ export default function TeamPage() {
             </select>
             <button
               type="submit"
-              disabled={inviting}
+              disabled={inviting || canInvite === false}
+              title={canInvite === false ? 'Upgrade to invite more members' : undefined}
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
             >
               Send invite
@@ -134,7 +137,7 @@ export default function TeamPage() {
           {members.map(m => (
             <div key={m.userId} className="flex items-center gap-3 px-6 py-3">
               <div className="h-7 w-7 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-medium text-zinc-600 shrink-0">
-                {(m.fullName ?? m.email || '?')[0].toUpperCase()}
+                {(m.fullName ?? (m.email || '?'))[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-zinc-900 truncate">{m.fullName ?? m.email}</p>

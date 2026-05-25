@@ -8,6 +8,7 @@ import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
 import { PlatformCard, type ConnectedAccount } from '@/components/publishing/PlatformCard'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
+import { useCanConnectAccount } from '@/hooks/use-entitlements'
 
 // ─── Platform icons ───────────────────────────────────────────────────────────
 
@@ -399,6 +400,8 @@ function PublishingInfrastructureContent() {
   const [loading, setLoading]                 = useState(true)
   const [toast, setToast]                     = useState<{ msg: string; ok: boolean } | null>(null)
 
+  const canConnect = useCanConnectAccount()
+
   const [showLinkedInPicker,  setShowLinkedInPicker]  = useState(false)
   const [showWordPressPicker, setShowWordPressPicker]  = useState(false)
   const [showShopifyPicker,   setShowShopifyPicker]    = useState(false)
@@ -577,6 +580,20 @@ function PublishingInfrastructureContent() {
     }
   }
 
+  // Gate connect actions behind the entitlement check.
+  // While loading (null) we allow; only block when explicitly false.
+  const connectBlocked = canConnect === false
+
+  function guardedHref(href: string | null | undefined): string | undefined {
+    if (connectBlocked) return undefined
+    return href ?? undefined
+  }
+
+  function guardedOnConnect(handler: (() => void) | undefined): (() => void) | undefined {
+    if (connectBlocked) return () => flash('Upgrade your plan to connect more accounts.', false)
+    return handler
+  }
+
   const wpConnections      = connections.filter(c => c.provider === 'wordpress')
   const shopifyConnections = connections.filter(c => c.provider === 'shopify')
   const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
@@ -635,7 +652,7 @@ function PublishingInfrastructureContent() {
       )}
 
       {/* Modals */}
-      {showLinkedInPicker && (
+      {showLinkedInPicker && !connectBlocked && (
         <LinkedInTypePicker onClose={() => setShowLinkedInPicker(false)} />
       )}
       {liProfiles && (
@@ -777,12 +794,12 @@ function PublishingInfrastructureContent() {
                 iconColorClass={iconColorClass}
                 icon={<Icon className="h-5 w-5" />}
                 connected={accounts}
-                onConnect={isLinkedIn ? () => setShowLinkedInPicker(true) : undefined}
-                connectHref={!isLinkedIn ? connectHref ?? undefined : undefined}
+                onConnect={guardedOnConnect(isLinkedIn ? () => setShowLinkedInPicker(true) : undefined)}
+                connectHref={!isLinkedIn ? guardedHref(connectHref) : undefined}
                 connectLabel="Enable Channel"
                 onDisconnect={handleDisconnectChannel}
-                onAddAnother={isLinkedIn ? () => setShowLinkedInPicker(true) : undefined}
-                addAnotherHref={!isLinkedIn ? connectHref ?? undefined : undefined}
+                onAddAnother={guardedOnConnect(isLinkedIn ? () => setShowLinkedInPicker(true) : undefined)}
+                addAnotherHref={!isLinkedIn ? guardedHref(connectHref) : undefined}
               />
             )
           })}
@@ -812,10 +829,12 @@ function PublishingInfrastructureContent() {
               tokenExpiresAt: c.token_expires_at,
               reconnectHref:  '/api/channels/google-business-profile/connect',
             }))}
-            connectHref="/api/channels/google-business-profile/connect"
+            connectHref={guardedHref('/api/channels/google-business-profile/connect')}
             connectLabel="Connect Location"
+            onConnect={connectBlocked ? guardedOnConnect(undefined) : undefined}
             onDisconnect={handleDisconnectChannel}
-            addAnotherHref="/api/channels/google-business-profile/connect"
+            addAnotherHref={guardedHref('/api/channels/google-business-profile/connect')}
+            onAddAnother={connectBlocked ? guardedOnConnect(undefined) : undefined}
           />
         </div>
       </section>
@@ -845,9 +864,9 @@ function PublishingInfrastructureContent() {
               lastPublishedAt:     c.lastSuccessfulPublishAt,
               profileImageUrl:     c.siteUrl ? `${c.siteUrl.replace(/\/$/, '')}/favicon.ico` : undefined,
             }))}
-            onConnect={() => setShowWordPressPicker(true)}
+            onConnect={guardedOnConnect(() => setShowWordPressPicker(true))}
             onDisconnect={handleDisconnectConnection}
-            onAddAnother={() => setShowWordPressPicker(true)}
+            onAddAnother={guardedOnConnect(() => setShowWordPressPicker(true))}
             addAnotherLabel="Add another WordPress site"
             connectLabel="Connect WordPress"
           />
@@ -863,9 +882,9 @@ function PublishingInfrastructureContent() {
               lastPublishedAt:     c.lastSuccessfulPublishAt,
               profileImageUrl:     c.siteUrl ? `${c.siteUrl.replace(/\/$/, '')}/favicon.ico` : undefined,
             }))}
-            onConnect={() => setShowShopifyPicker(true)}
+            onConnect={guardedOnConnect(() => setShowShopifyPicker(true))}
             onDisconnect={handleDisconnectConnection}
-            onAddAnother={() => setShowShopifyPicker(true)}
+            onAddAnother={guardedOnConnect(() => setShowShopifyPicker(true))}
             addAnotherLabel="Add another Shopify store"
             connectLabel="Connect Shopify"
           />

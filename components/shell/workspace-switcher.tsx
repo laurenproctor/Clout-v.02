@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { CreateWorkspaceModal } from './create-workspace-modal'
+import { useCanCreateWorkspace } from '@/hooks/use-entitlements'
 
 type WorkspaceItem = {
   id: string
@@ -65,6 +66,7 @@ export function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false)
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([])
   const [showCreate, setShowCreate] = useState(false)
+  const canCreate = useCanCreateWorkspace()
 
   useEffect(() => {
     if (open) {
@@ -147,7 +149,9 @@ export function WorkspaceSwitcher() {
             <div className="border-t border-zinc-100 p-1.5 space-y-0.5">
               <button
                 onClick={() => { setOpen(false); setShowCreate(true) }}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-600 hover:bg-zinc-100 transition-colors"
+                disabled={canCreate === false}
+                title={canCreate === false ? 'Upgrade your plan to create more workspaces' : undefined}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-zinc-600 hover:bg-zinc-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Create workspace
