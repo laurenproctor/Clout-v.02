@@ -200,35 +200,53 @@ export default function StudioEditorPage() {
   async function handleSave() {
     if (!output) return
     setSaving(true)
+    setPublishError(null)
     const content: OutputContent = { ...(output.content as OutputContent), body, hashtags }
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content, title, channel_id: channelId }),
     })
-    if (res.ok) setOutput(await res.json())
+    if (res.ok) {
+      setOutput(await res.json())
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setPublishError(d.error ?? 'Save failed. Please try again.')
+    }
     setSaving(false)
   }
 
   async function handleSendForReview() {
     setSendingReview(true)
+    setPublishError(null)
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'review' }),
     })
-    if (res.ok) setOutput(await res.json())
+    if (res.ok) {
+      setOutput(await res.json())
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setPublishError(d.error ?? 'Could not send for review. Please try again.')
+    }
     setSendingReview(false)
   }
 
   async function handlePublish() {
     setPublishing(true)
+    setPublishError(null)
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'published' }),
     })
-    if (res.ok) setOutput(await res.json())
+    if (res.ok) {
+      setOutput(await res.json())
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setPublishError(d.error ?? 'Could not publish. Please try again.')
+    }
     setPublishing(false)
   }
 

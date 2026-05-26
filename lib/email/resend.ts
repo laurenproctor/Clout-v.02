@@ -14,7 +14,9 @@ interface SupportNotificationParams {
 }
 
 export async function sendSupportNotification(params: SupportNotificationParams): Promise<void> {
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured')
+  const resend = new Resend(apiKey)
   const { category, message, userEmail, workspaceId, route, browserInfo, screenshotUrl } = params
 
   const categoryLabel: Record<string, string> = {
@@ -37,10 +39,11 @@ export async function sendSupportNotification(params: SupportNotificationParams)
     browserInfo ? `Browser: ${browserInfo}` : null,
   ].filter((l) => l !== null).join('\n')
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: TO,
     subject: `[${categoryLabel[category] ?? category}] Support request from ${userEmail ?? 'a user'}`,
     text: lines,
   })
+  if (error) throw new Error(error.message)
 }

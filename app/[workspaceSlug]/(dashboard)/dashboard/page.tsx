@@ -73,6 +73,7 @@ export default function DashboardPage() {
   const [draftText, setDraftText] = useState('')
   const [draftExpanded, setDraftExpanded] = useState(false)
   const [savingToStudio, setSavingToStudio] = useState(false)
+  const [studioError, setStudioError] = useState<string | null>(null)
 
   // Dismiss animation
   const [exiting, setExiting] = useState(false)
@@ -175,6 +176,7 @@ export default function DashboardPage() {
     const text = draftEditing ? draftText : (generation?.draft_post ?? '')
     if (!text.trim()) return
     setSavingToStudio(true)
+    setStudioError(null)
 
     try {
       const captureRes = await fetch('/api/capture', {
@@ -182,7 +184,10 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source: 'text', raw_content: text }),
       })
-      if (!captureRes.ok) return
+      if (!captureRes.ok) {
+        setStudioError('Could not save to Studio. Please try again.')
+        return
+      }
 
       const { id: captureId } = await captureRes.json()
 
@@ -191,10 +196,15 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ capture_id: captureId }),
       })
-      if (!genRes.ok) return
+      if (!genRes.ok) {
+        setStudioError('Could not generate output. Please try again.')
+        return
+      }
 
       const { output_id } = await genRes.json()
       router.push(`/${slug}/studio/${output_id}`)
+    } catch {
+      setStudioError('Something went wrong. Please try again.')
     } finally {
       setSavingToStudio(false)
     }
@@ -353,6 +363,9 @@ export default function DashboardPage() {
                   Generate another angle
                 </button>
               </div>
+              {studioError && (
+                <p className="text-xs text-red-500">{studioError}</p>
+              )}
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigator.clipboard.writeText(draftEditing ? draftText : draft)}

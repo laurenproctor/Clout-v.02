@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Output, OutputContent } from '@/types/domain'
 
 type QueueTab = 'queued' | 'published' | 'failed'
@@ -24,6 +25,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function QueuePage() {
+  const { slug } = useWorkspace()
   const [tab, setTab] = useState<QueueTab>('queued')
   const [queued, setQueued] = useState<Output[]>([])
   const [published, setPublished] = useState<Output[]>([])
@@ -110,7 +112,7 @@ export default function QueuePage() {
           {items.map(item => (
             <Link
               key={item.id}
-              href={`/studio/${item.id}`}
+              href={`/${slug}/studio/${item.id}`}
               className="flex items-start gap-4 px-5 py-4 hover:bg-zinc-50 transition-colors"
             >
               <div className="flex-1 min-w-0">
