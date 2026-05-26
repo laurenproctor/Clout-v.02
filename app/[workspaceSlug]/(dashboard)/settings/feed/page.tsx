@@ -5,7 +5,6 @@ import { TopicSelector } from '@/components/feed/TopicSelector'
 import { FocusAreaSelector } from '@/components/feed/FocusAreaSelector'
 import { CompetitorInput } from '@/components/feed/CompetitorInput'
 import { EditorialVoiceSelector } from '@/components/feed/EditorialVoiceSelector'
-import { mapVoicesToTone } from '@/lib/feed/toneMapping'
 
 interface FeedSettings {
   brand_name: string
@@ -40,16 +39,15 @@ export default function SignalFeedSettingsPage() {
   async function handleSave() {
     setSaving(true)
     try {
-      const res = await fetch('/api/onboarding/complete', {
-        method: 'POST',
+      const res = await fetch('/api/feed/settings', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          brand_name: settings.brand_name || 'My Brand',
-          niche: settings.content_topics.slice(0, 3).join(', '),
-          services: settings.services,
-          tone_preference: mapVoicesToTone(settings.editorial_voices),
-          competitors: settings.competitors.map(name => ({ name, handle: '', url: '' })),
+          brand_name: settings.brand_name || '',
           content_topics: settings.content_topics,
+          services: settings.services,
+          competitors: settings.competitors,
+          editorial_voices: settings.editorial_voices,
         }),
       })
       if (!res.ok) throw new Error('Save failed')

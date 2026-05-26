@@ -23,15 +23,28 @@ export async function GET(req: NextRequest) {
     const userId = session.userId
     const workspaceId = session.workspaceId
 
-    // Fetch user profile for niche/services matching
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('services, content_topics, competitors')
-      .eq('id', userId)
-      .single()
+    // Fetch workspace feed settings for niche/services matching
+    const { data: wsFeedSettings } = await supabase
+      .from('workspace_feed_settings')
+      .select('services, content_topics')
+      .eq('workspace_id', workspaceId)
+      .maybeSingle()
 
-    const userServices: string[] = profile?.services ?? []
-    const userTopics: string[] = profile?.content_topics ?? []
+    // Fall back to user_profiles for workspaces without saved workspace-level settings
+    let userServices: string[]
+    let userTopics: string[]
+    if (wsFeedSettings) {
+      userServices = wsFeedSettings.services ?? []
+      userTopics = wsFeedSettings.content_topics ?? []
+    } else {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('services, content_topics')
+        .eq('id', userId)
+        .maybeSingle()
+      userServices = profile?.services ?? []
+      userTopics = profile?.content_topics ?? []
+    }
 
     // Dismissed signals to exclude from this session
     const { data: dismissedRows } = await supabase
