@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest) {
   const allowed: (keyof BrandProfileUpdate)[] = [
     'brand_name', 'logo_url', 'logo_library', 'primary_color', 'secondary_color', 'accent_color',
     'font_heading', 'font_body', 'font_heading_url', 'font_body_url',
-    'tone_traits', 'style_traits',
+    'tone_traits', 'style_traits', 'typography_settings',
   ]
   const update: BrandProfileUpdate = { updated_at: new Date().toISOString() }
   for (const key of allowed) {

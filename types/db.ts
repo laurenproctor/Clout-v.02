@@ -329,12 +329,15 @@ export type Database = {
           composition: string | null
           created_at: string
           example_board: string[]
+          generation_notes: string | null
           id: string
           imagery_type: string | null
           mood_traits: string[]
           negative_rules: string[]
           overlay_text_style: string | null
+          subjects: string[]
           updated_at: string
+          uploaded_imagery: string[]
           visual_styles: string[]
           workspace_id: string
         }
@@ -342,12 +345,15 @@ export type Database = {
           composition?: string | null
           created_at?: string
           example_board?: string[]
+          generation_notes?: string | null
           id?: string
           imagery_type?: string | null
           mood_traits?: string[]
           negative_rules?: string[]
           overlay_text_style?: string | null
+          subjects?: string[]
           updated_at?: string
+          uploaded_imagery?: string[]
           visual_styles?: string[]
           workspace_id: string
         }
@@ -355,12 +361,15 @@ export type Database = {
           composition?: string | null
           created_at?: string
           example_board?: string[]
+          generation_notes?: string | null
           id?: string
           imagery_type?: string | null
           mood_traits?: string[]
           negative_rules?: string[]
           overlay_text_style?: string | null
+          subjects?: string[]
           updated_at?: string
+          uploaded_imagery?: string[]
           visual_styles?: string[]
           workspace_id?: string
         }
@@ -393,6 +402,7 @@ export type Database = {
           style_traits: Json
           token_overrides: Json | null
           tone_traits: string[]
+          typography_settings: Json | null
           updated_at: string
           workspace_id: string
         }
@@ -414,6 +424,7 @@ export type Database = {
           style_traits?: Json
           token_overrides?: Json | null
           tone_traits?: string[]
+          typography_settings?: Json | null
           updated_at?: string
           workspace_id: string
         }
@@ -435,6 +446,7 @@ export type Database = {
           style_traits?: Json
           token_overrides?: Json | null
           tone_traits?: string[]
+          typography_settings?: Json | null
           updated_at?: string
           workspace_id?: string
         }

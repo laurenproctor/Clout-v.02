@@ -9,6 +9,11 @@ import { BrandPreview, type BrandSettings } from '@/components/brand/brand-previ
 import { ImageryPreview, type ImagerySettings } from '@/components/brand/imagery-preview'
 import { ExampleBoard } from '@/components/brand/example-board'
 import { NegativeRulesInput } from '@/components/brand/negative-rules-input'
+import { ImageryUploader } from '@/components/brand/imagery-uploader'
+import { SubjectsInput } from '@/components/brand/subjects-input'
+import { TypographySettingsPanel } from '@/components/brand/typography-settings-panel'
+import { DEFAULT_TYPOGRAPHY } from '@/lib/brand/typographyDefaults'
+import type { TypographySettings } from '@/types/typography'
 import { Globe, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -41,6 +46,9 @@ const DEFAULT_IMAGERY: ImagerySettings = {
   mood_traits: [],
   negative_rules: [],
   example_board: [],
+  uploaded_imagery: [],
+  subjects: [],
+  generation_notes: '',
 }
 
 export default function BrandSettingsPage() {
@@ -57,6 +65,8 @@ export default function BrandSettingsPage() {
   const [inferUrl, setInferUrl] = useState('')
   const [inferring, setInferring] = useState(false)
   const [inferError, setInferError] = useState<string | null>(null)
+
+  const [typographySettings, setTypographySettings] = useState<TypographySettings>(DEFAULT_TYPOGRAPHY)
 
   // Imagery state
   const [imagery, setImagery] = useState<ImagerySettings>(DEFAULT_IMAGERY)
@@ -84,6 +94,9 @@ export default function BrandSettingsPage() {
             tone_traits: data.tone_traits ?? [],
             style_traits: data.style_traits ?? DEFAULT_BRAND.style_traits,
           })
+          if (data.typography_settings) {
+            setTypographySettings({ ...DEFAULT_TYPOGRAPHY, ...(data.typography_settings as TypographySettings) })
+          }
           // Ensure any existing logo_url (pre-library) is included in the library view
           const library: string[] = data.logo_library ?? []
           const activeUrl: string | null = data.logo_url ?? null
@@ -109,6 +122,9 @@ export default function BrandSettingsPage() {
           mood_traits: data.mood_traits ?? [],
           negative_rules: data.negative_rules ?? [],
           example_board: data.example_board ?? [],
+          uploaded_imagery: data.uploaded_imagery ?? [],
+          subjects: data.subjects ?? [],
+          generation_notes: data.generation_notes ?? '',
         })
       })
       .finally(() => setImageryLoading(false))
@@ -127,6 +143,25 @@ export default function BrandSettingsPage() {
 
   function updateImagery(patch: Partial<ImagerySettings>) {
     setImagery(prev => ({ ...prev, ...patch }))
+  }
+
+  async function handleImageryUpload(file: File): Promise<void> {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/brand/imagery/upload', { method: 'POST', body: fd })
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Upload failed') }
+    const { url } = await res.json()
+    updateImagery({ uploaded_imagery: [...imagery.uploaded_imagery, url] })
+  }
+
+  async function handleImageryDelete(url: string): Promise<void> {
+    const res = await fetch('/api/brand/imagery/upload', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Delete failed') }
+    updateImagery({ uploaded_imagery: imagery.uploaded_imagery.filter(u => u !== url) })
   }
 
   async function handleLogoUpload(file: File): Promise<void> {
@@ -210,7 +245,7 @@ export default function BrandSettingsPage() {
     const res = await fetch('/api/brand', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(brand),
+      body: JSON.stringify({ ...brand, typography_settings: typographySettings }),
     })
     if (res.ok) { setBrandSaved(true); setTimeout(() => setBrandSaved(false), 2500) }
     else { const d = await res.json(); setBrandError(d.error ?? 'Save failed') }
@@ -357,6 +392,16 @@ export default function BrandSettingsPage() {
                   onChange={(name, url) => updateBrand({ font_body: name, font_body_url: url })}
                   onUpload={makeFontUploader('body')}
                 />
+                <div className="pt-1">
+                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">Per-Element Styles</p>
+                  <TypographySettingsPanel
+                    value={typographySettings}
+                    globalHeadingFont={brand.font_heading}
+                    globalBodyFont={brand.font_body}
+                    brandColors={{ primary: brand.primary_color, secondary: brand.secondary_color, accent: brand.accent_color }}
+                    onChange={setTypographySettings}
+                  />
+                </div>
               </div>
 
               {/* Tone */}
@@ -543,6 +588,28 @@ export default function BrandSettingsPage() {
                 </div>
               </div>
 
+              {/* Subjects & Generation Guidelines */}
+              <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
+                <h2 className="text-sm font-semibold text-zinc-900">Generation Guidelines</h2>
+                <SubjectsInput
+                  value={imagery.subjects}
+                  onChange={v => updateImagery({ subjects: v })}
+                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                    Additional Instructions
+                  </label>
+                  <textarea
+                    value={imagery.generation_notes}
+                    onChange={e => updateImagery({ generation_notes: e.target.value })}
+                    placeholder="e.g. Always use natural light. Avoid showing faces. Prefer wide-angle outdoor shots with warm tones..."
+                    rows={4}
+                    className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none resize-none"
+                  />
+                  <p className="text-xs text-zinc-400">Free-form instructions to guide image generation for this brand.</p>
+                </div>
+              </div>
+
               {/* Negative Rules */}
               <div className="rounded-lg border border-zinc-200 bg-white p-6">
                 <NegativeRulesInput
@@ -551,11 +618,27 @@ export default function BrandSettingsPage() {
                 />
               </div>
 
+              {/* Example Imagery Upload */}
+              <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-zinc-900">Example Imagery</h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">Upload images that represent your brand. Used directly in posts and as inspiration for AI generation.</p>
+                </div>
+                <ImageryUploader
+                  images={imagery.uploaded_imagery}
+                  onUpload={handleImageryUpload}
+                  onDelete={handleImageryDelete}
+                />
+              </div>
+
               {/* Example Board */}
               <div className="rounded-lg border border-zinc-200 bg-white p-6">
                 <ExampleBoard
                   value={imagery.example_board}
                   onChange={v => updateImagery({ example_board: v })}
+                  visualStyles={imagery.visual_styles}
+                  imageryTypes={imagery.imagery_type}
+                  moodTraits={imagery.mood_traits}
                 />
               </div>
 

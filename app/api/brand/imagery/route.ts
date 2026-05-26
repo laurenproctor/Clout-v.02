@@ -8,6 +8,7 @@ type ImageryUpdate = Database['public']['Tables']['brand_imagery_profiles']['Upd
 const ALLOWED_FIELDS: (keyof ImageryUpdate)[] = [
   'visual_styles', 'imagery_type', 'composition',
   'overlay_text_style', 'mood_traits', 'negative_rules', 'example_board',
+  'uploaded_imagery', 'subjects', 'generation_notes',
 ]
 
 export async function GET() {

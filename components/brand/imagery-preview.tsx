@@ -10,6 +10,9 @@ export interface ImagerySettings {
   mood_traits: string[]
   negative_rules: string[]
   example_board: string[]
+  uploaded_imagery: string[]
+  subjects: string[]
+  generation_notes: string
 }
 
 interface ImageryPreviewProps {
