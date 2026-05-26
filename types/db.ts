@@ -384,6 +384,7 @@ export type Database = {
           font_heading: string
           font_heading_url: string | null
           id: string
+          logo_library: string[]
           logo_url: string | null
           preferred_template_mode: string
           primary_color: string
@@ -404,6 +405,7 @@ export type Database = {
           font_heading?: string
           font_heading_url?: string | null
           id?: string
+          logo_library?: string[]
           logo_url?: string | null
           preferred_template_mode?: string
           primary_color?: string
@@ -424,6 +426,7 @@ export type Database = {
           font_heading?: string
           font_heading_url?: string | null
           id?: string
+          logo_library?: string[]
           logo_url?: string | null
           preferred_template_mode?: string
           primary_color?: string
@@ -2737,6 +2740,47 @@ export type Database = {
             foreignKeyName: "workspace_members_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_feed_settings: {
+        Row: {
+          workspace_id: string
+          content_topics: string[]
+          services: string[]
+          tone_preference: string
+          brand_name: string
+          competitors: string[]
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          workspace_id: string
+          content_topics?: string[]
+          services?: string[]
+          tone_preference?: string
+          brand_name?: string
+          competitors?: string[]
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          workspace_id?: string
+          content_topics?: string[]
+          services?: string[]
+          tone_preference?: string
+          brand_name?: string
+          competitors?: string[]
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_feed_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },

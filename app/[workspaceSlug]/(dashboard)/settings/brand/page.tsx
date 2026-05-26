@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { ColorPicker } from '@/components/brand/color-picker'
 import { FontSelector } from '@/components/brand/font-selector'
 import { ToneSelector } from '@/components/brand/tone-selector'
-import { LogoUploader } from '@/components/brand/logo-uploader'
+import { LogoLibrary } from '@/components/brand/logo-library'
 import { BrandPreview, type BrandSettings } from '@/components/brand/brand-preview'
 import { ImageryPreview, type ImagerySettings } from '@/components/brand/imagery-preview'
 import { ExampleBoard } from '@/components/brand/example-board'
@@ -48,6 +48,7 @@ export default function BrandSettingsPage() {
 
   // Identity state
   const [brand, setBrand] = useState<BrandSettings>(DEFAULT_BRAND)
+  const [logoLibrary, setLogoLibrary] = useState<string[]>([])
   const [brandLoading, setBrandLoading] = useState(true)
   const [brandSaving, setBrandSaving] = useState(false)
   const [brandSaved, setBrandSaved] = useState(false)
@@ -69,19 +70,29 @@ export default function BrandSettingsPage() {
     fetch('/api/brand')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data) setBrand({
-          brand_name: data.brand_name ?? null,
-          logo_url: data.logo_url ?? null,
-          primary_color: data.primary_color ?? DEFAULT_BRAND.primary_color,
-          secondary_color: data.secondary_color ?? DEFAULT_BRAND.secondary_color,
-          accent_color: data.accent_color ?? DEFAULT_BRAND.accent_color,
-          font_heading: data.font_heading ?? DEFAULT_BRAND.font_heading,
-          font_body: data.font_body ?? DEFAULT_BRAND.font_body,
-          font_heading_url: data.font_heading_url ?? undefined,
-          font_body_url: data.font_body_url ?? undefined,
-          tone_traits: data.tone_traits ?? [],
-          style_traits: data.style_traits ?? DEFAULT_BRAND.style_traits,
-        })
+        if (data) {
+          setBrand({
+            brand_name: data.brand_name ?? null,
+            logo_url: data.logo_url ?? null,
+            primary_color: data.primary_color ?? DEFAULT_BRAND.primary_color,
+            secondary_color: data.secondary_color ?? DEFAULT_BRAND.secondary_color,
+            accent_color: data.accent_color ?? DEFAULT_BRAND.accent_color,
+            font_heading: data.font_heading ?? DEFAULT_BRAND.font_heading,
+            font_body: data.font_body ?? DEFAULT_BRAND.font_body,
+            font_heading_url: data.font_heading_url ?? undefined,
+            font_body_url: data.font_body_url ?? undefined,
+            tone_traits: data.tone_traits ?? [],
+            style_traits: data.style_traits ?? DEFAULT_BRAND.style_traits,
+          })
+          // Ensure any existing logo_url (pre-library) is included in the library view
+          const library: string[] = data.logo_library ?? []
+          const activeUrl: string | null = data.logo_url ?? null
+          if (activeUrl && !library.includes(activeUrl)) {
+            setLogoLibrary([activeUrl, ...library])
+          } else {
+            setLogoLibrary(library)
+          }
+        }
       })
       .finally(() => setBrandLoading(false))
   }, [])
@@ -118,14 +129,38 @@ export default function BrandSettingsPage() {
     setImagery(prev => ({ ...prev, ...patch }))
   }
 
-  async function handleLogoUpload(file: File): Promise<string> {
+  async function handleLogoUpload(file: File): Promise<void> {
     const fd = new FormData()
     fd.append('file', file)
     const res = await fetch('/api/brand/logo', { method: 'POST', body: fd })
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Upload failed') }
     const { url } = await res.json()
+    setLogoLibrary(prev => prev.includes(url) ? prev : [...prev, url])
     updateBrand({ logo_url: url })
-    return url
+  }
+
+  function handleLogoActivate(url: string) {
+    updateBrand({ logo_url: url })
+    // Persist immediately so the active logo survives without hitting Save Brand
+    fetch('/api/brand', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logo_url: url }),
+    })
+  }
+
+  async function handleLogoDelete(url: string): Promise<void> {
+    const res = await fetch('/api/brand/logo', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Delete failed') }
+    setLogoLibrary(prev => prev.filter(u => u !== url))
+    if (brand.logo_url === url) {
+      const remaining = logoLibrary.filter(u => u !== url)
+      updateBrand({ logo_url: remaining[0] ?? null })
+    }
   }
 
   function makeFontUploader(role: 'heading' | 'body') {
@@ -274,23 +309,23 @@ export default function BrandSettingsPage() {
               {/* Identity */}
               <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
                 <h2 className="text-sm font-semibold text-zinc-900">Identity</h2>
-                <div className="flex gap-5">
-                  <LogoUploader
-                    value={brand.logo_url ?? null}
-                    onUpload={handleLogoUpload}
-                    onRemove={() => updateBrand({ logo_url: null })}
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Brand Name</label>
+                  <input
+                    type="text"
+                    value={brand.brand_name ?? ''}
+                    onChange={e => updateBrand({ brand_name: e.target.value || null })}
+                    placeholder="Acme Corp"
+                    className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none"
                   />
-                  <div className="flex-1">
-                    <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Brand Name</label>
-                    <input
-                      type="text"
-                      value={brand.brand_name ?? ''}
-                      onChange={e => updateBrand({ brand_name: e.target.value || null })}
-                      placeholder="Acme Corp"
-                      className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none"
-                    />
-                  </div>
                 </div>
+                <LogoLibrary
+                  logos={logoLibrary}
+                  activeLogo={brand.logo_url ?? null}
+                  onUpload={handleLogoUpload}
+                  onActivate={handleLogoActivate}
+                  onDelete={handleLogoDelete}
+                />
               </div>
 
               {/* Colors */}
