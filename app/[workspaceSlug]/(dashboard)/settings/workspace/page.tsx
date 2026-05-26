@@ -261,25 +261,6 @@ export default function WorkspaceSettingsPage() {
         {slugError && <p className="text-xs text-red-600">{slugError}</p>}
       </section>
 
-      {/* Plan */}
-      <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-2">
-        <h2 className="text-sm font-semibold text-zinc-900">Plan</h2>
-        <p className="text-sm text-zinc-500 capitalize">
-          {sub?.plan ?? activeWorkspace.plan} plan
-          {sub?.current_period_end && (
-            <span className="text-zinc-400">
-              {' '}· Renews {DateTime.fromISO(sub.current_period_end).toLocaleString(DateTime.DATE_MED)}
-            </span>
-          )}
-        </p>
-        <a
-          href={`/${activeWorkspace.slug}/settings/billing`}
-          className="text-xs font-medium text-zinc-600 underline"
-        >
-          Manage billing →
-        </a>
-      </section>
-
       {/* Create workspace */}
       <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
         <h2 className="text-sm font-semibold text-zinc-900">Create a new workspace</h2>
@@ -297,6 +278,25 @@ export default function WorkspaceSettingsPage() {
         {canCreate === false && (
           <p className="text-xs text-zinc-400">You've reached the workspace limit for your plan.</p>
         )}
+      </section>
+
+      {/* Plan */}
+      <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-2">
+        <h2 className="text-sm font-semibold text-zinc-900">Plan</h2>
+        <p className="text-sm text-zinc-500 capitalize">
+          {sub?.plan ?? activeWorkspace.plan} plan
+          {sub?.current_period_end && (
+            <span className="text-zinc-400">
+              {' '}· Renews {DateTime.fromISO(sub.current_period_end).toLocaleString(DateTime.DATE_MED)}
+            </span>
+          )}
+        </p>
+        <a
+          href={`/${activeWorkspace.slug}/settings/billing`}
+          className="text-xs font-medium text-zinc-600 underline"
+        >
+          Manage billing →
+        </a>
       </section>
 
       {/* Danger zone */}
@@ -318,10 +318,7 @@ export default function WorkspaceSettingsPage() {
       <CreateWorkspaceModal
         open={showCreate}
         onOpenChange={setShowCreate}
-        onCreated={(slug) => {
-          document.cookie = `clout-active-workspace=${slug}; path=/; max-age=31536000; SameSite=Lax`
-          router.push(`/${slug}/dashboard`)
-        }}
+        onCreated={() => {}}
       />
 
       <Dialog.Root open={showDelete} onOpenChange={setShowDelete}>

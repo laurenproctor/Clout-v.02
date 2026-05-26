@@ -210,7 +210,7 @@ export function WeeklyPlanWidget() {
       {!loading && items.length > 0 && (
         <div className="border-t border-zinc-100 px-5 py-2.5">
           <Link
-            href="/inbox"
+            href={`/${slug}/inbox`}
             className="flex items-center justify-between text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors group"
           >
             <span>Approve all this week</span>

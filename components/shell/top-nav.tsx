@@ -6,18 +6,42 @@ import { Menu } from 'lucide-react'
 import { useMobileSidebar } from '@/components/shell/sidebar'
 
 function getPageTitle(pathname: string): string {
-  const segment = pathname.split('/')[1]
-  const titles: Record<string, string> = {
+  const parts = pathname.split('/')
+  // parts: ['', slug, page, ...sub]
+  const page = parts[2]
+  const sub = parts[3]
+
+  if (page === 'settings') {
+    const map: Record<string, string> = {
+      workspace: 'General',
+      brand: 'Brand Identity',
+      publishing: 'Publishing',
+      feed: 'Signal Feed',
+      analytics: 'Intelligence',
+      lenses: 'Lenses',
+      team: 'Team',
+      billing: 'Billing',
+      schedule: 'Schedule',
+      profile: 'Profile',
+    }
+    return map[sub] ?? 'Settings'
+  }
+
+  const map: Record<string, string> = {
     dashboard: 'Dashboard',
     capture: 'Capture',
     studio: 'Studio',
-    lenses: 'Lenses',
     analytics: 'Analytics',
     billing: 'Billing',
-    settings: 'Settings',
     onboarding: 'Onboarding',
+    feed: 'Signal Feed',
+    calendar: 'Calendar',
+    create: 'Create',
+    analyze: 'Content Analyzer',
+    syndicate: 'Syndicate',
+    private: 'Private',
   }
-  return titles[segment] ?? 'Clout'
+  return map[page] ?? 'Clout'
 }
 
 export function TopNav() {

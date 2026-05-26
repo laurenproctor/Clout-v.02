@@ -172,9 +172,10 @@ export function WorkspaceSwitcher() {
       <CreateWorkspaceModal
         open={showCreate}
         onOpenChange={setShowCreate}
-        onCreated={(slug) => {
-          document.cookie = `clout-active-workspace=${slug}; path=/; max-age=31536000; SameSite=Lax`
-          router.push(`/${slug}/dashboard`)
+        onCreated={() => {
+          fetch('/api/workspaces')
+            .then((r) => r.ok ? r.json() : { workspaces: [] })
+            .then((d) => setWorkspaces(d.workspaces ?? []))
         }}
       />
     </>

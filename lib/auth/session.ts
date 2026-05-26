@@ -1,4 +1,5 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
+import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export interface AuthSession {
@@ -57,7 +58,33 @@ export async function getSession(): Promise<AuthSession | null> {
 
   if (!user) return null
 
-  // Look up the user's workspace (v1: one workspace per user)
+  // Resolve the active workspace from the cookie, falling back to the user's first workspace
+  const cookieStore = await cookies()
+  const activeSlug = cookieStore.get('clout-active-workspace')?.value
+
+  if (activeSlug) {
+    const { data: ws } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('slug', activeSlug)
+      .is('deleted_at', null)
+      .maybeSingle()
+
+    if (ws) {
+      const { data: activeMember } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('workspace_id', ws.id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (activeMember) {
+        return { clerkId, userId: user.id, workspaceId: activeMember.workspace_id }
+      }
+    }
+  }
+
+  // Fallback: first workspace the user joined
   const { data: member } = (await supabase
     .from('workspace_members')
     .select('workspace_id')

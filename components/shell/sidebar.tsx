@@ -27,6 +27,7 @@ import {
   PanelLeft,
   Activity,
   Newspaper,
+  Users,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -56,6 +57,7 @@ const adminItems = (slug: string) => [
   { label: 'Signal Feed', href: `/${slug}/settings/feed`, icon: Rss },
   { label: 'Intelligence', href: `/${slug}/settings/analytics`, icon: BarChart2 },
   { label: 'Schedule', href: `/${slug}/settings/schedule`, icon: CalendarClock },
+  { label: 'Team', href: `/${slug}/settings/team`, icon: Users },
   { label: 'Billing', href: `/${slug}/settings/billing`, icon: CreditCard },
   { label: 'Settings', href: `/${slug}/settings/workspace`, icon: Settings },
 ]
@@ -239,27 +241,35 @@ function NavContent({
   if (isAdminMode) {
     return (
       <>
-        <div
-          className={cn(
-            'flex h-14 items-center border-b border-zinc-200 px-3 gap-2',
-            collapsed ? 'justify-center' : ''
-          )}
-        >
-          {toggleBtn}
-          {!collapsed && (
-            <>
-              <Link
-                href={`/${slug}/dashboard`}
-                onClick={onLinkClick}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back
-              </Link>
-              <span className="text-sm font-semibold tracking-tight text-zinc-900">Admin</span>
-            </>
+        {/* Workspace switcher row — mirrors main sidebar so workspace is always visible */}
+        <div className="border-b border-zinc-200 px-2 py-2">
+          {!collapsed ? (
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <WorkspaceSwitcher />
+              </div>
+              {toggleBtn}
+            </div>
+          ) : (
+            <div className="flex justify-center">{toggleBtn}</div>
           )}
         </div>
+
+        {/* Back to workspace + Admin label — hidden when collapsed */}
+        {!collapsed && (
+          <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-2">
+            <Link
+              href={`/${slug}/dashboard`}
+              onClick={onLinkClick}
+              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Back
+            </Link>
+            <span className="text-zinc-300">·</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Admin</span>
+          </div>
+        )}
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
           {adminItems(slug).map(({ label, href, icon: Icon }) => {
@@ -273,7 +283,8 @@ function NavContent({
                   !pathname.startsWith(`${settingsBase}/lenses`) &&
                   !pathname.startsWith(`${settingsBase}/billing`) &&
                   !pathname.startsWith(`${settingsBase}/analytics`) &&
-                  !pathname.startsWith(`${settingsBase}/feed`)
+                  !pathname.startsWith(`${settingsBase}/feed`) &&
+                  !pathname.startsWith(`${settingsBase}/team`)
                 : pathname === href || pathname.startsWith(href + '/')
             return (
               <NavItem

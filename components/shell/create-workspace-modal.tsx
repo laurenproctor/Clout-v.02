@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { X, Check, ChevronRight, Palette, Radio, Users } from 'lucide-react'
 
 function slugify(name: string): string {
   return name
@@ -19,6 +20,11 @@ type Props = {
 }
 
 export function CreateWorkspaceModal({ open, onOpenChange, onCreated }: Props) {
+  const router = useRouter()
+  const [step, setStep] = useState<'create' | 'setup'>('create')
+  const [createdSlug, setCreatedSlug] = useState('')
+  const [createdName, setCreatedName] = useState('')
+
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugEdited, setSlugEdited] = useState(false)
@@ -47,6 +53,31 @@ export function CreateWorkspaceModal({ open, onOpenChange, onCreated }: Props) {
     return () => clearTimeout(timer)
   }, [slug])
 
+  function resetForm() {
+    setStep('create')
+    setCreatedSlug('')
+    setCreatedName('')
+    setName('')
+    setSlug('')
+    setSlugEdited(false)
+    setSlugStatus('idle')
+    setError(null)
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && step === 'setup' && createdSlug) {
+      router.push(`/${createdSlug}/dashboard`)
+    }
+    if (!nextOpen) resetForm()
+    onOpenChange(nextOpen)
+  }
+
+  function navigateTo(path: string) {
+    onOpenChange(false)
+    resetForm()
+    router.push(path)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (slugStatus !== 'available' || !name.trim()) return
@@ -59,10 +90,10 @@ export function CreateWorkspaceModal({ open, onOpenChange, onCreated }: Props) {
     })
     if (res.ok) {
       const { workspace } = await res.json()
-      onOpenChange(false)
-      setName('')
-      setSlug('')
-      setSlugEdited(false)
+      document.cookie = `clout-active-workspace=${workspace.slug}; path=/; max-age=31536000; SameSite=Lax`
+      setCreatedSlug(workspace.slug)
+      setCreatedName(workspace.name)
+      setStep('setup')
       onCreated(workspace.slug)
     } else {
       const d = await res.json()
@@ -72,80 +103,157 @@ export function CreateWorkspaceModal({ open, onOpenChange, onCreated }: Props) {
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-5">
-            <Dialog.Title className="text-base font-semibold text-zinc-900">
-              Create workspace
-            </Dialog.Title>
-            <Dialog.Close className="rounded-md p-1 text-zinc-400 hover:text-zinc-600">
-              <X className="h-4 w-4" />
-            </Dialog.Close>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1.5">
-                Workspace name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Amlon Group"
-                required
-                className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1.5">
-                Workspace URL
-              </label>
-              <div className="flex items-center gap-0 rounded-md border border-zinc-200 overflow-hidden focus-within:border-zinc-400">
-                <span className="px-3 py-2 text-sm text-zinc-400 bg-zinc-50 border-r border-zinc-200 whitespace-nowrap">
-                  clout.so/
-                </span>
-                <input
-                  type="text"
-                  value={slug}
-                  onChange={(e) => { setSlug(e.target.value); setSlugEdited(true) }}
-                  className="flex-1 px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none"
-                />
+          {step === 'create' && (
+            <>
+              <div className="flex items-center justify-between mb-5">
+                <Dialog.Title className="text-base font-semibold text-zinc-900">
+                  Create workspace
+                </Dialog.Title>
+                <Dialog.Close className="rounded-md p-1 text-zinc-400 hover:text-zinc-600">
+                  <X className="h-4 w-4" />
+                </Dialog.Close>
               </div>
-              {slug && (
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  {slugStatus === 'available' && (
-                    <>
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span className="text-xs text-zinc-500">{slug} is available</span>
-                    </>
-                  )}
-                  {slugStatus === 'taken' && (
-                    <>
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                      <span className="text-xs text-red-600">{slug} is already taken</span>
-                    </>
-                  )}
-                  {slugStatus === 'checking' && (
-                    <span className="text-xs text-zinc-400">Checking...</span>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+                    Workspace name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Amlon Group"
+                    required
+                    className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+                    Workspace URL
+                  </label>
+                  <div className="flex items-center gap-0 rounded-md border border-zinc-200 overflow-hidden focus-within:border-zinc-400">
+                    <span className="px-3 py-2 text-sm text-zinc-400 bg-zinc-50 border-r border-zinc-200 whitespace-nowrap">
+                      clout.so/
+                    </span>
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => { setSlug(e.target.value); setSlugEdited(true) }}
+                      className="flex-1 px-3 py-2 text-sm font-mono text-zinc-900 focus:outline-none"
+                    />
+                  </div>
+                  {slug && (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      {slugStatus === 'available' && (
+                        <>
+                          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span className="text-xs text-zinc-500">{slug} is available</span>
+                        </>
+                      )}
+                      {slugStatus === 'taken' && (
+                        <>
+                          <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                          <span className="text-xs text-red-600">{slug} is already taken</span>
+                        </>
+                      )}
+                      {slugStatus === 'checking' && (
+                        <span className="text-xs text-zinc-400">Checking...</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {error && <p className="text-xs text-red-600">{error}</p>}
+                {error && <p className="text-xs text-red-600">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={submitting || slugStatus !== 'available' || !name.trim()}
-              className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-zinc-800 transition-colors"
-            >
-              {submitting ? 'Creating...' : 'Create workspace'}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={submitting || slugStatus !== 'available' || !name.trim()}
+                  className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-zinc-800 transition-colors"
+                >
+                  {submitting ? 'Creating...' : 'Create workspace'}
+                </button>
+              </form>
+            </>
+          )}
+
+          {step === 'setup' && (
+            <>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </div>
+                  <Dialog.Title className="text-base font-semibold text-zinc-900">
+                    &ldquo;{createdName}&rdquo; created
+                  </Dialog.Title>
+                </div>
+                <Dialog.Close className="rounded-md p-1 text-zinc-400 hover:text-zinc-600">
+                  <X className="h-4 w-4" />
+                </Dialog.Close>
+              </div>
+
+              <p className="text-sm text-zinc-500 mb-4">What would you like to set up next?</p>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigateTo(`/${createdSlug}/settings/workspace`)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 text-left hover:bg-zinc-50 transition-colors group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-100">
+                    <Palette className="h-4 w-4 text-zinc-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-zinc-900">Set your brand identity</div>
+                    <div className="text-xs text-zinc-400">Name, color, and URL slug</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-zinc-500 shrink-0" />
+                </button>
+
+                <button
+                  onClick={() => navigateTo(`/${createdSlug}/settings/publishing`)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 text-left hover:bg-zinc-50 transition-colors group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-100">
+                    <Radio className="h-4 w-4 text-zinc-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-zinc-900">Connect your channels</div>
+                    <div className="text-xs text-zinc-400">LinkedIn, X, and more</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-zinc-500 shrink-0" />
+                </button>
+
+                <button
+                  onClick={() => navigateTo(`/${createdSlug}/settings/team`)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 text-left hover:bg-zinc-50 transition-colors group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-zinc-100">
+                    <Users className="h-4 w-4 text-zinc-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-zinc-900">Invite your team</div>
+                    <div className="text-xs text-zinc-400">Add members and set roles</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-zinc-500 shrink-0" />
+                </button>
+              </div>
+
+              <button
+                onClick={() => navigateTo(`/${createdSlug}/dashboard`)}
+                className="mt-4 w-full rounded-md px-4 py-2 text-sm text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
+              >
+                Go to dashboard
+              </button>
+            </>
+          )}
+
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
