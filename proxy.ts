@@ -41,12 +41,19 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
   // Extract workspace slug from first path segment and inject as header.
   // e.g. /amlon/feed → x-workspace-slug: amlon
-  // The workspace layout validates membership; proxy just propagates the slug.
+  // Also sync the cookie so API routes (which are excluded from slug extraction above)
+  // always resolve the correct workspace via getSession() → clout-active-workspace cookie.
   if (!isNonWorkspacePath(req)) {
     const slug = req.nextUrl.pathname.split('/')[1]
     if (slug) {
       const res = NextResponse.next()
       res.headers.set('x-workspace-slug', slug)
+      res.cookies.set('clout-active-workspace', slug, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: 'lax',
+        httpOnly: false,
+      })
       return res
     }
   }
