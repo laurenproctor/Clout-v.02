@@ -90,7 +90,6 @@ export function BingWebmasterCard() {
     setSaving(false)
     if (res.ok) {
       setLoading(true)
-      setState({ connected: false, sites: [], selectedSiteUrl: null, summary: null })
       await load()
     }
   }

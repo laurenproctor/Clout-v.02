@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { deleteAnalyticsConnection } from '@/lib/analytics/connections'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function POST() {
   const session = await getSession()
@@ -8,6 +9,13 @@ export async function POST() {
 
   try {
     await deleteAnalyticsConnection(session.workspaceId, 'bing_wmt')
+
+    const supabase = createServiceClient()
+    await (supabase as any)
+      .from('analytics_properties')
+      .delete()
+      .eq('workspace_id', session.workspaceId)
+      .eq('property_type', 'bing_wmt_site')
   } catch (err) {
     console.error('Failed to disconnect Bing WMT:', err)
     return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 })

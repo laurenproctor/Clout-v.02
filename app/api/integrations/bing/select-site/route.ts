@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { upsertAnalyticsProperty } from '@/lib/analytics/connections'
+import { listBingSites } from '@/lib/analytics/bing/queries'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -8,6 +9,10 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as { siteUrl?: string }
   if (!body.siteUrl) return NextResponse.json({ error: 'siteUrl required' }, { status: 400 })
+
+  const sites = await listBingSites(session.workspaceId)
+  const valid = sites.some(s => s.siteUrl === body.siteUrl)
+  if (!valid) return NextResponse.json({ error: 'Invalid siteUrl' }, { status: 400 })
 
   await upsertAnalyticsProperty({
     workspace_id:  session.workspaceId,
