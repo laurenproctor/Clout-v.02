@@ -1,19 +1,16 @@
-'use client'
-
 // components/create/CreateCard.tsx
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { ContentType } from '@/lib/content/contentTypes'
 
 interface CreateCardProps {
   type: ContentType
+  slug: string
   /** 'featured' = full-width active layout; 'grid' = compact coming-soon layout */
   variant: 'featured' | 'grid'
 }
 
-export function CreateCard({ type, variant }: CreateCardProps) {
-  const { slug } = useWorkspace()
+export function CreateCard({ type, slug, variant }: CreateCardProps) {
   const Icon = type.icon
   const isActive = type.status === 'active'
 

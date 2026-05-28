@@ -2,7 +2,13 @@
 import { activeTypes, comingSoonTypes } from '@/lib/content/contentTypes'
 import { CreateCard } from '@/components/create/CreateCard'
 
-export default function CreatePage() {
+export default async function CreatePage({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>
+}) {
+  const { workspaceSlug } = await params
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 md:px-8">
       {/* Header */}
@@ -24,7 +30,7 @@ export default function CreatePage() {
           </p>
           <div className="flex flex-col gap-3">
             {activeTypes.map((type) => (
-              <CreateCard key={type.id} type={type} variant="featured" />
+              <CreateCard key={type.id} type={type} slug={workspaceSlug} variant="featured" />
             ))}
           </div>
         </section>
@@ -38,7 +44,7 @@ export default function CreatePage() {
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {comingSoonTypes.map((type) => (
-              <CreateCard key={type.id} type={type} variant="grid" />
+              <CreateCard key={type.id} type={type} slug={workspaceSlug} variant="grid" />
             ))}
           </div>
         </section>
