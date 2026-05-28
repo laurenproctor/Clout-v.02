@@ -26,7 +26,7 @@ function decryptToken(ciphertext: string): string {
   return decipher.update(Buffer.from(encHex, 'hex')).toString('utf8') + decipher.final('utf8')
 }
 
-export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc') {
+export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc' | 'bing_wmt') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceClient()
   // analytics_connections table added in migration — not yet in generated types
@@ -46,7 +46,7 @@ export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4
 
 export async function upsertAnalyticsConnection(row: {
   workspace_id: string
-  provider: 'ga4' | 'gsc'
+  provider: 'ga4' | 'gsc' | 'bing_wmt'
   access_token: string
   refresh_token: string | null
   expires_at: number | null
@@ -65,7 +65,7 @@ export async function upsertAnalyticsConnection(row: {
   if (error) throw new Error(`Failed to save analytics connection: ${error.message}`)
 }
 
-export async function deleteAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc') {
+export async function deleteAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc' | 'bing_wmt') {
   const supabase = createServiceClient()
   // analytics_connections table added in migration — not yet in generated types
   const { error } = await (supabase as any)
@@ -126,7 +126,7 @@ export async function getAccessToken(workspaceId: string, provider: 'ga4' | 'gsc
 
 export async function upsertAnalyticsProperty(row: {
   workspace_id: string
-  property_type: 'ga4_property' | 'gsc_site'
+  property_type: 'ga4_property' | 'gsc_site' | 'bing_wmt_site'
   property_id: string
   property_name: string | null
   metadata?: Record<string, unknown>
@@ -139,7 +139,7 @@ export async function upsertAnalyticsProperty(row: {
   if (error) throw new Error(`Failed to save analytics property: ${error.message}`)
 }
 
-export async function getAnalyticsProperty(workspaceId: string, propertyType: 'ga4_property' | 'gsc_site') {
+export async function getAnalyticsProperty(workspaceId: string, propertyType: 'ga4_property' | 'gsc_site' | 'bing_wmt_site') {
   const supabase = createServiceClient()
   // analytics_properties table added in migration — not yet in generated types
   const { data } = await (supabase as any)
