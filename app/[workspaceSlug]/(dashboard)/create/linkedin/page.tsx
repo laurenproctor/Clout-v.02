@@ -32,7 +32,7 @@ export default async function LinkedInCreatePage({
       <div className="border-b border-zinc-100 px-8 py-4">
         <h1 className="font-[Signifier] text-lg font-semibold text-zinc-900">LinkedIn Post</h1>
         <p className="text-xs text-zinc-400 mt-0.5">
-          AI-assisted strategic publishing — frame, position, distribute.
+          Strategic publishing — frame, position, distribute.
         </p>
       </div>
       <div className="px-8 py-3 border-b border-zinc-100">

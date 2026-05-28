@@ -142,7 +142,7 @@ export default function PrivateCaptureDetailPage() {
             </div>
           ) : (
             <p className="text-sm text-zinc-400 italic">
-              Enrichment pending — the AI will surface the insight shortly.
+              Enrichment pending — the insight will surface shortly.
             </p>
           )}
         </div>

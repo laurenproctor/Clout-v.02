@@ -167,7 +167,7 @@ export function BlogStrategyForm({ lenses, values, onChange }: BlogStrategyFormP
               <div>
                 <label className="text-xs font-medium text-zinc-500 mb-1 block">Additional Context</label>
                 <textarea
-                  placeholder="Any extra instructions, constraints, or context for the AI..."
+                  placeholder="Any extra instructions, constraints, or context for generation..."
                   value={values.additionalContext ?? ''}
                   onChange={e => set({ additionalContext: e.target.value || undefined })}
                   rows={3}

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Check, Loader2 } from 'lucide-react'
 import { ColorPicker } from '@/components/brand/color-picker'
 import { FontSelector } from '@/components/brand/font-selector'
 import { ToneSelector } from '@/components/brand/tone-selector'
@@ -15,6 +16,8 @@ import { TypographySettingsPanel } from '@/components/brand/typography-settings-
 import { DEFAULT_TYPOGRAPHY } from '@/lib/brand/typographyDefaults'
 import type { TypographySettings } from '@/types/typography'
 import { Globe, Sparkles } from 'lucide-react'
+
+type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 import { cn } from '@/lib/utils'
 
 type StyleTraits = BrandSettings['style_traits']
@@ -46,6 +49,7 @@ const DEFAULT_IMAGERY: ImagerySettings = {
   mood_traits: [],
   negative_rules: [],
   example_board: [],
+  negative_example_board: [],
   uploaded_imagery: [],
   subjects: [],
   generation_notes: '',
@@ -58,9 +62,10 @@ export default function BrandSettingsPage() {
   const [brand, setBrand] = useState<BrandSettings>(DEFAULT_BRAND)
   const [logoLibrary, setLogoLibrary] = useState<string[]>([])
   const [brandLoading, setBrandLoading] = useState(true)
-  const [brandSaving, setBrandSaving] = useState(false)
-  const [brandSaved, setBrandSaved] = useState(false)
+  const [brandStatus, setBrandStatus] = useState<SaveStatus>('idle')
   const [brandError, setBrandError] = useState<string | null>(null)
+  const brandLoaded = useRef(false)
+  const brandSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [activeCard, setActiveCard] = useState<'quote' | 'tile' | 'carousel'>('quote')
   const [inferUrl, setInferUrl] = useState('')
   const [inferring, setInferring] = useState(false)
@@ -71,9 +76,10 @@ export default function BrandSettingsPage() {
   // Imagery state
   const [imagery, setImagery] = useState<ImagerySettings>(DEFAULT_IMAGERY)
   const [imageryLoading, setImageryLoading] = useState(true)
-  const [imagerySaving, setImagerySaving] = useState(false)
-  const [imagerySaved, setImagerySaved] = useState(false)
+  const [imageryStatus, setImageryStatus] = useState<SaveStatus>('idle')
   const [imageryError, setImageryError] = useState<string | null>(null)
+  const imageryLoaded = useRef(false)
+  const imagerySaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [activeImageryCard, setActiveImageryCard] = useState<'hero' | 'story' | 'tile'>('hero')
 
   useEffect(() => {
@@ -107,7 +113,7 @@ export default function BrandSettingsPage() {
           }
         }
       })
-      .finally(() => setBrandLoading(false))
+      .finally(() => { setBrandLoading(false); setTimeout(() => { brandLoaded.current = true }, 0) })
   }, [])
 
   useEffect(() => {
@@ -122,12 +128,13 @@ export default function BrandSettingsPage() {
           mood_traits: data.mood_traits ?? [],
           negative_rules: data.negative_rules ?? [],
           example_board: data.example_board ?? [],
+          negative_example_board: data.negative_example_board ?? [],
           uploaded_imagery: data.uploaded_imagery ?? [],
           subjects: data.subjects ?? [],
           generation_notes: data.generation_notes ?? '',
         })
       })
-      .finally(() => setImageryLoading(false))
+      .finally(() => { setImageryLoading(false); setTimeout(() => { imageryLoaded.current = true }, 0) })
   }, [])
 
   function updateBrand(patch: Partial<BrandSettings>) {
@@ -239,31 +246,59 @@ export default function BrandSettingsPage() {
     }
   }
 
-  async function handleSaveBrand() {
-    setBrandSaving(true)
+  const handleSaveBrand = useCallback(async () => {
+    setBrandStatus('saving')
     setBrandError(null)
     const res = await fetch('/api/brand', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...brand, typography_settings: typographySettings }),
     })
-    if (res.ok) { setBrandSaved(true); setTimeout(() => setBrandSaved(false), 2500) }
-    else { const d = await res.json(); setBrandError(d.error ?? 'Save failed') }
-    setBrandSaving(false)
-  }
+    if (res.ok) {
+      setBrandStatus('saved')
+      setTimeout(() => setBrandStatus('idle'), 3000)
+    } else {
+      const d = await res.json()
+      setBrandError(d.error ?? 'Save failed')
+      setBrandStatus('error')
+    }
+  }, [brand, typographySettings])
 
-  async function handleSaveImagery() {
-    setImagerySaving(true)
+  const handleSaveImagery = useCallback(async () => {
+    setImageryStatus('saving')
     setImageryError(null)
     const res = await fetch('/api/brand/imagery', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(imagery),
     })
-    if (res.ok) { setImagerySaved(true); setTimeout(() => setImagerySaved(false), 2500) }
-    else { const d = await res.json(); setImageryError(d.error ?? 'Save failed') }
-    setImagerySaving(false)
-  }
+    if (res.ok) {
+      setImageryStatus('saved')
+      setTimeout(() => setImageryStatus('idle'), 3000)
+    } else {
+      const d = await res.json()
+      setImageryError(d.error ?? 'Save failed')
+      setImageryStatus('error')
+    }
+  }, [imagery])
+
+  // Auto-save brand on change (debounced 1.5s)
+  useEffect(() => {
+    if (!brandLoaded.current) return
+    setBrandStatus('unsaved')
+    if (brandSaveTimer.current) clearTimeout(brandSaveTimer.current)
+    brandSaveTimer.current = setTimeout(() => { handleSaveBrand() }, 1500)
+    return () => { if (brandSaveTimer.current) clearTimeout(brandSaveTimer.current) }
+  }, [brand, typographySettings]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save imagery on change (debounced 1.5s)
+  useEffect(() => {
+    if (!imageryLoaded.current) return
+    setImageryStatus('unsaved')
+    if (imagerySaveTimer.current) clearTimeout(imagerySaveTimer.current)
+    imagerySaveTimer.current = setTimeout(() => { handleSaveImagery() }, 1500)
+    return () => { if (imagerySaveTimer.current) clearTimeout(imagerySaveTimer.current) }
+  }, [imagery]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loading = brandLoading || imageryLoading
 
@@ -278,13 +313,47 @@ export default function BrandSettingsPage() {
     )
   }
 
+  const status = activeTab === 'identity' ? brandStatus : imageryStatus
+  const statusError = activeTab === 'identity' ? brandError : imageryError
+  const onSave = activeTab === 'identity' ? handleSaveBrand : handleSaveImagery
+
   return (
     <div className="mx-auto max-w-5xl pb-16">
-      {/* Page header + tabs */}
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold text-zinc-900">Brand Guidelines</h1>
-        <p className="mt-1 text-sm text-zinc-500">Define your visual identity and imagery direction.</p>
-        <div className="mt-4 flex gap-0 border-b border-zinc-200">
+      {/* Sticky header with save status */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-zinc-100 -mx-4 px-4 md:-mx-8 md:px-8 mb-6">
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <h1 className="text-base font-semibold text-zinc-900">Brand Guidelines</h1>
+            <p className="text-xs text-zinc-400">Define your visual identity and imagery direction.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Status indicator */}
+            <span className={cn('flex items-center gap-1.5 text-xs transition-all', {
+              'text-zinc-400': status === 'idle' || status === 'saving',
+              'text-amber-500': status === 'unsaved',
+              'text-emerald-600': status === 'saved',
+              'text-red-500': status === 'error',
+            })}>
+              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saved' && <Check className="h-3 w-3" />}
+              {status === 'unsaved' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />}
+              {status === 'saving' && 'Saving…'}
+              {status === 'saved' && 'Saved'}
+              {status === 'unsaved' && 'Unsaved changes'}
+              {status === 'error' && (statusError ?? 'Save failed')}
+            </span>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={status === 'saving'}
+              className="rounded-md bg-zinc-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-50"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        {/* Tabs */}
+        <div className="flex gap-0 border-t border-zinc-100">
           {(['identity', 'imagery'] as const).map(tab => (
             <button
               key={tab}
@@ -345,12 +414,14 @@ export default function BrandSettingsPage() {
               <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
                 <h2 className="text-sm font-semibold text-zinc-900">Identity</h2>
                 <div>
-                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Brand Name</label>
+                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                    Brand Name{brand.logo_url && <span className="ml-1 normal-case font-normal text-zinc-400 tracking-normal">(optional when logo is set)</span>}
+                  </label>
                   <input
                     type="text"
                     value={brand.brand_name ?? ''}
                     onChange={e => updateBrand({ brand_name: e.target.value || null })}
-                    placeholder="Acme Corp"
+                    placeholder={brand.logo_url ? 'Leave blank to use logo only' : 'Acme Corp'}
                     className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:border-zinc-400 focus:outline-none"
                   />
                 </div>
@@ -440,17 +511,6 @@ export default function BrandSettingsPage() {
                 ))}
               </div>
 
-              {brandError && <p className="text-sm text-red-500">{brandError}</p>}
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSaveBrand}
-                  disabled={brandSaving}
-                  className="rounded-md bg-zinc-800 px-6 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                >
-                  {brandSaving ? 'Saving...' : brandSaved ? 'Saved ✓' : 'Save Brand'}
-                </button>
-              </div>
             </>
           )}
 
@@ -622,7 +682,7 @@ export default function BrandSettingsPage() {
               <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-3">
                 <div>
                   <h2 className="text-sm font-semibold text-zinc-900">Example Imagery</h2>
-                  <p className="text-xs text-zinc-500 mt-0.5">Upload images that represent your brand. Used directly in posts and as inspiration for AI generation.</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Upload images that represent your brand. Used directly in posts and as inspiration for image generation.</p>
                 </div>
                 <ImageryUploader
                   images={imagery.uploaded_imagery}
@@ -636,23 +696,14 @@ export default function BrandSettingsPage() {
                 <ExampleBoard
                   value={imagery.example_board}
                   onChange={v => updateImagery({ example_board: v })}
+                  negativeBoard={imagery.negative_example_board}
+                  onNegativeChange={v => updateImagery({ negative_example_board: v })}
                   visualStyles={imagery.visual_styles}
                   imageryTypes={imagery.imagery_type}
                   moodTraits={imagery.mood_traits}
                 />
               </div>
 
-              {imageryError && <p className="text-sm text-red-500">{imageryError}</p>}
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSaveImagery}
-                  disabled={imagerySaving}
-                  className="rounded-md bg-zinc-800 px-6 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                >
-                  {imagerySaving ? 'Saving...' : imagerySaved ? 'Saved ✓' : 'Save Imagery'}
-                </button>
-              </div>
             </>
           )}
         </div>

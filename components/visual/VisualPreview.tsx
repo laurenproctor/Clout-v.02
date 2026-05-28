@@ -60,7 +60,7 @@ export function VisualPreview({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={displayUrl}
-          alt="AI generated visual"
+          alt="Generated visual"
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />

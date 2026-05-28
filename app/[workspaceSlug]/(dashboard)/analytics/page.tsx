@@ -263,7 +263,7 @@ export default function AnalyticsDashboard() {
                 </div>
                 {insights.length === 0 ? (
                   <p className="text-sm text-zinc-400 italic">
-                    Click &ldquo;Generate insights&rdquo; for an AI-powered strategic summary of this period.
+                    Click &ldquo;Generate insights&rdquo; for a strategic summary of this period.
                   </p>
                 ) : (
                   <ul className="space-y-3">

@@ -55,7 +55,7 @@ export function AiActionsPanel({ open, onClose, running, majorResult, onAction }
       )}
       <div
         role="dialog"
-        aria-label="AI Actions"
+        aria-label="Actions"
         className={cn(
           'fixed right-0 top-0 bottom-0 z-40 w-full sm:w-[280px] flex flex-col',
           'bg-zinc-950 border-l border-zinc-800',
@@ -66,7 +66,7 @@ export function AiActionsPanel({ open, onClose, running, majorResult, onAction }
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-zinc-500" />
-            <span className="text-sm font-semibold text-zinc-200">AI Actions</span>
+            <span className="text-sm font-semibold text-zinc-200">Actions</span>
           </div>
           <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 transition-colors" aria-label="Close">
             <X className="h-4 w-4" />

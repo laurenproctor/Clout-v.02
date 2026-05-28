@@ -20,7 +20,7 @@ const STEPS = [
   },
   {
     title: 'Claim your angle',
-    body: 'Every signal has a "Draft a perspective" button. The AI drafts a differentiated take — not a summary of what everyone already knows. You edit, you publish, you own the territory.',
+    body: 'Every signal has a "Draft a perspective" button. Clout drafts a differentiated take — not a summary of what everyone already knows. You edit, you publish, you own the territory.',
   },
 ]
 

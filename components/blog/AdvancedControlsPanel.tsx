@@ -101,7 +101,7 @@ export function AdvancedControlsPanel({ values, onChange, onGenerate, isGenerati
       <div>
         <label className={labelClass}>Additional Context</label>
         <textarea
-          placeholder="Any extra instructions, constraints, or context for the AI..."
+          placeholder="Any extra instructions, constraints, or context for generation..."
           value={values.additionalContext ?? ''}
           onChange={e => set({ additionalContext: e.target.value || undefined })}
           rows={3}
@@ -153,7 +153,7 @@ export function AdvancedControlsPanel({ values, onChange, onGenerate, isGenerati
                 className={selectClass}
               >
                 <option value="editorial">Editorial</option>
-                <option value="ai_generated">AI Generated</option>
+                <option value="ai_generated">Generated</option>
                 <option value="product">Product</option>
                 <option value="minimalist">Minimalist</option>
                 <option value="technical">Technical</option>

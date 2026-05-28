@@ -69,7 +69,7 @@ export function NegativeRulesInput({ value, onChange, className }: NegativeRules
           className="min-w-[120px] flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
         />
       </div>
-      <p className="text-xs text-zinc-400">Press Enter or comma to add. These guide the AI away from unwanted styles.</p>
+      <p className="text-xs text-zinc-400">Press Enter or comma to add. These steer content away from unwanted styles.</p>
     </div>
   )
 }

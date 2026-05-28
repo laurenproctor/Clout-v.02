@@ -108,7 +108,7 @@ export function VisualGenerator({
           <span className="text-sm font-medium text-zinc-700">Visual</span>
         </div>
         <p className="text-xs text-zinc-500 mb-4">
-          Generate a platform-optimised image using AI visual strategy derived from this content.
+          Generate a platform-optimised image from the visual strategy derived from this content.
         </p>
         <Button size="sm" onClick={() => generate()}>
           Generate visual
