@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
 import { PlatformCard, type ConnectedAccount } from '@/components/publishing/PlatformCard'
+import { GoogleSearchConsoleCard } from '@/components/publishing/GoogleSearchConsoleCard'
+import { BingWebmasterCard } from '@/components/publishing/BingWebmasterCard'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import { useCanConnectAccount } from '@/hooks/use-entitlements'
 
@@ -451,7 +453,8 @@ function PublishingInfrastructureContent() {
     else if (connected === 'shopify')               flash('Shopify store connected.', true)
     else if (connected === 'medium')                flash('Medium connected.', true)
     else if (connected === 'google_business_profile') flash('Google Business Profile location connected.', true)
-    else if (connected === 'google') { /* handled by EditorialIntelligenceCard */ }
+    else if (connected === 'google') flash('Google Analytics & Search Console connected.', true)
+    else if (connected === 'bing') flash('Bing Webmaster Tools connected.', true)
     else if (error === 'gbp_no_locations')
       flash('No Google Business Profile locations found on this account.', false)
     else if (error === 'facebook_no_pages')
@@ -467,6 +470,9 @@ function PublishingInfrastructureContent() {
       flash('Session expired — please try again.', false)
     else if (error === 'token_exchange_failed')
       flash('The platform rejected the connection. Check your app credentials.', false)
+    else if (error === 'bing_denied') flash('Bing connection cancelled.', false)
+    else if (error === 'bing_token_exchange_failed') flash('Bing rejected the connection. Check your app credentials.', false)
+    else if (error === 'bing_server_error') flash('Bing connection failed — server error. Try again.', false)
     else if (error === 'profile_fetch_failed')
       flash("Connected but couldn't fetch your profile. Try again.", false)
     else if (error === 'channel_db_failed' || error === 'credential_db_failed')
@@ -756,6 +762,21 @@ function PublishingInfrastructureContent() {
         <Suspense>
           <EditorialIntelligenceCard />
         </Suspense>
+      </section>
+
+      {/* Search Performance */}
+      <section className="mb-8">
+        <div className="mb-4">
+          <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">Search Performance</h2>
+        </div>
+        <div className="space-y-4">
+          <Suspense>
+            <GoogleSearchConsoleCard />
+          </Suspense>
+          <Suspense>
+            <BingWebmasterCard />
+          </Suspense>
+        </div>
       </section>
 
       {/* Distribution Channels */}
