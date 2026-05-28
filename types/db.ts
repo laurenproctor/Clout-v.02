@@ -333,6 +333,7 @@ export type Database = {
           id: string
           imagery_type: string | null
           mood_traits: string[]
+          negative_example_board: string[]
           negative_rules: string[]
           overlay_text_style: string | null
           subjects: string[]
@@ -349,6 +350,7 @@ export type Database = {
           id?: string
           imagery_type?: string | null
           mood_traits?: string[]
+          negative_example_board?: string[]
           negative_rules?: string[]
           overlay_text_style?: string | null
           subjects?: string[]
@@ -365,6 +367,7 @@ export type Database = {
           id?: string
           imagery_type?: string | null
           mood_traits?: string[]
+          negative_example_board?: string[]
           negative_rules?: string[]
           overlay_text_style?: string | null
           subjects?: string[]

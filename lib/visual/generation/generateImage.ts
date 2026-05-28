@@ -130,16 +130,25 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   // ── Step 4: Pre-generate asset ID ─────────────────────────────────────────
   const assetId = crypto.randomUUID()
 
-  // ── Step 5: Generate background ───────────────────────────────────────────
+  // ── Step 5: Generate background (or use supplied image) ──────────────────
   const provider = getOpenAIProvider()
-  const generated = await provider.generate({ prompt: finalPrompt, aspectRatio, quality, seed })
-  const storedPrompt = generated.revisedPrompt ?? finalPrompt
+  let generatedProviderUrl: string
+  let storedPrompt: string
+
+  if (input.suppliedBackgroundUrl) {
+    generatedProviderUrl = input.suppliedBackgroundUrl
+    storedPrompt = finalPrompt
+  } else {
+    const generated = await provider.generate({ prompt: finalPrompt, aspectRatio, quality, seed })
+    generatedProviderUrl = generated.providerUrl
+    storedPrompt = generated.revisedPrompt ?? finalPrompt
+  }
 
   // ── Step 6: Quality scoring for hybrid-overlay ────────────────────────────
   let qualityScore: number | null = null
 
-  if (isHybridOverlay && templateSpec && grammar) {
-    const score = await scoreImageQuality(generated.providerUrl, grammar, templateSpec)
+  if (isHybridOverlay && templateSpec && grammar && !input.suppliedBackgroundUrl) {
+    const score = await scoreImageQuality(generatedProviderUrl, grammar, templateSpec)
     qualityScore = score.overall
 
     if (score.overall < IMAGE_QUALITY_THRESHOLD) {
@@ -163,8 +172,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       const retryScore = await scoreImageQuality(retried.providerUrl, grammar, templateSpec)
 
       if (retryScore.overall >= score.overall) {
-        // Use the retry result if it's better
-        Object.assign(generated, retried)
+        generatedProviderUrl = retried.providerUrl
         qualityScore = retryScore.overall
       }
     }
@@ -172,7 +180,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
   // ── Step 7: Upload background to Storage ──────────────────────────────────
   const upload = await uploadImageFromUrl({
-    providerUrl: generated.providerUrl,
+    providerUrl: generatedProviderUrl,
     workspaceId,
     assetId,
     subfolder: 'backgrounds',

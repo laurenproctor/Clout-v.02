@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Search, Upload, ChevronDown } from 'lucide-react'
 
+const FONT_ACCEPT = '.woff,.woff2,.ttf,.otf'
+const FONT_ACCEPT_RE = /\.(woff2?|ttf|otf)$/i
+
 const HEADING_FONTS = [
   'Playfair Display', 'Fraunces', 'DM Serif Display',
   'Libre Baskerville', 'Cormorant Garamond',
@@ -15,7 +18,7 @@ const BODY_FONTS = [
   'IBM Plex Sans', 'Source Sans 3', 'Lato', 'Merriweather',
 ]
 
-function injectGoogleFont(fontName: string) {
+export function injectGoogleFont(fontName: string) {
   const id = `gf-${fontName.replace(/\s+/g, '-')}`
   if (typeof document === 'undefined' || document.getElementById(id)) return
   const link = document.createElement('link')
@@ -41,6 +44,7 @@ export function FontSelector({ label, value, customUrl, role, onChange, onUpload
   const [open, setOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const curated = role === 'heading' ? HEADING_FONTS : BODY_FONTS
@@ -49,19 +53,44 @@ export function FontSelector({ label, value, customUrl, role, onChange, onUpload
     if (!customUrl && value) injectGoogleFont(value)
   }, [value, customUrl])
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !onUpload) return
+  async function processFile(file: File) {
+    if (!onUpload) return
     setUploading(true)
     setUploadError(null)
     try {
       const url = await onUpload(file)
-      onChange(file.name.replace(/\.(woff2?)$/i, ''), url)
+      onChange(file.name.replace(FONT_ACCEPT_RE, ''), url)
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
       setUploading(false)
     }
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) processFile(file)
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    if (!FONT_ACCEPT_RE.test(file.name)) {
+      setUploadError('Please drop a .woff, .woff2, .ttf, or .otf file')
+      return
+    }
+    processFile(file)
   }
 
   return (
@@ -149,18 +178,37 @@ export function FontSelector({ label, value, customUrl, role, onChange, onUpload
 
       {mode === 'custom' && (
         <div className="flex flex-col gap-2">
-          <input ref={fileRef} type="file" accept=".woff,.woff2" onChange={handleFileUpload} className="sr-only" />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 hover:bg-zinc-100 transition-colors disabled:opacity-50"
+          <input ref={fileRef} type="file" accept={FONT_ACCEPT} onChange={handleFileUpload} className="sr-only" />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => !uploading && fileRef.current?.click()}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && !uploading && fileRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={cn(
+              'flex flex-col items-center gap-2 rounded-md border-2 border-dashed px-4 py-5 text-sm transition-colors cursor-pointer select-none',
+              uploading && 'pointer-events-none opacity-50',
+              isDragging
+                ? 'border-zinc-500 bg-zinc-100 text-zinc-800'
+                : 'border-zinc-300 bg-zinc-50 text-zinc-500 hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-700'
+            )}
           >
-            <Upload className="h-4 w-4" />
-            {uploading ? 'Uploading...' : customUrl ? 'Replace font file' : 'Upload .woff or .woff2'}
-          </button>
+            <Upload className="h-5 w-5" />
+            <span className="text-xs text-center">
+              {uploading
+                ? 'Uploading…'
+                : isDragging
+                  ? 'Drop font file here'
+                  : customUrl
+                    ? 'Drop or click to replace font'
+                    : 'Drop font file here, or click to browse'}
+            </span>
+            <span className="text-[10px] text-zinc-400">.woff  .woff2  .ttf  .otf</span>
+          </div>
           {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
-          {customUrl && <p className="text-xs text-zinc-500">Custom font: <span className="font-medium">{value}</span></p>}
+          {customUrl && <p className="text-xs text-zinc-500">Current: <span className="font-medium">{value}</span></p>}
         </div>
       )}
     </div>

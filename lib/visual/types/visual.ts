@@ -156,6 +156,7 @@ export interface GenerateImageInput {
   visualObjective?: VisualObjective
   audienceFrame?: string     // e.g. 'Executives', 'Engineers', 'Investors', 'Consumers', 'Creators'
   lensType?: LensType
+  suppliedBackgroundUrl?: string  // skip DALL-E and use this image as the background
 }
 
 // ─── Persisted asset ────────────────────────────────────────────────────────

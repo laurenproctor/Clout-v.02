@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { TypographySettings, TypographyLevelSettings } from '@/types/typography'
+import { injectGoogleFont } from '@/components/brand/font-selector'
 
 export interface BrandSettings {
   brand_name: string | null
@@ -86,6 +87,8 @@ export function BrandPreview({ settings, typographySettings, activeCard = 'quote
         document.head.appendChild(style)
       }
       style.textContent = `@font-face { font-family: "CustomHeading"; src: url("${settings.font_heading_url}"); }`
+    } else if (settings.font_heading) {
+      injectGoogleFont(settings.font_heading)
     }
     if (settings.font_body_url) {
       let style = document.getElementById('brand-body-font') as HTMLStyleElement | null
@@ -95,8 +98,10 @@ export function BrandPreview({ settings, typographySettings, activeCard = 'quote
         document.head.appendChild(style)
       }
       style.textContent = `@font-face { font-family: "CustomBody"; src: url("${settings.font_body_url}"); }`
+    } else if (settings.font_body) {
+      injectGoogleFont(settings.font_body)
     }
-  }, [settings.font_heading_url, settings.font_body_url])
+  }, [settings.font_heading, settings.font_heading_url, settings.font_body, settings.font_body_url])
 
   const brandName = settings.brand_name || 'Your Brand'
 

@@ -57,22 +57,24 @@ export async function POST(req: NextRequest) {
     visualObjective,
     audienceFrame,
     lensType,
+    suppliedBackgroundUrl,
   } = body as {
-    outputId?:          string
-    content?:           string
-    platform?:          string
-    aspectRatio?:       string
-    quality?:           'standard' | 'hd'
-    promptOverride?:    string
-    emotionalTone?:     string
-    keyIdea?:           string
-    parentAssetId?:     string
-    generationGroupId?: string
-    variationReason?:   string
-    seed?:              number
-    visualObjective?:   string
-    audienceFrame?:     string
-    lensType?:          string
+    outputId?:                string
+    content?:                 string
+    platform?:                string
+    aspectRatio?:             string
+    quality?:                 'standard' | 'hd'
+    promptOverride?:          string
+    emotionalTone?:           string
+    keyIdea?:                 string
+    parentAssetId?:           string
+    generationGroupId?:       string
+    variationReason?:         string
+    seed?:                    number
+    visualObjective?:         string
+    audienceFrame?:           string
+    lensType?:                string
+    suppliedBackgroundUrl?:   string
   }
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
@@ -90,9 +92,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Validate ──────────────────────────────────────────────────────────────
-  if (!promptOverride && (!content || !platform)) {
+  if (!promptOverride && !suppliedBackgroundUrl && (!content || !platform)) {
     return NextResponse.json(
-      { error: 'Provide either promptOverride, or both content and platform' },
+      { error: 'Provide either promptOverride, suppliedBackgroundUrl, or both content and platform' },
       { status: 400 }
     )
   }
@@ -145,9 +147,10 @@ export async function POST(req: NextRequest) {
       keyIdea,
       promptOverride,
       seed,
-      visualObjective:    visualObjective as VisualObjective | undefined,
+      visualObjective:         visualObjective as VisualObjective | undefined,
       audienceFrame,
-      lensType:           lensType as LensType | undefined,
+      lensType:                lensType as LensType | undefined,
+      suppliedBackgroundUrl:   suppliedBackgroundUrl ?? undefined,
     })
 
     const assetV2 = asset as typeof asset & {

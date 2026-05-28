@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BOARD_IMAGES } from '@/components/brand/example-board'
@@ -13,6 +13,7 @@ export interface ImagerySettings {
   mood_traits: string[]
   negative_rules: string[]
   example_board: string[]
+  negative_example_board: string[]
   uploaded_imagery: string[]
   subjects: string[]
   generation_notes: string
@@ -31,6 +32,10 @@ interface ImageryPreviewProps {
 function resolvePreviewImage(imagery: ImagerySettings): string | null {
   if (imagery.uploaded_imagery.length > 0) return imagery.uploaded_imagery[0]
   if (imagery.example_board.length > 0) {
+    // Dynamic results: stored as full URLs
+    const directUrl = imagery.example_board.find(v => v.startsWith('http'))
+    if (directUrl) return directUrl
+    // Legacy: stored as IDs referencing BOARD_IMAGES
     const match = BOARD_IMAGES.find(b => imagery.example_board.includes(b.id))
     return match?.url.replace('w=400', 'w=800') ?? null
   }
@@ -53,8 +58,10 @@ export function ImageryPreview({
   ) ? 'dark' : 'light'
 
   const [scheme, setScheme] = useState<'light' | 'dark'>(defaultScheme)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const tabs = [
+  const cards = [
     { id: 'hero'  as const, label: 'Hero Banner' },
     { id: 'story' as const, label: 'Story Card' },
     { id: 'tile'  as const, label: 'Post Tile' },
@@ -63,25 +70,29 @@ export function ImageryPreview({
   const previewImage = resolvePreviewImage(imagery)
   const cardProps = { imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage }
 
-  return (
-    <div className={cn('flex flex-col gap-4', className)}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex gap-1 rounded-md border border-zinc-200 bg-zinc-50 p-0.5">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => onCardSelect?.(tab.id)}
-              className={cn(
-                'rounded px-3 py-1.5 text-xs font-medium transition-colors',
-                activeCard === tab.id ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+  function scrollToIndex(index: number) {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' })
+    setActiveIndex(index)
+    onCardSelect?.(cards[index].id)
+  }
 
+  function handleScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    const index = Math.round(el.scrollLeft / el.clientWidth)
+    if (index !== activeIndex) {
+      setActiveIndex(index)
+      onCardSelect?.(cards[index].id)
+    }
+  }
+
+  return (
+    <div className={cn('flex flex-col gap-3', className)}>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-zinc-500">{cards[activeIndex].label}</p>
         <button
           type="button"
           onClick={() => setScheme(s => s === 'dark' ? 'light' : 'dark')}
@@ -93,14 +104,40 @@ export function ImageryPreview({
         </button>
       </div>
 
-      <div className="w-full max-w-sm overflow-hidden shadow-md rounded-lg">
-        {activeCard === 'hero'  && <HeroBanner  {...cardProps} />}
-        {activeCard === 'story' && <StoryCard   {...cardProps} />}
-        {activeCard === 'tile'  && <PostTile    {...cardProps} />}
+      {/* Scroll carousel */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-lg shadow-md"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {cards.map(card => (
+          <div key={card.id} className="shrink-0 w-full snap-start overflow-hidden">
+            {card.id === 'hero'  && <HeroBanner  {...cardProps} />}
+            {card.id === 'story' && <StoryCard   {...cardProps} />}
+            {card.id === 'tile'  && <PostTile    {...cardProps} />}
+          </div>
+        ))}
+      </div>
+
+      {/* Dot indicators */}
+      <div className="flex items-center justify-center gap-1.5">
+        {cards.map((card, i) => (
+          <button
+            key={card.id}
+            type="button"
+            onClick={() => scrollToIndex(i)}
+            className={cn(
+              'rounded-full transition-all',
+              i === activeIndex ? 'w-4 h-1.5 bg-zinc-700' : 'w-1.5 h-1.5 bg-zinc-300 hover:bg-zinc-400'
+            )}
+            aria-label={`Show ${card.label}`}
+          />
+        ))}
       </div>
 
       {!previewImage && (
-        <p className="text-[10px] text-zinc-400 text-center -mt-2">
+        <p className="text-[10px] text-zinc-400 text-center -mt-1">
           Upload imagery or select from the reference board to see it here.
         </p>
       )}
