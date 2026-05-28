@@ -664,6 +664,7 @@ export default function BrandSettingsPage() {
             {activeTab === 'identity' ? (
               <BrandPreview
                 settings={brand}
+                typographySettings={typographySettings}
                 activeCard={activeCard}
                 onCardSelect={setActiveCard}
               />

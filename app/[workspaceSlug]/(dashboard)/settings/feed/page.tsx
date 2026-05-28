@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { TopicSelector } from '@/components/feed/TopicSelector'
 import { FocusAreaSelector } from '@/components/feed/FocusAreaSelector'
 import { CompetitorInput } from '@/components/feed/CompetitorInput'
@@ -15,6 +16,7 @@ interface FeedSettings {
 }
 
 export default function SignalFeedSettingsPage() {
+  const router = useRouter()
   const [settings, setSettings] = useState<FeedSettings>({
     brand_name: '',
     content_topics: [],
@@ -52,6 +54,7 @@ export default function SignalFeedSettingsPage() {
       })
       if (!res.ok) throw new Error('Save failed')
       setToast({ message: 'Settings saved', type: 'success' })
+      router.refresh()
     } catch {
       setToast({ message: 'Failed to save settings', type: 'error' })
     } finally {
