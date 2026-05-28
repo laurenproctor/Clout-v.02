@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { signOAuthState } from '@/lib/oauth-state'
 
@@ -12,12 +12,14 @@ const SCOPES = [
   'https://www.googleapis.com/auth/webmasters.readonly',
 ].join(' ')
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // signOAuthState is synchronous — no await
-  const state = signOAuthState(session.workspaceId)
+  const rawReturnTo = req.nextUrl.searchParams.get('returnTo')
+  const returnTo = rawReturnTo && rawReturnTo.startsWith('/') ? rawReturnTo : undefined
+
+  const state = signOAuthState(session.workspaceId, undefined, returnTo)
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google/callback`
 
   const params = new URLSearchParams({

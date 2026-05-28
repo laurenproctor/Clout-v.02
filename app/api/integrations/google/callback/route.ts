@@ -20,16 +20,18 @@ export async function GET(req: NextRequest) {
   }
 
   let workspaceId: string
+  let returnTo: string
   try {
     const payload = verifyOAuthState(state)  // synchronous, returns StatePayload
     workspaceId = payload.workspaceId
+    returnTo = payload.returnTo ?? '/settings/analytics'
   } catch {
     return NextResponse.redirect(`${APP_URL}/settings/analytics?error=invalid_state`)
   }
 
   const session = await getSession()
   if (!session || session.workspaceId !== workspaceId) {
-    return NextResponse.redirect(`${APP_URL}/settings/analytics?error=workspace_mismatch`)
+    return NextResponse.redirect(`${APP_URL}${returnTo}?error=workspace_mismatch`)
   }
 
   const redirectUri = `${APP_URL}/api/integrations/google/callback`
@@ -49,7 +51,7 @@ export async function GET(req: NextRequest) {
     })
 
     if (!tokenRes.ok) {
-      return NextResponse.redirect(`${APP_URL}/settings/analytics?error=token_exchange_failed`)
+      return NextResponse.redirect(`${APP_URL}${returnTo}?error=token_exchange_failed`)
     }
 
     tokens = await tokenRes.json() as typeof tokens
@@ -76,8 +78,8 @@ export async function GET(req: NextRequest) {
       }),
     ])
   } catch {
-    return NextResponse.redirect(`${APP_URL}/settings/analytics?error=server_error`)
+    return NextResponse.redirect(`${APP_URL}${returnTo}?error=server_error`)
   }
 
-  return NextResponse.redirect(`${APP_URL}/settings/analytics?connected=google`)
+  return NextResponse.redirect(`${APP_URL}${returnTo}?connected=google`)
 }

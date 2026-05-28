@@ -451,6 +451,7 @@ function PublishingInfrastructureContent() {
     else if (connected === 'shopify')               flash('Shopify store connected.', true)
     else if (connected === 'medium')                flash('Medium connected.', true)
     else if (connected === 'google_business_profile') flash('Google Business Profile location connected.', true)
+    else if (connected === 'google') { /* handled by EditorialIntelligenceCard */ }
     else if (error === 'gbp_no_locations')
       flash('No Google Business Profile locations found on this account.', false)
     else if (error === 'facebook_no_pages')
@@ -752,7 +753,9 @@ function PublishingInfrastructureContent() {
         <div className="mb-4">
           <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">Analytics</h2>
         </div>
-        <EditorialIntelligenceCard />
+        <Suspense>
+          <EditorialIntelligenceCard />
+        </Suspense>
       </section>
 
       {/* Distribution Channels */}

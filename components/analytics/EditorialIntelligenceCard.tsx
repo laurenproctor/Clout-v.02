@@ -35,6 +35,7 @@ export function EditorialIntelligenceCard() {
   })
   const [loading, setLoading] = useState(true)
   const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null)
+  const [saving, setSaving]   = useState<string | null>(null)
 
   function showToast(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -77,22 +78,28 @@ export function EditorialIntelligenceCard() {
   }, [])
 
   async function handleSelectProperty(prop: PropertyInfo) {
+    if (saving) return
+    setSaving(prop.propertyId)
     const res = await fetch('/api/integrations/google/select-property', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ propertyId: prop.propertyId, propertyName: prop.displayName }),
     })
+    setSaving(null)
     if (!res.ok) { showToast('Failed to save GA4 property', false); return }
     setState(s => ({ ...s, selectedPropertyId: prop.propertyId }))
     showToast(`GA4 property set to "${prop.displayName}"`, true)
   }
 
   async function handleSelectSite(site: SiteInfo) {
+    if (saving) return
+    setSaving(site.siteUrl)
     const res = await fetch('/api/integrations/google/select-site', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ siteUrl: site.siteUrl }),
     })
+    setSaving(null)
     if (!res.ok) { showToast('Failed to save Search Console site', false); return }
     setState(s => ({ ...s, selectedSiteUrl: site.siteUrl }))
     showToast(`Search Console site set to "${site.siteUrl}"`, true)
@@ -143,6 +150,7 @@ export function EditorialIntelligenceCard() {
         </div>
         {state.connected ? (
           <button
+            type="button"
             onClick={handleDisconnect}
             className="text-xs text-zinc-400 transition-colors hover:text-red-500"
           >
@@ -150,7 +158,7 @@ export function EditorialIntelligenceCard() {
           </button>
         ) : (
           <a
-            href="/api/integrations/google/connect"
+            href={`/api/integrations/google/connect?returnTo=${encodeURIComponent(pathname)}`}
             className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700"
           >
             Connect Google
@@ -168,8 +176,10 @@ export function EditorialIntelligenceCard() {
               <div className="space-y-1">
                 {state.properties.map(prop => (
                   <button
+                    type="button"
                     key={prop.propertyId}
                     onClick={() => handleSelectProperty(prop)}
+                    disabled={!!saving}
                     className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
                       state.selectedPropertyId === prop.propertyId
                         ? 'bg-zinc-900 text-white'
@@ -192,8 +202,10 @@ export function EditorialIntelligenceCard() {
               <div className="space-y-1">
                 {state.sites.map(site => (
                   <button
+                    type="button"
                     key={site.siteUrl}
                     onClick={() => handleSelectSite(site)}
+                    disabled={!!saving}
                     className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
                       state.selectedSiteUrl === site.siteUrl
                         ? 'bg-zinc-900 text-white'

@@ -8,6 +8,7 @@ interface StatePayload {
   nonce:         string
   exp:           number
   codeVerifier?: string  // PKCE only — X OAuth 2.0
+  returnTo?:     string
 }
 
 function secret(): string {
@@ -18,13 +19,15 @@ function secret(): string {
 
 export function signOAuthState(
   workspaceId: string,
-  codeVerifier?: string
+  codeVerifier?: string,
+  returnTo?: string
 ): string {
   const payload: StatePayload = {
     workspaceId,
     nonce: crypto.randomUUID(),
     exp:   Math.floor(Date.now() / 1000) + STATE_TTL_SECONDS,
     ...(codeVerifier ? { codeVerifier } : {}),
+    ...(returnTo ? { returnTo } : {}),
   }
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url')
   const sig  = createHmac('sha256', secret()).update(data).digest('base64url')
