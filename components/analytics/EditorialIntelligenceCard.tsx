@@ -54,6 +54,8 @@ export function EditorialIntelligenceCard() {
         selectedPropertyId: propsRes.selectedId ?? null,
         selectedSiteUrl:    sitesRes.selectedUrl ?? null,
       })
+    } catch {
+      showToast('Failed to load Google connection', false)
     } finally {
       setLoading(false)
     }
@@ -97,7 +99,8 @@ export function EditorialIntelligenceCard() {
   }
 
   async function handleDisconnect() {
-    await fetch('/api/integrations/google/disconnect', { method: 'POST' })
+    const res = await fetch('/api/integrations/google/disconnect', { method: 'POST' })
+    if (!res.ok) { showToast('Failed to disconnect Google Analytics', false); return }
     setState({ connected: false, properties: [], sites: [], selectedPropertyId: null, selectedSiteUrl: null })
     showToast('Google Analytics disconnected.', true)
   }
