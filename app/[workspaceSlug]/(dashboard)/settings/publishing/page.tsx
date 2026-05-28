@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense, useCallback, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { EditorialIntelligenceCard } from '@/components/analytics/EditorialIntelligenceCard'
 import { X, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
@@ -747,19 +747,13 @@ function PublishingInfrastructureContent() {
         ))}
       </div>
 
-      {/* Editorial Intelligence link */}
-      <Link
-        href={`/${slug}/settings/analytics`}
-        className="mb-8 flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3.5 hover:bg-zinc-50 transition-colors"
-      >
-        <div>
-          <p className="text-sm font-medium text-zinc-900">Editorial Intelligence</p>
-          <p className="text-xs text-zinc-500 mt-0.5">Connect Google Analytics 4 and Search Console to measure content attribution</p>
+      {/* Analytics */}
+      <section className="mb-8">
+        <div className="mb-4">
+          <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">Analytics</h2>
         </div>
-        <svg className="w-4 h-4 text-zinc-400 shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </Link>
+        <EditorialIntelligenceCard />
+      </section>
 
       {/* Distribution Channels */}
       <section className="mb-12">
