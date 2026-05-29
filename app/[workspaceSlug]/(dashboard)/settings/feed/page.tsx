@@ -1,27 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import { TopicSelector } from '@/components/feed/TopicSelector'
 import { FocusAreaSelector } from '@/components/feed/FocusAreaSelector'
 import { CompetitorInput } from '@/components/feed/CompetitorInput'
 import { EditorialVoiceSelector } from '@/components/feed/EditorialVoiceSelector'
+import type { CompetitorMetadata } from '@/types/feed'
 
 interface FeedSettings {
   brand_name: string
   content_topics: string[]
   services: string[]
   competitors: string[]
+  competitor_metadata: CompetitorMetadata
   editorial_voices: string[]
 }
 
-export default function SignalFeedSettingsPage() {
+function SignalFeedSettingsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const params = useParams()
+  const isSetup = searchParams.get('setup') === '1'
+  const workspaceSlug = params.workspaceSlug as string
+
   const [settings, setSettings] = useState<FeedSettings>({
     brand_name: '',
     content_topics: [],
     services: [],
     competitors: [],
+    competitor_metadata: {},
     editorial_voices: [],
   })
   const [loading, setLoading] = useState(true)
@@ -32,7 +40,10 @@ export default function SignalFeedSettingsPage() {
     fetch('/api/feed/settings')
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then((data: FeedSettings) => {
-        setSettings(data)
+        setSettings({
+          ...data,
+          competitor_metadata: data.competitor_metadata ?? {},
+        })
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -49,24 +60,42 @@ export default function SignalFeedSettingsPage() {
           content_topics: settings.content_topics,
           services: settings.services,
           competitors: settings.competitors,
+          competitor_metadata: settings.competitor_metadata,
           editorial_voices: settings.editorial_voices,
         }),
       })
       if (!res.ok) throw new Error('Save failed')
-      setToast({ message: 'Settings saved', type: 'success' })
-      router.refresh()
+
+      if (isSetup) {
+        router.push(`/${workspaceSlug}/feed`)
+      } else {
+        setToast({ message: 'Settings saved', type: 'success' })
+        router.refresh()
+        setTimeout(() => setToast(null), 3000)
+      }
     } catch {
       setToast({ message: 'Failed to save settings', type: 'error' })
+      setTimeout(() => setToast(null), 3000)
     } finally {
       setSaving(false)
-      setTimeout(() => setToast(null), 3000)
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-xl font-semibold text-zinc-900">Signal Feed</h1>
-      <p className="mt-1 text-sm text-zinc-500">Edit your feed configuration. Changes apply when you save.</p>
+      {isSetup ? (
+        <>
+          <h1 className="text-xl font-semibold text-zinc-900">Set up your Signal Feed</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Tell us what topics, focus areas, and competitors matter to your brand. We&apos;ll surface the most relevant signals from across the web.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1 className="text-xl font-semibold text-zinc-900">Signal Feed</h1>
+          <p className="mt-1 text-sm text-zinc-500">Edit your feed configuration. Changes apply when you save.</p>
+        </>
+      )}
 
       {loading ? (
         <div className="mt-10 text-sm text-zinc-400">Loading…</div>
@@ -94,6 +123,8 @@ export default function SignalFeedSettingsPage() {
             <CompetitorInput
               competitors={settings.competitors}
               onChange={competitors => setSettings(s => ({ ...s, competitors }))}
+              competitorMetadata={settings.competitor_metadata}
+              onMetadataChange={metadata => setSettings(s => ({ ...s, competitor_metadata: metadata }))}
             />
           </section>
 
@@ -111,7 +142,7 @@ export default function SignalFeedSettingsPage() {
               disabled={saving}
               className="bg-zinc-900 text-white text-sm font-medium px-5 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving ? 'Saving…' : isSetup ? 'Set Up Feed' : 'Save Changes'}
             </button>
             {toast && (
               <span className={`text-sm ${toast.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
@@ -123,5 +154,13 @@ export default function SignalFeedSettingsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function SignalFeedSettingsPage() {
+  return (
+    <Suspense>
+      <SignalFeedSettingsContent />
+    </Suspense>
   )
 }

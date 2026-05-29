@@ -25,9 +25,13 @@ type StyleTraits = BrandSettings['style_traits']
 const DEFAULT_BRAND: BrandSettings = {
   brand_name: null,
   logo_url: null,
+  logo_url_light: null,
+  logo_url_dark: null,
   primary_color: '#1A1A1A',
   secondary_color: '#FFFFFF',
   accent_color: '#D4A574',
+  accent_color_2: null,
+  dark_bg_color: null,
   font_heading: 'Playfair Display',
   font_body: 'Inter',
   font_heading_url: undefined,
@@ -60,6 +64,8 @@ export default function BrandSettingsPage() {
 
   // Identity state
   const [brand, setBrand] = useState<BrandSettings>(DEFAULT_BRAND)
+  const [logoUrlLight, setLogoUrlLight] = useState<string | null>(null)
+  const [logoUrlDark, setLogoUrlDark] = useState<string | null>(null)
   const [logoLibrary, setLogoLibrary] = useState<string[]>([])
   const [brandLoading, setBrandLoading] = useState(true)
   const [brandStatus, setBrandStatus] = useState<SaveStatus>('idle')
@@ -93,6 +99,8 @@ export default function BrandSettingsPage() {
             primary_color: data.primary_color ?? DEFAULT_BRAND.primary_color,
             secondary_color: data.secondary_color ?? DEFAULT_BRAND.secondary_color,
             accent_color: data.accent_color ?? DEFAULT_BRAND.accent_color,
+            accent_color_2: data.accent_color_2 ?? null,
+            dark_bg_color: data.dark_bg_color ?? null,
             font_heading: data.font_heading ?? DEFAULT_BRAND.font_heading,
             font_body: data.font_body ?? DEFAULT_BRAND.font_body,
             font_heading_url: data.font_heading_url ?? undefined,
@@ -103,6 +111,8 @@ export default function BrandSettingsPage() {
           if (data.typography_settings) {
             setTypographySettings({ ...DEFAULT_TYPOGRAPHY, ...(data.typography_settings as TypographySettings) })
           }
+          setLogoUrlLight(data.logo_url_light ?? null)
+          setLogoUrlDark(data.logo_url_dark ?? null)
           // Ensure any existing logo_url (pre-library) is included in the library view
           const library: string[] = data.logo_library ?? []
           const activeUrl: string | null = data.logo_url ?? null
@@ -205,6 +215,24 @@ export default function BrandSettingsPage() {
     }
   }
 
+  function handleTagLight(url: string | null) {
+    setLogoUrlLight(url)
+    fetch('/api/brand', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logo_url_light: url }),
+    })
+  }
+
+  function handleTagDark(url: string | null) {
+    setLogoUrlDark(url)
+    fetch('/api/brand', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logo_url_dark: url }),
+    })
+  }
+
   function makeFontUploader(role: 'heading' | 'body') {
     return async (file: File): Promise<string> => {
       const fd = new FormData()
@@ -246,13 +274,21 @@ export default function BrandSettingsPage() {
     }
   }
 
+  // Refs always hold the latest values so timer callbacks never see stale closures
+  const brandSaveData = useRef({ brand, typographySettings })
+  useEffect(() => { brandSaveData.current = { brand, typographySettings } })
+
+  const imagerySaveData = useRef(imagery)
+  useEffect(() => { imagerySaveData.current = imagery })
+
   const handleSaveBrand = useCallback(async () => {
     setBrandStatus('saving')
     setBrandError(null)
+    const { brand: b, typographySettings: t } = brandSaveData.current
     const res = await fetch('/api/brand', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...brand, typography_settings: typographySettings }),
+      body: JSON.stringify({ ...b, typography_settings: t }),
     })
     if (res.ok) {
       setBrandStatus('saved')
@@ -262,7 +298,7 @@ export default function BrandSettingsPage() {
       setBrandError(d.error ?? 'Save failed')
       setBrandStatus('error')
     }
-  }, [brand, typographySettings])
+  }, [])
 
   const handleSaveImagery = useCallback(async () => {
     setImageryStatus('saving')
@@ -270,7 +306,7 @@ export default function BrandSettingsPage() {
     const res = await fetch('/api/brand/imagery', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(imagery),
+      body: JSON.stringify(imagerySaveData.current),
     })
     if (res.ok) {
       setImageryStatus('saved')
@@ -280,25 +316,25 @@ export default function BrandSettingsPage() {
       setImageryError(d.error ?? 'Save failed')
       setImageryStatus('error')
     }
-  }, [imagery])
+  }, [])
 
   // Auto-save brand on change (debounced 1.5s)
   useEffect(() => {
     if (!brandLoaded.current) return
     setBrandStatus('unsaved')
     if (brandSaveTimer.current) clearTimeout(brandSaveTimer.current)
-    brandSaveTimer.current = setTimeout(() => { handleSaveBrand() }, 1500)
+    brandSaveTimer.current = setTimeout(handleSaveBrand, 1500)
     return () => { if (brandSaveTimer.current) clearTimeout(brandSaveTimer.current) }
-  }, [brand, typographySettings]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [brand, typographySettings, handleSaveBrand])
 
   // Auto-save imagery on change (debounced 1.5s)
   useEffect(() => {
     if (!imageryLoaded.current) return
     setImageryStatus('unsaved')
     if (imagerySaveTimer.current) clearTimeout(imagerySaveTimer.current)
-    imagerySaveTimer.current = setTimeout(() => { handleSaveImagery() }, 1500)
+    imagerySaveTimer.current = setTimeout(handleSaveImagery, 1500)
     return () => { if (imagerySaveTimer.current) clearTimeout(imagerySaveTimer.current) }
-  }, [imagery]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [imagery, handleSaveImagery])
 
   const loading = brandLoading || imageryLoading
 
@@ -327,28 +363,32 @@ export default function BrandSettingsPage() {
             <p className="text-xs text-zinc-400">Define your visual identity and imagery direction.</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Status indicator */}
-            <span className={cn('flex items-center gap-1.5 text-xs transition-all', {
-              'text-zinc-400': status === 'idle' || status === 'saving',
-              'text-amber-500': status === 'unsaved',
-              'text-emerald-600': status === 'saved',
-              'text-red-500': status === 'error',
-            })}>
-              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
-              {status === 'saved' && <Check className="h-3 w-3" />}
-              {status === 'unsaved' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />}
-              {status === 'saving' && 'Saving…'}
-              {status === 'saved' && 'Saved'}
-              {status === 'unsaved' && 'Unsaved changes'}
-              {status === 'error' && (statusError ?? 'Save failed')}
-            </span>
+            {/* Status indicator — only shown for unsaved/error states; button handles the rest */}
+            {(status === 'unsaved' || status === 'error') && (
+              <span className={cn('flex items-center gap-1.5 text-xs', {
+                'text-amber-500': status === 'unsaved',
+                'text-red-500': status === 'error',
+              })}>
+                {status === 'unsaved' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />}
+                {status === 'unsaved' ? 'Unsaved changes' : (statusError ?? 'Save failed')}
+              </span>
+            )}
             <button
               type="button"
               onClick={onSave}
-              disabled={status === 'saving'}
-              className="rounded-md bg-zinc-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              disabled={status === 'saving' || status === 'saved'}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-medium text-white transition-all',
+                status === 'saved'
+                  ? 'bg-emerald-600 cursor-default'
+                  : status === 'saving'
+                    ? 'bg-zinc-900 opacity-50 cursor-not-allowed'
+                    : 'bg-zinc-900 hover:bg-zinc-700'
+              )}
             >
-              Save
+              {status === 'saved' && <Check className="h-3 w-3" />}
+              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>
@@ -428,9 +468,13 @@ export default function BrandSettingsPage() {
                 <LogoLibrary
                   logos={logoLibrary}
                   activeLogo={brand.logo_url ?? null}
+                  lightLogo={logoUrlLight}
+                  darkLogo={logoUrlDark}
                   onUpload={handleLogoUpload}
                   onActivate={handleLogoActivate}
                   onDelete={handleLogoDelete}
+                  onTagLight={handleTagLight}
+                  onTagDark={handleTagDark}
                 />
               </div>
 
@@ -439,8 +483,18 @@ export default function BrandSettingsPage() {
                 <h2 className="text-sm font-semibold text-zinc-900">Colors</h2>
                 <div className="grid grid-cols-3 gap-4">
                   <ColorPicker label="Primary" value={brand.primary_color} onChange={v => updateBrand({ primary_color: v })} />
-                  <ColorPicker label="Secondary" value={brand.secondary_color} onChange={v => updateBrand({ secondary_color: v })} />
+                  <ColorPicker label="Light background color" value={brand.secondary_color} onChange={v => updateBrand({ secondary_color: v })} />
                   <ColorPicker label="Accent" value={brand.accent_color} onChange={v => updateBrand({ accent_color: v })} />
+                  <ColorPicker
+                    label="Accent 2"
+                    value={brand.accent_color_2 ?? ''}
+                    onChange={v => updateBrand({ accent_color_2: v || null })}
+                  />
+                  <ColorPicker
+                    label="Dark Background"
+                    value={brand.dark_bg_color ?? ''}
+                    onChange={v => updateBrand({ dark_bg_color: v || null })}
+                  />
                 </div>
               </div>
 
@@ -701,6 +755,10 @@ export default function BrandSettingsPage() {
                   visualStyles={imagery.visual_styles}
                   imageryTypes={imagery.imagery_type}
                   moodTraits={imagery.mood_traits}
+                  toneTraits={brand.tone_traits}
+                  subjects={imagery.subjects}
+                  generationNotes={imagery.generation_notes}
+                  colorScheme={brand.style_traits.color_scheme}
                 />
               </div>
 
@@ -714,7 +772,7 @@ export default function BrandSettingsPage() {
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-3">Live Preview</p>
             {activeTab === 'identity' ? (
               <BrandPreview
-                settings={brand}
+                settings={{ ...brand, logo_url_light: logoUrlLight, logo_url_dark: logoUrlDark }}
                 typographySettings={typographySettings}
                 activeCard={activeCard}
                 onCardSelect={setActiveCard}

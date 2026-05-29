@@ -339,6 +339,22 @@ export default function StudioEditorPage() {
     return `Saved ${Math.floor(s / 60)}m ago`
   }
 
+  function formatScheduledDate(iso: string): string {
+    const d = new Date(iso)
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
+    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    return `${weekday}, ${date} · ${time}`
+  }
+
+  function scheduledWeekStart(iso: string): string {
+    const d = new Date(iso)
+    const day = d.getUTCDay()
+    const diff = day === 0 ? -6 : 1 - day
+    d.setUTCDate(d.getUTCDate() + diff)
+    return d.toISOString().split('T')[0]
+  }
+
   const assignedChannel    = channelId ? channels.find(ch => ch.id === channelId) : null
   const isLinkedInAssigned = assignedChannel?.platform === 'linkedin'
   const isXAssigned        = assignedChannel?.platform === 'x'
@@ -757,6 +773,24 @@ export default function StudioEditorPage() {
                 >
                   {publishing ? 'Publishing…' : 'Publish →'}
                 </button>
+              )}
+            </div>
+          )}
+
+          {output.status === 'queued' && (
+            <div className="flex items-center gap-3">
+              <span className="rounded-md border border-violet-800/50 bg-violet-950/50 px-3 py-1.5 text-xs text-violet-400">
+                {output.scheduledAt
+                  ? `Queued · ${formatScheduledDate(output.scheduledAt)}`
+                  : 'In queue'}
+              </span>
+              {output.scheduledAt && (
+                <Link
+                  href={`/${slug}/calendar?week=${scheduledWeekStart(output.scheduledAt)}`}
+                  className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+                >
+                  View in calendar →
+                </Link>
               )}
             </div>
           )}

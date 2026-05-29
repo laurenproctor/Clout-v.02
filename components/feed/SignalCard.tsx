@@ -205,7 +205,7 @@ export function SignalCard({
                 padding: '5px 12px',
                 fontSize: '12px',
                 fontWeight: 600,
-                backgroundColor: panelOpen ? tokens.colors.generateButtonActiveBg : tokens.colors.generateButtonBg,
+                backgroundColor: panelOpen ? tokens.colors.generateButtonActiveBg : 'var(--workspace-accent, #1a1560)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '3px',

@@ -40,45 +40,43 @@ interface IngestResult {
   errors: string[]
 }
 
-async function runIngestion(targetUserId?: string): Promise<IngestResult> {
+async function runIngestion(): Promise<IngestResult> {
   const supabase = createServiceClient()
   const result: IngestResult = { inserted: 0, updated: 0, skipped: 0, errors: [] }
 
-  // ── 1. Collect unique topics and services from onboarded profiles ──────────
-  let topicsQuery = supabase
-    .from('user_profiles')
-    .select('content_topics, services')
-    .eq('onboarding_complete', true)
-
-  // If a specific user triggered this (post-onboarding), include their profile
-  // even if the query already covers all onboarded users (no-op but safe)
-  if (targetUserId) {
-    // Ensure we always include the target user's fresh profile
-    const { data: targetProfile } = await supabase
+  // ── 1. Collect unique topics and services ─────────────────────────────────
+  // workspace_feed_settings is the primary source (written by the settings UI).
+  // user_profiles is the fallback for users who haven't saved workspace settings.
+  const [
+    { data: wsSettings, error: wsError },
+    { data: profiles, error: profilesError },
+  ] = await Promise.all([
+    supabase.from('workspace_feed_settings').select('content_topics, services'),
+    supabase
       .from('user_profiles')
       .select('content_topics, services')
-      .eq('id', targetUserId)
-      .maybeSingle()
-
-    if (targetProfile) {
-      // We'll include this alongside the general query results
-      topicsQuery = supabase
-        .from('user_profiles')
-        .select('content_topics, services')
-        .eq('onboarding_complete', true)
-    }
-  }
-
-  const { data: profiles, error: profilesError } = await topicsQuery
+      .eq('onboarding_complete', true),
+  ])
 
   if (profilesError) {
     result.errors.push(`Failed to fetch user profiles: ${profilesError.message}`)
+    return result
+  }
+  if (wsError) {
+    result.errors.push(`Failed to fetch workspace feed settings: ${wsError.message}`)
     return result
   }
 
   const uniqueTopics = new Set<string>()
   const uniqueServices = new Set<string>()
 
+  // Workspace settings take precedence — always included first
+  for (const ws of wsSettings ?? []) {
+    for (const t of ws.content_topics ?? []) uniqueTopics.add(t)
+    for (const s of ws.services ?? []) uniqueServices.add(s)
+  }
+
+  // Legacy user_profiles (onboarding path, pre-workspace-settings migration)
   for (const profile of profiles ?? []) {
     for (const t of profile.content_topics ?? []) uniqueTopics.add(t)
     for (const s of profile.services ?? []) uniqueServices.add(s)
@@ -259,16 +257,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let userId: string | undefined
   try {
-    const body = await req.json()
-    userId = typeof body?.userId === 'string' ? body.userId : undefined
-  } catch {
-    // body is optional
-  }
-
-  try {
-    const result = await runIngestion(userId)
+    const result = await runIngestion()
     return NextResponse.json(result)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'

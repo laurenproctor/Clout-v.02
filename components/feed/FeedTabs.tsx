@@ -7,7 +7,7 @@ const TABS: { id: FeedTab; label: string }[] = [
   { id: 'news',        label: 'Signals' },
   { id: 'services',   label: 'Focus Areas' },
   { id: 'concepts',   label: 'Frameworks' },
-  { id: 'competitors', label: 'Landscape' },
+  { id: 'competitors', label: 'Competitive Landscape' },
 ]
 
 interface FeedTabsProps {
@@ -22,7 +22,6 @@ export function FeedTabs({ activeTab, onTabChange }: FeedTabsProps) {
       gap: '0',
       borderBottom: `1px solid ${tokens.colors.cardBorder}`,
       marginBottom: '20px',
-      overflowX: 'auto',
     }}>
       {TABS.map(({ id, label }) => (
         <button

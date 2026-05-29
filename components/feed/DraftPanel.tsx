@@ -147,7 +147,7 @@ export function DraftPanel({ cardId, userId, isOpen, onClose, variant = 'standar
               borderRadius: '3px',
               border: 'none',
               cursor: 'pointer',
-              backgroundColor: activeFormat === f ? tokens.colors.formatTabActiveBg : '#e5e7eb',
+              backgroundColor: activeFormat === f ? 'var(--workspace-accent, #1a1560)' : '#e5e7eb',
               color: activeFormat === f ? tokens.colors.formatTabActiveText : '#6b7280',
               transition: 'background-color 0.1s',
             }}
@@ -201,7 +201,7 @@ export function DraftPanel({ cardId, userId, isOpen, onClose, variant = 'standar
                 style={{
                   padding: '5px 12px',
                   fontSize: '12px',
-                  backgroundColor: tokens.colors.generateButtonBg,
+                  backgroundColor: 'var(--workspace-accent, #1a1560)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '3px',

@@ -14,13 +14,14 @@ interface VariationCardProps {
   variation: LinkedInVariation
   onChange: (updated: LinkedInVariation) => void
   initialOutputId?: string | null
+  linkedInChannelId?: string | null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
-export function VariationCard({ variation, onChange, initialOutputId }: VariationCardProps) {
+export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId }: VariationCardProps) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
   const [scheduling, setScheduling] = useState(false)
@@ -39,18 +40,33 @@ export function VariationCard({ variation, onChange, initialOutputId }: Variatio
     setSaveState('saving')
     try {
       if (savedOutputId) {
-        // Update existing record with any edits the user made
         await fetch(`/api/outputs/${savedOutputId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: { body: variation.body, hashtags: variation.hashtags } }),
+          body: JSON.stringify({
+            title: variation.campaignName,
+            content: {
+              body: variation.body,
+              hashtags: variation.hashtags,
+              primaryVisualAssetId: variation.selectedVisualAssetId ?? null,
+            },
+            ...(linkedInChannelId && { channel_id: linkedInChannelId }),
+          }),
         })
         setSaveState('saved')
       } else {
         const res = await fetch('/api/linkedin/outputs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variation }),
+          body: JSON.stringify({
+            variation: {
+              body: variation.body,
+              hashtags: variation.hashtags,
+              primaryVisualAssetId: variation.selectedVisualAssetId ?? null,
+            },
+            title: variation.campaignName,
+            channelId: linkedInChannelId ?? null,
+          }),
         })
         if (!res.ok) {
           const data = await res.json().catch(() => ({})) as { error?: string }
@@ -95,6 +111,28 @@ export function VariationCard({ variation, onChange, initialOutputId }: Variatio
     }
   }
 
+  async function handleAttach(assetId: string) {
+    onChange({ ...variation, selectedVisualAssetId: assetId })
+    // If already saved, immediately persist the visual attachment
+    if (savedOutputId) {
+      try {
+        await fetch(`/api/outputs/${savedOutputId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: {
+              body: variation.body,
+              hashtags: variation.hashtags,
+              primaryVisualAssetId: assetId,
+            },
+          }),
+        })
+      } catch {
+        // non-fatal — asset is attached locally, will persist on next manual save
+      }
+    }
+  }
+
   const isActioned = saveState === 'queued' || saveState === 'scheduled'
 
   return (
@@ -117,6 +155,11 @@ export function VariationCard({ variation, onChange, initialOutputId }: Variatio
             <button type="button" className={actionBtn}>Rewrite</button>
           </div>
         </div>
+        {variation.campaignName && (
+          <p className="text-xs text-zinc-400 truncate" title={variation.campaignName}>
+            {variation.campaignName}
+          </p>
+        )}
         <div className="flex justify-end gap-0.5 items-center">
           {saveState === 'saved' && savedOutputId && (
             <span className="flex items-center gap-1 text-[10px] text-green-600 mr-1">
@@ -221,7 +264,7 @@ export function VariationCard({ variation, onChange, initialOutputId }: Variatio
         content={variation.body}
         platform="linkedin"
         aspectRatio="landscape"
-        onAttach={(assetId) => onChange({ ...variation, selectedVisualAssetId: assetId })}
+        onAttach={handleAttach}
       />
 
       {/* E. HookSuggestions */}

@@ -18,6 +18,7 @@ export type { LinkedInPromptContext as _LinkedInPromptContextExport }
 
 interface ClaudeVariation {
   label: string
+  campaignName: string
   body: string
   hooks: LinkedInHook[]
   hashtags: string[]
@@ -71,6 +72,7 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
     variations: [
       {
         label: 'Authority Version',
+        campaignName: 'Why Most Teams Underestimate Technical Debt — Authority Angle',
         body: '...',
         hooks: [
           { type: 'statistical', text: '...' },
@@ -82,8 +84,8 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
         ctaSuggestions: ['What\'s your take?', 'Drop a comment below', 'DM me to discuss'],
         transformationDelta: { changes: ['Elevated authority framing', 'Direct claim opener'] },
       },
-      { label: 'Narrative Version', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
-      { label: 'Debate Version', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
+      { label: 'Narrative Version', campaignName: 'Why Most Teams Underestimate Technical Debt — Story Angle', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
+      { label: 'Debate Version', campaignName: 'Why Most Teams Underestimate Technical Debt — Debate Angle', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
     ],
     coaching: {
       readerPsychology: {
@@ -123,7 +125,7 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     `**Intent:** ${request.intent}`,
     `**Narrative style:** ${request.narrativeStyle}`,
     `**Voice register:** ${request.voiceRegister}`,
-    `**Target audience:** ${request.audience}`,
+    `**Target audience:** ${request.audience === 'custom' && request.customAudience ? request.customAudience : request.audience}`,
     `**Length:** ${request.length} — ${lengthGuide[request.length] ?? '~300 words'}`,
   ]
 
@@ -152,6 +154,7 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     `3. **Debate Version** — opens with a contrarian claim or challenges a common belief. Make the reader disagree (or strongly agree) immediately.`,
     ``,
     `Each variation must include:`,
+    `- campaignName: a compelling, specific headline (8–12 words) that describes what this post is about — used as the studio title. Format: "[Core insight or hook] — [Variation angle]". Do not use generic labels like "LinkedIn Post".`,
     `- 4 hook alternatives (one of each type: statistical, tension, story, contrarian)`,
     `- 3–5 hashtags (no # prefix)`,
     `- 3 CTA suggestions`,
@@ -212,6 +215,7 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
         const variations: LinkedInVariation[] = parsed.variations.map((v) => ({
           id: crypto.randomUUID(),
           label: v.label,
+          campaignName: v.campaignName ?? v.label,
           body: v.body,
           hooks: v.hooks,
           hashtags: v.hashtags,

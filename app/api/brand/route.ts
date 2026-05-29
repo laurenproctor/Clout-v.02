@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest) {
   const supabase = await createClient()
 
   const allowed: (keyof BrandProfileUpdate)[] = [
-    'brand_name', 'logo_url', 'logo_library', 'primary_color', 'secondary_color', 'accent_color',
+    'brand_name', 'logo_url', 'logo_url_light', 'logo_url_dark', 'logo_library', 'primary_color', 'secondary_color', 'accent_color', 'accent_color_2', 'dark_bg_color',
     'font_heading', 'font_body', 'font_heading_url', 'font_body_url',
     'tone_traits', 'style_traits', 'typography_settings',
   ]

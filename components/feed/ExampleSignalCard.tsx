@@ -187,7 +187,7 @@ export function ExampleSignalCard({ topic, index }: ExampleSignalCardProps) {
                 padding: '5px 12px',
                 fontSize: '12px',
                 fontWeight: 600,
-                backgroundColor: tokens.colors.generateButtonBg,
+                backgroundColor: 'var(--workspace-accent, #1a1560)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '3px',

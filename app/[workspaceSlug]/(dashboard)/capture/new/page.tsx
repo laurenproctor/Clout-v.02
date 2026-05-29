@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -25,6 +25,42 @@ const HEADLINES: { heading: string; subheading: string }[] = [
     subheading: 'Bring fragments. Leave with finished content.',
   },
 ]
+
+const TAGLINES = [
+  'Great ideas start messy.',
+  'Every polished post was once a rough thought.',
+  'The best drafts begin imperfect.',
+  'Raw thinking is where originality lives.',
+  'Fragments are fine. Start there.',
+  'Clarity comes after capture.',
+  'No one sees the first draft.',
+  'Good writing is rewriting. Start anywhere.',
+]
+
+function RotatingTagline() {
+  const [index, setIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    const cycle = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setIndex(i => (i + 1) % TAGLINES.length)
+        setVisible(true)
+      }, 400)
+    }, 3500)
+    return () => clearInterval(cycle)
+  }, [])
+
+  return (
+    <p
+      className="text-center text-sm text-zinc-400 transition-all duration-400"
+      style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(4px)' }}
+    >
+      {TAGLINES[index]}
+    </p>
+  )
+}
 
 export default function NewCapturePage() {
   return (
@@ -57,9 +93,7 @@ function NewCaptureInner() {
 
       <CaptureComposer initialContent={initialContent} initialMode={initialMode} />
 
-      <p className="text-center text-sm text-zinc-400">
-        Strong content rarely starts polished.
-      </p>
+      <RotatingTagline />
     </div>
   )
 }

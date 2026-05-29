@@ -3,6 +3,29 @@
 @import "shadcn/tailwind.css";
 @import "../styles/tokens.css";
 
+/* Workspace accent color — set dynamically by WorkspaceTheme component */
+:root {
+  --workspace-accent: #18181b;
+}
+
+/* Primary action buttons pick up the workspace accent color when ws-themed is active */
+.ws-themed button.bg-zinc-900,
+.ws-themed a.bg-zinc-900 {
+  background-color: var(--workspace-accent);
+}
+.ws-themed button.bg-zinc-800,
+.ws-themed a.bg-zinc-800 {
+  background-color: var(--workspace-accent);
+}
+.ws-themed button.hover\:bg-zinc-800:hover,
+.ws-themed a.hover\:bg-zinc-800:hover {
+  background-color: color-mix(in srgb, var(--workspace-accent) 80%, black);
+}
+.ws-themed button.hover\:bg-zinc-700:hover,
+.ws-themed a.hover\:bg-zinc-700:hover {
+  background-color: color-mix(in srgb, var(--workspace-accent) 80%, black);
+}
+
 /* Prevent iOS auto-zoom on input focus */
 @media (max-width: 767px) {
   input,

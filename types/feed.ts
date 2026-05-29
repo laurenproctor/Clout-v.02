@@ -63,6 +63,34 @@ export interface CompetitorCard {
   differentiated_angle: string
 }
 
+export type SocialPlatform = 'twitter' | 'linkedin' | 'instagram' | 'youtube' | 'facebook'
+
+export interface CompetitorSocials {
+  twitter?: string
+  linkedin?: string
+  instagram?: string
+  youtube?: string
+  facebook?: string
+}
+
+export type CompetitorMetadata = Record<string, {
+  name?: string
+  rss_url?: string
+  socials?: CompetitorSocials
+}>
+
+export interface CompetitorPost {
+  id: string
+  brand_domain: string
+  brand_name: string
+  property: 'blog' | 'youtube'
+  property_label: string
+  title: string
+  excerpt: string
+  published_at: string
+  url: string
+}
+
 export interface UserProfile {
   id: string
   brand_name: string

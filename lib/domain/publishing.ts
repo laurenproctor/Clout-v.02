@@ -20,6 +20,7 @@ import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
 import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/types'
 import { GBPApiError } from '@/lib/channels/google-business-profile/types'
 import { buildUTMParams, injectUTMIntoContent } from '@/lib/analytics/utm'
+import { buildWorkspacePublishingContext } from '@/lib/domain/publishing-context'
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -529,7 +530,15 @@ export async function publishOutput(
   // when a reader clicks through to the creator's site. We only tag URLs that
   // aren't social platform URLs (those are the post destination, not the creator's site).
   const canonicalId = output.generationGroupId ?? output.id
-  const utmParams = buildUTMParams({ platform: channel.platform, canonicalId, outputId: output.id })
+  const publishingCtx = output.workspaceId
+    ? await buildWorkspacePublishingContext(output.workspaceId)
+    : { utmSettings: {} }
+  const utmParams = buildUTMParams({
+    platform: channel.platform,
+    canonicalId,
+    outputId: output.id,
+    customSources: publishingCtx.utmSettings,
+  })
   const body = output.content.body ?? ''
   const injectedBody = injectUTMIntoContent(body, utmParams)
   const outputToPublish = injectedBody !== body

@@ -10,6 +10,7 @@ import { SignalCard } from './SignalCard'
 import { ConceptCard } from './ConceptCard'
 import { ServiceCard } from './ServiceCard'
 import { CompetitorCard } from './CompetitorCard'
+import { CompetitorPostCard } from './CompetitorPostCard'
 import { EditorialBriefingCard } from './EditorialBriefingCard'
 import { ExampleSignalCard } from './ExampleSignalCard'
 import type {
@@ -18,6 +19,7 @@ import type {
   FeedStats,
   SignalCard as SignalCardType,
   CompetitorCard as CompetitorCardType,
+  CompetitorPost,
   OnboardingPayload,
 } from '@/types/feed'
 
@@ -43,6 +45,7 @@ interface SignalFeedProps {
 
 type CardCache = Partial<Record<FeedTab, SignalCardType[]>>
 type CompetitorCache = CompetitorCardType[] | null
+type CompetitorPostCache = CompetitorPost[] | null
 
 export function SignalFeed({
   userId,
@@ -56,6 +59,7 @@ export function SignalFeed({
   const [activeTab, setActiveTab] = useState<FeedTab>(initialTab)
   const [cardCache, setCardCache] = useState<CardCache>({})
   const [competitorCache, setCompetitorCache] = useState<CompetitorCache>(null)
+  const [competitorPostCache, setCompetitorPostCache] = useState<CompetitorPostCache>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
@@ -65,10 +69,17 @@ export function SignalFeed({
     setError(null)
     try {
       if (tab === 'competitors') {
-        const res = await fetch('/api/competitors/signals')
-        if (!res.ok) throw new Error('Failed to load competitive landscape')
-        const { competitors } = await res.json()
+        const [signalsRes, postsRes] = await Promise.all([
+          fetch('/api/competitors/signals'),
+          fetch('/api/competitors/posts'),
+        ])
+        if (!signalsRes.ok) throw new Error('Failed to load competitive landscape')
+        const { competitors } = await signalsRes.json()
         setCompetitorCache(competitors ?? [])
+        if (postsRes.ok) {
+          const { posts } = await postsRes.json()
+          setCompetitorPostCache(posts ?? [])
+        }
       } else {
         const res = await fetch(`/api/feed?tab=${tab}`)
         if (!res.ok) throw new Error('Failed to load signals')
@@ -101,7 +112,7 @@ export function SignalFeed({
     if (!alreadyCached) {
       fetchTab(tab)
     }
-  }, [cardCache, competitorCache, fetchTab])
+  }, [cardCache, competitorCache, fetchTab])  // competitorPostCache intentionally excluded — fetched alongside competitorCache
 
   const handleDismiss = useCallback((cardId: string) => {
     setCardCache(prev => {
@@ -113,6 +124,10 @@ export function SignalFeed({
       }
       return updated
     })
+  }, [])
+
+  const handleDismissCompetitorPost = useCallback((postId: string) => {
+    setCompetitorPostCache(prev => prev ? prev.filter(p => p.id !== postId) : prev)
   }, [])
 
   async function handleOnboardingComplete(payload: OnboardingPayload) {
@@ -150,8 +165,9 @@ export function SignalFeed({
   // ── Phase: Feed ───────────────────────────────────────────────────────────
   const activeCards = activeTab === 'competitors' ? null : cardCache[activeTab]
   const activeCompetitors = activeTab === 'competitors' ? competitorCache : null
+  const activeCompetitorPosts = activeTab === 'competitors' ? competitorPostCache : null
   const isEmpty = activeTab === 'competitors'
-    ? !activeCompetitors || activeCompetitors.length === 0
+    ? (!activeCompetitors || activeCompetitors.length === 0) && (!activeCompetitorPosts || activeCompetitorPosts.length === 0)
     : !activeCards || activeCards.length === 0
 
   return (
@@ -209,7 +225,7 @@ export function SignalFeed({
               style={{
                 padding: '7px 16px',
                 fontSize: '13px',
-                backgroundColor: tokens.colors.generateButtonBg,
+                backgroundColor: 'var(--workspace-accent, #1a1560)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '4px',
@@ -232,14 +248,40 @@ export function SignalFeed({
           </>
         )}
 
-        {/* Competitor cards */}
-        {!loading && !error && !isEmpty && activeTab === 'competitors' && (
-          activeCompetitors!.map((card, index) => (
+        {/* Competitive Landscape: posts from competitor blogs */}
+        {!loading && !error && !isEmpty && activeTab === 'competitors' && activeCompetitorPosts && activeCompetitorPosts.length > 0 && (
+          <>
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9ca3af' }}>
+                From their channels
+              </span>
+            </div>
+            {activeCompetitorPosts.map((post, index) => (
+              <div
+                key={post.id}
+                style={{ animation: 'feedCardEnter 0.35s ease both', animationDelay: `${index * 60}ms` }}
+              >
+                <CompetitorPostCard post={post} userId={userId} onDismiss={handleDismissCompetitorPost} />
+              </div>
+            ))}
+            {activeCompetitors && activeCompetitors.length > 0 && (
+              <div style={{ margin: '20px 0 12px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9ca3af' }}>
+                  Signal tracking
+                </span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Competitor signal tracking cards */}
+        {!loading && !error && !isEmpty && activeTab === 'competitors' && activeCompetitors && activeCompetitors.length > 0 && (
+          activeCompetitors.map((card, index) => (
             <div
               key={card.id}
               style={{
                 animation: 'feedCardEnter 0.35s ease both',
-                animationDelay: `${index * 60}ms`,
+                animationDelay: `${(activeCompetitorPosts?.length ?? 0) * 60 + index * 60}ms`,
               }}
             >
               <CompetitorCard competitor={card} userId={userId} />

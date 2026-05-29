@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { TypographySettings, TypographyLevelSettings } from '@/types/typography'
 import { injectGoogleFont } from '@/components/brand/font-selector'
@@ -8,9 +9,13 @@ import { injectGoogleFont } from '@/components/brand/font-selector'
 export interface BrandSettings {
   brand_name: string | null
   logo_url?: string | null
+  logo_url_light?: string | null
+  logo_url_dark?: string | null
   primary_color: string
   secondary_color: string
   accent_color: string
+  accent_color_2: string | null
+  dark_bg_color: string | null
   font_heading: string
   font_body: string
   font_heading_url?: string
@@ -38,8 +43,6 @@ const DENSITY_MAP = {
   spacious: { padding: '28px 32px', gap: '20px' },
 }
 
-// Applies typography level settings as inline CSS, preserving the card's own
-// font-size so the preview stays legible at its small fixed dimensions.
 function applyTypo(
   level: TypographyLevelSettings | undefined,
   fallbackFont: string,
@@ -64,8 +67,22 @@ interface BrandPreviewProps {
   className?: string
 }
 
+const TABS = [
+  { id: 'quote'    as const, label: 'Quote Card' },
+  { id: 'tile'     as const, label: 'Social Tile' },
+  { id: 'carousel' as const, label: 'Carousel Cover' },
+]
+
 export function BrandPreview({ settings, typographySettings, activeCard = 'quote', onCardSelect, className }: BrandPreviewProps) {
-  const isDark = settings.style_traits.color_scheme === 'dark'
+  // Local preview scheme — starts from saved setting, but can be toggled
+  const [previewScheme, setPreviewScheme] = useState<'light' | 'dark'>(settings.style_traits.color_scheme)
+
+  // Keep in sync if the saved setting changes
+  useEffect(() => {
+    setPreviewScheme(settings.style_traits.color_scheme)
+  }, [settings.style_traits.color_scheme])
+
+  const isDark = previewScheme === 'dark'
   const bg = isDark ? settings.primary_color : settings.secondary_color
   const text = isDark ? settings.secondary_color : settings.primary_color
   const accent = settings.accent_color
@@ -104,36 +121,65 @@ export function BrandPreview({ settings, typographySettings, activeCard = 'quote
   }, [settings.font_heading, settings.font_heading_url, settings.font_body, settings.font_body_url])
 
   const brandName = settings.brand_name || 'Your Brand'
+  const currentIndex = TABS.findIndex(t => t.id === activeCard)
 
-  const tabs = [
-    { id: 'quote' as const, label: 'Quote Card' },
-    { id: 'tile' as const, label: 'Social Tile' },
-    { id: 'carousel' as const, label: 'Carousel Cover' },
-  ]
+  function goPrev() {
+    const prev = TABS[(currentIndex - 1 + TABS.length) % TABS.length]
+    onCardSelect?.(prev.id)
+  }
 
-  const cardProps = { bg, text, accent, radius, density, headingFont, bodyFont, brandName, logoUrl: settings.logo_url ?? null, typography: typographySettings }
+  function goNext() {
+    const next = TABS[(currentIndex + 1) % TABS.length]
+    onCardSelect?.(next.id)
+  }
+
+  // On dark backgrounds show the light logo variant; on light backgrounds show the dark variant
+  const resolvedLogoUrl = isDark
+    ? (settings.logo_url_light ?? settings.logo_url ?? null)
+    : (settings.logo_url_dark ?? settings.logo_url ?? null)
+
+  const cardProps = { bg, text, accent, radius, density, headingFont, bodyFont, brandName, logoUrl: resolvedLogoUrl, typography: typographySettings }
 
   return (
-    <div className={cn('flex flex-col gap-4', className)}>
-      <div className="flex gap-1 rounded-md border border-zinc-200 bg-zinc-50 p-0.5 w-fit">
-        {tabs.map(tab => (
+    <div className={cn('flex flex-col gap-3', className)}>
+      {/* Toolbar: navigation + dark/light toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
           <button
-            key={tab.id}
             type="button"
-            onClick={() => onCardSelect?.(tab.id)}
-            className={cn(
-              'rounded px-3 py-1.5 text-xs font-medium transition-colors',
-              activeCard === tab.id ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
-            )}
+            onClick={goPrev}
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            aria-label="Previous layout"
           >
-            {tab.label}
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-        ))}
+          <span className="px-2 text-xs font-medium text-zinc-600 min-w-[90px] text-center">
+            {TABS[currentIndex]?.label ?? 'Quote Card'}
+          </span>
+          <button
+            type="button"
+            onClick={goNext}
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            aria-label="Next layout"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setPreviewScheme(s => s === 'dark' ? 'light' : 'dark')}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+          aria-label="Toggle dark/light preview"
+          title={previewScheme === 'dark' ? 'Switch to light preview' : 'Switch to dark preview'}
+        >
+          {previewScheme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+        </button>
       </div>
 
       <div className="aspect-square w-full max-w-sm overflow-hidden shadow-md" style={{ borderRadius: radius }}>
-        {activeCard === 'quote' && <QuoteCard {...cardProps} />}
-        {activeCard === 'tile' && <SocialTile {...cardProps} />}
+        {activeCard === 'quote'    && <QuoteCard    {...cardProps} />}
+        {activeCard === 'tile'     && <SocialTile   {...cardProps} />}
         {activeCard === 'carousel' && <CarouselCover {...cardProps} />}
       </div>
     </div>
@@ -162,10 +208,15 @@ function QuoteCard({ bg, text, accent, density, headingFont, bodyFont, brandName
         ) : (
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: accent, flexShrink: 0 }} />
         )}
-        <div>
-          <div style={{ ...applyTypo(typography?.ui, bodyFont, text), fontSize: '0.75rem' }}>{brandName}</div>
+        {!logoUrl && (
+          <div>
+            <div style={{ ...applyTypo(typography?.ui, bodyFont, text), fontSize: '0.75rem' }}>{brandName}</div>
+            <div style={{ ...applyTypo(typography?.body, bodyFont, text), fontSize: '0.65rem', opacity: 0.6 }}>Thought of the day</div>
+          </div>
+        )}
+        {logoUrl && (
           <div style={{ ...applyTypo(typography?.body, bodyFont, text), fontSize: '0.65rem', opacity: 0.6 }}>Thought of the day</div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -186,7 +237,9 @@ function SocialTile({ bg, text, accent, density, headingFont, bodyFont, brandNam
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt="" style={{ height: 16, maxWidth: 40, objectFit: 'contain', flexShrink: 0 }} />
           )}
-          <div style={{ ...applyTypo(typography?.ui, bodyFont, text), fontSize: '0.65rem', opacity: 0.5 }}>{brandName}</div>
+          {!logoUrl && (
+            <div style={{ ...applyTypo(typography?.ui, bodyFont, text), fontSize: '0.65rem', opacity: 0.5 }}>{brandName}</div>
+          )}
         </div>
       </div>
     </div>
@@ -205,11 +258,12 @@ function CarouselCover({ bg, text, accent, density, headingFont, bodyFont, brand
         </h2>
         <p style={{ ...applyTypo(typography?.body, bodyFont, text), marginTop: density.gap, fontSize: '0.75rem', opacity: 0.6 }}>A thread</p>
         <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-          {logoUrl && (
+          {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt="" style={{ height: 24, maxWidth: 80, objectFit: 'contain' }} />
+          ) : (
+            <div style={{ ...applyTypo(typography?.ui, bodyFont, accent), fontSize: '0.7rem' }}>{brandName}</div>
           )}
-          <div style={{ ...applyTypo(typography?.ui, bodyFont, accent), fontSize: '0.7rem' }}>{brandName}</div>
         </div>
       </div>
     </div>

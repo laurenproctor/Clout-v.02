@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Lens } from '@/types/domain'
 import type {
   LinkedInGenerationRequest,
@@ -34,13 +34,30 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
   const [coaching, setCoaching] = useState<PostCoaching | null>(null)
   const [progressLabel, setProgressLabel] = useState<string>('Generating...')
   const [error, setError] = useState<string | null>(null)
+  const [linkedInChannelId, setLinkedInChannelId] = useState<string | null>(null)
+  const linkedInChannelIdRef = useRef<string | null>(null)
+
+  // Fetch the workspace's connected LinkedIn channel so we can associate outputs with it
+  useEffect(() => {
+    fetch('/api/channels')
+      .then(r => r.ok ? r.json() : [])
+      .then((channels: Array<{ id: string; platform: string }>) => {
+        const li = channels.find(c => c.platform === 'linkedin')
+        if (li) {
+          setLinkedInChannelId(li.id)
+          linkedInChannelIdRef.current = li.id
+        }
+      })
+      .catch(() => {/* non-fatal */})
+  }, [])
 
   const canGenerate =
     !!request.postType &&
     !!request.sourceContent?.trim() &&
     !!request.intent &&
     !!request.audience &&
-    !!request.sourceType
+    !!request.sourceType &&
+    (request.audience !== 'custom' || !!request.customAudience?.trim())
 
   const handleGenerate = useCallback(async () => {
     setError(null)
@@ -87,13 +104,20 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             setVariations(generated)
             setSavedVariationIds(new Array(generated.length).fill(null))
             setState('result')
-            // Auto-save all variations so they appear in inbox
+
+            // Read from ref to avoid stale closure — channel fetch may complete after callback creation
+            const channelId = linkedInChannelIdRef.current
+            // Auto-save all variations so they appear in studio with title + channel
             Promise.all(
               generated.map(v =>
                 fetch('/api/linkedin/outputs', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ variation: { body: v.body, hashtags: v.hashtags } }),
+                  body: JSON.stringify({
+                    variation: { body: v.body, hashtags: v.hashtags },
+                    title: v.campaignName,
+                    channelId: channelId ?? null,
+                  }),
                 })
                   .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
                   .catch(() => null)
@@ -116,6 +140,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setState('setup')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request])
 
   const handleVariationChange = useCallback((index: number, updated: LinkedInVariation) => {
@@ -190,6 +215,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             variation={variation}
             onChange={updated => handleVariationChange(index, updated)}
             initialOutputId={savedVariationIds[index] ?? null}
+            linkedInChannelId={linkedInChannelId}
           />
         ))}
       </div>

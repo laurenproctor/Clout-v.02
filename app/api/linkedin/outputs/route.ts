@@ -9,6 +9,7 @@ const bodySchema = z.object({
     hashtags:             z.array(z.string()).optional(),
     primaryVisualAssetId: z.string().uuid().nullable().optional(),
   }),
+  title:     z.string().optional(),
   channelId: z.string().uuid().nullable().optional(),
 })
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { variation, channelId } = parsed.data
+  const { variation, title, channelId } = parsed.data
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
       workspace_id:  session.workspaceId,
       status:        'draft',
       content_type:  'linkedin',
+      title:         title ?? null,
       content: {
         body:                 variation.body,
         hashtags:             variation.hashtags ?? [],

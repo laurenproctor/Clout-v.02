@@ -158,7 +158,7 @@ export default function WorkspaceSettingsPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Brand color</label>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5">Workspace accent color</label>
           <div className="flex items-center gap-2">
             <input
               type="color"

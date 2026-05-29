@@ -43,6 +43,10 @@ interface ExampleBoardProps {
   visualStyles?: string[]
   imageryTypes?: string[]
   moodTraits?: string[]
+  toneTraits?: string[]
+  subjects?: string[]
+  generationNotes?: string
+  colorScheme?: 'light' | 'dark'
   className?: string
 }
 
@@ -54,6 +58,10 @@ export function ExampleBoard({
   visualStyles = [],
   imageryTypes = [],
   moodTraits = [],
+  toneTraits = [],
+  subjects = [],
+  generationNotes = '',
+  colorScheme,
   className,
 }: ExampleBoardProps) {
   const [dynamicImages, setDynamicImages] = useState<DynamicImage[] | null>(null)
@@ -65,16 +73,23 @@ export function ExampleBoard({
   const abortRef = useRef<AbortController | null>(null)
   const negativeSet = new Set(negativeBoard)
 
-  const hasSignals = visualStyles.length > 0 || imageryTypes.length > 0 || moodTraits.length > 0
+  const hasSignals = (
+    visualStyles.length > 0 || imageryTypes.length > 0 || moodTraits.length > 0 ||
+    toneTraits.length > 0 || subjects.length > 0 || generationNotes.trim().length > 0
+  )
 
   const buildParams = useCallback((pageNum: number) => {
     const params = new URLSearchParams()
     visualStyles.forEach(s => params.append('visualStyles', s))
     imageryTypes.forEach(t => params.append('imageryTypes', t))
     moodTraits.forEach(m => params.append('moodTraits', m))
+    toneTraits.forEach(t => params.append('toneTraits', t))
+    subjects.forEach(s => params.append('subjects', s))
+    if (generationNotes.trim()) params.set('generationNotes', generationNotes.trim())
+    if (colorScheme) params.set('colorScheme', colorScheme)
     params.set('page', String(pageNum))
     return params
-  }, [visualStyles, imageryTypes, moodTraits]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visualStyles, imageryTypes, moodTraits, toneTraits, subjects, generationNotes, colorScheme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial / re-fetch when signals change
   useEffect(() => {
@@ -120,7 +135,10 @@ export function ExampleBoard({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [visualStyles.join(','), imageryTypes.join(','), moodTraits.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ // eslint-disable-line react-hooks/exhaustive-deps
+    visualStyles.join(','), imageryTypes.join(','), moodTraits.join(','),
+    toneTraits.join(','), subjects.join(','), generationNotes, colorScheme,
+  ])
 
   async function handleLoadMore() {
     const nextPage = page + 1

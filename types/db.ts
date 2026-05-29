@@ -389,6 +389,8 @@ export type Database = {
       brand_profiles: {
         Row: {
           accent_color: string
+          accent_color_2: string | null
+          dark_bg_color: string | null
           brand_name: string | null
           created_at: string
           font_body: string
@@ -398,6 +400,8 @@ export type Database = {
           id: string
           logo_library: string[]
           logo_url: string | null
+          logo_url_dark: string | null
+          logo_url_light: string | null
           preferred_template_mode: string
           primary_color: string
           secondary_color: string
@@ -411,6 +415,8 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
+          accent_color_2?: string | null
+          dark_bg_color?: string | null
           brand_name?: string | null
           created_at?: string
           font_body?: string
@@ -420,6 +426,8 @@ export type Database = {
           id?: string
           logo_library?: string[]
           logo_url?: string | null
+          logo_url_dark?: string | null
+          logo_url_light?: string | null
           preferred_template_mode?: string
           primary_color?: string
           secondary_color?: string
@@ -433,6 +441,8 @@ export type Database = {
         }
         Update: {
           accent_color?: string
+          accent_color_2?: string | null
+          dark_bg_color?: string | null
           brand_name?: string | null
           created_at?: string
           font_body?: string
@@ -442,6 +452,8 @@ export type Database = {
           id?: string
           logo_library?: string[]
           logo_url?: string | null
+          logo_url_dark?: string | null
+          logo_url_light?: string | null
           preferred_template_mode?: string
           primary_color?: string
           secondary_color?: string
@@ -2768,6 +2780,7 @@ export type Database = {
           tone_preference: string
           brand_name: string
           competitors: string[]
+          competitor_metadata: Json | null
           created_at: string
           updated_at: string | null
         }
@@ -2778,6 +2791,7 @@ export type Database = {
           tone_preference?: string
           brand_name?: string
           competitors?: string[]
+          competitor_metadata?: Json | null
           created_at?: string
           updated_at?: string | null
         }
@@ -2788,6 +2802,7 @@ export type Database = {
           tone_preference?: string
           brand_name?: string
           competitors?: string[]
+          competitor_metadata?: Json | null
           created_at?: string
           updated_at?: string | null
         }
@@ -2872,6 +2887,38 @@ export type Database = {
             foreignKeyName: "workspace_slug_history_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      workspace_distribution_settings: {
+        Row: {
+          workspace_id: string
+          utm_settings: Json
+          updated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          workspace_id: string
+          utm_settings?: Json
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          workspace_id?: string
+          utm_settings?: Json
+          updated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_distribution_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           }

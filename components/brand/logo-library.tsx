@@ -2,18 +2,22 @@
 
 import { useRef, useState } from 'react'
 import Image from 'next/image'
-import { Upload, Check, Trash2 } from 'lucide-react'
+import { Upload, Check, Trash2, Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface LogoLibraryProps {
   logos: string[]
   activeLogo: string | null
+  lightLogo?: string | null
+  darkLogo?: string | null
   onUpload: (file: File) => Promise<void>
   onActivate: (url: string) => void
   onDelete: (url: string) => Promise<void>
+  onTagLight?: (url: string | null) => void
+  onTagDark?: (url: string | null) => void
 }
 
-export function LogoLibrary({ logos, activeLogo, onUpload, onActivate, onDelete }: LogoLibraryProps) {
+export function LogoLibrary({ logos, activeLogo, lightLogo, darkLogo, onUpload, onActivate, onDelete, onTagLight, onTagDark }: LogoLibraryProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null)
@@ -50,14 +54,21 @@ export function LogoLibrary({ logos, activeLogo, onUpload, onActivate, onDelete 
 
   return (
     <div className="space-y-3">
-      <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Logo Library</label>
+      <div>
+        <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Logo Library</label>
+        <p className="mt-1 text-xs text-zinc-400">
+          For the largest design variety, we recommend uploading a dark and a light version of your logo.
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-3">
         {logos.map(url => {
           const isActive = url === activeLogo
           const isDeleting = url === deletingUrl
+          const isLight = url === lightLogo
+          const isDark = url === darkLogo
           return (
-            <div key={url} className="group relative">
+            <div key={url} className="group relative flex flex-col items-center gap-1">
               <button
                 type="button"
                 onClick={() => !isActive && onActivate(url)}
@@ -76,7 +87,52 @@ export function LogoLibrary({ logos, activeLogo, onUpload, onActivate, onDelete 
                     <Check className="h-3 w-3 text-white" strokeWidth={3} />
                   </div>
                 )}
+                {isLight && !isActive && (
+                  <div className="absolute -left-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400" title="Light logo variant">
+                    <Sun className="h-2.5 w-2.5 text-white" />
+                  </div>
+                )}
+                {isDark && !isActive && (
+                  <div className="absolute -left-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-600" title="Dark logo variant">
+                    <Moon className="h-2.5 w-2.5 text-white" />
+                  </div>
+                )}
               </button>
+
+              {/* Light / Dark tag buttons — shown on hover */}
+              {(onTagLight || onTagDark) && (
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    title={isLight ? 'Remove light tag' : 'Tag as light logo'}
+                    onClick={() => onTagLight?.(isLight ? null : url)}
+                    className={cn(
+                      'flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors border',
+                      isLight
+                        ? 'border-amber-400 bg-amber-50 text-amber-600'
+                        : 'border-zinc-200 text-zinc-400 hover:border-amber-300 hover:text-amber-500'
+                    )}
+                  >
+                    <Sun className="h-2.5 w-2.5" />
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    title={isDark ? 'Remove dark tag' : 'Tag as dark logo'}
+                    onClick={() => onTagDark?.(isDark ? null : url)}
+                    className={cn(
+                      'flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors border',
+                      isDark
+                        ? 'border-zinc-500 bg-zinc-100 text-zinc-700'
+                        : 'border-zinc-200 text-zinc-400 hover:border-zinc-400 hover:text-zinc-600'
+                    )}
+                  >
+                    <Moon className="h-2.5 w-2.5" />
+                    Dark
+                  </button>
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => handleDelete(url)}
@@ -97,7 +153,7 @@ export function LogoLibrary({ logos, activeLogo, onUpload, onActivate, onDelete 
           onDrop={handleDrop}
           onClick={() => !uploading && fileRef.current?.click()}
           className={cn(
-            'flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed transition-colors',
+            'flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed transition-colors self-start',
             uploading
               ? 'border-zinc-300 bg-zinc-50 cursor-wait'
               : dragging
@@ -123,7 +179,7 @@ export function LogoLibrary({ logos, activeLogo, onUpload, onActivate, onDelete 
       {error && <p className="text-xs text-red-500">{error}</p>}
       {logos.length > 0 && (
         <p className="text-xs text-zinc-400">
-          Click a logo to set it as active. Active logo is used in content generation.
+          Click a logo to set it as active. Hover to tag it as your light or dark variant for auto-formatting.
         </p>
       )}
     </div>

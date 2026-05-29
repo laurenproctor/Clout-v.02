@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 })
   }
 
-  const mimeType = clientMimeType || file.type || 'audio/webm'
+  const mimeType = (clientMimeType || file.type || 'audio/webm').split(';')[0]
   const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm'
   const filename = `${session.workspaceId}/${Date.now()}.${ext}`
 

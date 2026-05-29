@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { IntelligenceBar } from './IntelligenceBar'
 import { CalendarToolbar } from './CalendarToolbar'
 import { GridView } from './grid/GridView'
@@ -28,9 +29,12 @@ function addWeeks(weekStart: string, n: number): string {
 }
 
 export function CalendarPage() {
-  const [weekStart, setWeekStart] = useState(() =>
-    getWeekStart(new Date().toISOString().split('T')[0])
-  )
+  const searchParams = useSearchParams()
+  const [weekStart, setWeekStart] = useState(() => {
+    const param = searchParams.get('week')
+    if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) return param
+    return getWeekStart(new Date().toISOString().split('T')[0])
+  })
   const [viewMode, setViewMode] = useState<'grid' | 'narrative'>('grid')
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null)
   const [concepts, setConcepts] = useState<CalendarConcept[]>([])

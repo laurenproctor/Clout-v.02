@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 interface Entitlements {
   captures_per_month: number
@@ -50,11 +51,17 @@ function UsageMeter({ label, used, limit }: { label: string; used: number; limit
 }
 
 export default function BillingPage() {
+  const { slug } = useWorkspace()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [usage, setUsage] = useState<Usage | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Ensure the active workspace cookie reflects the page we're on so the
+    // API routes (which read this cookie via getSession) return data for the
+    // correct workspace even on first load when the middleware hasn't fired yet.
+    document.cookie = `clout-active-workspace=${slug}; path=/; max-age=31536000; SameSite=Lax`
+
     Promise.all([
       fetch('/api/billing').then((r) => r.ok ? r.json() : null),
       fetch('/api/billing/usage').then((r) => r.ok ? r.json() : null),
@@ -63,7 +70,7 @@ export default function BillingPage() {
       setUsage(use)
       setLoading(false)
     })
-  }, [])
+  }, [slug])
 
   const entitlements = subscription?.entitlements
 

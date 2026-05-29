@@ -15,6 +15,7 @@ export type VoiceRegister =
 export type LinkedInAudience =
   | 'founders' | 'enterprise_buyers' | 'marketers' | 'operators'
   | 'engineers' | 'investors' | 'recruiters' | 'general_audience'
+  | 'custom'
 
 export type LinkedInLength = 'short' | 'medium' | 'long' | 'executive_brief' | 'story_format'
 
@@ -29,6 +30,7 @@ export interface LinkedInGenerationRequest {
   narrativeStyle: NarrativeStyle
   voiceRegister: VoiceRegister
   audience: LinkedInAudience
+  customAudience?: string     // free-text when audience === 'custom'
   length: LinkedInLength
   lensIds: string[]
   sourcePostId?: string
@@ -47,6 +49,7 @@ export interface TransformationDelta {
 export interface LinkedInVariation {
   id: string
   label: string
+  campaignName: string      // compelling headline for studio — what this post is about
   body: string
   hooks: LinkedInHook[]
   hashtags: string[]        // without # prefix

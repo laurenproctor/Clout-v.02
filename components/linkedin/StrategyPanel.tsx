@@ -99,6 +99,7 @@ export function StrategyPanel({
     { value: 'investors', label: 'Investors' },
     { value: 'recruiters', label: 'Recruiters' },
     { value: 'general_audience', label: 'General Audience' },
+    { value: 'custom', label: 'Custom…' },
   ]
 
   const narrativeStyles: { value: NarrativeStyle; label: string }[] = [
@@ -166,13 +167,23 @@ export function StrategyPanel({
               <Pill
                 key={item.value}
                 selected={values.audience === item.value}
-                onClick={() => !readOnly && onChange({ audience: item.value })}
+                onClick={() => !readOnly && onChange({ audience: item.value, ...(item.value !== 'custom' && { customAudience: undefined }) })}
                 disabled={readOnly}
               >
                 {item.label}
               </Pill>
             ))}
           </div>
+          {values.audience === 'custom' && (
+            <input
+              type="text"
+              value={values.customAudience ?? ''}
+              onChange={e => !readOnly && onChange({ customAudience: e.target.value })}
+              placeholder="e.g. B2B SaaS founders building their first sales team"
+              disabled={readOnly}
+              className="mt-2 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
+            />
+          )}
         </div>
 
         {/* Advanced toggle */}

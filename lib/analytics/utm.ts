@@ -1,17 +1,6 @@
-const PLATFORM_UTM: Record<string, { source: string; medium: string }> = {
-  linkedin:  { source: 'linkedin',    medium: 'social'   },
-  twitter:   { source: 'x',           medium: 'social'   },
-  x:         { source: 'x',           medium: 'social'   },
-  threads:   { source: 'threads',     medium: 'social'   },
-  facebook:  { source: 'facebook',    medium: 'social'   },
-  instagram: { source: 'instagram',   medium: 'social'   },
-  newsletter: { source: 'newsletter', medium: 'email'    },
-  wordpress: { source: 'blog',        medium: 'organic'  },
-  medium:    { source: 'medium',      medium: 'content'  },
-  shopify:   { source: 'shopify',     medium: 'ecommerce'},
-  substack:  { source: 'substack',    medium: 'email'    },
-  google_business_profile: { source: 'google_business', medium: 'local' },
-}
+import { getPlatformDefault, UTMConfig } from '@/lib/distribution/platform-registry'
+
+export type { UTMConfig }
 
 export interface UTMParams {
   utm_source: string
@@ -24,8 +13,9 @@ export function buildUTMParams(params: {
   platform: string
   canonicalId: string   // generationGroupId or outputId — the content batch identifier
   outputId: string      // the specific output being published
+  customSources?: Record<string, UTMConfig>
 }): UTMParams {
-  const platformMap = PLATFORM_UTM[params.platform] ?? { source: params.platform, medium: 'content' }
+  const platformMap = params.customSources?.[params.platform] ?? getPlatformDefault(params.platform)
   return {
     utm_source: platformMap.source,
     utm_medium: platformMap.medium,

@@ -4,6 +4,7 @@ import { TopNav } from '@/components/shell/top-nav'
 import { QuickCaptureProvider } from '@/components/shell/quick-capture-provider'
 import { GlobalNavShortcuts } from '@/components/shell/global-nav-shortcuts'
 import { ErrorBoundary } from '@/components/shell/error-boundary'
+import { WorkspaceTheme } from '@/components/providers/workspace-theme'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <QuickCaptureProvider>
+      <WorkspaceTheme />
       <GlobalNavShortcuts />
       <MobileSidebarProvider>
         <div className="flex h-dvh overflow-hidden bg-zinc-50 text-[120%]">
