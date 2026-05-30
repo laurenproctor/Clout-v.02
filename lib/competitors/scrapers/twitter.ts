@@ -1,6 +1,8 @@
 import type { RawPost, ScraperOpts } from './types'
 import { urlParts } from './types'
 
+// Twitter's public web-client bearer token — not a secret, embedded in twitter.com JS bundle.
+// If requests start failing, check DevTools on twitter.com for the current value.
 const BEARER = 'AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
 // Update these constants when Twitter rotates GraphQL hashes (check DevTools on twitter.com)
 const GQL_USER_BY_SCREEN_NAME = 'NimuplG1OB7Fd2btCLdBOw'
@@ -116,7 +118,7 @@ export async function scrapeTwitter(profileUrl: string, opts: ScraperOpts = {}):
       external_id:  t.rest_id,
       content:      t.legacy.full_text.replace(/https?:\/\/t\.co\/\S+/g, '').trim(),
       url:          `https://twitter.com/${handle}/status/${t.rest_id}`,
-      published_at: new Date(t.legacy.created_at).toISOString(),
+      published_at: t.legacy.created_at ? new Date(t.legacy.created_at).toISOString() : new Date().toISOString(),
       metrics: {
         likes:    t.legacy.favorite_count,
         comments: t.legacy.reply_count,
