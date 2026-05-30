@@ -786,6 +786,60 @@ export type Database = {
           },
         ]
       }
+      competitor_content_global: {
+        Row: {
+          id:                string
+          competitor_domain: string
+          source_type:       string
+          external_id:       string
+          title:             string | null
+          content:           string | null
+          summary:           string | null
+          url:               string
+          thumbnail_url:     string | null
+          published_at:      string | null
+          fetched_at:        string
+          metrics:           Json
+          topics:            Json
+          importance_score:  number
+          source_confidence: string
+        }
+        Insert: {
+          id?:                string
+          competitor_domain:  string
+          source_type:        string
+          external_id:        string
+          title?:             string | null
+          content?:           string | null
+          summary?:           string | null
+          url:                string
+          thumbnail_url?:     string | null
+          published_at?:      string | null
+          fetched_at?:        string
+          metrics?:           Json
+          topics?:            Json
+          importance_score?:  number
+          source_confidence?: string
+        }
+        Update: {
+          id?:                string
+          competitor_domain?: string
+          source_type?:       string
+          external_id?:       string
+          title?:             string | null
+          content?:           string | null
+          summary?:           string | null
+          url?:               string
+          thumbnail_url?:     string | null
+          published_at?:      string | null
+          fetched_at?:        string
+          metrics?:           Json
+          topics?:            Json
+          importance_score?:  number
+          source_confidence?: string
+        }
+        Relationships: []
+      }
       concept_cluster_signals: {
         Row: {
           card_id: string
@@ -2922,6 +2976,36 @@ export type Database = {
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           }
+        ]
+      }
+      workspace_competitor_content: {
+        Row: {
+          workspace_id: string
+          content_id:   string
+        }
+        Insert: {
+          workspace_id: string
+          content_id:   string
+        }
+        Update: {
+          workspace_id?: string
+          content_id?:   string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_competitor_content_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_competitor_content_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_content_global"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
