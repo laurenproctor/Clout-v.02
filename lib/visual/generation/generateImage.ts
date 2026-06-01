@@ -17,6 +17,7 @@ import { ARCHETYPE_GRAMMAR } from '../grammar/archetypeGrammar'
 import { selectTemplate, inferContentType } from '../templates/selector'
 import { getTemplateSpec } from '../templates/registry'
 import { buildBrandTokens } from '../brand/buildBrandTokens'
+import { normalizeBrandIdentity } from '../brand/normalizeBrandIdentity'
 import { loadFontsForSatori } from '../rendering/fonts'
 import { renderTemplate } from '../rendering'
 import { extractTemplateProps } from './extractTemplateProps'
@@ -28,6 +29,9 @@ import type {
   VisualAsset,
   VisualIntent,
 } from '../types/visual'
+import type { EditorialHeroProps, QuoteMonolithProps } from '../types/template'
+
+const PUPPETEER_ENABLED = process.env.ENABLE_PUPPETEER_RENDERING === 'true'
 
 // Extended VisualAsset with Phase 2 fields
 export interface VisualAssetV2 extends VisualAsset {
@@ -57,7 +61,13 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     aspectRatio = 'landscape',
     quality = 'standard',
     seed,
+    overlayParams,
   } = input
+
+  // When overlay params include a headline or quote, force the hybrid-overlay path
+  // with user's exact text — no Claude extraction.
+  // headline → editorial-hero; quote → quote-monolith
+  const hasOverlayContent = !!(overlayParams?.headline || overlayParams?.quote)
 
   const generationGroupId = input.generationGroupId ?? crypto.randomUUID()
 
@@ -91,14 +101,19 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
   // ── Step 2: Determine render mode and template ────────────────────────────
   const renderMode = resolvedIntent?.renderMode ?? 'fully-generated'
-  const isHybridOverlay = renderMode === 'hybrid-overlay' && brandProfile && content
+  // hasOverlayContent forces hybrid-overlay regardless of AI intent decision
+  const isHybridOverlay = hasOverlayContent || (renderMode === 'hybrid-overlay' && brandProfile && content)
 
   let templateId: string | null = null
   let templateSpec = null
   let grammar = null
 
-  if (isHybridOverlay) {
-    const archetype = resolveArchetype(brandProfile!.brandArchetype)
+  if (hasOverlayContent) {
+    // Overlay path: quote → quote-monolith; headline → editorial-hero
+    templateId = overlayParams?.quote ? 'quote-monolith' : 'editorial-hero'
+    templateSpec = getTemplateSpec(templateId as import('../types/template').TemplateId)
+  } else if (isHybridOverlay && brandProfile) {
+    const archetype = resolveArchetype(brandProfile.brandArchetype)
     grammar = ARCHETYPE_GRAMMAR[archetype]
     const contentType = inferContentType(content!)
 
@@ -190,49 +205,94 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   let composedUrl: string | null = null
   let templatePayload: Record<string, unknown> | null = null
 
-  if (isHybridOverlay && templateSpec && templateId && resolvedIntent && content && platform) {
+  if (isHybridOverlay && templateSpec && templateId) {
     try {
-      const size = getPlatformSize(platform, aspectRatio)
+      const size = getPlatformSize(platform ?? 'blog', aspectRatio)
 
-      const templateProps = await extractTemplateProps(
-        templateSpec.id,
-        content,
-        resolvedIntent,
-        upload.publicUrl
-      )
-      templatePayload = templateProps as unknown as Record<string, unknown>
+      if (hasOverlayContent && overlayParams) {
+        // ── Overlay path: use user's exact headline/subtext/quote/logo, skip Claude extraction ──
+        const overlayTemplateProps: EditorialHeroProps | QuoteMonolithProps = overlayParams.quote
+          ? ({
+              templateId:     'quote-monolith',
+              quote:          overlayParams.quote,
+              attribution:    overlayParams.attribution,
+              backgroundUrl:  upload.publicUrl,
+              logoUrl:        overlayParams.logoUrl,
+              fontHeadingUrl: overlayParams.fontHeadingUrl,
+              fontBodyUrl:    overlayParams.fontBodyUrl,
+            } satisfies QuoteMonolithProps)
+          : ({
+              templateId:     'editorial-hero',
+              headline:       overlayParams.headline!,
+              subtext:        overlayParams.subtext,
+              backgroundUrl:  upload.publicUrl,
+              logoUrl:        overlayParams.logoUrl,
+              fontHeadingUrl: overlayParams.fontHeadingUrl,
+              fontBodyUrl:    overlayParams.fontBodyUrl,
+            } satisfies EditorialHeroProps)
 
-      const brandRaw = brandProfile as unknown as Record<string, unknown>
-      const brandTokens = buildBrandTokens(
-        {
-          primaryColor:   String(brandRaw.primaryColor   ?? '#1A1A1A'),
-          secondaryColor: String(brandRaw.secondaryColor ?? '#FFFFFF'),
-          accentColor:    String(brandRaw.accentColor    ?? '#D4A574'),
-          fontHeading:    brandProfile!.imageryType ? String(brandRaw.fontHeading ?? 'system-ui') : 'system-ui',
-          fontBody:       String(brandRaw.fontBody ?? 'system-ui'),
-          styleTrait_borderRadius: String((brandRaw.styleTrait_borderRadius ?? 'balanced')),
-        },
-        brandProfile!
-      )
+        templatePayload = overlayTemplateProps as unknown as Record<string, unknown>
 
-      const fonts = await loadFontsForSatori({
-        fontHeading:    brandTokens.fontHeading,
-        fontBody:       brandTokens.fontBody,
-        fontHeadingUrl: String(brandRaw.fontHeadingUrl ?? '') || undefined,
-        fontBodyUrl:    String(brandRaw.fontBodyUrl    ?? '') || undefined,
-      })
+        // Build brand tokens from overlay params; use minimal semantic profile for non-color decisions
+        const minimalProfile = normalizeBrandIdentity(null, null)
+        const brandTokens = buildBrandTokens(
+          {
+            primaryColor:   overlayParams.primaryColor   ?? '#1A1A1A',
+            secondaryColor: overlayParams.secondaryColor ?? '#FFFFFF',
+            accentColor:    overlayParams.accentColor    ?? '#D4A574',
+            fontHeading:    overlayParams.fontHeading    ?? 'system-ui',
+            fontBody:       overlayParams.fontBody       ?? 'system-ui',
+          },
+          minimalProfile
+        )
 
-      const pngBuffer = await renderTemplate(
-        templateSpec,
-        templateProps,
-        brandTokens,
-        size.width,
-        size.height,
-        fonts
-      )
+        // Puppeteer loads fonts via CSS @font-face in the HTML document; no ArrayBuffer needed.
+        // Satori fallback requires pre-loaded font buffers.
+        const fonts = PUPPETEER_ENABLED ? [] : await loadFontsForSatori({
+          fontHeading:    brandTokens.fontHeading,
+          fontBody:       brandTokens.fontBody,
+          fontHeadingUrl: overlayParams.fontHeadingUrl ?? undefined,
+          fontBodyUrl:    overlayParams.fontBodyUrl    ?? undefined,
+        })
 
-      const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
-      composedUrl = composedUpload.publicUrl
+        const pngBuffer = await renderTemplate(templateSpec, overlayTemplateProps, brandTokens, size.width, size.height, fonts)
+        const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
+        composedUrl = composedUpload.publicUrl
+
+      } else if (resolvedIntent && content && platform && brandProfile) {
+        // ── Brand profile path: Claude extracts template props from content ──
+        const templateProps = await extractTemplateProps(
+          templateSpec.id,
+          content,
+          resolvedIntent,
+          upload.publicUrl
+        )
+        templatePayload = templateProps as unknown as Record<string, unknown>
+
+        const brandRaw = brandProfile as unknown as Record<string, unknown>
+        const brandTokens = buildBrandTokens(
+          {
+            primaryColor:   String(brandRaw.primaryColor   ?? '#1A1A1A'),
+            secondaryColor: String(brandRaw.secondaryColor ?? '#FFFFFF'),
+            accentColor:    String(brandRaw.accentColor    ?? '#D4A574'),
+            fontHeading:    brandProfile.imageryType ? String(brandRaw.fontHeading ?? 'system-ui') : 'system-ui',
+            fontBody:       String(brandRaw.fontBody ?? 'system-ui'),
+            styleTrait_borderRadius: String((brandRaw.styleTrait_borderRadius ?? 'balanced')),
+          },
+          brandProfile
+        )
+
+        const fonts = await loadFontsForSatori({
+          fontHeading:    brandTokens.fontHeading,
+          fontBody:       brandTokens.fontBody,
+          fontHeadingUrl: String(brandRaw.fontHeadingUrl ?? '') || undefined,
+          fontBodyUrl:    String(brandRaw.fontBodyUrl    ?? '') || undefined,
+        })
+
+        const pngBuffer = await renderTemplate(templateSpec, templateProps, brandTokens, size.width, size.height, fonts)
+        const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
+        composedUrl = composedUpload.publicUrl
+      }
 
     } catch (err) {
       // Composition failure should not fail the entire generation —

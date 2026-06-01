@@ -408,7 +408,7 @@ function NavContent({
       <div className="p-2 pb-[env(safe-area-inset-bottom)]">
         <div className="group relative">
           <Link
-            href={`/${slug}/settings/brand`}
+            href={`/${slug}/settings/lenses`}
             onClick={onLinkClick}
             className={cn(
               'flex items-center rounded-md py-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900',

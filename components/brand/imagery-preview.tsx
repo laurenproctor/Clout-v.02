@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BOARD_IMAGES } from '@/components/brand/example-board'
+import type { TypographySettings, TypographyLevelSettings } from '@/types/typography'
 
 export interface ImagerySettings {
   visual_styles: string[]
@@ -24,22 +25,50 @@ interface ImageryPreviewProps {
   primaryColor: string
   secondaryColor: string
   accentColor: string
+  logoUrl?: string | null
+  brandName?: string | null
+  headingFont?: string
+  bodyFont?: string
+  typographySettings?: TypographySettings
   activeCard?: 'hero' | 'story' | 'tile'
   onCardSelect?: (card: 'hero' | 'story' | 'tile') => void
   className?: string
 }
 
-function resolvePreviewImage(imagery: ImagerySettings): string | null {
-  if (imagery.uploaded_imagery.length > 0) return imagery.uploaded_imagery[0]
-  if (imagery.example_board.length > 0) {
-    // Dynamic results: stored as full URLs
-    const directUrl = imagery.example_board.find(v => v.startsWith('http'))
-    if (directUrl) return directUrl
-    // Legacy: stored as IDs referencing BOARD_IMAGES
-    const match = BOARD_IMAGES.find(b => imagery.example_board.includes(b.id))
-    return match?.url.replace('w=400', 'w=800') ?? null
+function resolvePreviewImages(imagery: ImagerySettings): string[] {
+  const images: string[] = []
+  images.push(...imagery.uploaded_imagery)
+  for (const entry of imagery.example_board) {
+    if (entry.startsWith('http')) {
+      images.push(entry)
+    } else {
+      const match = BOARD_IMAGES.find(b => b.id === entry)
+      if (match) images.push(match.url.replace('w=400', 'w=800'))
+    }
   }
-  return null
+  return images
+}
+
+function resolveTextTransform(t: string): React.CSSProperties['textTransform'] {
+  if (t === 'sentence-case') return 'none'
+  if (t === 'title-case') return 'capitalize'
+  return t as React.CSSProperties['textTransform']
+}
+
+function applyTypo(
+  level: TypographyLevelSettings | undefined,
+  fallbackFont: string,
+  fallbackColor: string,
+): React.CSSProperties {
+  if (!level) return { fontFamily: fallbackFont, color: fallbackColor }
+  return {
+    fontFamily: level.fontFamily ? `"${level.fontFamily}", sans-serif` : fallbackFont,
+    fontWeight: level.fontWeight,
+    lineHeight: level.lineHeight,
+    letterSpacing: level.letterSpacing,
+    textTransform: resolveTextTransform(level.textTransform),
+    color: level.color || fallbackColor,
+  }
 }
 
 export function ImageryPreview({
@@ -47,11 +76,15 @@ export function ImageryPreview({
   primaryColor,
   secondaryColor,
   accentColor,
+  logoUrl,
+  brandName,
+  headingFont = 'serif',
+  bodyFont = 'sans-serif',
+  typographySettings,
   activeCard = 'hero',
   onCardSelect,
   className,
 }: ImageryPreviewProps) {
-  // Default scheme based on mood/style signals; user can override with toggle
   const defaultScheme = (
     imagery.mood_traits.some(t => ['Serious', 'Bold', 'Premium'].includes(t)) ||
     imagery.visual_styles.some(s => ['Editorial', 'Luxury', 'Futuristic'].includes(s))
@@ -67,8 +100,28 @@ export function ImageryPreview({
     { id: 'tile'  as const, label: 'Post Tile' },
   ]
 
-  const previewImage = resolvePreviewImage(imagery)
-  const cardProps = { imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage }
+  const previewImages = resolvePreviewImages(imagery)
+  function imageFor(index: number): string | null {
+    if (previewImages.length === 0) return null
+    return previewImages[index % previewImages.length]
+  }
+
+  // Resolved font strings ready for CSS fontFamily
+  const resolvedHeadingFont = `"${headingFont}", serif`
+  const resolvedBodyFont = `"${bodyFont}", sans-serif`
+
+  const cardProps = {
+    imagery,
+    primaryColor,
+    secondaryColor,
+    accentColor,
+    scheme,
+    logoUrl: logoUrl ?? null,
+    brandName: brandName ?? '',
+    headingFont: resolvedHeadingFont,
+    bodyFont: resolvedBodyFont,
+    typographySettings,
+  }
 
   function scrollToIndex(index: number) {
     const el = scrollRef.current
@@ -88,11 +141,39 @@ export function ImageryPreview({
     }
   }
 
+  function goPrev() {
+    scrollToIndex((activeIndex - 1 + cards.length) % cards.length)
+  }
+  function goNext() {
+    scrollToIndex((activeIndex + 1) % cards.length)
+  }
+
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      {/* Toolbar */}
+      {/* Toolbar: arrows + label + dark/light toggle */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-zinc-500">{cards[activeIndex].label}</p>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={goPrev}
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            aria-label="Previous card"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="px-2 text-xs font-medium text-zinc-600 min-w-[80px] text-center">
+            {cards[activeIndex].label}
+          </span>
+          <button
+            type="button"
+            onClick={goNext}
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            aria-label="Next card"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => setScheme(s => s === 'dark' ? 'light' : 'dark')}
@@ -111,11 +192,11 @@ export function ImageryPreview({
         className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth rounded-lg shadow-md"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {cards.map(card => (
+        {cards.map((card, i) => (
           <div key={card.id} className="shrink-0 w-full snap-start overflow-hidden">
-            {card.id === 'hero'  && <HeroBanner  {...cardProps} />}
-            {card.id === 'story' && <StoryCard   {...cardProps} />}
-            {card.id === 'tile'  && <PostTile    {...cardProps} />}
+            {card.id === 'hero'  && <HeroBanner  {...cardProps} previewImage={imageFor(i)} />}
+            {card.id === 'story' && <StoryCard   {...cardProps} previewImage={imageFor(i)} />}
+            {card.id === 'tile'  && <PostTile    {...cardProps} previewImage={imageFor(i)} />}
           </div>
         ))}
       </div>
@@ -136,7 +217,7 @@ export function ImageryPreview({
         ))}
       </div>
 
-      {!previewImage && (
+      {previewImages.length === 0 && (
         <p className="text-[10px] text-zinc-400 text-center -mt-1">
           Upload imagery or select from the reference board to see it here.
         </p>
@@ -152,6 +233,11 @@ type CardProps = {
   accentColor: string
   scheme: 'light' | 'dark'
   previewImage: string | null
+  logoUrl: string | null
+  brandName: string
+  headingFont: string
+  bodyFont: string
+  typographySettings?: TypographySettings
 }
 
 function getOverlayText(style: string | null): { headline: string; sub: string } | null {
@@ -164,10 +250,46 @@ function getOverlayText(style: string | null): { headline: string; sub: string }
   }
 }
 
-function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage }: CardProps) {
+function LogoBadge({ logoUrl, brandName, bodyFont, isDark }: { logoUrl: string | null; brandName: string; bodyFont: string; isDark: boolean }) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoUrl}
+        alt={brandName}
+        style={{
+          height: 22,
+          maxWidth: 88,
+          objectFit: 'contain',
+          filter: isDark
+            ? 'brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,0.5))'
+            : 'drop-shadow(0 1px 3px rgba(0,0,0,0.25))',
+        }}
+      />
+    )
+  }
+  if (brandName) {
+    return (
+      <span style={{
+        fontFamily: bodyFont,
+        fontSize: '0.6rem',
+        fontWeight: 600,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.6)',
+        textShadow: isDark ? '0 1px 3px rgba(0,0,0,0.6)' : '0 1px 2px rgba(255,255,255,0.8)',
+      }}>
+        {brandName}
+      </span>
+    )
+  }
+  return null
+}
+
+function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
   const overlay  = getOverlayText(imagery.overlay_text_style)
   const isDark   = scheme === 'dark'
-  const textColor = isDark ? secondaryColor : primaryColor
+  const textColor = isDark ? '#ffffff' : primaryColor
   const bg       = isDark ? primaryColor : `${accentColor}22`
 
   const compAlign: React.CSSProperties = (() => {
@@ -179,8 +301,12 @@ function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme
     }
   })()
 
+  const textShadow = previewImage
+    ? (isDark ? '0 1px 4px rgba(0,0,0,0.7)' : '0 1px 3px rgba(255,255,255,0.6)')
+    : undefined
+
   return (
-    <div style={{ height: 180, width: '100%', position: 'relative', overflow: 'hidden', background: bg }}>
+    <div style={{ height: 200, width: '100%', position: 'relative', overflow: 'hidden', background: bg }}>
       {/* Photo layer */}
       {previewImage && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -191,13 +317,13 @@ function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme
         />
       )}
 
-      {/* Tint / gradient overlay */}
+      {/* Overlay */}
       {previewImage ? (
         <div style={{
           position: 'absolute', inset: 0,
           background: isDark
-            ? 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.1) 100%)'
-            : 'linear-gradient(to top, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.45) 55%, rgba(255,255,255,0.05) 100%)',
+            ? 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.2) 100%)'
+            : 'linear-gradient(to top, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.65) 50%, rgba(255,255,255,0.1) 100%)',
         }} />
       ) : (
         <>
@@ -211,18 +337,32 @@ function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme
         <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2 }}>
           {([accentColor, `${accentColor}88`, `${accentColor}55`, primaryColor] as string[]).map((c, i) => (
             <div key={i} style={{ background: previewImage ? 'transparent' : c, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {i === 0 && overlay && <span style={{ color: isDark ? secondaryColor : primaryColor, fontSize: '0.6rem', fontWeight: 700, padding: 4, textAlign: 'center' }}>{overlay.headline}</span>}
+              {i === 0 && overlay && (
+                <span style={{ fontFamily: headingFont, color: textColor, fontSize: '0.6rem', fontWeight: 700, padding: 4, textAlign: 'center', textShadow }}>
+                  {overlay.headline}
+                </span>
+              )}
             </div>
           ))}
         </div>
       ) : (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: 20, ...compAlign }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: 16, ...compAlign }}>
           {overlay ? (
-            <div style={{ maxWidth: '75%' }}>
-              <div style={{ fontSize: imagery.overlay_text_style === 'Stat Callout' ? '2rem' : '0.85rem', fontWeight: 700, color: textColor, lineHeight: 1.2, letterSpacing: imagery.overlay_text_style === 'Editorial Masthead' ? '0.15em' : undefined }}>
+            <div style={{ maxWidth: '80%' }}>
+              <div style={{
+                ...applyTypo(typographySettings?.h2, headingFont, textColor),
+                fontSize: imagery.overlay_text_style === 'Stat Callout' ? '2rem' : '0.9rem',
+                lineHeight: 1.2,
+                letterSpacing: imagery.overlay_text_style === 'Editorial Masthead' ? '0.15em' : undefined,
+                textShadow,
+              }}>
                 {overlay.headline}
               </div>
-              {overlay.sub && <div style={{ fontSize: '0.6rem', color: textColor, opacity: 0.7, marginTop: 4 }}>{overlay.sub}</div>}
+              {overlay.sub && (
+                <div style={{ fontFamily: bodyFont, fontSize: '0.6rem', color: textColor, opacity: 0.85, marginTop: 4, textShadow }}>
+                  {overlay.sub}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ width: 48, height: 3, background: accentColor, borderRadius: 2 }} />
@@ -230,8 +370,14 @@ function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme
         </div>
       )}
 
+      {/* Logo — bottom left */}
+      <div style={{ position: 'absolute', bottom: 10, left: 12 }}>
+        <LogoBadge logoUrl={logoUrl} brandName={brandName} bodyFont={bodyFont} isDark={isDark || !!previewImage} />
+      </div>
+
+      {/* Imagery type label — bottom right */}
       {imagery.imagery_type.length > 0 && (
-        <div style={{ position: 'absolute', bottom: 8, left: 10, fontSize: '0.55rem', color: textColor, opacity: 0.6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <div style={{ position: 'absolute', bottom: 10, right: 12, fontFamily: bodyFont, fontSize: '0.5rem', color: textColor, opacity: 0.7, letterSpacing: '0.1em', textTransform: 'uppercase', textShadow }}>
           {imagery.imagery_type.join(' · ')}
         </div>
       )}
@@ -239,11 +385,11 @@ function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme
   )
 }
 
-function StoryCard({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage }: CardProps) {
+function StoryCard({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
   const overlay  = getOverlayText(imagery.overlay_text_style)
   const isDark   = scheme === 'dark'
   const bg       = isDark ? primaryColor : secondaryColor
-  const textColor = isDark ? secondaryColor : primaryColor
+  const textColor = isDark ? '#ffffff' : primaryColor
 
   return (
     <div style={{ height: 320, width: '100%', background: bg, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -257,11 +403,13 @@ function StoryCard({ imagery, primaryColor, secondaryColor, accentColor, scheme,
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
         )}
-        {/* Tint */}
+        {/* Stronger bottom fade so text area blends cleanly */}
         {previewImage && (
           <div style={{
             position: 'absolute', inset: 0,
-            background: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.1)',
+            background: isDark
+              ? 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)'
+              : 'linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.3) 100%)',
           }} />
         )}
         {!previewImage && (
@@ -275,32 +423,41 @@ function StoryCard({ imagery, primaryColor, secondaryColor, accentColor, scheme,
         )}
       </div>
 
-      {/* Bottom text area */}
-      <div style={{ flex: 1, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, borderTop: `1px solid ${accentColor}33`, boxSizing: 'border-box', background: bg }}>
-        {overlay ? (
-          <>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: textColor, lineHeight: 1.3 }}>{overlay.headline}</div>
-            {overlay.sub && <div style={{ fontSize: '0.6rem', color: textColor, opacity: 0.6 }}>{overlay.sub}</div>}
-          </>
-        ) : (
-          <>
-            <div style={{ width: 24, height: 2, background: accentColor, borderRadius: 2 }} />
-            <div style={{ fontSize: '0.7rem', color: textColor, opacity: 0.6 }}>Visual story</div>
-          </>
-        )}
+      {/* Bottom text + logo area */}
+      <div style={{ flex: 1, padding: '10px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: `1px solid ${accentColor}33`, boxSizing: 'border-box', background: bg }}>
+        <div>
+          {overlay ? (
+            <>
+              <div style={{ ...applyTypo(typographySettings?.h3, headingFont, textColor), fontSize: '0.75rem', lineHeight: 1.3 }}>{overlay.headline}</div>
+              {overlay.sub && <div style={{ fontFamily: bodyFont, fontSize: '0.6rem', color: textColor, opacity: 0.6, marginTop: 2 }}>{overlay.sub}</div>}
+            </>
+          ) : (
+            <>
+              <div style={{ width: 24, height: 2, background: accentColor, borderRadius: 2, marginBottom: 4 }} />
+              <div style={{ fontFamily: bodyFont, fontSize: '0.65rem', color: textColor, opacity: 0.6 }}>Visual story</div>
+            </>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+          <LogoBadge logoUrl={logoUrl} brandName={brandName} bodyFont={bodyFont} isDark={isDark} />
+        </div>
       </div>
     </div>
   )
 }
 
-function PostTile({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage }: CardProps) {
+function PostTile({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
   const overlay  = getOverlayText(imagery.overlay_text_style)
   const isDark   = scheme === 'dark'
   const bg       = isDark ? primaryColor : `${accentColor}15`
-  const textColor = isDark ? secondaryColor : primaryColor
+  const textColor = isDark ? '#ffffff' : primaryColor
+
+  const textShadow = previewImage
+    ? (isDark ? '0 1px 4px rgba(0,0,0,0.7)' : '0 1px 3px rgba(255,255,255,0.7)')
+    : undefined
 
   return (
-    <div style={{ aspectRatio: '1', width: '100%', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 20, boxSizing: 'border-box', background: bg }}>
+    <div style={{ aspectRatio: '1', width: '100%', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16, boxSizing: 'border-box', background: bg }}>
       {/* Photo layer */}
       {previewImage && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -310,37 +467,53 @@ function PostTile({ imagery, primaryColor, secondaryColor, accentColor, scheme, 
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
       )}
-      {/* Tint */}
+      {/* Stronger overlay for text legibility */}
       {previewImage && (
         <div style={{
           position: 'absolute', inset: 0,
           background: isDark
-            ? 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.05) 100%)'
-            : 'linear-gradient(to top, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.3) 60%, rgba(255,255,255,0.0) 100%)',
+            ? 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.15) 100%)'
+            : 'linear-gradient(to top, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.5) 55%, rgba(255,255,255,0.05) 100%)',
         }} />
       )}
 
-      {/* Content (above overlays via relative positioning) */}
+      {/* Top: accent bar */}
       <div style={{ position: 'relative', display: 'flex', justifyContent: imagery.composition === 'Asymmetrical' ? 'flex-end' : 'flex-start' }}>
-        <div style={{ width: 32, height: 3, background: accentColor, borderRadius: 2 }} />
+        <div style={{ width: 28, height: 3, background: accentColor, borderRadius: 2 }} />
       </div>
+
+      {/* Middle: overlay text */}
       <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center', justifyContent: imagery.composition === 'Whitespace' ? 'flex-start' : 'center' }}>
         {!previewImage && (
           <div style={{ position: 'absolute', top: '0%', right: '-5%', width: '40%', height: '40%', border: `1px solid ${accentColor}`, borderRadius: imagery.composition === 'Centered' ? '50%' : '4px', opacity: 0.3 }} />
         )}
         {overlay ? (
-          <div style={{ maxWidth: '80%', textAlign: imagery.composition === 'Whitespace' ? 'left' : 'center' }}>
-            <div style={{ fontSize: imagery.overlay_text_style === 'Stat Callout' ? '2.5rem' : '0.85rem', fontWeight: 700, color: textColor, lineHeight: 1.2 }}>
+          <div style={{ maxWidth: '85%', textAlign: imagery.composition === 'Whitespace' ? 'left' : 'center' }}>
+            <div style={{
+              ...applyTypo(typographySettings?.h2, headingFont, textColor),
+              fontSize: imagery.overlay_text_style === 'Stat Callout' ? '2.5rem' : '0.9rem',
+              lineHeight: 1.2,
+              textShadow,
+            }}>
               {overlay.headline}
             </div>
-            {overlay.sub && <div style={{ fontSize: '0.6rem', color: textColor, opacity: 0.6, marginTop: 6 }}>{overlay.sub}</div>}
+            {overlay.sub && (
+              <div style={{ fontFamily: bodyFont, fontSize: '0.6rem', color: textColor, opacity: 0.8, marginTop: 5, textShadow }}>
+                {overlay.sub}
+              </div>
+            )}
           </div>
         ) : (
           !previewImage && <div style={{ width: 48, height: 48, borderRadius: '50%', border: `2px solid ${accentColor}`, opacity: 0.4 }} />
         )}
       </div>
-      <div style={{ position: 'relative', fontSize: '0.6rem', color: textColor, opacity: 0.6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-        {imagery.visual_styles[0] ?? 'Brand Imagery'}
+
+      {/* Bottom: logo + style label */}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <LogoBadge logoUrl={logoUrl} brandName={brandName} bodyFont={bodyFont} isDark={isDark || !!previewImage} />
+        <span style={{ fontFamily: bodyFont, fontSize: '0.5rem', color: textColor, opacity: 0.6, letterSpacing: '0.12em', textTransform: 'uppercase', textShadow }}>
+          {imagery.visual_styles[0] ?? 'Brand Imagery'}
+        </span>
       </div>
     </div>
   )

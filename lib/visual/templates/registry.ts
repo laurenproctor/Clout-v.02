@@ -11,21 +11,21 @@ const TEMPLATES: TemplateSpec[] = [
     compositionZone:  'bottom-left',    // text lives bottom-left; subject upper-right
     textZone:         'bottom-left',
     supportsBackground: true,
-    renderEngine:     'satori',
+    renderEngine:     'puppeteer',
   },
   {
     id:               'quote-monolith',
     compositionZone:  'center',         // centered typography; background is texture/solid
     textZone:         'center',
     supportsBackground: true,
-    renderEngine:     'satori',
+    renderEngine:     'puppeteer',
   },
   {
     id:               'stat-monument',
     compositionZone:  'center',         // large numeral center/upper-center
     textZone:         'center',
     supportsBackground: true,
-    renderEngine:     'satori',
+    renderEngine:     'satori',         // no Puppeteer template yet; Satori is fallback
   },
 ]
 

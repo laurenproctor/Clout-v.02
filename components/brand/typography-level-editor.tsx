@@ -24,10 +24,12 @@ const WEIGHT_OPTIONS: { value: FontWeight; label: string }[] = [
 ]
 
 const TRANSFORM_OPTIONS: { value: TextTransform; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'uppercase', label: 'UPPERCASE' },
-  { value: 'lowercase', label: 'lowercase' },
-  { value: 'capitalize', label: 'Capitalize' },
+  { value: 'none',          label: 'None' },
+  { value: 'sentence-case', label: 'Sentence case' },
+  { value: 'title-case',    label: 'Title Case' },
+  { value: 'uppercase',     label: 'UPPERCASE' },
+  { value: 'lowercase',     label: 'lowercase' },
+  { value: 'capitalize',    label: 'Capitalize each word' },
 ]
 
 interface TypographyLevelEditorProps {

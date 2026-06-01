@@ -483,7 +483,7 @@ export default function BrandSettingsPage() {
                 <h2 className="text-sm font-semibold text-zinc-900">Colors</h2>
                 <div className="grid grid-cols-3 gap-4">
                   <ColorPicker label="Primary" value={brand.primary_color} onChange={v => updateBrand({ primary_color: v })} />
-                  <ColorPicker label="Light background color" value={brand.secondary_color} onChange={v => updateBrand({ secondary_color: v })} />
+                  <ColorPicker label="Light Background" value={brand.secondary_color} onChange={v => updateBrand({ secondary_color: v })} />
                   <ColorPicker label="Accent" value={brand.accent_color} onChange={v => updateBrand({ accent_color: v })} />
                   <ColorPicker
                     label="Accent 2"
@@ -540,7 +540,7 @@ export default function BrandSettingsPage() {
                 {([
                   { key: 'border_radius' as keyof StyleTraits, label: 'Corner Style', options: ['none', 'subtle', 'balanced', 'rounded', 'pill'] },
                   { key: 'visual_density' as keyof StyleTraits, label: 'Visual Density', options: ['compact', 'balanced', 'spacious'] },
-                  { key: 'color_scheme' as keyof StyleTraits, label: 'Color Scheme', options: ['light', 'dark'] },
+                  { key: 'color_scheme' as keyof StyleTraits, label: 'Default Color Scheme', options: ['light', 'dark'] },
                   { key: 'texture' as keyof StyleTraits, label: 'Texture', options: ['none', 'subtle', 'medium', 'bold'] },
                 ] as const).map(({ key, label, options }) => (
                   <div key={key}>
@@ -783,6 +783,11 @@ export default function BrandSettingsPage() {
                 primaryColor={brand.primary_color}
                 secondaryColor={brand.secondary_color}
                 accentColor={brand.accent_color}
+                logoUrl={brand.logo_url}
+                brandName={brand.brand_name}
+                headingFont={brand.font_heading}
+                bodyFont={brand.font_body}
+                typographySettings={typographySettings}
                 activeCard={activeImageryCard}
                 onCardSelect={setActiveImageryCard}
               />

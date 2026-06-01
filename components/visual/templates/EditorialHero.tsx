@@ -19,6 +19,7 @@ export function EditorialHero({
   subtext,
   authorCredit,
   backgroundUrl,
+  logoUrl,
   brand,
   width,
   height,
@@ -26,6 +27,8 @@ export function EditorialHero({
   const textZoneWidth  = Math.round(width * 0.58)
   const textZoneHeight = Math.round(height * 0.52)
   const padding = Math.round(Math.min(width, height) * 0.053)   // ~64px at 1200
+  const logoHeight = Math.round(Math.min(width, height) * 0.07) // ~84px at 1200
+  const logoWidth  = Math.round(logoHeight * 3.5)               // allow wide logos
 
   return (
     <div
@@ -68,13 +71,42 @@ export function EditorialHero({
         }}
       />
 
-      {/* Text block — anchored bottom-left */}
+      {/* Logo — anchored top-right */}
+      {logoUrl && (
+        <div
+          style={{
+            position: 'absolute',
+            top: `${padding}px`,
+            right: `${padding}px`,
+            width: `${logoWidth}px`,
+            height: `${logoHeight}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoUrl}
+            alt=""
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Text block — anchored bottom-left, capped to gradient zone */}
       <div
         style={{
           position: 'absolute',
           bottom: `${padding}px`,
           left: `${padding}px`,
           maxWidth: `${Math.round(width * 0.54)}px`,
+          maxHeight: `${textZoneHeight - 2 * padding}px`,
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           gap: '16px',
@@ -89,7 +121,10 @@ export function EditorialHero({
               color: brand.onSurface,
               lineHeight: LEADING.headline,
               letterSpacing: '-0.02em',
-              // Two-line max enforced by truncation, not reflowing
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
             }}
           >
             {headline}
@@ -105,6 +140,10 @@ export function EditorialHero({
               color: brand.onSurface,
               opacity: 0.78,
               lineHeight: LEADING.body,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
             }}
           >
             {subtext}
@@ -120,6 +159,8 @@ export function EditorialHero({
               color: brand.accent,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
             }}
           >
             {authorCredit}

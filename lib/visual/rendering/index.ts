@@ -1,15 +1,22 @@
 // lib/visual/rendering/index.ts
-// Unified render() entry point — selects engine based on TemplateSpec.
-// Phase 2: Satori only. Playwright added in Phase 2.1 for complex templates.
+// Unified renderTemplate() entry point.
+// When ENABLE_PUPPETEER_RENDERING=true: React component → renderToStaticMarkup() → Puppeteer → PNG.
+// Fallback: Satori path (existing, unchanged).
 
-import { createElement } from 'react'
+import 'server-only'
+import { createElement, type ComponentType } from 'react'
 import type { TemplateSpec, TemplateProps, BrandTokens } from '../types/template'
 import { renderElementToPNG, type SatoriFont } from './satori'
+import { defaultRenderer } from './puppeteer'
 import { EditorialHero } from '@/components/visual/templates/EditorialHero'
 import { QuoteMonolith } from '@/components/visual/templates/QuoteMonolith'
 import { StatMonument } from '@/components/visual/templates/StatMonument'
+import { EditorialHeroCard } from '@/components/visual/templates/puppeteer/EditorialHeroCard'
+import { QuoteCard } from '@/components/visual/templates/puppeteer/QuoteCard'
 
 export type { SatoriFont }
+
+const PUPPETEER_ENABLED = process.env.ENABLE_PUPPETEER_RENDERING === 'true'
 
 export async function renderTemplate(
   spec: TemplateSpec,
@@ -19,10 +26,26 @@ export async function renderTemplate(
   height: number,
   fonts: SatoriFont[]
 ): Promise<Buffer> {
-  if (spec.renderEngine !== 'satori') {
-    throw new Error(`Render engine '${spec.renderEngine}' not implemented yet`)
+  if (PUPPETEER_ENABLED && spec.renderEngine === 'puppeteer') {
+    let component: ComponentType<any>
+    switch (props.templateId) {
+      case 'editorial-hero':
+        component = EditorialHeroCard
+        break
+      case 'quote-monolith':
+        component = QuoteCard
+        break
+      default:
+        throw new Error(`No Puppeteer template for templateId: ${(props as TemplateProps).templateId}`)
+    }
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const html = '<!DOCTYPE html>' + renderToStaticMarkup(
+      createElement(component, { ...props, brand, width, height })
+    )
+    return defaultRenderer.render(html, width, height, props.templateId)
   }
 
+  // ── Satori path — legacy fallback, retained for rollback safety ───────────
   let element: ReturnType<typeof createElement>
 
   switch (props.templateId) {

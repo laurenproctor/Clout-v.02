@@ -136,6 +136,24 @@ export type VisualObjective = 'authority' | 'education' | 'conversation' | 'enga
 export type LensType = 'framework' | 'authority' | 'signal'
 
 // ─── Orchestrator input ──────────────────────────────────────────────────────
+// Explicit overlay content — used by ImageCreator to composite text/logo on generated background.
+// When headline or quote is present, generateImage() bypasses Claude prop extraction and forces
+// hybrid-overlay. headline → editorial-hero; quote → quote-monolith.
+export interface OverlayParams {
+  headline?: string       // editorial-hero
+  subtext?: string        // editorial-hero
+  quote?: string          // quote-monolith
+  attribution?: string    // quote-monolith
+  logoUrl?: string
+  fontHeading?: string
+  fontBody?: string
+  fontHeadingUrl?: string
+  fontBodyUrl?: string
+  primaryColor?: string
+  secondaryColor?: string
+  accentColor?: string
+}
+
 export interface GenerateImageInput {
   mode: GenerationMode
   workspaceId: string
@@ -157,6 +175,7 @@ export interface GenerateImageInput {
   audienceFrame?: string     // e.g. 'Executives', 'Engineers', 'Investors', 'Consumers', 'Creators'
   lensType?: LensType
   suppliedBackgroundUrl?: string  // skip DALL-E and use this image as the background
+  overlayParams?: OverlayParams   // when set: forces hybrid-overlay with user's exact text (headline or quote)
 }
 
 // ─── Persisted asset ────────────────────────────────────────────────────────

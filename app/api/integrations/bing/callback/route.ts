@@ -12,26 +12,34 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
-  if (error) {
-    return NextResponse.redirect(`${APP_URL}/settings/publishing?error=bing_denied`)
-  }
-  if (!code || !state) {
-    return NextResponse.redirect(`${APP_URL}/settings/publishing?error=bing_missing_params`)
+  // Try to recover returnTo from state even when Microsoft returns an error,
+  // so the redirect lands on the correct workspace-scoped page.
+  let returnTo = '/settings/publishing'
+  let workspaceId: string | null = null
+  if (state) {
+    try {
+      const payload = verifyOAuthState(state)
+      workspaceId   = payload.workspaceId
+      returnTo      = payload.returnTo ?? returnTo
+    } catch {
+      // state invalid; fall through to error redirect with default path
+    }
   }
 
-  let workspaceId: string
-  let returnTo: string
-  try {
-    const payload = verifyOAuthState(state)
-    workspaceId   = payload.workspaceId
-    returnTo      = payload.returnTo ?? '/settings/publishing'
-  } catch {
-    return NextResponse.redirect(`${APP_URL}/settings/publishing?error=bing_invalid_state`)
+  if (error) {
+    console.error('[bing/callback] Microsoft error:', error, searchParams.get('error_description'))
+    return NextResponse.redirect(`${APP_URL}${returnTo}?error=bing_denied`)
+  }
+  if (!code || !state) {
+    return NextResponse.redirect(`${APP_URL}${returnTo}?error=bing_missing_params`)
+  }
+  if (!workspaceId) {
+    return NextResponse.redirect(`${APP_URL}${returnTo}?error=bing_invalid_state`)
   }
 
   const session = await getSession()
   if (!session || session.workspaceId !== workspaceId) {
-    return NextResponse.redirect(`${APP_URL}/settings/publishing?error=bing_workspace_mismatch`)
+    return NextResponse.redirect(`${APP_URL}${returnTo}?error=bing_workspace_mismatch`)
   }
 
   const redirectUri = `${APP_URL}/api/integrations/bing/callback`

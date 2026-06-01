@@ -27,7 +27,7 @@ export interface TemplateSpec {
   compositionZone: 'bottom-left' | 'center' | 'right' | 'upper-left'
   textZone: 'bottom-left' | 'center' | 'right' | 'overlay'
   supportsBackground: boolean        // false = solid color only (no AI background)
-  renderEngine: 'satori'             // playwright added in Phase 2.1
+  renderEngine: 'satori' | 'puppeteer'
 }
 
 // ─── Template Props — discriminated union ────────────────────────────────────
@@ -40,6 +40,9 @@ export interface EditorialHeroProps {
   subtext?: string          // max 20 words
   authorCredit?: string
   backgroundUrl: string
+  logoUrl?: string
+  fontHeadingUrl?: string   // used by Puppeteer renderer for @font-face; ignored by Satori
+  fontBodyUrl?: string      // used by Puppeteer renderer for @font-face; ignored by Satori
 }
 
 export interface QuoteMonolithProps {
@@ -47,6 +50,9 @@ export interface QuoteMonolithProps {
   quote: string             // max 40 words
   attribution?: string
   backgroundUrl?: string    // optional — falls back to solid surface color
+  logoUrl?: string
+  fontHeadingUrl?: string   // used by Puppeteer renderer for @font-face; ignored by Satori
+  fontBodyUrl?: string      // used by Puppeteer renderer for @font-face; ignored by Satori
 }
 
 export interface StatMonumentProps {

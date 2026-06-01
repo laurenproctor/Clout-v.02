@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/visual/generation/generateImage'
-import type { VisualPlatform, AspectRatio, GenerationMode, VisualObjective, LensType } from '@/lib/visual/types/visual'
+import type { VisualPlatform, AspectRatio, GenerationMode, VisualObjective, LensType, OverlayParams } from '@/lib/visual/types/visual'
 
 // ── Rate limiting (in-memory, per-workspace) ─────────────────────────────
 type RateBucket = { count: number; windowStart: number }
@@ -58,6 +58,12 @@ export async function POST(req: NextRequest) {
     audienceFrame,
     lensType,
     suppliedBackgroundUrl,
+    overlayHeadline,
+    overlaySubtext,
+    overlayQuote,
+    overlayAttribution,
+    includeLogo,
+    colorScheme,
   } = body as {
     outputId?:                string
     content?:                 string
@@ -75,6 +81,12 @@ export async function POST(req: NextRequest) {
     audienceFrame?:           string
     lensType?:                string
     suppliedBackgroundUrl?:   string
+    overlayHeadline?:         string
+    overlaySubtext?:          string
+    overlayQuote?:            string
+    overlayAttribution?:      string
+    includeLogo?:             boolean
+    colorScheme?:             'light' | 'dark'
   }
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
@@ -92,9 +104,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Validate ──────────────────────────────────────────────────────────────
-  if (!promptOverride && !suppliedBackgroundUrl && (!content || !platform)) {
+  if (!promptOverride && !suppliedBackgroundUrl && !overlayQuote && (!content || !platform)) {
     return NextResponse.json(
-      { error: 'Provide either promptOverride, suppliedBackgroundUrl, or both content and platform' },
+      { error: 'Provide either promptOverride, suppliedBackgroundUrl, overlayQuote, or both content and platform' },
       { status: 400 }
     )
   }
@@ -130,6 +142,38 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Resolve overlay params (headline-overlay compositing) ────────────────
+  let overlayParams: OverlayParams | undefined
+
+  if (overlayHeadline || overlayQuote) {
+    const supabase = await createClient()
+    const { data: brand } = await supabase
+      .from('brand_profiles')
+      .select('logo_url, logo_url_dark, logo_url_light, primary_color, secondary_color, accent_color, font_heading, font_heading_url, font_body, font_body_url')
+      .eq('workspace_id', session.workspaceId)
+      .maybeSingle()
+
+    // Dark scheme needs a light logo (readable on dark bg); light scheme needs a dark logo.
+    const resolvedLogoUrl = colorScheme === 'dark'
+      ? (brand?.logo_url_light ?? brand?.logo_url ?? undefined)
+      : (brand?.logo_url_dark  ?? brand?.logo_url ?? undefined)
+
+    overlayParams = {
+      headline:       overlayHeadline,
+      subtext:        overlaySubtext,
+      quote:          overlayQuote,
+      attribution:    overlayAttribution,
+      logoUrl:        includeLogo ? resolvedLogoUrl : undefined,
+      fontHeading:    brand?.font_heading    ?? undefined,
+      fontBody:       brand?.font_body       ?? undefined,
+      fontHeadingUrl: brand?.font_heading_url ?? undefined,
+      fontBodyUrl:    brand?.font_body_url   ?? undefined,
+      primaryColor:   brand?.primary_color   ?? undefined,
+      secondaryColor: brand?.secondary_color ?? undefined,
+      accentColor:    brand?.accent_color    ?? undefined,
+    }
+  }
+
   // ── Generate ──────────────────────────────────────────────────────────────
   try {
     const asset = await generateImage({
@@ -151,6 +195,7 @@ export async function POST(req: NextRequest) {
       audienceFrame,
       lensType:                lensType as LensType | undefined,
       suppliedBackgroundUrl:   suppliedBackgroundUrl ?? undefined,
+      overlayParams,
     })
 
     const assetV2 = asset as typeof asset & {

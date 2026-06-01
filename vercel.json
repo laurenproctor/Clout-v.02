@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/admin/ingest-competitor-content",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

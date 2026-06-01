@@ -14,6 +14,7 @@ interface VisualPreviewProps {
   prompt: string
   visualIntent: VisualIntent | null
   assetId: string
+  downloadName?: string        // content-derived filename (headline, topic, etc.)
 }
 
 const ASPECT_CLASSES: Record<AspectRatio, string> = {
@@ -31,6 +32,7 @@ export function VisualPreview({
   prompt,
   visualIntent,
   assetId,
+  downloadName,
 }: VisualPreviewProps) {
   const [copied, setCopied] = useState(false)
   const [intentExpanded, setIntentExpanded] = useState(false)
@@ -45,9 +47,12 @@ export function VisualPreview({
   }
 
   function downloadImage() {
+    const slug = downloadName
+      ? downloadName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
+      : `visual-${assetId.slice(0, 8)}`
     const link = document.createElement('a')
     link.href = displayUrl
-    link.download = `visual-${assetId.slice(0, 8)}.png`
+    link.download = `${slug}.png`
     link.target = '_blank'
     link.rel = 'noopener noreferrer'
     link.click()
@@ -64,12 +69,6 @@ export function VisualPreview({
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />
-        {/* Template badge — only shown when a composed image exists */}
-        {isComposed && templateId && (
-          <span className="absolute top-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/80 backdrop-blur-sm">
-            {templateId}
-          </span>
-        )}
       </div>
 
       <div className="px-4 py-3 space-y-2">

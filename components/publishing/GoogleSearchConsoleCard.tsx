@@ -31,12 +31,12 @@ interface GSCState {
 
 function GoogleSearchConsoleIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect width="24" height="24" rx="4" fill="#4285F4" opacity="0.1" />
-      <path d="M15.5 9a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z" stroke="#4285F4" strokeWidth="1.5" />
-      <path d="M13.5 11.5 17 15" stroke="#4285F4" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M6 17h12" stroke="#34A853" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M8 19.5h8" stroke="#34A853" strokeWidth="1.5" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M10 4A6 6 0 0 1 16 10H10Z" fill="#4285F4"/>
+      <path d="M16 10A6 6 0 0 1 10 16V10Z" fill="#34A853"/>
+      <path d="M10 16A6 6 0 0 1 4 10H10Z" fill="#FBBC05"/>
+      <path d="M4 10A6 6 0 0 1 10 4V10Z" fill="#EA4335"/>
+      <path d="M14.12 14.12L19.5 19.5" stroke="#5F6368" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   )
 }

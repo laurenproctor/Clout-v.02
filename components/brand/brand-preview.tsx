@@ -43,6 +43,12 @@ const DENSITY_MAP = {
   spacious: { padding: '28px 32px', gap: '20px' },
 }
 
+function resolveTextTransform(t: string): React.CSSProperties['textTransform'] {
+  if (t === 'sentence-case') return 'none'   // sentence case applied via content; no CSS equivalent
+  if (t === 'title-case') return 'capitalize' // CSS capitalize = every word's first letter
+  return t as React.CSSProperties['textTransform']
+}
+
 function applyTypo(
   level: TypographyLevelSettings | undefined,
   fallbackFont: string,
@@ -54,7 +60,7 @@ function applyTypo(
     fontWeight: level.fontWeight,
     lineHeight: level.lineHeight,
     letterSpacing: level.letterSpacing,
-    textTransform: level.textTransform as React.CSSProperties['textTransform'],
+    textTransform: resolveTextTransform(level.textTransform),
     color: level.color || fallbackColor,
   }
 }
@@ -204,18 +210,18 @@ function QuoteCard({ bg, text, accent, density, headingFont, bodyFont, brandName
       <div style={{ display: 'flex', alignItems: 'center', gap: density.gap }}>
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0, borderRadius: 4 }} />
+          <img src={logoUrl} alt="" style={{ height: 32, maxWidth: 120, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
         ) : (
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: accent, flexShrink: 0 }} />
         )}
         {!logoUrl && (
           <div>
             <div style={{ ...applyTypo(typography?.ui, bodyFont, text), fontSize: '0.75rem' }}>{brandName}</div>
-            <div style={{ ...applyTypo(typography?.body, bodyFont, text), fontSize: '0.65rem', opacity: 0.6 }}>Thought of the day</div>
+            <div style={{ fontFamily: bodyFont, color: text, fontSize: '0.65rem', opacity: 0.6 }}>Thought of the day</div>
           </div>
         )}
         {logoUrl && (
-          <div style={{ ...applyTypo(typography?.body, bodyFont, text), fontSize: '0.65rem', opacity: 0.6 }}>Thought of the day</div>
+          <div style={{ fontFamily: bodyFont, color: text, fontSize: '0.65rem', opacity: 0.6 }}>Thought of the day</div>
         )}
       </div>
     </div>
@@ -235,7 +241,7 @@ function SocialTile({ bg, text, accent, density, headingFont, bodyFont, brandNam
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {logoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="" style={{ height: 16, maxWidth: 40, objectFit: 'contain', flexShrink: 0 }} />
+            <img src={logoUrl} alt="" style={{ height: 22, maxWidth: 80, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
           )}
           {!logoUrl && (
             <div style={{ ...applyTypo(typography?.ui, bodyFont, text), fontSize: '0.65rem', opacity: 0.5 }}>{brandName}</div>
@@ -256,11 +262,11 @@ function CarouselCover({ bg, text, accent, density, headingFont, bodyFont, brand
         <h2 style={{ ...applyTypo(typography?.h1, headingFont, text), fontSize: 'clamp(1.2rem, 4vw, 2rem)', margin: 0 }}>
           5 Lessons From a Year of Building
         </h2>
-        <p style={{ ...applyTypo(typography?.body, bodyFont, text), marginTop: density.gap, fontSize: '0.75rem', opacity: 0.6 }}>A thread</p>
+        <p style={{ fontFamily: bodyFont, color: text, marginTop: density.gap, fontSize: '0.75rem', opacity: 0.6 }}>A thread</p>
         <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="" style={{ height: 24, maxWidth: 80, objectFit: 'contain' }} />
+            <img src={logoUrl} alt="" style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }} />
           ) : (
             <div style={{ ...applyTypo(typography?.ui, bodyFont, accent), fontSize: '0.7rem' }}>{brandName}</div>
           )}

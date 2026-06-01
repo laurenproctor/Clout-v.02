@@ -64,6 +64,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('landscape')
   const [genState, setGenState] = useState<GeneratorState>('idle')
   const [result, setResult] = useState<GeneratedResult | null>(null)
+  const [downloadName, setDownloadName] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -99,7 +100,8 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   }
 
   function buildContent(): string {
-    const logoSuffix = includeLogo ? ' Include brand logo in corner.' : ''
+    // Logo is composited server-side for headline-overlay and quote-overlay; only use text hint for blog images
+    const logoSuffix = (includeLogo && imageStyle === 'blog-image') ? ' Include brand logo in corner.' : ''
     const schemeSuffix = colorScheme === 'dark'
       ? ' Dark color scheme: deep backgrounds, light text, moody and high-contrast.'
       : ' Light color scheme: bright backgrounds, clean and airy aesthetic.'
@@ -110,10 +112,11 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
       case 'quote-overlay':
         return `Quote card: "${quoteText}" — ${attribution || 'Brand Voice'}. Create a striking social image with this quote as the focal point.${bgDescSuffix}${schemeSuffix}${logoSuffix}`
       case 'headline-overlay': {
-        const imgDesc = backgroundSource === 'generate' && backgroundDescription.trim()
-          ? ` Background: ${backgroundDescription.trim()}.`
+        // Generate a clean background — text and logo are composited separately via Satori
+        const bgDesc = backgroundSource === 'generate' && backgroundDescription.trim()
+          ? ` ${backgroundDescription.trim()}.`
           : ''
-        return `Headline banner: ${headlineText}${subtext ? `. ${subtext}` : ''}. Hero image with headline text overlay.${imgDesc}${schemeSuffix}${logoSuffix}`
+        return `Hero banner background for: ${headlineText}.${bgDesc} Clean composition with clear space for text overlay — no text or logos in the image.${schemeSuffix}`
       }
       case 'blog-image':
         return `Editorial blog photograph for: ${blogTopic}. No text overlays. Pure photography.${schemeSuffix}${logoSuffix}`
@@ -151,6 +154,20 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
       if (backgroundSource === 'upload' && uploadedImageUrl) {
         body.suppliedBackgroundUrl = uploadedImageUrl
       }
+      // For headline-overlay: send exact text and logo so server composites via brand settings.
+      if (imageStyle === 'headline-overlay') {
+        body.overlayHeadline = headlineText.trim()
+        if (subtext.trim()) body.overlaySubtext = subtext.trim()
+        body.includeLogo = includeLogo
+        body.colorScheme = colorScheme
+      }
+      // For quote-overlay: send quote and attribution as overlay params for server-side compositing.
+      if (imageStyle === 'quote-overlay' && quoteText.trim()) {
+        body.overlayQuote = quoteText.trim()
+        if (attribution.trim()) body.overlayAttribution = attribution.trim()
+        body.includeLogo = includeLogo
+        body.colorScheme = colorScheme
+      }
 
       const res = await fetch('/api/visual/generate', {
         method: 'POST',
@@ -165,6 +182,11 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
 
       const data = await res.json() as GeneratedResult & { aspectRatio?: AspectRatio }
       setResult({ ...data, aspectRatio })
+      setDownloadName(
+        imageStyle === 'headline-overlay' ? headlineText.trim()
+        : imageStyle === 'quote-overlay'   ? quoteText.trim().slice(0, 60)
+        : blogTopic.trim()
+      )
       setGenState('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
@@ -526,6 +548,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                 prompt={result.prompt}
                 visualIntent={result.visualIntent}
                 assetId={result.assetId}
+                downloadName={downloadName}
               />
             </div>
           )}

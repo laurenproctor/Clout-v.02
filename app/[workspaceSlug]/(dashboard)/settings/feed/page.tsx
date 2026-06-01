@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
+import Link from 'next/link'
 import { TopicSelector } from '@/components/feed/TopicSelector'
 import { FocusAreaSelector } from '@/components/feed/FocusAreaSelector'
 import { CompetitorInput } from '@/components/feed/CompetitorInput'
@@ -144,6 +145,14 @@ function SignalFeedSettingsContent() {
             >
               {saving ? 'Saving…' : isSetup ? 'Set Up Feed' : 'Save Changes'}
             </button>
+            {!isSetup && (
+              <Link
+                href={`/${workspaceSlug}/feed`}
+                className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
+              >
+                Go to Feed
+              </Link>
+            )}
             {toast && (
               <span className={`text-sm ${toast.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
                 {toast.message}

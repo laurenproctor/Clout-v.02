@@ -32,13 +32,8 @@ interface BingState {
 
 function BingIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect width="24" height="24" rx="4" fill="#0078D4" opacity="0.1" />
-      <path
-        d="M6 4v16l4-1.5V13l5.5 3.5L20 14l-6-3.5 2-7.5L6 4z"
-        fill="#0078D4"
-        fillOpacity="0.9"
-      />
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M5.64 0L4.32.48v18.24l1.32.48 5.64-3.12-3-1.92-2.64.96V3.6l3.96 2.4 8.28-4.56z" fill="#0078D4"/>
     </svg>
   )
 }
