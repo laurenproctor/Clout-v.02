@@ -35,6 +35,7 @@ function SignalFeedSettingsContent() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
@@ -49,6 +50,22 @@ function SignalFeedSettingsContent() {
       })
       .catch(() => setLoading(false))
   }, [])
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    try {
+      const res = await fetch('/api/feed/refresh', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Refresh failed')
+      setToast({ message: `Feed refreshed — signals updated for ${data.topics} topic${data.topics !== 1 ? 's' : ''}`, type: 'success' })
+      setTimeout(() => setToast(null), 4000)
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : 'Refresh failed', type: 'error' })
+      setTimeout(() => setToast(null), 4000)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -140,11 +157,20 @@ function SignalFeedSettingsContent() {
           <div className="flex items-center gap-4 pt-2 border-t border-zinc-100">
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || refreshing}
               className="bg-zinc-900 text-white text-sm font-medium px-5 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving…' : isSetup ? 'Set Up Feed' : 'Save Changes'}
             </button>
+            {!isSetup && (
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing || saving}
+                className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {refreshing ? 'Refreshing feed…' : 'Refresh feed'}
+              </button>
+            )}
             {!isSetup && (
               <Link
                 href={`/${workspaceSlug}/feed`}
