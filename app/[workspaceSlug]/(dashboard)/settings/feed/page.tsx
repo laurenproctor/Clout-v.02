@@ -57,8 +57,8 @@ function SignalFeedSettingsContent() {
       const res = await fetch('/api/feed/refresh', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Refresh failed')
-      setToast({ message: `Feed refreshed — signals updated for ${data.topics} topic${data.topics !== 1 ? 's' : ''}`, type: 'success' })
-      setTimeout(() => setToast(null), 4000)
+      setToast({ message: `Syncing ${data.topics} topic${data.topics !== 1 ? 's' : ''} — check your feed in about a minute`, type: 'success' })
+      setTimeout(() => setToast(null), 6000)
     } catch (err) {
       setToast({ message: err instanceof Error ? err.message : 'Refresh failed', type: 'error' })
       setTimeout(() => setToast(null), 4000)

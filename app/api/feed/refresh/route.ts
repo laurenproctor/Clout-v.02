@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { ingestWorkspaceTopics } from '@/lib/feed/ingest'
@@ -24,11 +24,11 @@ export async function POST() {
     return NextResponse.json({ error: 'No topics or services configured. Add them in Signal Feed settings first.' }, { status: 400 })
   }
 
-  try {
+  // Run ingestion after the response is sent so the button doesn't hang
+  after(async () => {
     await ingestWorkspaceTopics({ topics, services })
-    return NextResponse.json({ success: true, topics: topics.length, services: services.length })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Ingestion failed'
-    return NextResponse.json({ error: msg }, { status: 500 })
-  }
+      .catch(err => console.error('[feed/refresh] ingest failed:', err))
+  })
+
+  return NextResponse.json({ success: true, topics: topics.length, services: services.length })
 }
