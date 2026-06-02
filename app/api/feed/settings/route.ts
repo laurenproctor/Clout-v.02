@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { mapToneToVoices, mapVoicesToTone } from '@/lib/feed/toneMapping'
+import { ingestWorkspaceTopics } from '@/lib/feed/ingest'
 import type { TonePreference } from '@/types/feed'
 
 export async function GET() {
@@ -109,6 +110,15 @@ export async function PATCH(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+
+  // Trigger background ingestion for the saved topics/services so the feed
+  // reflects the new settings without waiting for the daily cron.
+  after(async () => {
+    await ingestWorkspaceTopics({
+      topics: body.content_topics ?? [],
+      services: body.services ?? [],
+    }).catch(err => console.error('[feed/settings] background ingest failed:', err))
+  })
 
   return NextResponse.json({ success: true })
 }

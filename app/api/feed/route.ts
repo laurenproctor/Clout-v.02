@@ -82,6 +82,12 @@ export async function GET(req: NextRequest) {
       .select('*')
       .eq('tab', tab)
 
+    // News tab: filter to cards whose tags overlap the workspace's topics
+    if (tab === 'news' && userTopics.length > 0) {
+      const lowerTopics = userTopics.map(t => t.toLowerCase().trim())
+      query = query.overlaps('tags', lowerTopics)
+    }
+
     // Services tab: filter by user's service offerings
     if (tab === 'services' && userServices.length > 0) {
       query = query.in('matched_service', userServices)

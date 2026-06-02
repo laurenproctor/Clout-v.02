@@ -1,5 +1,7 @@
 'use client'
 
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { tokens } from '@/lib/feed/tokens'
 import type { CompetitorContentItem } from '@/app/api/competitors/content/route'
 
@@ -181,6 +183,7 @@ interface Props {
 }
 
 export function CompetitorIntelligenceFeed({ items, loading, error, onRetry }: Props) {
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>()
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', color: '#9ca3af', fontSize: '14px' }}>
@@ -208,7 +211,7 @@ export function CompetitorIntelligenceFeed({ items, loading, error, onRetry }: P
       <div style={{ padding: '32px 0', textAlign: 'center' }}>
         <p style={{ fontSize: '13px', color: '#9ca3af' }}>
           No competitor content yet. Add competitors in{' '}
-          <a href="../settings/feed" style={{ color: '#4f46e5', textDecoration: 'none' }}>Signal Feed settings</a>
+          <Link href={`/${workspaceSlug}/settings/feed`} style={{ color: '#4f46e5', textDecoration: 'none' }}>Signal Feed settings</Link>
           {' '}— content will appear after the next sync.
         </p>
       </div>
