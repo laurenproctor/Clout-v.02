@@ -72,10 +72,10 @@ export async function GET() {
       (c: { id: string }) => !dismissedIds.includes(c.id)
     )
     afterDismissal = remaining.length
-    sampleVisibleCards = remaining.slice(0, 5).map((c: { id: string; title: string; tags: string[] }) => ({
+    sampleVisibleCards = remaining.slice(0, 5).map((c: { id: string; title: string; tags: string[] | null }) => ({
       id: c.id,
       title: c.title,
-      tags: c.tags,
+      tags: c.tags ?? [],
     }))
   }
 
