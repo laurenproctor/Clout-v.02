@@ -15,7 +15,7 @@ const MOCK_DATA = [
     velocity: 72,
     tags: ['authority building', 'frameworks', 'positioning'],
     rationale: 'Tier 1 opportunity · High velocity · Unclaimed in your niche',
-    cta: 'Draft a perspective',
+    cta: 'Generate',
   },
   {
     tone: 'neutral' as const,

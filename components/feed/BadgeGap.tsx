@@ -22,7 +22,7 @@ export function BadgeGap({ status }: BadgeGapProps) {
         color: isGap ? tokens.colors.unclaimedBadgeText : tokens.colors.inCirculationBadgeText,
       }}
     >
-      {isGap ? 'Unclaimed' : 'In circulation'}
+      {isGap ? 'Gap' : 'Covered'}
     </span>
   )
 }

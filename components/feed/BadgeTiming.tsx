@@ -27,7 +27,7 @@ export function BadgeTiming({ classification }: BadgeTimingProps) {
           : tokens.colors.foundationContentBadgeText,
       }}
     >
-      {isTimeSensitive ? 'Time-sensitive' : 'Foundation content'}
+      {isTimeSensitive ? 'Publish Now' : 'Evergreen'}
     </span>
   )
 }

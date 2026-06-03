@@ -170,7 +170,7 @@ export function CompetitorPostCard({ post, userId, onDismiss }: CompetitorPostCa
                 transition: 'background-color 0.1s',
               }}
             >
-              {panelOpen ? 'Close' : 'Draft a perspective'}
+              {panelOpen ? 'Close' : 'Draft a response'}
             </button>
           </div>
         </div>

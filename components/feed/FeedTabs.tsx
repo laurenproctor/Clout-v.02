@@ -4,10 +4,10 @@ import { tokens } from '@/lib/feed/tokens'
 import type { FeedTab } from '@/types/feed'
 
 const TABS: { id: FeedTab; label: string }[] = [
-  { id: 'news',        label: 'Signals' },
-  { id: 'services',   label: 'Focus Areas' },
-  { id: 'concepts',   label: 'Frameworks' },
-  { id: 'competitors', label: 'Competitive Landscape' },
+  { id: 'news',        label: 'News' },
+  { id: 'services',   label: 'Your Services' },
+  { id: 'concepts',   label: 'Concepts & Explainers' },
+  { id: 'competitors', label: 'Competitors' },
 ]
 
 interface FeedTabsProps {

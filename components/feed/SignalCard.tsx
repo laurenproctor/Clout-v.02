@@ -48,8 +48,9 @@ export function SignalCard({
   }[card.tone]
 
   const hasGap = card.timing_classification !== null
-  // Default to gap when no content topics are known
   const gapStatus: 'gap' | 'covered' = 'gap'
+  // Trending: GDELT score > 0.7 per spec; fall back to is_trending flag from ingest
+  const showTrending = (card.gdelt_score !== null && card.gdelt_score > 0.7) || card.is_trending
 
   return (
     <div
@@ -72,7 +73,7 @@ export function SignalCard({
             {card.title}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            {card.is_trending && (
+            {showTrending && (
               <span style={{
                 padding: '2px 6px',
                 borderRadius: '4px',
@@ -213,7 +214,7 @@ export function SignalCard({
                 transition: 'background-color 0.1s',
               }}
             >
-              {panelOpen ? 'Close' : 'Draft a perspective'}
+              {panelOpen ? 'Close' : 'Generate'}
             </button>
           </div>
         </div>

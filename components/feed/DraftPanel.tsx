@@ -223,7 +223,7 @@ export function DraftPanel({ cardId, userId, isOpen, onClose, variant = 'standar
               border: '1px solid #e5e7eb',
               borderRadius: '3px',
             }}>
-              {draftContent[f] || <span style={{ color: tokens.colors.sectionHeaderColor }}>Click &quot;Draft a perspective&quot; to generate.</span>}
+              {draftContent[f] || <span style={{ color: tokens.colors.sectionHeaderColor }}>Click &quot;Generate&quot; to draft content for this signal.</span>}
             </div>
           )}
         </div>
