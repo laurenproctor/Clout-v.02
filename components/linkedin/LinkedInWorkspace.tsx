@@ -114,8 +114,15 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    variation: { body: v.body, hashtags: v.hashtags },
-                    title: v.campaignName,
+                    variation: {
+                      body:          v.body,
+                      hashtags:      v.hashtags,
+                      campaignName:  v.campaignName,
+                      cta:           v.ctaSuggestions?.[0] ?? null,
+                      voiceRegister: request.voiceRegister ?? null,
+                      lensName:      lenses.find(l => request.lensIds?.[0] === l.id)?.name ?? null,
+                    },
+                    title:     v.campaignName,
                     channelId: channelId ?? null,
                   }),
                 })
