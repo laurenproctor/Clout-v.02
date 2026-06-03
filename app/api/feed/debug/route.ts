@@ -40,7 +40,33 @@ export async function GET() {
     sampleTags = (matched ?? []).map((c: { tags: string[] | null }) => c.tags ?? [])
   }
 
-  // 4. Sample of tags actually stored (to check format)
+  // 4. Dismissed signal IDs for this user
+  const { data: dismissedRows } = await supabase
+    .from('user_signal_interactions')
+    .select('signal_card_id')
+    .eq('user_id', session.userId)
+    .eq('interaction_type', 'dismissed')
+
+  const dismissedIds = (dismissedRows ?? [])
+    .map((r: { signal_card_id: string | null }) => r.signal_card_id)
+    .filter((id): id is string => id !== null)
+
+  // 5. Simulate the actual feed query: matching cards minus dismissed
+  let afterDismissal = 0
+  if (lowerTopics.length > 0 && matchingCards > 0) {
+    const { data: matchedIds } = await supabase
+      .from('signal_cards')
+      .select('id')
+      .eq('tab', 'news')
+      .overlaps('tags', lowerTopics)
+
+    const remaining = (matchedIds ?? []).filter(
+      (c: { id: string }) => !dismissedIds.includes(c.id)
+    )
+    afterDismissal = remaining.length
+  }
+
+  // 6. Sample of tags actually stored (to check format)
   const { data: recentCards } = await supabase
     .from('signal_cards')
     .select('title, tags, created_at')
@@ -48,7 +74,7 @@ export async function GET() {
     .order('created_at', { ascending: false })
     .limit(3)
 
-  // 5. Quick newsdata probe — one topic, no insert
+  // 7. Quick newsdata probe — one topic, no insert
   let newsdataProbe: { query: string; articleCount: number; error?: string } | null = null
   if (topics.length > 0) {
     try {
@@ -61,10 +87,14 @@ export async function GET() {
 
   return NextResponse.json({
     workspaceId: session.workspaceId,
+    userId: session.userId,
+    wsFeedSettingsFound: ws !== null,
     settings: { topics, services },
     lowerTopics,
     totalNewsCards,
     matchingCards,
+    dismissedCount: dismissedIds.length,
+    afterDismissal,
     sampleMatchedTags: sampleTags,
     recentCards: recentCards ?? [],
     newsdataProbe,
