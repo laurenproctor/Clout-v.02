@@ -3063,7 +3063,7 @@ export type Database = {
         | "conversational"
         | "provocative"
         | "educational"
-      feed_tab: "news" | "services" | "concepts" | "competitors"
+      feed_tab: "news" | "website" | "concepts" | "competitors"
       generation_status: "pending" | "generating" | "complete" | "failed"
       job_status: "queued" | "running" | "done" | "failed" | "canceled"
       job_type: "transcribe" | "generate" | "summarize" | "reformat"
@@ -3255,7 +3255,7 @@ export const Constants = {
         "provocative",
         "educational",
       ],
-      feed_tab: ["news", "services", "concepts", "competitors"],
+      feed_tab: ["news", "website", "concepts", "competitors"],
       generation_status: ["pending", "generating", "complete", "failed"],
       job_status: ["queued", "running", "done", "failed", "canceled"],
       job_type: ["transcribe", "generate", "summarize", "reformat"],

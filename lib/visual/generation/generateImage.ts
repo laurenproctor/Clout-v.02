@@ -233,11 +233,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
         templatePayload = overlayTemplateProps as unknown as Record<string, unknown>
 
-        // Build brand tokens from overlay params; use minimal semantic profile for non-color decisions
+        // Build brand tokens from overlay params; use minimal semantic profile for non-color decisions.
+        // colorScheme overrides surface: 'light' forces white surface so text is dark and the
+        // gradient panel blends with light backgrounds instead of creating a visible dark box.
         const minimalProfile = normalizeBrandIdentity(null, null)
+        const isLightScheme = overlayParams.colorScheme === 'light'
         const brandTokens = buildBrandTokens(
           {
-            primaryColor:   overlayParams.primaryColor   ?? '#1A1A1A',
+            primaryColor:   isLightScheme ? '#FFFFFF' : (overlayParams.primaryColor ?? '#1A1A1A'),
             secondaryColor: overlayParams.secondaryColor ?? '#FFFFFF',
             accentColor:    overlayParams.accentColor    ?? '#D4A574',
             fontHeading:    overlayParams.fontHeading    ?? 'system-ui',

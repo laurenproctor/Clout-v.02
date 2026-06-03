@@ -171,6 +171,7 @@ export async function POST(req: NextRequest) {
       primaryColor:   brand?.primary_color   ?? undefined,
       secondaryColor: brand?.secondary_color ?? undefined,
       accentColor:    brand?.accent_color    ?? undefined,
+      colorScheme:    colorScheme ?? 'light',
     }
   }
 

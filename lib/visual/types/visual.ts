@@ -152,6 +152,7 @@ export interface OverlayParams {
   primaryColor?: string
   secondaryColor?: string
   accentColor?: string
+  colorScheme?: 'light' | 'dark'
 }
 
 export interface GenerateImageInput {

@@ -5,7 +5,7 @@ import type { FeedTab } from '@/types/feed'
 
 const TABS: { id: FeedTab; label: string }[] = [
   { id: 'news',        label: 'News' },
-  { id: 'services',   label: 'Your Services' },
+  { id: 'website',    label: 'Website Intelligence' },
   { id: 'concepts',   label: 'Concepts & Explainers' },
   { id: 'competitors', label: 'Competitors' },
 ]

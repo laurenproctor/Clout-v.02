@@ -89,18 +89,13 @@ async function runIngestion(): Promise<IngestResult> {
 
   // ── 3. Build ingestion queue ───────────────────────────────────────────────
   type QueueItem =
-    | { tab: 'news' | 'concepts'; query: string; service?: never; competitorId?: never }
-    | { tab: 'services'; query: string; service: string; competitorId?: never }
-    | { tab: 'competitors'; query: string; service?: never; competitorId: string }
+    | { tab: 'news' | 'concepts'; query: string; competitorId?: never }
+    | { tab: 'competitors'; query: string; competitorId: string }
 
   const queue: QueueItem[] = []
 
   for (const topic of uniqueTopics) {
     queue.push({ tab: 'news', query: topic })
-  }
-
-  for (const service of uniqueServices) {
-    queue.push({ tab: 'services', query: `${service} strategy OR trends`, service })
   }
 
   for (const conceptQuery of CONCEPT_QUERIES) {
@@ -173,11 +168,10 @@ async function runIngestion(): Promise<IngestResult> {
 
         const cardInsert = signalToCardInsert(
           { ...signalInsert, id: signalId },
-          item.tab as FeedTab,
-          item.tab === 'services' ? item.service : item.query,
+          item.tab,
+          item.query,
           article.keywords,
           {
-            service: item.tab === 'services' ? item.service : undefined,
             competitorId: item.tab === 'competitors' ? item.competitorId : undefined,
             conceptDescription: item.tab === 'concepts' ? (article.description ?? undefined) : undefined,
           }

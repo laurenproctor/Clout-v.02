@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { tokens } from '@/lib/feed/tokens'
 
 const DEFAULT_TOOLTIP =
-  'GDELT score ranks this signal by coverage velocity. Formula: (48h coverage volume change × 0.6) + (tone intensity × 0.4). Higher scores surface this card higher in your feed. Powered by GDELT Cloud.'
+  'GDELT score is a composite of two signals: coverage volume change in the past 48h (60% weight) and tone intensity — the emotional charge of coverage regardless of direction (40% weight). Scores range 0.00–1.00. Cards above 0.70 receive the Trending badge. Powered by GDELT Cloud.'
 
 interface GdeltScoreTooltipProps {
   score: number | null
@@ -21,7 +21,7 @@ export function GdeltScoreTooltip({ score, label, tooltipText }: GdeltScoreToolt
         {label}
       </span>
       <span style={{ fontSize: '11px', color: tokens.colors.sectionHeaderColor, fontWeight: 600 }}>
-        {score !== null ? score.toFixed(1) : '--'}
+        {score !== null ? score.toFixed(2) : '--'}
       </span>
       {score !== null && (
         <span

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWorkspace } from '@/components/providers/workspace-provider'
-import { ChevronDown, Loader2, Lock, Zap } from 'lucide-react'
+import { Loader2, Lock, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceCaptureFlow } from '@/components/capture/voice-capture-flow'
@@ -54,7 +54,7 @@ function buildPersonalizedPrompts(profile: { role?: string; industry?: string; e
   return prompts
 }
 
-type CaptureMode = 'assistant' | 'write' | 'voice' | 'paste' | 'upload' | 'topic' | 'more'
+type CaptureMode = 'assistant' | 'write' | 'voice' | 'paste' | 'upload' | 'topic'
 
 interface CaptureComposerProps {
   initialContent?: string
@@ -92,7 +92,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
   const [transcribing, setTranscribing] = useState(false)
   const [transcribeError, setTranscribeError] = useState<string | null>(null)
   const [captureMode, setCaptureMode] = useState<CaptureMode>(initialMode)
-  const [showMoreDropdown, setShowMoreDropdown] = useState(false)
   const [selectedTargets, setSelectedTargets] = useState<string[]>([])
   const [promptIndex, setPromptIndex] = useState(0)
   const [promptVisible, setPromptVisible] = useState(true)
@@ -101,7 +100,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
   const [detectedUrl, setDetectedUrl] = useState<string | null>(null)
   const [profileName, setProfileName] = useState<string | null>(null)
   const urlDetectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const moreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch('/api/lenses')
@@ -141,17 +139,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
     return () => clearInterval(interval)
   }, [captureMode, content, rotatingPrompts])
 
-  useEffect(() => {
-    if (!showMoreDropdown) return
-    function handleClick(e: MouseEvent) {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setShowMoreDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [showMoreDropdown])
-
   function switchMode(mode: CaptureMode) {
     setCaptureMode(mode)
     setContent('')
@@ -163,7 +150,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
     else if (mode === 'voice') setSource('voice')
     else if (mode === 'upload') setSource('structured')
     else if (mode === 'topic') setSource('topic')
-    if (mode === 'more') setShowMoreDropdown((v) => !v)
   }
 
   function handlePasteInput(value: string) {
@@ -570,48 +556,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
               {mode.charAt(0).toUpperCase() + mode.slice(1)}
             </button>
           ))}
-          <div ref={moreRef} className="relative ml-1 pb-3 -mb-px">
-            <button
-              type="button"
-              onClick={() => switchMode('more')}
-              className={cn(
-                'flex items-center gap-0.5 px-3 text-sm font-medium transition-colors border-b-2',
-                showMoreDropdown ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-400 hover:text-zinc-700'
-              )}
-            >
-              More
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            {showMoreDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-zinc-200 bg-white shadow-lg p-4 space-y-4 z-10">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Email in</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-700 truncate">
-                      captures@capture.clout.so
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => navigator.clipboard.writeText('captures@capture.clout.so')}
-                      className="shrink-0 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                  <p className="mt-1.5 text-xs text-zinc-400">Forward anything — articles, emails, newsletters.</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Call or text</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs text-zinc-700">
-                      Coming soon
-                    </code>
-                  </div>
-                  <p className="mt-1.5 text-xs text-zinc-400">Leave a voice message or text any thought to your Clout number.</p>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Panel content */}
@@ -765,11 +709,6 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
             />
           )}
 
-          {captureMode === 'more' && (
-            <div className="flex items-center justify-center h-full text-sm text-zinc-400 py-8">
-              Select an option from the More menu above.
-            </div>
-          )}
         </div>
 
         {/* Bottom bar — hidden for self-managing modes */}

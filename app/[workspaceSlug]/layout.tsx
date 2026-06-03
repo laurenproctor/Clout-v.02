@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { WorkspaceProvider } from '@/components/providers/workspace-provider'
 import type { WorkspaceContextValue } from '@/components/providers/workspace-provider'
+import { TrackLastWorkspace } from '@/components/shell/track-last-workspace'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -62,6 +63,7 @@ export default async function WorkspaceLayout({ children, params }: Props) {
 
   return (
     <WorkspaceProvider workspace={wsContext}>
+      <TrackLastWorkspace slug={workspace.slug} />
       {children}
     </WorkspaceProvider>
   )

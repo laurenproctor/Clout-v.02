@@ -1,7 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { searchLatest } from '@/lib/newsdata/client'
 import { articleToSignalInsert, signalToCardInsert } from '@/lib/newsdata/mapper'
-import type { FeedTab } from '@/types/feed'
 
 function delay(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms))
@@ -12,15 +11,14 @@ export interface WorkspaceIngestParams {
   services: string[]
 }
 
-export async function ingestWorkspaceTopics({ topics, services }: WorkspaceIngestParams): Promise<void> {
-  if (topics.length === 0 && services.length === 0) return
+export async function ingestWorkspaceTopics({ topics }: WorkspaceIngestParams): Promise<void> {
+  if (topics.length === 0) return
 
   const supabase = createServiceClient()
 
-  type QueueItem = { tab: FeedTab; query: string; service?: string }
+  type QueueItem = { tab: 'news'; query: string }
   const queue: QueueItem[] = [
-    ...topics.map(t => ({ tab: 'news' as FeedTab, query: t })),
-    ...services.map(s => ({ tab: 'services' as FeedTab, query: `${s} strategy OR trends`, service: s })),
+    ...topics.map(t => ({ tab: 'news' as const, query: t })),
   ]
 
   for (const item of queue) {
@@ -69,9 +67,8 @@ export async function ingestWorkspaceTopics({ topics, services }: WorkspaceInges
         const cardInsert = signalToCardInsert(
           { ...signalInsert, id: signalId },
           item.tab,
-          item.service ?? item.query,
+          item.query,
           article.keywords,
-          { service: item.service }
         )
 
         if (existingCard) {

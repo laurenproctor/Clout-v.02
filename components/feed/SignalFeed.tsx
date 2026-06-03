@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 import { tokens } from '@/lib/feed/tokens'
 import { FeedTabs } from './FeedTabs'
 import { FeedStatusPill } from './FeedStatusPill'
@@ -8,8 +9,8 @@ import { OnboardingFlow } from './OnboardingFlow'
 import { SignalFeedGenerating } from './SignalFeedGenerating'
 import { SignalCard } from './SignalCard'
 import { ConceptCard } from './ConceptCard'
-import { ServiceCard } from './ServiceCard'
 import { CompetitorIntelligenceFeed } from './CompetitorIntelligenceFeed'
+import { WebsiteIntelligenceFeed } from './WebsiteIntelligenceFeed'
 import { EditorialBriefingCard } from './EditorialBriefingCard'
 import { ExampleSignalCard } from './ExampleSignalCard'
 import type {
@@ -18,6 +19,8 @@ import type {
   FeedStats,
   SignalCard as SignalCardType,
   OnboardingPayload,
+  WebsiteOpportunity,
+  WebsiteContentGap,
 } from '@/types/feed'
 import type { CompetitorContentItem } from '@/app/api/competitors/content/route'
 
@@ -42,6 +45,7 @@ interface SignalFeedProps {
 }
 
 type CardCache = Partial<Record<FeedTab, SignalCardType[]>>
+type WebsiteData = { items: WebsiteOpportunity[]; gaps: WebsiteContentGap[] } | null
 
 export function SignalFeed({
   userId,
@@ -49,12 +53,16 @@ export function SignalFeed({
   onboardingComplete,
   userDisplayName,
 }: SignalFeedProps) {
+  const params = useParams()
+  const workspaceSlug = typeof params.workspaceSlug === 'string' ? params.workspaceSlug : ''
+
   const [feedPhase, setFeedPhase] = useState<FeedPhase>(
     onboardingComplete ? 'feed' : 'onboarding'
   )
   const [activeTab, setActiveTab] = useState<FeedTab>(initialTab)
   const [cardCache, setCardCache] = useState<CardCache>({})
   const [competitorItems, setCompetitorItems] = useState<CompetitorContentItem[] | null>(null)
+  const [websiteData, setWebsiteData] = useState<WebsiteData>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
@@ -68,6 +76,11 @@ export function SignalFeed({
         if (!res.ok) throw new Error('Failed to load competitive intelligence')
         const { items } = await res.json()
         setCompetitorItems(items ?? [])
+      } else if (tab === 'website') {
+        const res = await fetch('/api/website-intelligence')
+        if (!res.ok) throw new Error('Failed to load website intelligence')
+        const data = await res.json()
+        setWebsiteData({ items: data.items ?? [], gaps: data.gaps ?? [] })
       } else {
         const res = await fetch(`/api/feed?tab=${tab}`)
         if (!res.ok) throw new Error('Failed to load signals')
@@ -94,13 +107,14 @@ export function SignalFeed({
 
   const handleTabChange = useCallback((tab: FeedTab) => {
     setActiveTab(tab)
-    const alreadyCached = tab === 'competitors'
-      ? competitorItems !== null
-      : cardCache[tab] !== undefined
+    const alreadyCached =
+      tab === 'competitors' ? competitorItems !== null :
+      tab === 'website'     ? websiteData !== null :
+      cardCache[tab] !== undefined
     if (!alreadyCached) {
       fetchTab(tab)
     }
-  }, [cardCache, competitorItems, fetchTab])
+  }, [cardCache, competitorItems, websiteData, fetchTab])
 
   const handleDismiss = useCallback((cardId: string) => {
     setCardCache(prev => {
@@ -147,9 +161,10 @@ export function SignalFeed({
   }
 
   // ── Phase: Feed ───────────────────────────────────────────────────────────
-  const activeCards = activeTab === 'competitors' ? null : cardCache[activeTab]
-  const isEmpty = activeTab === 'competitors'
-    ? false  // CompetitorIntelligenceFeed handles its own empty state
+  const isManagedTab = activeTab === 'competitors' || activeTab === 'website'
+  const activeCards = isManagedTab ? null : cardCache[activeTab]
+  const isEmpty = isManagedTab
+    ? false  // competitors and website tabs handle their own empty states
     : !activeCards || activeCards.length === 0
 
   return (
@@ -184,8 +199,8 @@ export function SignalFeed({
 
         <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
-        {/* Loading — non-competitors tabs only; competitors tab handles its own state */}
-        {loading && activeTab !== 'competitors' && (
+        {/* Loading — only for tabs that don't manage their own state */}
+        {loading && !isManagedTab && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -198,8 +213,8 @@ export function SignalFeed({
           </div>
         )}
 
-        {/* Error — non-competitors tabs only */}
-        {!loading && error && activeTab !== 'competitors' && (
+        {/* Error — only for tabs that don't manage their own state */}
+        {!loading && error && !isManagedTab && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <p style={{ color: '#991b1b', fontSize: '14px', marginBottom: '12px' }}>{error}</p>
             <button
@@ -219,8 +234,8 @@ export function SignalFeed({
           </div>
         )}
 
-        {/* Empty state — editorial default (non-competitors tabs only) */}
-        {!loading && !error && isEmpty && activeTab !== 'competitors' && (
+        {/* Empty state — editorial default (only for tabs that don't manage their own state) */}
+        {!loading && !error && isEmpty && !isManagedTab && (
           <>
             <EditorialBriefingCard stats={feedStats} />
             {EXAMPLE_TOPICS.map((topic, i) => (
@@ -230,7 +245,7 @@ export function SignalFeed({
           </>
         )}
 
-        {/* Competitor Intelligence: unified feed sorted by importance */}
+        {/* Competitor Intelligence */}
         {activeTab === 'competitors' && (
           <CompetitorIntelligenceFeed
             items={competitorItems ?? []}
@@ -240,8 +255,20 @@ export function SignalFeed({
           />
         )}
 
+        {/* Website Intelligence */}
+        {activeTab === 'website' && (
+          <WebsiteIntelligenceFeed
+            items={websiteData?.items ?? []}
+            gaps={websiteData?.gaps ?? []}
+            loading={loading}
+            error={error}
+            workspaceSlug={workspaceSlug}
+            onRetry={() => fetchTab('website')}
+          />
+        )}
+
         {/* Signal cards */}
-        {!loading && !error && !isEmpty && activeTab !== 'competitors' && (
+        {!loading && !error && !isEmpty && !isManagedTab && (
           activeCards!.map((card, index) => (
             <div
               key={card.id}
@@ -252,9 +279,6 @@ export function SignalFeed({
             >
               {activeTab === 'concepts' && (
                 <ConceptCard card={card} userId={userId} onDismiss={handleDismiss} />
-              )}
-              {activeTab === 'services' && (
-                <ServiceCard card={card} userId={userId} onDismiss={handleDismiss} />
               )}
               {activeTab === 'news' && (
                 <SignalCard card={card} userId={userId} onDismiss={handleDismiss} />

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
-import type { FeedTab, SignalCard } from '@/types/feed'
+import type { SignalCard } from '@/types/feed'
 
-const VALID_TABS: FeedTab[] = ['news', 'services', 'concepts', 'competitors']
+const VALID_TABS = ['news', 'concepts', 'competitors'] as const
+type FeedOnlyTab = typeof VALID_TABS[number]
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -12,11 +13,12 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url)
-  const tab = searchParams.get('tab') as FeedTab | null
+  const rawTab = searchParams.get('tab')
 
-  if (!tab || !VALID_TABS.includes(tab)) {
+  if (!rawTab || !(VALID_TABS as readonly string[]).includes(rawTab)) {
     return NextResponse.json({ error: 'Invalid tab parameter' }, { status: 400 })
   }
+  const tab = rawTab as FeedOnlyTab
 
   try {
     const supabase = await createClient()
@@ -76,21 +78,16 @@ export async function GET(req: NextRequest) {
         .filter(Boolean) as string[]
     )
 
-    // Build base query
+    // Build base query — join signals to pull source_url and published_at
     let query = supabase
       .from('signal_cards')
-      .select('*')
+      .select('*, signals(source_url, published_at)')
       .eq('tab', tab)
 
     // News tab: filter to cards whose tags overlap the workspace's topics
     if (tab === 'news' && userTopics.length > 0) {
       const lowerTopics = userTopics.map(t => t.toLowerCase().trim())
       query = query.overlaps('tags', lowerTopics)
-    }
-
-    // Services tab: filter by user's service offerings
-    if (tab === 'services' && userServices.length > 0) {
-      query = query.in('matched_service', userServices)
     }
 
     // Competitors tab: filter by competitor signal cards
@@ -121,7 +118,12 @@ export async function GET(req: NextRequest) {
     // Apply dismissal filter and compute opportunity tiers
     const filtered = (cards ?? [])
       .filter((card) => !dismissedIds.includes(card.id))
-      .map((card) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((rawCard: any) => {
+        // Flatten signals join → source_url + published_at
+        const sig = rawCard.signals as { source_url?: string | null; published_at?: string | null } | null
+        const { signals: _sig, ...card } = rawCard as typeof rawCard & { signals?: unknown }
+
         const isNicheMatch =
           (card.tags ?? []).some((t: string) => userTopics.includes(t)) ||
           (card.matched_service !== null && userServices.includes(card.matched_service))
@@ -149,7 +151,13 @@ export async function GET(req: NextRequest) {
         }
         if (card.timing_classification === 'publish_now') rationale.push('Time-sensitive')
 
-        return { ...card, opportunity_tier: tier, ranking_rationale: rationale }
+        return {
+          ...card,
+          source_url: sig?.source_url ?? null,
+          published_at: sig?.published_at ?? null,
+          opportunity_tier: tier,
+          ranking_rationale: rationale,
+        }
       })
       .sort((a, b) => {
         // Sort by tier first, then by gdelt_score within tier

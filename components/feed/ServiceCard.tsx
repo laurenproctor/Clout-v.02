@@ -1,6 +1,7 @@
 'use client'
 
 import { tokens } from '@/lib/feed/tokens'
+import { GdeltScoreTooltip } from './GdeltScoreTooltip'
 import { SignalCard } from './SignalCard'
 import type { SignalCard as SignalCardType } from '@/types/feed'
 
@@ -18,7 +19,8 @@ export function ServiceCard({ card, userId, onDismiss }: ServiceCardProps) {
       onDismiss={onDismiss}
       hideFooterBadges
       footerLeft={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <GdeltScoreTooltip score={card.gdelt_score} label={card.gdelt_score_label || 'GDELT score'} />
           <span style={{ fontSize: '11px', color: tokens.colors.sectionHeaderColor }}>
             Matched to:{' '}
             <span style={{
@@ -32,9 +34,6 @@ export function ServiceCard({ card, userId, onDismiss }: ServiceCardProps) {
             }}>
               {card.matched_service}
             </span>
-          </span>
-          <span style={{ fontSize: '10px', color: tokens.colors.sectionHeaderColor, letterSpacing: '0.2px' }}>
-            Signal source: GDELT Cloud · Matched to your service profile
           </span>
         </div>
       }

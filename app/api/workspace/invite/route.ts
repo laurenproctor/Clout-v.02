@@ -4,8 +4,13 @@ import { getSession } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { renderHtml, renderText } from '@/lib/email/templates/workspace-invite'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://clout.app'
+
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!)
+  return _resend
+}
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -91,7 +96,7 @@ async function sendInviteEmail({
       Promise.resolve(renderText({ workspaceName, invitedByName, role, inviteUrl })),
     ])
 
-    const { data: sent, error: sendError } = await resend.emails.send({
+    const { data: sent, error: sendError } = await getResend().emails.send({
       from: process.env.EMAIL_FROM!,
       to: email,
       subject: `You've been invited to join ${workspaceName}`,

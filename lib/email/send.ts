@@ -2,7 +2,11 @@ import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { EmailPayload } from '@/types/domain'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!)
+  return _resend
+}
 
 export function idempotencyKey(payload: EmailPayload): string {
   switch (payload.type) {
@@ -45,7 +49,7 @@ export async function sendEmail({ payload, html, text, eventId }: SendEmailArgs)
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from,
       to: recipientEmail,
       subject,

@@ -8,6 +8,21 @@ import { BadgeTiming } from './BadgeTiming'
 import { DraftPanel } from './DraftPanel'
 import type { SignalCard as SignalCardType } from '@/types/feed'
 
+function sourceDomain(url: string | null): string | null {
+  if (!url) return null
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return null }
+}
+
+function formatPubDate(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const now = new Date()
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+  if (d.getFullYear() !== now.getFullYear()) opts.year = 'numeric'
+  return d.toLocaleDateString('en-US', opts)
+}
+
 interface SignalCardProps {
   card: SignalCardType
   userId: string
@@ -99,6 +114,39 @@ export function SignalCard({
             )}
           </div>
         </div>
+
+        {/* Source + publication date */}
+        {(card.source_url || card.published_at) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+            {card.source_url && sourceDomain(card.source_url) && (
+              <a
+                href={card.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: tokens.colors.sectionHeaderColor,
+                  textDecoration: 'none',
+                  borderBottom: `1px solid ${tokens.colors.cardBorder}`,
+                  lineHeight: 1.3,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#111827')}
+                onMouseLeave={e => (e.currentTarget.style.color = tokens.colors.sectionHeaderColor)}
+              >
+                {sourceDomain(card.source_url)}
+              </a>
+            )}
+            {card.source_url && card.published_at && (
+              <span style={{ fontSize: '11px', color: '#d1d5db' }}>·</span>
+            )}
+            {card.published_at && (
+              <span style={{ fontSize: '11px', color: tokens.colors.sectionHeaderColor }}>
+                {formatPubDate(card.published_at)}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Extension slot for ConceptCard content (surfaced-via + why-now) */}
         {children}

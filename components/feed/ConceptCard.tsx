@@ -5,7 +5,7 @@ import { SignalCard } from './SignalCard'
 import type { SignalCard as SignalCardType } from '@/types/feed'
 
 const CONCEPT_TOOLTIP =
-  'GDELT entity score ranks this concept by coverage velocity. Formula: (48h coverage volume change × 0.6) + (tone intensity × 0.4). Higher scores surface this card higher in your feed. Powered by GDELT Cloud.'
+  'GDELT entity score measures coverage velocity of this concept in GDELT\'s entity graph — not the composite news signal formula. Higher scores mean the underlying concept is accelerating across global media. Powered by GDELT Cloud.'
 
 interface ConceptCardProps {
   card: SignalCardType
@@ -29,7 +29,7 @@ export function ConceptCard({ card, userId, onDismiss }: ConceptCardProps) {
             GDELT entity score
           </span>
           <span style={{ fontSize: '11px', color: tokens.colors.sectionHeaderColor, fontWeight: 600 }}>
-            {card.gdelt_score !== null ? card.gdelt_score.toFixed(1) : '--'}
+            {card.gdelt_score !== null ? card.gdelt_score.toFixed(2) : '--'}
           </span>
           <span
             style={{

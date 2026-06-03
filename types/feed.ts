@@ -2,7 +2,7 @@
 // GDELT Signal Feed — TypeScript Types
 // ============================================================
 
-export type FeedTab = 'news' | 'services' | 'concepts' | 'competitors'
+export type FeedTab = 'news' | 'website' | 'concepts' | 'competitors'
 
 export type DraftFormat = 'linkedin' | 'twitter' | 'blog' | 'newsletter' | 'instagram'
 
@@ -46,6 +46,9 @@ export interface SignalCard {
   competitor_id: string | null
   created_at: string
   refreshed_at: string
+  // Denormalized from signals at read time by GET /api/feed
+  source_url: string | null
+  published_at: string | null
   // Added by GET /api/feed query at runtime — not stored
   opportunity_tier?: OpportunityTier
   ranking_rationale?: string[]
@@ -201,6 +204,81 @@ export interface FeedStats {
   lastRefreshed: string | null
 }
 
+// ============================================================
+// Website Intelligence — data model
+// ============================================================
+
+export interface WebsiteAsset {
+  id: string
+  type: 'homepage' | 'service' | 'product' | 'case_study' | 'testimonial'
+       | 'report' | 'blog' | 'resource' | 'about'
+  title: string
+  url: string
+  services: string[]
+  extracted_quotes: string[]
+  extracted_statistics: string[]
+  extracted_proof_points: string[]
+  last_promoted_at?: string
+  published_at?: string
+  updated_at?: string
+}
+
+export interface OpportunityReason {
+  type: 'never_promoted' | 'contains_statistics' | 'contains_testimonials'
+       | 'service_alignment' | 'high_momentum' | 'evergreen_content' | 'trend_match'
+  score: number
+  explanation: string
+}
+
+export interface OpportunityScoreBreakdown {
+  business_alignment: number
+  proof_strength: number
+  content_potential: number
+  momentum: number
+  freshness: number
+  confidence_contribution: number
+}
+
+export interface TopicCluster {
+  id: string
+  name: string
+  assets: string[]
+  services: string[]
+  opportunity_score: number
+}
+
+export interface WebsiteOpportunity {
+  id: string
+  asset_id: string
+  title: string
+  score: number
+  confidence: number
+  score_breakdown?: OpportunityScoreBreakdown
+  status: 'new' | 'generated' | 'published' | 'dismissed'
+  level: 'high' | 'medium' | 'emerging'
+  category: 'promotion' | 'repurpose' | 'gap' | 'trend_match' | 'thought_leadership'
+  momentum?: string
+  tags: string[]
+  matched_service: string
+  source_type: string
+  source_url?: string
+  why_this_matters: string
+  reasons: OpportunityReason[]
+  formats: string[]
+  trend_signal_title?: string
+  trend_asset_count?: Record<string, number>
+}
+
+export interface WebsiteContentGap {
+  id: string
+  headline: string
+  detail: string
+  opportunity: string
+  matched_service: string
+  tags: string[]
+}
+
+// ============================================================
 // Concept cluster (near-term; schema exists, ingestion pipeline populates)
 export type ConceptClusterStatus = 'emerging' | 'rising' | 'peaking' | 'declining'
 
