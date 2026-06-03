@@ -546,7 +546,6 @@ export async function publishOutput(
       cta:          outputContent.cta          as string | undefined,
       lensName:     outputContent.lensName     as string | undefined,
       voice:        outputContent.voiceRegister as string | undefined,
-      topic:        outputContent.topic         as string | undefined,
     },
   })
   const body = output.content.body ?? ''

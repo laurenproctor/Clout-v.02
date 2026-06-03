@@ -20,7 +20,6 @@ export interface UTMOutputContext {
   cta?:          string
   lensName?:     string
   voice?:        string
-  topic?:        string
 }
 
 // Normalizes a token value: trim + lowercase + replace spaces with hyphens.
@@ -48,9 +47,6 @@ export function buildUTMParams(params: {
   let utm_medium = platformCfg.medium
   if (platformCfg.mediumToken === 'campaign_name') {
     const resolved = normalizeToken(outputContext?.campaignName)
-    if (resolved) utm_medium = resolved
-  } else if (platformCfg.mediumToken === 'topic') {
-    const resolved = normalizeToken(outputContext?.topic)
     if (resolved) utm_medium = resolved
   }
 

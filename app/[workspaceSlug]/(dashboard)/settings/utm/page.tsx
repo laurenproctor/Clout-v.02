@@ -15,7 +15,7 @@ import {
   UTMTemplateTermToken,
 } from '@/lib/distribution/platform-registry'
 
-type PlatformUTM = { source: string; medium: string; mediumToken: 'campaign_name' | 'topic' | null }
+type PlatformUTM = { source: string; medium: string; mediumToken: 'campaign_name' | null }
 type PlatformSettings = Record<string, PlatformUTM>
 
 const UTM_VALUE_PATTERN = /^[a-z0-9_-]+$/
@@ -45,7 +45,6 @@ function getFallbackError(token: string, fallback: string): string | null {
 const MEDIUM_TOKEN_LABELS: Record<string, string> = {
   '':            'Custom value',
   campaign_name: '{campaign_name}',
-  topic:         '{topic}',
 }
 
 const CAMPAIGN_TOKEN_LABELS: Record<UTMTemplateCampaignToken, string> = {
@@ -84,7 +83,7 @@ export default function UTMSettingsPage() {
           const { _templates, ...platformData } = d as Record<string, unknown> & { _templates?: UTMTemplateSettings }
           const ps: PlatformSettings = {}
           for (const key of PLATFORM_KEYS) {
-            const entry = platformData[key] as { source: string; medium: string; mediumToken?: 'campaign_name' | 'topic' | null } | undefined
+            const entry = platformData[key] as { source: string; medium: string; mediumToken?: 'campaign_name' | null } | undefined
             if (entry) {
               ps[key] = { source: entry.source, medium: entry.medium, mediumToken: entry.mediumToken ?? null }
             } else {
@@ -121,7 +120,7 @@ export default function UTMSettingsPage() {
     setPlatforms((prev) => ({ ...prev, [platform]: { ...prev[platform], [field]: value } }))
   }
 
-  function updateMediumToken(platform: string, token: 'campaign_name' | 'topic' | null) {
+  function updateMediumToken(platform: string, token: 'campaign_name' | null) {
     setPlatforms((prev) => ({ ...prev, [platform]: { ...prev[platform], mediumToken: token } }))
   }
 
@@ -166,7 +165,7 @@ export default function UTMSettingsPage() {
         const { _templates: normTemplates, ...normPlatforms } = normalized
         const ps: PlatformSettings = {}
         for (const key of PLATFORM_KEYS) {
-          const entry = normPlatforms[key] as { source: string; medium: string; mediumToken?: 'campaign_name' | 'topic' | null } | undefined
+          const entry = normPlatforms[key] as { source: string; medium: string; mediumToken?: 'campaign_name' | null } | undefined
           if (entry) ps[key] = { source: entry.source, medium: entry.medium, mediumToken: entry.mediumToken ?? null }
         }
         setPlatforms(ps)
@@ -261,7 +260,7 @@ export default function UTMSettingsPage() {
                       value={val.mediumToken ?? ''}
                       onChange={(e) => {
                         const v = e.target.value
-                        updateMediumToken(key, v === '' ? null : v as 'campaign_name' | 'topic')
+                        updateMediumToken(key, v === '' ? null : v as 'campaign_name')
                       }}
                       className="rounded-md border border-zinc-200 px-2 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-300 bg-white"
                     >

@@ -6,6 +6,9 @@ type WorkspacePublishingContext = {
   utmTemplates: UTMTemplateSettings
 }
 
+// Request-level memoization — avoids repeated reads when publishing fans out across channels.
+// No TTL or invalidation: safe in serverless (fresh process per invocation) but would stale
+// in a persistent worker if UTM settings change between two publishes in the same process.
 const contextCache = new Map<string, WorkspacePublishingContext>()
 
 export async function buildWorkspacePublishingContext(

@@ -1,7 +1,7 @@
 export type UTMConfig = {
   source: string
   medium: string
-  mediumToken?: 'campaign_name' | 'topic' | null
+  mediumToken?: 'campaign_name' | null
   campaign?: string
   content?: string
   term?: string

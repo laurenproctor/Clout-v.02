@@ -88,15 +88,15 @@ function validateSettings(body: unknown): { error: string } | { settings: Record
     if (mediumErr) return { error: mediumErr }
 
     if (e.mediumToken !== undefined && e.mediumToken !== null) {
-      if (!['campaign_name', 'topic'].includes(e.mediumToken as string)) {
-        return { error: `${key}.mediumToken must be 'campaign_name', 'topic', or null` }
+      if (e.mediumToken !== 'campaign_name') {
+        return { error: `${key}.mediumToken must be 'campaign_name' or null` }
       }
     }
 
     settings[key] = {
       source:      normalizeUTMValue(e.source as string),
       medium:      normalizeUTMValue(e.medium as string),
-      mediumToken: (e.mediumToken as 'campaign_name' | 'topic' | null | undefined) ?? null,
+      mediumToken: (e.mediumToken as 'campaign_name' | null | undefined) ?? null,
     }
   }
 
