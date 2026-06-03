@@ -111,8 +111,12 @@ export async function GET(req: NextRequest) {
     const { data: cards, error } = await query
 
     if (error) {
+      console.error('[feed] query error tab=%s workspace=%s:', tab, workspaceId, error)
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
+
+    console.log('[feed] tab=%s workspace=%s topics=%j rawCards=%d dismissedIds=%d',
+      tab, workspaceId, userTopics, (cards ?? []).length, dismissedIds.length)
 
     // Apply dismissal filter and compute opportunity tiers
     const filtered = (cards ?? [])
