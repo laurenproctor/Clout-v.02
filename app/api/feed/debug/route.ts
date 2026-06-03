@@ -60,17 +60,23 @@ export async function GET() {
 
   // 5. Simulate the actual feed query: matching cards minus dismissed
   let afterDismissal = 0
+  let sampleVisibleCards: { id: string; title: string; tags: string[] }[] = []
   if (lowerTopics.length > 0 && matchingCards > 0) {
-    const { data: matchedIds } = await supabase
+    const { data: matchedFull } = await supabase
       .from('signal_cards')
-      .select('id')
+      .select('id, title, tags')
       .eq('tab', 'news')
       .overlaps('tags', lowerTopics)
 
-    const remaining = (matchedIds ?? []).filter(
+    const remaining = (matchedFull ?? []).filter(
       (c: { id: string }) => !dismissedIds.includes(c.id)
     )
     afterDismissal = remaining.length
+    sampleVisibleCards = remaining.slice(0, 5).map((c: { id: string; title: string; tags: string[] }) => ({
+      id: c.id,
+      title: c.title,
+      tags: c.tags,
+    }))
   }
 
   // 6. Sample of tags actually stored (to check format)
@@ -103,6 +109,7 @@ export async function GET() {
     matchingCards,
     dismissedCount: dismissedIds.length,
     afterDismissal,
+    sampleVisibleCards,
     sampleMatchedTags: sampleTags,
     recentCards: recentCards ?? [],
     newsdataProbe,
