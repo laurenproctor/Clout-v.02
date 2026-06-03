@@ -7,9 +7,17 @@ import {
   getPlatformDefault,
   normalizeUTMValue,
   UTMConfig,
+  UTMTemplateSettings,
+  DEFAULT_UTM_TEMPLATES,
+  UTMTemplateCampaignToken,
+  UTMTemplateContentToken,
+  UTMTemplateTermToken,
 } from '@/lib/distribution/platform-registry'
 
 const UTM_VALUE_PATTERN = /^[a-z0-9_-]+$/
+const CAMPAIGN_TOKENS:  UTMTemplateCampaignToken[] = ['auto', 'campaign_name', 'custom']
+const CONTENT_TOKENS:   UTMTemplateContentToken[]  = ['auto', 'cta', 'custom']
+const TERM_TOKENS:      UTMTemplateTermToken[]      = ['none', 'lens', 'voice', 'custom']
 
 function validateUTMValue(value: unknown, field: string): string | null {
   if (typeof value !== 'string' || value.length === 0) return `${field} is required`
@@ -18,7 +26,53 @@ function validateUTMValue(value: unknown, field: string): string | null {
   return null
 }
 
-function validateSettings(body: unknown): { error: string } | { settings: Record<string, UTMConfig> } {
+function validateFallback(value: unknown, field: string, required: boolean): string | null {
+  if (!required) {
+    if (typeof value !== 'string') return null
+    if (value === '') return null
+    return validateUTMValue(value, field)
+  }
+  return validateUTMValue(value, field)
+}
+
+function validateTemplates(raw: unknown): { error: string } | { templates: UTMTemplateSettings } {
+  if (typeof raw !== 'object' || raw === null) return { error: 'Invalid _templates object' }
+  const t = raw as Record<string, unknown>
+
+  const camp = t.campaign as Record<string, unknown> | undefined
+  if (!camp) return { error: '_templates.campaign is required' }
+  if (!CAMPAIGN_TOKENS.includes(camp.token as UTMTemplateCampaignToken)) {
+    return { error: `_templates.campaign.token must be one of: ${CAMPAIGN_TOKENS.join(', ')}` }
+  }
+  const campErr = validateFallback(camp.fallback, '_templates.campaign.fallback', camp.token !== 'auto')
+  if (campErr) return { error: campErr }
+
+  const cont = t.content as Record<string, unknown> | undefined
+  if (!cont) return { error: '_templates.content is required' }
+  if (!CONTENT_TOKENS.includes(cont.token as UTMTemplateContentToken)) {
+    return { error: `_templates.content.token must be one of: ${CONTENT_TOKENS.join(', ')}` }
+  }
+  const contErr = validateFallback(cont.fallback, '_templates.content.fallback', cont.token !== 'auto')
+  if (contErr) return { error: contErr }
+
+  const term = t.term as Record<string, unknown> | undefined
+  if (!term) return { error: '_templates.term is required' }
+  if (!TERM_TOKENS.includes(term.token as UTMTemplateTermToken)) {
+    return { error: `_templates.term.token must be one of: ${TERM_TOKENS.join(', ')}` }
+  }
+  const termErr = validateFallback(term.fallback, '_templates.term.fallback', ['lens', 'voice', 'custom'].includes(term.token as string))
+  if (termErr) return { error: termErr }
+
+  return {
+    templates: {
+      campaign: { token: camp.token as UTMTemplateCampaignToken, fallback: (camp.fallback as string) ?? '' },
+      content:  { token: cont.token as UTMTemplateContentToken,  fallback: (cont.fallback as string) ?? '' },
+      term:     { token: term.token as UTMTemplateTermToken,      fallback: (term.fallback as string) ?? '' },
+    },
+  }
+}
+
+function validateSettings(body: unknown): { error: string } | { settings: Record<string, UTMConfig>; templates: UTMTemplateSettings } {
   if (typeof body !== 'object' || body === null) return { error: 'Invalid request body' }
   const input = body as Record<string, unknown>
 
@@ -33,18 +87,29 @@ function validateSettings(body: unknown): { error: string } | { settings: Record
     const mediumErr = validateUTMValue(e.medium, `${key}.medium`)
     if (mediumErr) return { error: mediumErr }
 
+    if (e.mediumToken !== undefined && e.mediumToken !== null) {
+      if (!['campaign_name', 'topic'].includes(e.mediumToken as string)) {
+        return { error: `${key}.mediumToken must be 'campaign_name', 'topic', or null` }
+      }
+    }
+
     settings[key] = {
-      source: normalizeUTMValue(e.source as string),
-      medium: normalizeUTMValue(e.medium as string),
+      source:      normalizeUTMValue(e.source as string),
+      medium:      normalizeUTMValue(e.medium as string),
+      mediumToken: (e.mediumToken as 'campaign_name' | 'topic' | null | undefined) ?? null,
     }
   }
 
-  // Reject unknown keys
   for (const key of Object.keys(input)) {
+    if (key === '_templates') continue
     if (!DISTRIBUTION_PLATFORMS[key]) return { error: `Unknown platform: ${key}` }
   }
 
-  return { settings }
+  if (!input._templates) return { error: '_templates is required' }
+  const templateResult = validateTemplates(input._templates)
+  if ('error' in templateResult) return templateResult
+
+  return { settings, templates: templateResult.templates }
 }
 
 async function requireAdminSession() {
@@ -77,20 +142,25 @@ export async function GET() {
     .eq('workspace_id', session.workspaceId)
     .single()
 
-  const stored = (data?.utm_settings ?? {}) as Record<string, Partial<UTMConfig>>
+  const raw = (data?.utm_settings ?? {}) as Record<string, unknown>
+  const { _templates: storedTemplates, ...storedPlatforms } = raw
+  const stored = storedPlatforms as Record<string, Partial<UTMConfig>>
 
-  // Merge stored overrides with canonical defaults
   const merged: Record<string, UTMConfig> = {}
   for (const key of PLATFORM_KEYS) {
     const defaults = getPlatformDefault(key)
     const override = stored[key]
     merged[key] = {
-      source: override?.source ?? defaults.source,
-      medium: override?.medium ?? defaults.medium,
+      source:      override?.source      ?? defaults.source,
+      medium:      override?.medium      ?? defaults.medium,
+      mediumToken: override?.mediumToken ?? null,
     }
   }
 
-  return NextResponse.json(merged)
+  return NextResponse.json({
+    ...merged,
+    _templates: (storedTemplates as UTMTemplateSettings | undefined) ?? DEFAULT_UTM_TEMPLATES,
+  })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -106,12 +176,12 @@ export async function PATCH(req: NextRequest) {
     .from('workspace_distribution_settings')
     .upsert({
       workspace_id: session.workspaceId,
-      utm_settings: result.settings,
-      updated_by: session.userId,
+      utm_settings: { ...result.settings, _templates: result.templates },
+      updated_by:   session.userId,
     })
     .eq('workspace_id', session.workspaceId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json(result.settings)
+  return NextResponse.json({ ...result.settings, _templates: result.templates })
 }
