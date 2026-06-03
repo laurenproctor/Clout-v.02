@@ -35,10 +35,13 @@ export default async function FeedPage({ params }: { params: Promise<{ workspace
     redirect(`/${workspaceSlug}/settings/feed?setup=1`)
   }
 
+  // workspace_feed_settings existing is treated as onboarding complete
+  const onboardingComplete = !!(userProfile?.onboarding_complete || feedSettings)
+
   return (
     <SignalFeed
       userId={session.userId}
-      onboardingComplete={userProfile?.onboarding_complete ?? false}
+      onboardingComplete={onboardingComplete}
       userDisplayName={(profile as { display_name?: string | null } | null)?.display_name ?? ''}
     />
   )

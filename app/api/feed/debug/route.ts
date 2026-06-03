@@ -9,6 +9,13 @@ export async function GET() {
 
   const supabase = await createClient()
 
+  // 0. Check user_profiles.onboarding_complete — if false, feed shows onboarding flow not cards
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('onboarding_complete')
+    .eq('id', session.userId)
+    .maybeSingle()
+
   // 1. What does workspace_feed_settings hold?
   const { data: ws } = await supabase
     .from('workspace_feed_settings')
@@ -88,6 +95,7 @@ export async function GET() {
   return NextResponse.json({
     workspaceId: session.workspaceId,
     userId: session.userId,
+    onboardingComplete: userProfile?.onboarding_complete ?? false,
     wsFeedSettingsFound: ws !== null,
     settings: { topics, services },
     lowerTopics,
