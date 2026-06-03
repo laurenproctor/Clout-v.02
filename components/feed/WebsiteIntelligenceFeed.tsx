@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { WebsiteOpportunity, WebsiteContentGap } from '@/types/feed'
 import { WebsiteFeaturedCard } from './WebsiteFeaturedCard'
 import { WebsiteOpportunityCard } from './WebsiteOpportunityCard'
@@ -33,6 +34,7 @@ interface WebsiteIntelligenceFeedProps {
   loading: boolean
   error: string | null
   workspaceSlug: string
+  websiteUrl: string | null
   onRetry: () => void
 }
 
@@ -42,6 +44,7 @@ export function WebsiteIntelligenceFeed({
   loading,
   error,
   workspaceSlug,
+  websiteUrl,
   onRetry,
 }: WebsiteIntelligenceFeedProps) {
   const [search, setSearch] = useState('')
@@ -77,6 +80,51 @@ export function WebsiteIntelligenceFeed({
 
   const featured = filteredItems[0] ?? null
   const rest = filteredItems.slice(1)
+
+  if (!websiteUrl && !loading) {
+    return (
+      <div style={{ padding: '64px 0', textAlign: 'center' }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '48px',
+          height: '48px',
+          borderRadius: '12px',
+          backgroundColor: '#f3f4f6',
+          marginBottom: '20px',
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+        </div>
+        <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>
+          No website connected
+        </p>
+        <p style={{ fontSize: '13px', color: '#6b7280', maxWidth: '380px', margin: '0 auto 24px', lineHeight: '1.6' }}>
+          Connect your website URL and we&apos;ll analyze your existing assets to surface high-impact content opportunities.
+        </p>
+        <Link
+          href={`/${workspaceSlug}/settings/feed`}
+          style={{
+            display: 'inline-block',
+            padding: '8px 20px',
+            fontSize: '13px',
+            fontWeight: 600,
+            backgroundColor: 'var(--workspace-accent, #1a1560)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            textDecoration: 'none',
+          }}
+        >
+          Analyze Website
+        </Link>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

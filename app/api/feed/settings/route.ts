@@ -16,7 +16,7 @@ export async function GET() {
   // Primary: workspace-scoped feed settings
   const { data: ws } = await supabase
     .from('workspace_feed_settings')
-    .select('brand_name, content_topics, services, tone_preference, competitors, competitor_metadata')
+    .select('brand_name, content_topics, services, tone_preference, competitors, competitor_metadata, website_url')
     .eq('workspace_id', session.workspaceId)
     .maybeSingle()
 
@@ -32,6 +32,7 @@ export async function GET() {
       competitors: ws.competitors ?? [],
       competitor_metadata: ws.competitor_metadata ?? {},
       editorial_voices,
+      website_url: ws.website_url ?? null,
     })
   }
 
@@ -80,6 +81,7 @@ export async function PATCH(req: NextRequest) {
     competitors?: string[]
     competitor_metadata?: Record<string, { name?: string; rss_url?: string; socials?: Record<string, string> }>
     editorial_voices?: string[]
+    website_url?: string | null
   }
   try {
     body = await req.json()
@@ -102,6 +104,7 @@ export async function PATCH(req: NextRequest) {
         tone_preference: body.editorial_voices
           ? mapVoicesToTone(body.editorial_voices)
           : 'authoritative',
+        website_url: body.website_url ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'workspace_id' }

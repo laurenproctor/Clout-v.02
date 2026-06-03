@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
+import { createClient } from '@/lib/supabase/server'
 import type {
   WebsiteOpportunity,
   WebsiteContentGap,
@@ -330,12 +331,34 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const supabase = await createClient()
+  const { data: ws } = await supabase
+    .from('workspace_feed_settings')
+    .select('website_url')
+    .eq('workspace_id', session.workspaceId)
+    .maybeSingle()
+
+  const websiteUrl = ws?.website_url ?? null
+
+  if (!websiteUrl) {
+    return NextResponse.json({
+      configured: false,
+      items: [],
+      gaps: [],
+      assets: [],
+      clusters: [],
+      last_analyzed_at: null,
+      website_url: null,
+    })
+  }
+
   return NextResponse.json({
+    configured: true,
     items: DEMO_OPPORTUNITIES,
     gaps: DEMO_GAPS,
     assets: DEMO_ASSETS,
     clusters: DEMO_CLUSTERS,
     last_analyzed_at: null,
-    website_url: null,
+    website_url: websiteUrl,
   })
 }

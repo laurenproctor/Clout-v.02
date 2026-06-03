@@ -47,7 +47,7 @@ interface SignalFeedProps {
 }
 
 type CardCache = Partial<Record<FeedTab, SignalCardType[]>>
-type WebsiteData = { items: WebsiteOpportunity[]; gaps: WebsiteContentGap[] } | null
+type WebsiteData = { items: WebsiteOpportunity[]; gaps: WebsiteContentGap[]; websiteUrl: string | null } | null
 type KnowledgeData = { topics: KnowledgeTopic[] } | null
 
 export function SignalFeed({
@@ -84,7 +84,7 @@ export function SignalFeed({
         const res = await fetch('/api/website-intelligence')
         if (!res.ok) throw new Error('Failed to load website intelligence')
         const data = await res.json()
-        setWebsiteData({ items: data.items ?? [], gaps: data.gaps ?? [] })
+        setWebsiteData({ items: data.items ?? [], gaps: data.gaps ?? [], websiteUrl: data.website_url ?? null })
       } else if (tab === 'knowledge') {
         const res = await fetch('/api/knowledge-signals')
         if (!res.ok) throw new Error('Failed to load knowledge signals')
@@ -273,6 +273,7 @@ export function SignalFeed({
             loading={loading}
             error={error}
             workspaceSlug={workspaceSlug}
+            websiteUrl={websiteData?.websiteUrl ?? null}
             onRetry={() => fetchTab('website')}
           />
         )}

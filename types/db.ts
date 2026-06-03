@@ -2835,6 +2835,7 @@ export type Database = {
           brand_name: string
           competitors: string[]
           competitor_metadata: Json | null
+          website_url: string | null
           created_at: string
           updated_at: string | null
         }
@@ -2846,6 +2847,7 @@ export type Database = {
           brand_name?: string
           competitors?: string[]
           competitor_metadata?: Json | null
+          website_url?: string | null
           created_at?: string
           updated_at?: string | null
         }
@@ -2857,6 +2859,7 @@ export type Database = {
           brand_name?: string
           competitors?: string[]
           competitor_metadata?: Json | null
+          website_url?: string | null
           created_at?: string
           updated_at?: string | null
         }

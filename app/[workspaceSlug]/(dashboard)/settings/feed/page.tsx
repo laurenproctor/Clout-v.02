@@ -16,6 +16,7 @@ interface FeedSettings {
   competitors: string[]
   competitor_metadata: CompetitorMetadata
   editorial_voices: string[]
+  website_url: string
 }
 
 function SignalFeedSettingsContent() {
@@ -32,6 +33,7 @@ function SignalFeedSettingsContent() {
     competitors: [],
     competitor_metadata: {},
     editorial_voices: [],
+    website_url: '',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -45,6 +47,7 @@ function SignalFeedSettingsContent() {
         setSettings({
           ...data,
           competitor_metadata: data.competitor_metadata ?? {},
+          website_url: data.website_url ?? '',
         })
         setLoading(false)
       })
@@ -80,6 +83,7 @@ function SignalFeedSettingsContent() {
           competitors: settings.competitors,
           competitor_metadata: settings.competitor_metadata,
           editorial_voices: settings.editorial_voices,
+          website_url: settings.website_url || null,
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -143,6 +147,20 @@ function SignalFeedSettingsContent() {
               onChange={competitors => setSettings(s => ({ ...s, competitors }))}
               competitorMetadata={settings.competitor_metadata}
               onMetadataChange={metadata => setSettings(s => ({ ...s, competitor_metadata: metadata }))}
+            />
+          </section>
+
+          <section>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Website Intelligence</p>
+            <p className="mb-3 text-sm text-zinc-500">
+              Enter your website URL to surface content opportunities from your existing assets.
+            </p>
+            <input
+              type="url"
+              value={settings.website_url}
+              onChange={e => setSettings(s => ({ ...s, website_url: e.target.value }))}
+              placeholder="https://example.com"
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0"
             />
           </section>
 
