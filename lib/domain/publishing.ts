@@ -21,6 +21,7 @@ import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/ty
 import { GBPApiError } from '@/lib/channels/google-business-profile/types'
 import { buildUTMParams, injectUTMIntoContent } from '@/lib/analytics/utm'
 import { buildWorkspacePublishingContext } from '@/lib/domain/publishing-context'
+import { DEFAULT_UTM_TEMPLATES } from '@/lib/distribution/platform-registry'
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -532,12 +533,21 @@ export async function publishOutput(
   const canonicalId = output.generationGroupId ?? output.id
   const publishingCtx = output.workspaceId
     ? await buildWorkspacePublishingContext(output.workspaceId)
-    : { utmSettings: {} }
+    : { utmSettings: {}, utmTemplates: DEFAULT_UTM_TEMPLATES }
+  const outputContent = output.content as Record<string, unknown>
   const utmParams = buildUTMParams({
-    platform: channel.platform,
+    platform:      channel.platform,
     canonicalId,
-    outputId: output.id,
+    outputId:      output.id,
     customSources: publishingCtx.utmSettings,
+    templates:     publishingCtx.utmTemplates,
+    outputContext: {
+      campaignName: outputContent.campaignName as string | undefined,
+      cta:          outputContent.cta          as string | undefined,
+      lensName:     outputContent.lensName     as string | undefined,
+      voice:        outputContent.voiceRegister as string | undefined,
+      topic:        outputContent.topic         as string | undefined,
+    },
   })
   const body = output.content.body ?? ''
   const injectedBody = injectUTMIntoContent(body, utmParams)
