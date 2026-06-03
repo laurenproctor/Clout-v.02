@@ -1,9 +1,26 @@
 export type UTMConfig = {
   source: string
   medium: string
+  mediumToken?: 'campaign_name' | 'topic' | null
   campaign?: string
   content?: string
   term?: string
+}
+
+export type UTMTemplateCampaignToken = 'auto' | 'campaign_name' | 'custom'
+export type UTMTemplateContentToken  = 'auto' | 'cta' | 'custom'
+export type UTMTemplateTermToken     = 'none' | 'lens' | 'voice' | 'custom'
+
+export type UTMTemplateSettings = {
+  campaign: { token: UTMTemplateCampaignToken; fallback: string }
+  content:  { token: UTMTemplateContentToken;  fallback: string }
+  term:     { token: UTMTemplateTermToken;      fallback: string }
+}
+
+export const DEFAULT_UTM_TEMPLATES: UTMTemplateSettings = {
+  campaign: { token: 'auto', fallback: 'clout' },
+  content:  { token: 'auto', fallback: 'post'  },
+  term:     { token: 'none', fallback: ''       },
 }
 
 export type PlatformEntry = {
@@ -34,5 +51,4 @@ export function normalizeUTMValue(value: string): string {
   return value.trim().toLowerCase()
 }
 
-// Canonical list of platform keys in display order
 export const PLATFORM_KEYS = Object.keys(DISTRIBUTION_PLATFORMS)
