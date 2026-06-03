@@ -26,11 +26,27 @@ interface NewsdataResponse {
 interface SearchOpts {
   language?: string
   page?: string
+  titleOnly?: boolean
 }
 
 export interface SearchResult {
   articles: NewsdataArticle[]
   nextPage: string | null
+}
+
+// Keywords that identify financial/stock-market reports — not editorial signals
+const FINANCIAL_SPAM_PATTERNS = [
+  /^"?symbol:/i,
+  /^"?category:\s*(earnings|small cap|large cap|mid cap)/i,
+]
+
+function isFinancialSpam(article: NewsdataArticle): boolean {
+  const keywords = article.keywords ?? []
+  if (keywords.some(k => FINANCIAL_SPAM_PATTERNS.some(p => p.test(k)))) return true
+  // Skip corporate earnings/pricing announcements
+  return /\b(announces? pricing of|reports (first|second|third|fourth|q[1-4]) quarter|provides capital markets update|fy\d{2} results)\b/i.test(
+    article.title
+  )
 }
 
 export async function searchLatest(
@@ -42,10 +58,16 @@ export async function searchLatest(
 
   const params = new URLSearchParams({
     apikey: apiKey,
-    q: query,
     language: opts.language ?? 'en',
     prioritydomain: 'top',
   })
+  // Use qInTitle for higher relevance — only match articles where the topic
+  // appears in the headline, not buried in unrelated metadata
+  if (opts.titleOnly) {
+    params.set('qInTitle', query)
+  } else {
+    params.set('q', query)
+  }
   if (opts.page) params.set('page', opts.page)
 
   const url = `${NEWSDATA_BASE}?${params.toString()}`
@@ -82,7 +104,7 @@ export async function searchLatest(
   }
 
   return {
-    articles: (data.results ?? []).filter(a => !a.duplicate),
+    articles: (data.results ?? []).filter(a => !a.duplicate && !isFinancialSpam(a)),
     nextPage: data.nextPage ?? null,
   }
 }

@@ -26,7 +26,7 @@ export async function ingestWorkspaceTopics({ topics, services }: WorkspaceInges
   for (const item of queue) {
     try {
       await delay(300)
-      const { articles } = await searchLatest(item.query)
+      const { articles } = await searchLatest(item.query, { titleOnly: item.tab === 'news' })
 
       for (const article of articles) {
         const signalInsert = articleToSignalInsert(article)
