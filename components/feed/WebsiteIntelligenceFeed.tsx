@@ -7,6 +7,10 @@ import { WebsiteOpportunityCard } from './WebsiteOpportunityCard'
 import { WebsiteContentGapCard } from './WebsiteContentGapCard'
 import { WebsiteFilters } from './WebsiteFilters'
 
+// TODO: Future — surface related Knowledge Signals on website opportunities.
+// When opportunity.matched_service matches a KnowledgeTopic, show
+// a "Related Knowledge" row beneath the opportunity card.
+
 // TODO: Future feed organization — group remaining cards by level:
 // High Opportunity → Medium Opportunity → Emerging
 // instead of flat sorted list

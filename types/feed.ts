@@ -2,7 +2,8 @@
 // GDELT Signal Feed — TypeScript Types
 // ============================================================
 
-export type FeedTab = 'news' | 'website' | 'concepts' | 'competitors'
+export type FeedTab = 'news' | 'website' | 'concepts' | 'competitors' | 'knowledge'
+// 'concepts' retained for DB backward compat — no longer shown in nav
 
 export type DraftFormat = 'linkedin' | 'twitter' | 'blog' | 'newsletter' | 'instagram'
 
@@ -293,4 +294,42 @@ export interface ConceptCluster {
   first_emerged_at: string | null
   peak_estimated_at: string | null
   updated_at: string
+}
+
+// ============================================================
+// Knowledge Signals — data model
+// ============================================================
+
+export interface KnowledgeResource {
+  title: string
+  author: string
+  type: 'book' | 'article' | 'research' | 'podcast' | 'video'
+  url?: string
+}
+
+export interface KnowledgeTopic {
+  id: string
+  title: string
+  category: 'foundational' | 'advanced' | 'emerging' | 'debate' | 'thinker'
+  importance_score: number
+  importance_level: 'essential' | 'important' | 'specialized' | 'emerging'
+  status: 'core' | 'trending' | 'controversial' | 'emerging'
+  summary: string
+  frameworks: string[]
+  thinkers: string[]
+  debates: string[]
+  related_topics: string[]
+  recommended_reading: KnowledgeResource[]
+  content_angles: string[]
+  trend_connections?: string[]
+  related_signal_topics?: string[]
+  frequently_confused_with?: string[]
+  debate_for?: string[]
+  debate_against?: string[]
+}
+
+export interface KnowledgeRelationship {
+  source_topic_id: string
+  target_topic_id: string
+  relationship: 'depends_on' | 'related_to' | 'opposes' | 'extends'
 }

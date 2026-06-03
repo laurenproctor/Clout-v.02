@@ -11,6 +11,7 @@ import { SignalCard } from './SignalCard'
 import { ConceptCard } from './ConceptCard'
 import { CompetitorIntelligenceFeed } from './CompetitorIntelligenceFeed'
 import { WebsiteIntelligenceFeed } from './WebsiteIntelligenceFeed'
+import { KnowledgeSignalsFeed } from './KnowledgeSignalsFeed'
 import { EditorialBriefingCard } from './EditorialBriefingCard'
 import { ExampleSignalCard } from './ExampleSignalCard'
 import type {
@@ -21,6 +22,7 @@ import type {
   OnboardingPayload,
   WebsiteOpportunity,
   WebsiteContentGap,
+  KnowledgeTopic,
 } from '@/types/feed'
 import type { CompetitorContentItem } from '@/app/api/competitors/content/route'
 
@@ -46,6 +48,7 @@ interface SignalFeedProps {
 
 type CardCache = Partial<Record<FeedTab, SignalCardType[]>>
 type WebsiteData = { items: WebsiteOpportunity[]; gaps: WebsiteContentGap[] } | null
+type KnowledgeData = { topics: KnowledgeTopic[] } | null
 
 export function SignalFeed({
   userId,
@@ -63,6 +66,7 @@ export function SignalFeed({
   const [cardCache, setCardCache] = useState<CardCache>({})
   const [competitorItems, setCompetitorItems] = useState<CompetitorContentItem[] | null>(null)
   const [websiteData, setWebsiteData] = useState<WebsiteData>(null)
+  const [knowledgeData, setKnowledgeData] = useState<KnowledgeData>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
@@ -81,6 +85,11 @@ export function SignalFeed({
         if (!res.ok) throw new Error('Failed to load website intelligence')
         const data = await res.json()
         setWebsiteData({ items: data.items ?? [], gaps: data.gaps ?? [] })
+      } else if (tab === 'knowledge') {
+        const res = await fetch('/api/knowledge-signals')
+        if (!res.ok) throw new Error('Failed to load knowledge signals')
+        const data = await res.json()
+        setKnowledgeData({ topics: data.topics ?? [] })
       } else {
         const res = await fetch(`/api/feed?tab=${tab}`)
         if (!res.ok) throw new Error('Failed to load signals')
@@ -110,11 +119,12 @@ export function SignalFeed({
     const alreadyCached =
       tab === 'competitors' ? competitorItems !== null :
       tab === 'website'     ? websiteData !== null :
+      tab === 'knowledge'   ? knowledgeData !== null :
       cardCache[tab] !== undefined
     if (!alreadyCached) {
       fetchTab(tab)
     }
-  }, [cardCache, competitorItems, websiteData, fetchTab])
+  }, [cardCache, competitorItems, websiteData, knowledgeData, fetchTab])
 
   const handleDismiss = useCallback((cardId: string) => {
     setCardCache(prev => {
@@ -161,7 +171,7 @@ export function SignalFeed({
   }
 
   // ── Phase: Feed ───────────────────────────────────────────────────────────
-  const isManagedTab = activeTab === 'competitors' || activeTab === 'website'
+  const isManagedTab = activeTab === 'competitors' || activeTab === 'website' || activeTab === 'knowledge'
   const activeCards = isManagedTab ? null : cardCache[activeTab]
   const isEmpty = isManagedTab
     ? false  // competitors and website tabs handle their own empty states
@@ -264,6 +274,17 @@ export function SignalFeed({
             error={error}
             workspaceSlug={workspaceSlug}
             onRetry={() => fetchTab('website')}
+          />
+        )}
+
+        {/* Knowledge Signals */}
+        {activeTab === 'knowledge' && (
+          <KnowledgeSignalsFeed
+            topics={knowledgeData?.topics ?? []}
+            loading={loading}
+            error={error}
+            workspaceSlug={workspaceSlug}
+            onRetry={() => fetchTab('knowledge')}
           />
         )}
 

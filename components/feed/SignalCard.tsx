@@ -204,6 +204,9 @@ export function SignalCard({
         )}
 
         {/* Ranking rationale */}
+        {/* TODO: Future — surface related Knowledge Signals topics on signal cards.
+            When signal card tags match a KnowledgeTopic.related_signal_topics[], show
+            a "Related Knowledge" row: [Positioning] [Demand Generation] chips linking to /knowledge/[id]. */}
         {card.ranking_rationale && card.ranking_rationale.length > 0 && (
           <div style={{
             fontSize: tokens.fontSize.rationale,
