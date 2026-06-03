@@ -115,8 +115,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 
-    console.log('[feed] tab=%s workspace=%s topics=%j rawCards=%d dismissedIds=%d',
-      tab, workspaceId, userTopics, (cards ?? []).length, dismissedIds.length)
+    console.log('[feed] tab=%s workspace=%s topics=%j rawCards=%d dismissedIds=%d wsFeedSettings=%s',
+      tab, workspaceId, userTopics, (cards ?? []).length, dismissedIds.length, wsFeedSettings ? 'found' : 'missing')
 
     // Apply dismissal filter and compute opportunity tiers
     const filtered = (cards ?? [])
@@ -159,6 +159,7 @@ export async function GET(req: NextRequest) {
         return (b.gdelt_score ?? 0) - (a.gdelt_score ?? 0)
       })
 
+    console.log('[feed] tab=%s finalCards=%d', tab, filtered.length)
     return NextResponse.json({ cards: filtered })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
