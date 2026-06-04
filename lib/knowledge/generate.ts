@@ -153,16 +153,37 @@ export function parseGenerationResponse(raw: string): { industry_summary: string
   if (!Array.isArray(obj.topics)) return null
   if (typeof obj.industry_summary !== 'string') return null
 
-  const validTopics = (obj.topics as unknown[]).filter((t): t is KnowledgeTopic => {
-    if (typeof t !== 'object' || t === null) return false
-    const topic = t as Record<string, unknown>
-    return (
-      typeof topic.title === 'string' && topic.title.length > 0 &&
-      typeof topic.category === 'string' &&
-      typeof topic.summary === 'string' &&
-      Array.isArray(topic.content_angles) && topic.content_angles.length > 0
-    )
-  })
+  const validTopics = (obj.topics as unknown[])
+    .filter((t): t is Record<string, unknown> => {
+      if (typeof t !== 'object' || t === null) return false
+      const topic = t as Record<string, unknown>
+      return (
+        typeof topic.title === 'string' && topic.title.length > 0 &&
+        typeof topic.category === 'string' &&
+        typeof topic.summary === 'string' &&
+        Array.isArray(topic.content_angles) && topic.content_angles.length > 0
+      )
+    })
+    .map((t): KnowledgeTopic => ({
+      id: '',
+      title: t.title as string,
+      category: t.category as KnowledgeTopic['category'],
+      importance_score: typeof t.importance_score === 'number' ? t.importance_score : 75,
+      importance_level: typeof t.importance_level === 'string' ? t.importance_level as KnowledgeTopic['importance_level'] : 'important',
+      status: typeof t.status === 'string' ? t.status as KnowledgeTopic['status'] : 'core',
+      summary: t.summary as string,
+      frameworks: Array.isArray(t.frameworks) ? t.frameworks as string[] : [],
+      thinkers: Array.isArray(t.thinkers) ? t.thinkers as string[] : [],
+      debates: Array.isArray(t.debates) ? t.debates as string[] : [],
+      related_topics: Array.isArray(t.related_topics) ? t.related_topics as string[] : [],
+      recommended_reading: Array.isArray(t.recommended_reading) ? t.recommended_reading as KnowledgeTopic['recommended_reading'] : [],
+      content_angles: t.content_angles as string[],
+      frequently_confused_with: Array.isArray(t.frequently_confused_with) ? t.frequently_confused_with as string[] : [],
+      debate_for: Array.isArray(t.debate_for) ? t.debate_for as string[] : [],
+      debate_against: Array.isArray(t.debate_against) ? t.debate_against as string[] : [],
+      trend_connections: Array.isArray(t.trend_connections) ? t.trend_connections as string[] : [],
+      related_signal_topics: Array.isArray(t.related_signal_topics) ? t.related_signal_topics as string[] : [],
+    }))
 
   if (validTopics.length === 0) return null
   return { industry_summary: obj.industry_summary as string, topics: validTopics }
