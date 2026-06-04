@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeWebsiteForOpportunities } from '@/lib/website-intelligence/analyze'
+import { writeCache } from '../_cache'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -52,20 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: userMessage }, { status: 422 })
   }
 
-  // Cache results (cast to any — website_feed_cache column added via migration, types not regenerated yet)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
-    .from('workspace_feed_settings')
-    .update({
-      website_feed_cache: {
-        items: result.items,
-        gaps: result.gaps,
-        assets: result.assets,
-        analyzed_at: new Date().toISOString(),
-      },
-      updated_at: new Date().toISOString(),
-    })
-    .eq('workspace_id', session.workspaceId)
+  await writeCache(supabase, session.workspaceId, result)
 
   return NextResponse.json({
     configured: true,

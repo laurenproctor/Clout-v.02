@@ -71,6 +71,26 @@ Rules:
 - If the page has very little content, still try to identify at least 1-2 opportunities
 - Output ONLY valid JSON. No markdown, no explanation.`
 
+function parseAnalysisResponse(content: string): WebsiteAnalysisResult {
+  const jsonMatch = content.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    console.error('[website-intelligence/analyze] no JSON in Claude response, first 500 chars:', content.slice(0, 500))
+    throw new Error('ANALYSIS_PARSE_FAILED: Claude did not return valid JSON')
+  }
+  let parsed: WebsiteAnalysisResult
+  try {
+    parsed = JSON.parse(jsonMatch[0])
+  } catch (err) {
+    console.error('[website-intelligence/analyze] JSON.parse failed:', err, '— snippet:', jsonMatch[0].slice(0, 500))
+    throw new Error('ANALYSIS_PARSE_FAILED: Could not parse Claude response as JSON')
+  }
+  return {
+    items: Array.isArray(parsed.items) ? parsed.items : [],
+    gaps: Array.isArray(parsed.gaps) ? parsed.gaps : [],
+    assets: Array.isArray(parsed.assets) ? parsed.assets : [],
+  }
+}
+
 export async function analyzeWebsiteForOpportunities(url: string): Promise<WebsiteAnalysisResult> {
   const scraped = await scrapeUrl(url)
 
@@ -88,22 +108,26 @@ ${scraped.markdownContent.slice(0, 6000)}`
     maxTokens: 8192,
   })
 
-  let parsed: WebsiteAnalysisResult
-  const jsonMatch = result.content.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    console.error('[website-intelligence/analyze] no JSON in Claude response, first 500 chars:', result.content.slice(0, 500))
-    throw new Error('ANALYSIS_PARSE_FAILED: Claude did not return valid JSON')
-  }
-  try {
-    parsed = JSON.parse(jsonMatch[0])
-  } catch (err) {
-    console.error('[website-intelligence/analyze] JSON.parse failed:', err, '— snippet:', jsonMatch[0].slice(0, 500))
-    throw new Error('ANALYSIS_PARSE_FAILED: Could not parse Claude response as JSON')
-  }
+  return parseAnalysisResponse(result.content)
+}
 
-  const items = Array.isArray(parsed.items) ? parsed.items : []
-  const gaps = Array.isArray(parsed.gaps) ? parsed.gaps : []
-  const assets = Array.isArray(parsed.assets) ? parsed.assets : []
+export async function analyzeContentForOpportunities(
+  text: string,
+  sourceUrl: string,
+  sourceName: string,
+): Promise<WebsiteAnalysisResult> {
+  const userMessage = `Source name: ${sourceName}
+Source URL: ${sourceUrl}
 
-  return { items, gaps, assets }
+## Content (up to 6000 chars):
+${text.slice(0, 6000)}`
+
+  const result = await callClaude({
+    systemPrompt: SYSTEM_PROMPT,
+    userMessage,
+    model: 'claude-sonnet-4-6',
+    maxTokens: 8192,
+  })
+
+  return parseAnalysisResponse(result.content)
 }
