@@ -18,7 +18,7 @@ export default async function LinkedInCreatePage({
   const supabase = createServiceClient()
   const { data: workspace } = await supabase
     .from('workspaces')
-    .select('id')
+    .select('id, custom_audiences')
     .eq('slug', workspaceSlug)
     .is('deleted_at', null)
     .maybeSingle()
@@ -39,7 +39,7 @@ export default async function LinkedInCreatePage({
         <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
-        <LinkedInWorkspace lenses={lenses} />
+        <LinkedInWorkspace lenses={lenses} savedAudiences={workspace.custom_audiences ?? []} />
       </div>
     </div>
   )
