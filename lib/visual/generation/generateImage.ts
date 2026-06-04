@@ -258,7 +258,42 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
           fontBodyUrl:    overlayParams.fontBodyUrl    ?? undefined,
         })
 
-        const pngBuffer = await renderTemplate(templateSpec, overlayTemplateProps, brandTokens, size.width, size.height, fonts)
+        // For Satori: pre-resolve images to data URIs so the renderer never makes
+        // outbound network requests. gpt-image-1 already returns base64; use it directly.
+        // Puppeteer can load URLs natively so skip this for that path.
+        let renderBackgroundUrl: string = upload.publicUrl
+        let renderLogoUrl: string | undefined = overlayParams.logoUrl
+
+        if (!PUPPETEER_ENABLED) {
+          if (generatedProviderUrl.startsWith('data:')) {
+            renderBackgroundUrl = generatedProviderUrl
+          } else {
+            try {
+              const bgFetch = await fetch(upload.publicUrl)
+              if (bgFetch.ok) {
+                const bgBuf = Buffer.from(await bgFetch.arrayBuffer())
+                const bgMime = (bgFetch.headers.get('content-type') ?? 'image/png').split(';')[0]
+                renderBackgroundUrl = `data:${bgMime};base64,${bgBuf.toString('base64')}`
+              }
+            } catch { /* fall through to public URL */ }
+          }
+          if (overlayParams.logoUrl) {
+            try {
+              const logoFetch = await fetch(overlayParams.logoUrl)
+              if (logoFetch.ok) {
+                const logoBuf = Buffer.from(await logoFetch.arrayBuffer())
+                const logoMime = (logoFetch.headers.get('content-type') ?? 'image/png').split(';')[0]
+                renderLogoUrl = `data:${logoMime};base64,${logoBuf.toString('base64')}`
+              }
+            } catch { /* fall through to URL */ }
+          }
+        }
+
+        const renderProps: EditorialHeroProps | QuoteMonolithProps = overlayParams.quote
+          ? ({ ...(overlayTemplateProps as QuoteMonolithProps), backgroundUrl: renderBackgroundUrl, logoUrl: renderLogoUrl })
+          : ({ ...(overlayTemplateProps as EditorialHeroProps), backgroundUrl: renderBackgroundUrl, logoUrl: renderLogoUrl })
+
+        const pngBuffer = await renderTemplate(templateSpec, renderProps, brandTokens, size.width, size.height, fonts)
         const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
         composedUrl = composedUpload.publicUrl
 

@@ -1,21 +1,21 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { UTMConfig, UTMTemplateSettings, DEFAULT_UTM_TEMPLATES } from '@/lib/distribution/platform-registry'
 
-type WorkspacePublishingContext = {
+export type WorkspacePublishingContext = {
   utmSettings:  Record<string, UTMConfig>
   utmTemplates: UTMTemplateSettings
 }
 
-// Request-level memoization — avoids repeated reads when publishing fans out across channels.
-// No TTL or invalidation: safe in serverless (fresh process per invocation) but would stale
-// in a persistent worker if UTM settings change between two publishes in the same process.
-const contextCache = new Map<string, WorkspacePublishingContext>()
+const TTL_MS = 5 * 60 * 1000 // 5 minutes
 
-export async function buildWorkspacePublishingContext(
-  workspaceId: string
-): Promise<WorkspacePublishingContext> {
-  if (contextCache.has(workspaceId)) return contextCache.get(workspaceId)!
+type CacheEntry = {
+  value:     WorkspacePublishingContext
+  expiresAt: number
+}
 
+const contextCache = new Map<string, CacheEntry>()
+
+async function fetchWorkspaceUTMContext(workspaceId: string): Promise<WorkspacePublishingContext> {
   const supabase = createServiceClient()
   const { data } = await supabase
     .from('workspace_distribution_settings')
@@ -26,10 +26,24 @@ export async function buildWorkspacePublishingContext(
   const raw = (data?.utm_settings ?? {}) as Record<string, unknown>
   const { _templates, ...platformSettings } = raw
 
-  const ctx: WorkspacePublishingContext = {
+  return {
     utmSettings:  platformSettings as Record<string, UTMConfig>,
     utmTemplates: (_templates as UTMTemplateSettings | undefined) ?? DEFAULT_UTM_TEMPLATES,
   }
-  contextCache.set(workspaceId, ctx)
-  return ctx
+}
+
+export async function loadUTMContext(workspaceId: string): Promise<WorkspacePublishingContext> {
+  const entry = contextCache.get(workspaceId)
+  if (entry && entry.expiresAt > Date.now()) return entry.value
+
+  const value = await fetchWorkspaceUTMContext(workspaceId)
+  contextCache.set(workspaceId, { value, expiresAt: Date.now() + TTL_MS })
+  return value
+}
+
+// Kept for backwards compatibility — delegates to loadUTMContext.
+export async function buildWorkspacePublishingContext(
+  workspaceId: string
+): Promise<WorkspacePublishingContext> {
+  return loadUTMContext(workspaceId)
 }

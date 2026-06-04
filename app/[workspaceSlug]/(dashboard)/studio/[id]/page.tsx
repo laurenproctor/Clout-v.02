@@ -89,6 +89,8 @@ export default function StudioEditorPage() {
   const [xPosted,           setXPosted]           = useState(false)
   const [xPostUrl,          setXPostUrl]          = useState<string | null>(null)
   const [publishError,      setPublishError]      = useState<string | null>(null)
+  const [renderedPreviewBody, setRenderedPreviewBody] = useState<string | null>(null)
+  const [previewHasUTMs,      setPreviewHasUTMs]      = useState(false)
 
   // Platform tabs state — tracks the "active tab" for concept siblings
   const [activeTabId, setActiveTabId] = useState<string>(id)
@@ -185,6 +187,29 @@ export default function StudioEditorPage() {
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
   }, [body])
+
+  // Fetch rendered body (with UTMs) for the preview panel.
+  // Only runs when body contains a URL and a platform is known.
+  useEffect(() => {
+    const platform = assignedChannel?.platform ?? 'linkedin'
+    if (!body.includes('http')) {
+      setRenderedPreviewBody(null)
+      setPreviewHasUTMs(false)
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/outputs/${id}/rendered?platform=${platform}`)
+        if (!res.ok) return
+        const data = await res.json()
+        setRenderedPreviewBody(data.body ?? null)
+        setPreviewHasUTMs(data.attribution?.applied ?? false)
+      } catch {
+        // silently fall back to canonical body
+      }
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [id, body, channelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard shortcuts — no dep array so handlers always capture fresh state
   useEffect(() => {
@@ -290,18 +315,34 @@ export default function StudioEditorPage() {
     setPostingToX(false)
   }
 
-  function handleCopy(format: 'plain' | 'markdown' | 'linkedin' | 'x') {
+  async function handleCopy(format: 'plain' | 'markdown' | 'linkedin' | 'x') {
     const tags = hashtags.map(h => `#${h}`).join(' ')
+    let bodyForCopy = body
+
+    // For platform-specific formats, fetch the rendered body with UTMs applied.
+    if ((format === 'linkedin' || format === 'x') && body.includes('http')) {
+      try {
+        const platform = format === 'linkedin' ? 'linkedin' : 'x'
+        const res = await fetch(`/api/outputs/${id}/rendered?platform=${platform}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.attribution?.applied) bodyForCopy = data.body
+        }
+      } catch {
+        // silently fall back to canonical body
+      }
+    }
+
     let text = ''
     if (format === 'markdown') {
-      text = [title ? `# ${title}` : '', '', body, tags ? `\n${tags}` : ''].filter(Boolean).join('\n').trim()
+      text = [title ? `# ${title}` : '', '', bodyForCopy, tags ? `\n${tags}` : ''].filter(Boolean).join('\n').trim()
     } else if (format === 'linkedin') {
-      text = [title, '', body, tags ? `\n${tags}` : ''].filter(Boolean).join('\n').trim()
+      text = [title, '', bodyForCopy, tags ? `\n${tags}` : ''].filter(Boolean).join('\n').trim()
     } else if (format === 'x') {
-      const full = [title, body, tags].filter(Boolean).join(' ').trim()
+      const full = [title, bodyForCopy, tags].filter(Boolean).join(' ').trim()
       text = full.length <= 280 ? full : full.slice(0, 277) + '…'
     } else {
-      text = [title, body].filter(Boolean).join('\n\n')
+      text = [title, bodyForCopy].filter(Boolean).join('\n\n')
     }
     navigator.clipboard.writeText(text)
     setCopied(true)
@@ -378,9 +419,10 @@ export default function StudioEditorPage() {
       return acc
     }, [])
 
-  // Determine which sibling post to preview
+  // Determine which sibling post to preview.
+  // For the current post, swap in the rendered body (UTM-tagged) when available.
   const previewOutput = activeTabId === id
-    ? { body, title }
+    ? { body: (previewHasUTMs && renderedPreviewBody) ? renderedPreviewBody : body, title }
     : (() => {
         const sib = siblings.find(s => s.id === activeTabId)
         if (!sib) return { body, title }
@@ -634,9 +676,16 @@ export default function StudioEditorPage() {
             {/* Preview tab */}
             {rightTab === 'preview' && (
               <div className="flex-1 bg-zinc-50 overflow-y-auto px-6 py-5">
-                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-4">
-                  {previewAccountName || assignedChannel?.platform || 'Preview'}
-                </p>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
+                    {previewAccountName || assignedChannel?.platform || 'Preview'}
+                  </p>
+                  {previewHasUTMs && activeTabId === id && (
+                    <span className="text-[9px] font-medium text-emerald-600 bg-emerald-500/10 rounded px-1.5 py-0.5 leading-none">
+                      UTMs applied
+                    </span>
+                  )}
+                </div>
                 <PlatformPreview
                   platform={previewPlatform}
                   accountName={previewAccountName}

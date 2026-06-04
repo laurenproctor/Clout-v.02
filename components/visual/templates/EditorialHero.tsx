@@ -50,8 +50,8 @@ export function EditorialHero({
           position: 'absolute',
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
+          width: width,
+          height: height,
           objectFit: 'cover',
         }}
       />
@@ -90,8 +90,8 @@ export function EditorialHero({
             src={logoUrl}
             alt=""
             style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
+              width: logoWidth,
+              height: logoHeight,
               objectFit: 'contain',
             }}
           />
@@ -122,7 +122,7 @@ export function EditorialHero({
               lineHeight: LEADING.headline,
               letterSpacing: '-0.02em',
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 5,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
             }}

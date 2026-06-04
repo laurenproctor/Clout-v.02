@@ -19,9 +19,7 @@ import { createLocalPost, normalizeGBPPostState } from '@/lib/channels/google-bu
 import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
 import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/types'
 import { GBPApiError } from '@/lib/channels/google-business-profile/types'
-import { buildUTMParams, injectUTMIntoContent } from '@/lib/analytics/utm'
-import { buildWorkspacePublishingContext } from '@/lib/domain/publishing-context'
-import { DEFAULT_UTM_TEMPLATES } from '@/lib/distribution/platform-registry'
+import { renderOutputForPlatform } from '@/lib/domain/output-utm'
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -526,32 +524,22 @@ export async function publishOutput(
     )
   }
 
-  // Inject UTM params into any external website links in the post body.
-  // This ensures GA4 can attribute sessions back to the specific content piece
-  // when a reader clicks through to the creator's site. We only tag URLs that
-  // aren't social platform URLs (those are the post destination, not the creator's site).
-  const canonicalId = output.generationGroupId ?? output.id
-  const publishingCtx = output.workspaceId
-    ? await buildWorkspacePublishingContext(output.workspaceId)
-    : { utmSettings: {}, utmTemplates: DEFAULT_UTM_TEMPLATES }
   const outputContent = output.content as Record<string, unknown>
-  const utmParams = buildUTMParams({
+  const { body: renderedBody } = await renderOutputForPlatform({
+    workspaceId:   output.workspaceId ?? '',
     platform:      channel.platform,
-    canonicalId,
     outputId:      output.id,
-    customSources: publishingCtx.utmSettings,
-    templates:     publishingCtx.utmTemplates,
+    canonicalId:   output.generationGroupId ?? output.id,
     outputContext: {
       campaignName: outputContent.campaignName as string | undefined,
       cta:          outputContent.cta          as string | undefined,
       lensName:     outputContent.lensName     as string | undefined,
       voice:        outputContent.voiceRegister as string | undefined,
     },
+    body: output.content.body ?? '',
   })
-  const body = output.content.body ?? ''
-  const injectedBody = injectUTMIntoContent(body, utmParams)
-  const outputToPublish = injectedBody !== body
-    ? { ...output, content: { ...output.content, body: injectedBody } }
+  const outputToPublish = renderedBody !== (output.content.body ?? '')
+    ? { ...output, content: { ...output.content, body: renderedBody } }
     : output
 
   switch (channel.platform) {
