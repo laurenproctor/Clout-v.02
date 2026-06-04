@@ -25,8 +25,14 @@ export async function saveCustomAudience(
   )
   if (alreadySaved) return
 
+  const MAX_SAVED_AUDIENCES = 20
+  const updated = [...existing, value]
+  const trimmed = updated.length > MAX_SAVED_AUDIENCES
+    ? updated.slice(updated.length - MAX_SAVED_AUDIENCES)
+    : updated
+
   await supabase
     .from('workspaces')
-    .update({ custom_audiences: [...existing, value] })
+    .update({ custom_audiences: trimmed })
     .eq('id', workspaceId)
 }

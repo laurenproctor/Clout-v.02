@@ -175,16 +175,18 @@ export function StrategyPanel({
                 {item.label}
               </Pill>
             ))}
-            {savedAudiences.map(saved => (
-              <Pill
-                key={saved}
-                selected={values.audience === 'custom' && values.customAudience === saved}
-                onClick={() => !readOnly && onChange({ audience: 'custom', customAudience: saved })}
-                disabled={readOnly}
-              >
-                {saved}
-              </Pill>
-            ))}
+            {savedAudiences
+              .filter(saved => !audiences.some(a => a.label.toLowerCase() === saved.toLowerCase()))
+              .map(saved => (
+                <Pill
+                  key={saved}
+                  selected={values.audience === 'custom' && values.customAudience === saved}
+                  onClick={() => !readOnly && onChange({ audience: 'custom', customAudience: saved })}
+                  disabled={readOnly}
+                >
+                  {saved}
+                </Pill>
+              ))}
             <Pill
               selected={values.audience === 'custom' && !savedAudiences.some(s => s === values.customAudience)}
               onClick={() => !readOnly && onChange({ audience: 'custom', customAudience: '' })}
