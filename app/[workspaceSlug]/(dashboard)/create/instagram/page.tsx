@@ -17,7 +17,7 @@ export default async function InstagramCreatePage({
   const supabase = createServiceClient()
   const { data: workspace } = await supabase
     .from('workspaces')
-    .select('id')
+    .select('id, custom_audiences')
     .eq('slug', workspaceSlug)
     .is('deleted_at', null)
     .maybeSingle()
@@ -25,6 +25,14 @@ export default async function InstagramCreatePage({
 
   const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
+
+  const { data: brand } = await supabase
+    .from('brand_profiles')
+    .select('logo_url')
+    .eq('workspace_id', workspace.id)
+    .maybeSingle()
+
+  const logoUrl = brand?.logo_url ?? null
 
   return (
     <div className="flex h-full flex-col">
@@ -38,7 +46,7 @@ export default async function InstagramCreatePage({
         <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
-        <InstagramWorkspace lenses={lenses} />
+        <InstagramWorkspace lenses={lenses} logoUrl={logoUrl} savedAudiences={workspace.custom_audiences ?? []} />
       </div>
     </div>
   )
