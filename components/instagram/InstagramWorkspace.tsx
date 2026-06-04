@@ -17,9 +17,11 @@ import { SourceInputPanel } from '@/components/linkedin/SourceInputPanel'
 
 interface InstagramWorkspaceProps {
   lenses: Lens[]
+  logoUrl: string | null
+  savedAudiences?: string[]
 }
 
-export function InstagramWorkspace({ lenses }: InstagramWorkspaceProps) {
+export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: InstagramWorkspaceProps) {
   const [state, setState] = useState<InstagramWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<InstagramGenerationRequest>>({
     visualFormat:  'let_clout_decide',
@@ -149,11 +151,12 @@ export function InstagramWorkspace({ lenses }: InstagramWorkspaceProps) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  mode:         'content-derived',
-                  platform:     'instagram',
-                  aspectRatio:  v.visualPlan.aspectRatio === '1:1' ? 'square' : 'portrait',
-                  keyIdea:      v.caption.slice(0, 200),
+                  mode:            'content-derived',
+                  platform:        'instagram',
+                  aspectRatio:     v.visualPlan.aspectRatio === '1:1' ? 'square' : 'portrait',
+                  keyIdea:         v.caption.slice(0, 200),
                   visualObjective: v.intelligence.visualNarrative,
+                  includeLogo:     !!logoUrl,
                 }),
               })
                 .then(r => r.ok ? r.json() : null)
@@ -236,6 +239,7 @@ export function InstagramWorkspace({ lenses }: InstagramWorkspaceProps) {
         onGenerate={handleGenerate}
         readOnly={state !== 'setup'}
         showGenerateButton={state === 'setup'}
+        savedAudiences={savedAudiences}
       />
     </div>
   )
@@ -304,6 +308,7 @@ export function InstagramWorkspace({ lenses }: InstagramWorkspaceProps) {
             onChange={updated => handleVariationChange(index, updated)}
             initialOutputId={savedVariationIds[index] ?? null}
             instagramChannelId={instagramChannelId}
+            logoUrl={logoUrl}
           />
         ))}
       </div>
