@@ -35,6 +35,7 @@ create type audit_action as enum (
 );
 create type email_type as enum ('welcome', 'output_ready', 'payment_failed');
 create type email_status as enum ('pending', 'sent', 'failed');
+create type tone_pref as enum ('authoritative', 'conversational', 'provocative');
 
 -- ============================================================
 -- USERS  (Clerk mirror — synced via webhook)
@@ -161,6 +162,21 @@ create policy "workspace_slug_history_select" on workspace_slug_history
       select workspace_id from workspace_members where user_id = auth_user_id()
     )
   );
+
+-- ============================================================
+-- WORKSPACE FEED SETTINGS
+-- ============================================================
+create table workspace_feed_settings (
+  workspace_id              uuid PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+  content_topics            text[] DEFAULT '{}',
+  services                  text[] DEFAULT '{}',
+  tone_preference           tone_pref NOT NULL DEFAULT 'authoritative',
+  brand_name                text DEFAULT '',
+  competitors               text[] DEFAULT '{}',
+  knowledge_signals_cache   jsonb,
+  created_at                timestamptz DEFAULT now(),
+  updated_at                timestamptz
+);
 
 -- ============================================================
 -- PROFILES
