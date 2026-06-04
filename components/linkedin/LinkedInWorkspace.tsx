@@ -17,9 +17,10 @@ import { CoachingPanel } from './CoachingPanel'
 
 interface LinkedInWorkspaceProps {
   lenses: Lens[]
+  savedAudiences?: string[]
 }
 
-export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
+export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorkspaceProps) {
   const [state, setState] = useState<LinkedInWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<LinkedInGenerationRequest>>({
     length: 'medium',
@@ -185,6 +186,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             onChange={patchRequest}
             canGenerate={canGenerate}
             onGenerate={handleGenerate}
+            savedAudiences={savedAudiences}
           />
         </div>
       </div>
@@ -206,6 +208,7 @@ export function LinkedInWorkspace({ lenses }: LinkedInWorkspaceProps) {
             onGenerate={handleGenerate}
             readOnly
             showGenerateButton={false}
+            savedAudiences={savedAudiences}
           />
         </div>
       </div>
