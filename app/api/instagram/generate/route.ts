@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
 import { runInstagramGeneration } from '@/lib/instagram/runGeneration'
 import { scrapeUrl } from '@/lib/scraper'
+import { getBrandContext } from '@/lib/brand/getBrandContext'
+import { saveCustomAudience } from '@/lib/audiences'
 import type { InstagramGenerationRequest } from '@/lib/instagram/types'
 
 export const maxDuration = 120
@@ -63,8 +65,13 @@ export async function POST(req: NextRequest) {
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map((l) => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
-  const ctx = { request, lenses: resolvedLenses }
+  const brandContext = await getBrandContext()
+  const ctx = { request, lenses: resolvedLenses, brandContext }
   const stream = runInstagramGeneration(ctx)
+
+  if (request.audience === 'custom' && request.customAudience?.trim()) {
+    saveCustomAudience(session.workspaceId, request.customAudience).catch(() => {})
+  }
 
   return new Response(stream, {
     headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },
