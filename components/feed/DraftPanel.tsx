@@ -1,8 +1,16 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { tokens } from '@/lib/feed/tokens'
 import type { DraftFormat, DraftTone } from '@/types/feed'
+
+function recordInteraction(cardId: string, type: 'draft_started' | 'draft_copied' | 'draft_edited') {
+  fetch('/api/feed/interactions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ signal_card_id: cardId, interaction_type: type }),
+  }).catch(() => {})
+}
 
 const FORMATS: DraftFormat[] = ['linkedin', 'twitter', 'blog', 'newsletter', 'instagram']
 const FORMAT_LABELS: Record<DraftFormat, string> = {
@@ -37,6 +45,18 @@ export function DraftPanel({ cardId, userId, isOpen, onClose, variant = 'standar
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copyLabel, setCopyLabel] = useState('Copy')
+  const hasTrackedOpen = useRef(false)
+
+  useEffect(() => {
+    if (isOpen && !hasTrackedOpen.current) {
+      hasTrackedOpen.current = true
+      recordInteraction(cardId, 'draft_started')
+    }
+    if (!isOpen) {
+      hasTrackedOpen.current = false
+    }
+  }, [isOpen, cardId])
 
   const fetchDraft = useCallback(async (format: DraftFormat, tone: DraftTone) => {
     setIsLoading(true)
@@ -229,23 +249,42 @@ export function DraftPanel({ cardId, userId, isOpen, onClose, variant = 'standar
         </div>
       ))}
 
-      {/* Signal attribution */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        marginTop: '10px',
-        fontSize: '11px',
-        color: tokens.colors.sectionHeaderColor,
-      }}>
-        <span style={{
-          width: tokens.dimensions.signalAttrDotSize,
-          height: tokens.dimensions.signalAttrDotSize,
-          borderRadius: '50%',
-          backgroundColor: tokens.colors.signalAttrDot,
-          flexShrink: 0,
-        }} />
-        {attribution}
+      {/* Footer: copy button + signal attribution */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: tokens.colors.sectionHeaderColor }}>
+          <span style={{
+            width: tokens.dimensions.signalAttrDotSize,
+            height: tokens.dimensions.signalAttrDotSize,
+            borderRadius: '50%',
+            backgroundColor: tokens.colors.signalAttrDot,
+            flexShrink: 0,
+          }} />
+          {attribution}
+        </div>
+        {draftContent[activeFormat] && (
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(draftContent[activeFormat]).then(() => {
+                recordInteraction(cardId, 'draft_copied')
+                setCopyLabel('Copied!')
+                setTimeout(() => setCopyLabel('Copy'), 2000)
+              }).catch(() => {})
+            }}
+            style={{
+              padding: '4px 10px',
+              fontSize: '12px',
+              fontWeight: 500,
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #e5e7eb',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {copyLabel}
+          </button>
+        )}
       </div>
     </div>
   )

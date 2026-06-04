@@ -2836,6 +2836,8 @@ export type Database = {
           competitors: string[]
           competitor_metadata: Json | null
           website_url: string | null
+          feed_preferences: Json | null
+          derived_topics: string[]
           created_at: string
           updated_at: string | null
         }
@@ -2848,6 +2850,8 @@ export type Database = {
           competitors?: string[]
           competitor_metadata?: Json | null
           website_url?: string | null
+          feed_preferences?: Json | null
+          derived_topics?: string[]
           created_at?: string
           updated_at?: string | null
         }
@@ -2860,6 +2864,8 @@ export type Database = {
           competitors?: string[]
           competitor_metadata?: Json | null
           website_url?: string | null
+          feed_preferences?: Json | null
+          derived_topics?: string[]
           created_at?: string
           updated_at?: string | null
         }
