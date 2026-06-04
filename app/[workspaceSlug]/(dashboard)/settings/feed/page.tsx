@@ -35,8 +35,11 @@ function SignalFeedSettingsContent() {
     editorial_voices: [],
     website_url: '',
   })
+  const [savedWebsiteUrl, setSavedWebsiteUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingWebsite, setSavingWebsite] = useState(false)
+  const [websiteSaved, setWebsiteSaved] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
@@ -44,11 +47,13 @@ function SignalFeedSettingsContent() {
     fetch('/api/feed/settings')
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then((data: FeedSettings) => {
+        const url = data.website_url ?? ''
         setSettings({
           ...data,
           competitor_metadata: data.competitor_metadata ?? {},
-          website_url: data.website_url ?? '',
+          website_url: url,
         })
+        setSavedWebsiteUrl(url)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -70,6 +75,26 @@ function SignalFeedSettingsContent() {
     }
   }
 
+  async function handleSaveWebsite() {
+    setSavingWebsite(true)
+    try {
+      const res = await fetch('/api/feed/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: settings.website_url || null }),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      setSavedWebsiteUrl(settings.website_url)
+      setWebsiteSaved(true)
+      setTimeout(() => setWebsiteSaved(false), 3000)
+    } catch {
+      setToast({ message: 'Failed to save website URL', type: 'error' })
+      setTimeout(() => setToast(null), 3000)
+    } finally {
+      setSavingWebsite(false)
+    }
+  }
+
   async function handleSave() {
     setSaving(true)
     try {
@@ -88,6 +113,7 @@ function SignalFeedSettingsContent() {
       })
       if (!res.ok) throw new Error('Save failed')
 
+      setSavedWebsiteUrl(settings.website_url)
       if (isSetup) {
         router.push(`/${workspaceSlug}/feed`)
       } else {
@@ -155,13 +181,32 @@ function SignalFeedSettingsContent() {
             <p className="mb-3 text-sm text-zinc-500">
               Enter your website URL to surface content opportunities from your existing assets.
             </p>
-            <input
-              type="url"
-              value={settings.website_url}
-              onChange={e => setSettings(s => ({ ...s, website_url: e.target.value }))}
-              placeholder="https://example.com"
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                value={settings.website_url}
+                onChange={e => setSettings(s => ({ ...s, website_url: e.target.value }))}
+                placeholder="https://example.com"
+                className="flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0"
+              />
+              {settings.website_url !== savedWebsiteUrl && !websiteSaved && (
+                <button
+                  onClick={handleSaveWebsite}
+                  disabled={savingWebsite}
+                  className="shrink-0 rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {savingWebsite ? 'Saving…' : 'Save'}
+                </button>
+              )}
+              {websiteSaved && (
+                <span className="shrink-0 flex items-center gap-1 text-sm text-green-600 font-medium">
+                  <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8l3.5 3.5L13 5" />
+                  </svg>
+                  Saved
+                </span>
+              )}
+            </div>
           </section>
 
           <section>

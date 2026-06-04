@@ -68,11 +68,11 @@ function buildQuery(
   // Subjects are the most concrete signal — use them first
   subjects.slice(0, 2).forEach(s => terms.push(s.toLowerCase()))
 
-  // Visual style
-  if (visualStyles.length > 0) {
-    const mapped = STYLE_QUERY_MAP[visualStyles[0]]
-    terms.push(mapped ?? visualStyles[0].toLowerCase())
-  }
+  // Visual styles — include up to 2 so adding a second style actually changes the query
+  visualStyles.slice(0, 2).forEach(style => {
+    const mapped = STYLE_QUERY_MAP[style]
+    terms.push(mapped ?? style.toLowerCase())
+  })
 
   // Imagery type
   if (imageryTypes.length > 0) {
@@ -106,7 +106,7 @@ function buildQuery(
   }
 
   // Unsplash searches best with 3–5 focused terms
-  return terms.slice(0, 4).join(' ').trim()
+  return terms.slice(0, 5).join(' ').trim()
 }
 
 export async function GET(req: NextRequest) {
@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
 
     const resp = await fetch(url.toString(), {
       headers: { Authorization: `Client-ID ${accessKey}` },
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 },
     })
 
     if (!resp.ok) {
@@ -162,9 +162,10 @@ export async function GET(req: NextRequest) {
       label: photo.alt_description ?? photo.description ?? 'Photo',
     }))
 
-    const hasMore = images.length === perPage
+    const totalPages: number = data.total_pages ?? 0
+    const hasMore = page < totalPages
 
-    return NextResponse.json({ images, query, hasMore, page })
+    return NextResponse.json({ images, query, hasMore, page, totalPages })
   } catch {
     return NextResponse.json({ images: [], fallback: true, hasMore: false })
   }

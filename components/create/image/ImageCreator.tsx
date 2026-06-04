@@ -58,6 +58,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [includeLogo, setIncludeLogo] = useState(false)
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light')
@@ -291,10 +292,19 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 py-5 text-xs text-zinc-500 transition-colors hover:border-zinc-400 hover:bg-zinc-100"
+                        onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                        onDragEnter={e => { e.preventDefault(); setIsDragging(true) }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFileUpload(f) }}
+                        className={cn(
+                          'flex w-full items-center justify-center gap-2 rounded-md border border-dashed py-5 text-xs transition-colors',
+                          isDragging
+                            ? 'border-zinc-500 bg-zinc-100 text-zinc-700'
+                            : 'border-zinc-300 bg-zinc-50 text-zinc-500 hover:border-zinc-400 hover:bg-zinc-100'
+                        )}
                       >
                         <Upload className="h-4 w-4" />
-                        Click to upload an image
+                        {isDragging ? 'Drop image here' : 'Click or drag & drop an image'}
                       </button>
                     )}
                     <input
@@ -389,10 +399,19 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50 py-5 text-xs text-zinc-500 transition-colors hover:border-zinc-400 hover:bg-zinc-100"
+                        onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                        onDragEnter={e => { e.preventDefault(); setIsDragging(true) }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFileUpload(f) }}
+                        className={cn(
+                          'flex w-full items-center justify-center gap-2 rounded-md border border-dashed py-5 text-xs transition-colors',
+                          isDragging
+                            ? 'border-zinc-500 bg-zinc-100 text-zinc-700'
+                            : 'border-zinc-300 bg-zinc-50 text-zinc-500 hover:border-zinc-400 hover:bg-zinc-100'
+                        )}
                       >
                         <Upload className="h-4 w-4" />
-                        Click to upload an image
+                        {isDragging ? 'Drop image here' : 'Click or drag & drop an image'}
                       </button>
                     )}
                     <input

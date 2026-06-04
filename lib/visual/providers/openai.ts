@@ -35,7 +35,7 @@ class OpenAIImageProvider implements ImageProvider {
     const startMs = Date.now()
 
     const body: Record<string, unknown> = {
-      model:           'gpt-image-1',
+      model:           'chatgpt-image-latest',
       prompt:          input.prompt,
       size:            SIZE_MAP[input.aspectRatio],
       quality:         QUALITY_MAP[input.quality ?? 'standard'],
@@ -78,7 +78,7 @@ class OpenAIImageProvider implements ImageProvider {
 
     console.log('[visual/openai] generation complete', {
       latencyMs,
-      model:       'gpt-image-1',
+      model:       'chatgpt-image-latest',
       aspectRatio: input.aspectRatio,
       quality:     QUALITY_MAP[input.quality ?? 'standard'],
     })
