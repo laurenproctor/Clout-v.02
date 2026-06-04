@@ -167,6 +167,15 @@ describe('hasEnoughContext', () => {
       recent_titles: ['A', 'B', 'C', 'D'],
     })).toBe(false)
   })
+
+  it('returns true when recent_titles < 5 but services are present', () => {
+    expect(hasEnoughContext({
+      brand_name: '',
+      services: ['Consulting'],
+      content_topics: [],
+      recent_titles: ['A', 'B', 'C', 'D'],
+    })).toBe(true)
+  })
 })
 
 // ── deduplicateTopics ──────────────────────────────────────────────────────
@@ -206,6 +215,10 @@ describe('deduplicateTopics', () => {
     const a2 = { ...makeTopic('Positioning'), importance_score: 50 }
     const result = deduplicateTopics([a1, a2])
     expect(result[0].importance_score).toBe(90)
+  })
+
+  it('handles empty array', () => {
+    expect(deduplicateTopics([])).toEqual([])
   })
 })
 
