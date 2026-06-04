@@ -85,16 +85,20 @@ ${scraped.markdownContent.slice(0, 6000)}`
     systemPrompt: SYSTEM_PROMPT,
     userMessage,
     model: 'claude-sonnet-4-6',
-    maxTokens: 4096,
+    maxTokens: 8192,
   })
 
   let parsed: WebsiteAnalysisResult
+  const jsonMatch = result.content.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    console.error('[website-intelligence/analyze] no JSON in Claude response, first 500 chars:', result.content.slice(0, 500))
+    throw new Error('ANALYSIS_PARSE_FAILED: Claude did not return valid JSON')
+  }
   try {
-    const jsonMatch = result.content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('No JSON found in response')
     parsed = JSON.parse(jsonMatch[0])
-  } catch {
-    return { items: [], gaps: [], assets: [] }
+  } catch (err) {
+    console.error('[website-intelligence/analyze] JSON.parse failed:', err, '— snippet:', jsonMatch[0].slice(0, 500))
+    throw new Error('ANALYSIS_PARSE_FAILED: Could not parse Claude response as JSON')
   }
 
   const items = Array.isArray(parsed.items) ? parsed.items : []

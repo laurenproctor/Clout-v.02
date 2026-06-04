@@ -35,16 +35,21 @@ export async function POST(req: NextRequest) {
   try {
     result = await analyzeWebsiteForOpportunities(website_url)
   } catch (err) {
-    console.error('[website-intelligence/analyze] crawl/analysis failed:', err)
-    // Return success with empty results — URL was saved, analysis just failed
-    return NextResponse.json({
-      configured: true,
-      website_url,
-      items: [],
-      gaps: [],
-      assets: [],
-      error: 'Analysis failed — try again later',
-    })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[website-intelligence/analyze] crawl/analysis failed:', msg)
+
+    let userMessage = 'Could not reach that URL — make sure it\'s publicly accessible and try again.'
+    if (msg.includes('FETCH_BLOCKED') || msg.includes('403')) {
+      userMessage = 'That site is blocking automated access. Try a specific page URL instead of the homepage.'
+    } else if (msg.includes('FETCH_TIMEOUT') || msg.includes('JINA_TIMEOUT')) {
+      userMessage = 'The site took too long to respond. Try again or use a different page URL.'
+    } else if (msg.includes('JINA_FAILED')) {
+      userMessage = 'Could not retrieve that page. Make sure the URL is correct and publicly accessible.'
+    } else if (msg.includes('ANALYSIS_PARSE_FAILED')) {
+      userMessage = 'Analysis completed but the result was unreadable. Please try again.'
+    }
+
+    return NextResponse.json({ error: userMessage }, { status: 422 })
   }
 
   // Cache results (cast to any — website_feed_cache column added via migration, types not regenerated yet)

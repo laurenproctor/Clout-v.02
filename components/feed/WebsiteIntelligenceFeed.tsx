@@ -103,7 +103,7 @@ export function WebsiteIntelligenceFeed({
         body: JSON.stringify({ website_url: url }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Analysis failed')
+      if (!res.ok || data.error) throw new Error(data.error ?? 'Analysis failed')
 
       setShowUrlForm(false)
       onUrlSaved(url, {
