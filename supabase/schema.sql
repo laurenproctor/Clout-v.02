@@ -174,6 +174,8 @@ create table workspace_feed_settings (
   brand_name                text DEFAULT '',
   competitors               text[] DEFAULT '{}',
   knowledge_signals_cache   jsonb,
+  website_url               text,
+  website_feed_cache        jsonb,
   created_at                timestamptz DEFAULT now(),
   updated_at                timestamptz
 );
