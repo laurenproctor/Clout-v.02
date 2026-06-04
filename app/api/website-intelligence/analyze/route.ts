@@ -1,0 +1,72 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/session'
+import { createClient } from '@/lib/supabase/server'
+import { analyzeWebsiteForOpportunities } from '@/lib/website-intelligence/analyze'
+
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  let website_url: string
+  try {
+    const body = await req.json()
+    website_url = body.website_url
+    if (!website_url || typeof website_url !== 'string') {
+      return NextResponse.json({ error: 'website_url is required' }, { status: 400 })
+    }
+    new URL(website_url) // validate URL format
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
+
+  // Save URL — targeted upsert preserves all other settings
+  await supabase
+    .from('workspace_feed_settings')
+    .upsert(
+      { workspace_id: session.workspaceId, website_url, updated_at: new Date().toISOString() },
+      { onConflict: 'workspace_id' }
+    )
+
+  let result = { items: [] as object[], gaps: [] as object[], assets: [] as object[] }
+  try {
+    result = await analyzeWebsiteForOpportunities(website_url)
+  } catch (err) {
+    console.error('[website-intelligence/analyze] crawl/analysis failed:', err)
+    // Return success with empty results — URL was saved, analysis just failed
+    return NextResponse.json({
+      configured: true,
+      website_url,
+      items: [],
+      gaps: [],
+      assets: [],
+      error: 'Analysis failed — try again later',
+    })
+  }
+
+  // Cache results (cast to any — website_feed_cache column added via migration, types not regenerated yet)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('workspace_feed_settings')
+    .update({
+      website_feed_cache: {
+        items: result.items,
+        gaps: result.gaps,
+        assets: result.assets,
+        analyzed_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('workspace_id', session.workspaceId)
+
+  return NextResponse.json({
+    configured: true,
+    website_url,
+    items: result.items,
+    gaps: result.gaps,
+    assets: result.assets,
+  })
+}

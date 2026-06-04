@@ -275,6 +275,9 @@ export function SignalFeed({
             workspaceSlug={workspaceSlug}
             websiteUrl={websiteData?.websiteUrl ?? null}
             onRetry={() => fetchTab('website')}
+            onUrlSaved={(url, result) => {
+              setWebsiteData({ items: result.items, gaps: result.gaps, websiteUrl: url })
+            }}
           />
         )}
 

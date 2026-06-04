@@ -76,20 +76,31 @@ function SignalFeedSettingsContent() {
   }
 
   async function handleSaveWebsite() {
+    const url = settings.website_url?.trim()
+    if (!url) return
+
     setSavingWebsite(true)
+    setToast({ message: 'Analyzing your website…', type: 'success' })
     try {
-      const res = await fetch('/api/feed/settings', {
-        method: 'PATCH',
+      let fullUrl = url
+      if (!/^https?:\/\//i.test(fullUrl)) fullUrl = `https://${fullUrl}`
+
+      const res = await fetch('/api/website-intelligence/analyze', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website_url: settings.website_url || null }),
+        body: JSON.stringify({ website_url: fullUrl }),
       })
-      if (!res.ok) throw new Error('Save failed')
-      setSavedWebsiteUrl(settings.website_url)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Save failed')
+
+      setSavedWebsiteUrl(fullUrl)
+      setSettings(prev => ({ ...prev, website_url: fullUrl }))
       setWebsiteSaved(true)
-      setTimeout(() => setWebsiteSaved(false), 3000)
+      setToast({ message: 'Website analyzed — check your feed for opportunities', type: 'success' })
+      setTimeout(() => { setWebsiteSaved(false); setToast(null) }, 5000)
     } catch {
-      setToast({ message: 'Failed to save website URL', type: 'error' })
-      setTimeout(() => setToast(null), 3000)
+      setToast({ message: 'Failed to analyze website', type: 'error' })
+      setTimeout(() => setToast(null), 4000)
     } finally {
       setSavingWebsite(false)
     }

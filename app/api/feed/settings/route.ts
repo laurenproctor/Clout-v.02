@@ -91,24 +91,25 @@ export async function PATCH(req: NextRequest) {
 
   const supabase = await createClient()
 
+  // Build update object with only the fields explicitly provided in the request body.
+  // This prevents a partial call (e.g. { website_url }) from clearing unrelated fields.
+  type SettingsRow = import('@/types/db').Database['public']['Tables']['workspace_feed_settings']['Insert']
+  const updateFields: Partial<SettingsRow> & { workspace_id: string } = {
+    workspace_id: session.workspaceId,
+    updated_at: new Date().toISOString(),
+  }
+  if (body.brand_name !== undefined) updateFields.brand_name = body.brand_name ?? ''
+  if (body.content_topics !== undefined) updateFields.content_topics = body.content_topics ?? []
+  if (body.services !== undefined) updateFields.services = body.services ?? []
+  if (body.competitors !== undefined) updateFields.competitors = body.competitors ?? []
+  if (body.competitor_metadata !== undefined) updateFields.competitor_metadata = (body.competitor_metadata ?? {}) as import('@/types/db').Json
+  if (body.editorial_voices !== undefined) updateFields.tone_preference = mapVoicesToTone(body.editorial_voices)
+  if (body.website_url !== undefined) updateFields.website_url = body.website_url ?? null
+
   const { error } = await supabase
     .from('workspace_feed_settings')
-    .upsert(
-      {
-        workspace_id: session.workspaceId,
-        brand_name: body.brand_name ?? '',
-        content_topics: body.content_topics ?? [],
-        services: body.services ?? [],
-        competitors: body.competitors ?? [],
-        competitor_metadata: (body.competitor_metadata ?? {}) as import('@/types/db').Json,
-        tone_preference: body.editorial_voices
-          ? mapVoicesToTone(body.editorial_voices)
-          : 'authoritative',
-        website_url: body.website_url ?? null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'workspace_id' }
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .upsert(updateFields as any, { onConflict: 'workspace_id' })
 
   if (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
