@@ -21,7 +21,7 @@ create type capture_source as enum ('text', 'voice', 'structured', 'url');
 create type capture_status as enum ('pending', 'processing', 'ready', 'failed');
 create type generation_status as enum ('pending', 'generating', 'complete', 'failed');
 create type output_status as enum ('draft', 'review', 'approved', 'queued', 'publishing', 'published', 'failed', 'archived');
-create type channel_platform as enum ('linkedin', 'newsletter', 'twitter');
+create type channel_platform as enum ('linkedin', 'newsletter', 'twitter', 'bluesky');
 create type lens_scope as enum ('system', 'workspace');
 create type job_type as enum ('transcribe', 'generate', 'summarize', 'reformat');
 create type job_status as enum ('queued', 'running', 'done', 'failed', 'canceled');
