@@ -1,6 +1,7 @@
 import { callClaudeStream } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import { resolveTemplateId, resolveAspectRatio } from './templates'
+import type { BrandContext } from '@/lib/brand/getBrandContext'
 import type {
   InstagramGenerationRequest,
   InstagramVariation,
@@ -12,6 +13,7 @@ import type {
 export interface InstagramPromptContext {
   request: InstagramGenerationRequest
   lenses: Array<{ id: string; name: string; systemPrompt: string }>
+  brandContext?: BrandContext
 }
 
 interface ClaudeSlide {
@@ -85,6 +87,33 @@ function buildSystemPrompt(ctx: InstagramPromptContext): string {
       lines.push(lens.systemPrompt)
       lines.push('')
     }
+  }
+
+  const brand = ctx.brandContext
+  const hasBrandData = brand && (
+    brand.brandName ||
+    brand.toneTraits.length > 0 ||
+    brand.visualStyles.length > 0 ||
+    brand.moodTraits.length > 0 ||
+    brand.composition ||
+    brand.generationNotes ||
+    brand.negativeRules.length > 0
+  )
+  if (hasBrandData && brand) {
+    lines.push('## Brand Voice')
+    lines.push('')
+    if (brand.brandName)                  lines.push(`Brand: ${brand.brandName}`)
+    if (brand.toneTraits.length > 0)      lines.push(`Tone: ${brand.toneTraits.join(', ')}`)
+    if (brand.visualStyles.length > 0)    lines.push(`Visual Style: ${brand.visualStyles.join(', ')}`)
+    if (brand.moodTraits.length > 0)      lines.push(`Mood: ${brand.moodTraits.join(', ')}`)
+    if (brand.composition)                lines.push(`Composition: ${brand.composition}`)
+    if (brand.negativeRules.length > 0)   lines.push(`Avoid: ${brand.negativeRules.join(', ')}`)
+    if (brand.generationNotes)            lines.push(`Guidelines: ${brand.generationNotes}`)
+    lines.push('')
+    lines.push('Write captions and slide copy that are consistent with this brand voice.')
+    lines.push('Tone traits define how the writing should feel.')
+    lines.push('Visual style and mood inform the intelligence.visualNarrative field.')
+    lines.push('')
   }
 
   const exampleSlide = { position: 1, role: 'hook', headline: 'The meeting was a mistake.', body: 'We had 12 people in the room and one agenda item that could have been a Slack message.' }

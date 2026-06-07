@@ -13,6 +13,7 @@ interface InstagramVariationCardProps {
   onChange: (updated: InstagramVariation) => void
   initialOutputId: string | null
   instagramChannelId: string | null
+  logoUrl: string | null
 }
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -30,14 +31,57 @@ export function InstagramVariationCard({
   onChange,
   initialOutputId,
   instagramChannelId,
+  logoUrl,
 }: InstagramVariationCardProps) {
   const [outputId, setOutputId] = useState<string | null>(initialOutputId)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [showIntelligence, setShowIntelligence] = useState(false)
+  const [includeLogo, setIncludeLogo] = useState(!!logoUrl)
+  const [logoAssetId, setLogoAssetId] = useState<string | null>(
+    logoUrl && variation.visualAssetIds?.[0] ? variation.visualAssetIds[0] : null
+  )
+  const [nonLogoAssetId, setNonLogoAssetId] = useState<string | null>(
+    !logoUrl && variation.visualAssetIds?.[0] ? variation.visualAssetIds[0] : null
+  )
+  const [renderingAsset, setRenderingAsset] = useState(false)
 
   const captionLength = variation.caption.length
   const captionOver = captionLength > MAX_CAPTION
+
+  const handleLogoToggle = useCallback(async (next: boolean) => {
+    setIncludeLogo(next)
+    const cached = next ? logoAssetId : nonLogoAssetId
+    if (cached) {
+      onChange({ ...variation, visualAssetIds: [cached] })
+      return
+    }
+    setRenderingAsset(true)
+    try {
+      const res = await fetch('/api/visual/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode:            'content-derived',
+          platform:        'instagram',
+          aspectRatio:     variation.visualPlan.aspectRatio === '1:1' ? 'square' : 'portrait',
+          keyIdea:         variation.caption.slice(0, 200),
+          visualObjective: variation.intelligence.visualNarrative,
+          includeLogo:     next,
+        }),
+      })
+      const asset = await res.json() as { assetId?: string }
+      if (asset.assetId) {
+        if (next) setLogoAssetId(asset.assetId)
+        else setNonLogoAssetId(asset.assetId)
+        onChange({ ...variation, visualAssetIds: [asset.assetId] })
+      }
+    } catch {
+      setIncludeLogo(!next)
+    } finally {
+      setRenderingAsset(false)
+    }
+  }, [logoAssetId, nonLogoAssetId, variation, onChange])
 
   const handleSave = useCallback(async () => {
     if (saving) return
@@ -97,6 +141,32 @@ export function InstagramVariationCard({
           resolvedStyle={variation.resolvedStyle}
           resolvedFormat={variation.resolvedFormat}
         />
+
+        {/* Logo toggle */}
+        {logoUrl && (
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeLogo}
+              onClick={() => handleLogoToggle(!includeLogo)}
+              disabled={renderingAsset}
+              className={cn(
+                'relative inline-flex h-4 w-7 shrink-0 rounded-full border transition-colors disabled:opacity-50',
+                includeLogo ? 'bg-zinc-900 border-zinc-900' : 'bg-zinc-200 border-zinc-200'
+              )}
+            >
+              <span className={cn(
+                'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform mt-0.5',
+                includeLogo ? 'translate-x-3.5' : 'translate-x-0.5'
+              )} />
+            </button>
+            <span className="text-xs text-zinc-500">Include Logo</span>
+            {renderingAsset && (
+              <span className="text-[10px] text-zinc-400">Rendering...</span>
+            )}
+          </div>
+        )}
 
         {/* Caption */}
         <div>

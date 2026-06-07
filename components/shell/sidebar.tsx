@@ -462,3 +462,11 @@ export function Sidebar() {
     </>
   )
 }
+
+export function MainContentArea({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {children}
+    </div>
+  )
+}

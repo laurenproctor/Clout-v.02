@@ -1,7 +1,5 @@
 'use client'
 
-import { mapVoicesToTone } from '@/lib/feed/toneMapping'
-
 const VOICES = [
   { id: 'Analytical',  description: 'Rigorous, data-driven, structured.' },
   { id: 'Contrarian',  description: 'Questions consensus. Finds the counterintuitive truth.' },
@@ -11,12 +9,6 @@ const VOICES = [
   { id: 'Cultural',    description: 'Reads the social and creative undercurrents.' },
   { id: 'Visionary',   description: 'Future-oriented, pattern-seeing, bold claims.' },
 ]
-
-const TONE_LABELS: Record<string, string> = {
-  authoritative: 'Authoritative',
-  conversational: 'Conversational',
-  provocative: 'Provocative',
-}
 
 interface EditorialVoiceSelectorProps {
   selected: string[]
@@ -31,8 +23,6 @@ export function EditorialVoiceSelector({ selected, onChange }: EditorialVoiceSel
       onChange([...selected, id])
     }
   }
-
-  const derivedTone = selected.length > 0 ? mapVoicesToTone(selected) : null
 
   return (
     <div>
@@ -86,28 +76,6 @@ export function EditorialVoiceSelector({ selected, onChange }: EditorialVoiceSel
         })}
       </div>
 
-      {/* Derived tone preview */}
-      {derivedTone && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 14px',
-          backgroundColor: '#f5f3ff',
-          borderRadius: '6px',
-          border: '1px solid #e0e7ff',
-        }}>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Your editorial tone:</span>
-          <span style={{
-            fontSize: '12px',
-            fontWeight: 700,
-            color: '#4f46e5',
-            textTransform: 'capitalize',
-          }}>
-            {TONE_LABELS[derivedTone]}
-          </span>
-        </div>
-      )}
     </div>
   )
 }

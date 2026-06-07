@@ -62,8 +62,9 @@ export function VoiceCaptureFlow({
   const [transcript, setTranscript] = useState('')
   const [captureId, setCaptureId] = useState<string | null>(null)
   const [outputId, setOutputId] = useState<string | null>(null)
-  const [showCollapsible, setShowCollapsible] = useState(false)
+  const [showCollapsible, setShowCollapsible] = useState(true)
   const [angles, setAngles] = useState<import('@/types/domain').Angle[]>([])
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([])
   const [bestAngleGenerating, setBestAngleGenerating] = useState(false)
   const [draftAllGenerating, setDraftAllGenerating] = useState(false)
   const bestOutputIdRef = useRef<string | null>(null)
@@ -95,6 +96,10 @@ export function VoiceCaptureFlow({
   }, [])
 
   useEffect(() => clearTimers, [clearTimers])
+
+  function toggleTarget(t: string) {
+    setSelectedTargets(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
+  }
 
   // ── Recording ──
 
@@ -421,6 +426,26 @@ export function VoiceCaptureFlow({
             </span>
           </button>
           <p className="text-[13px] text-zinc-400">Speak freely. We'll find the signal.</p>
+          <div className="w-full border-t border-zinc-100 pt-4 space-y-2">
+            <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide">Post to</p>
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {['LinkedIn', 'X', 'Threads', 'Email', 'Blog'].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTarget(t)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    selectedTargets.includes(t)
+                      ? 'border-zinc-900 bg-zinc-900 text-white'
+                      : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
           {lenses.length > 0 && (
             <GeneratingAsBar
               profileName={profileName}
@@ -511,7 +536,7 @@ export function VoiceCaptureFlow({
 
       {/* ── ANGLES READY ── */}
       {flowState === 'angles_ready' && (
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 space-y-4">
           <AngleOptions
             angles={angles}
             bestAngleGenerating={bestAngleGenerating}
@@ -521,6 +546,12 @@ export function VoiceCaptureFlow({
             onDraftAll={handleDraftAll}
             onSkip={handleSkipAngles}
           />
+          {transcript && (
+            <div className="border-t border-zinc-100 pt-3">
+              <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide mb-1.5">Your words</p>
+              <p className="text-[13px] text-zinc-500 leading-relaxed italic">{transcript}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -568,6 +599,20 @@ export function VoiceCaptureFlow({
               ↻ Try another angle
             </button>
           </div>
+          {/* Platform targets */}
+          {selectedTargets.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedTargets.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full border border-zinc-900 bg-zinc-900 text-white px-3 py-0.5 text-xs font-medium"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Collapsible transcript */}
           <div className="border-t border-zinc-100 pt-3">
             <button
@@ -575,21 +620,23 @@ export function VoiceCaptureFlow({
               onClick={() => setShowCollapsible((v) => !v)}
               className="text-[12px] text-zinc-400 flex items-center gap-1.5 hover:text-zinc-600 transition-colors"
             >
-              Transcript · Themes {showCollapsible ? '↑' : '↓'}
+              Your words {showCollapsible ? '↑' : '↓'}
             </button>
             {showCollapsible && (
               <div className="mt-3 space-y-2">
                 <p className="text-[12px] text-zinc-500 leading-relaxed italic">{transcript}</p>
-                <div className="flex gap-2 flex-wrap mt-2">
-                  {themes.map((t) => (
-                    <span
-                      key={t}
-                      className="px-3 py-1 rounded-full border border-zinc-200 bg-zinc-50 text-[12px] font-medium text-zinc-600"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
+                {themes.length > 0 && (
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {themes.map((t) => (
+                      <span
+                        key={t}
+                        className="px-3 py-1 rounded-full border border-zinc-200 bg-zinc-50 text-[12px] font-medium text-zinc-600"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

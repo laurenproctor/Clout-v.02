@@ -189,7 +189,7 @@ const SOCIAL_PLATFORMS: {
   },
 ]
 
-const PLANNED = ['YouTube', 'Reddit', 'Bluesky', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch', 'Notion'] as const
+const PLANNED = ['YouTube', 'Reddit', 'Bluesky', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────

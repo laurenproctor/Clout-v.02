@@ -1,10 +1,13 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DEMO_TOPICS } from '@/lib/knowledge/demo-data'
+import { getSession } from '@/lib/auth/session'
+import { createClient } from '@/lib/supabase/server'
 import type { KnowledgeTopic, KnowledgeResource } from '@/types/feed'
+import type { KnowledgeSignalsCache } from '@/lib/knowledge/generate'
 
 interface PageProps {
-  params: { workspaceSlug: string; topicId: string }
+  params: Promise<{ workspaceSlug: string; topicId: string }>
 }
 
 const CATEGORY_STYLES: Record<KnowledgeTopic['category'], { bg: string; color: string; label: string }> = {
@@ -46,8 +49,21 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 export default async function KnowledgeTopicPage({ params }: PageProps) {
-  const { workspaceSlug, topicId } = await (params as unknown as Promise<{ workspaceSlug: string; topicId: string }>)
-  const topic = DEMO_TOPICS.find(t => t.id === topicId)
+  const { workspaceSlug, topicId } = await params
+
+  const session = await getSession()
+  if (!session) redirect('/')
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ws } = await (supabase as any)
+    .from('workspace_feed_settings')
+    .select('knowledge_signals_cache')
+    .eq('workspace_id', session.workspaceId)
+    .maybeSingle() as { data: { knowledge_signals_cache: KnowledgeSignalsCache | null } | null }
+
+  const cachedTopics: KnowledgeTopic[] = ws?.knowledge_signals_cache?.topics ?? []
+  const topic = cachedTopics.find(t => t.id === topicId) ?? DEMO_TOPICS.find(t => t.id === topicId)
   if (!topic) notFound()
 
   const cat = CATEGORY_STYLES[topic.category]

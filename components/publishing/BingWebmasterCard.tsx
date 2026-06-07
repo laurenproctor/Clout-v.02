@@ -89,11 +89,6 @@ export function BingWebmasterCard() {
     }
   }
 
-  async function handleDisconnect() {
-    await fetch('/api/integrations/bing/disconnect', { method: 'POST' })
-    setState({ connected: false, sites: [], selectedSiteUrl: null, summary: null })
-  }
-
   if (loading) {
     return (
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 animate-pulse">
@@ -139,13 +134,12 @@ export function BingWebmasterCard() {
                 Live
               </span>
             )}
-            <button
-              type="button"
-              onClick={handleDisconnect}
+            <a
+              href={`/api/integrations/bing/connect?returnTo=${encodeURIComponent(pathname)}`}
               className="text-xs text-zinc-400 transition-colors hover:text-zinc-600"
             >
-              Disconnect
-            </button>
+              Reconnect
+            </a>
           </div>
         ) : (
           <a
