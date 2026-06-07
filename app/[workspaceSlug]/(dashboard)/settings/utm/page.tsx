@@ -13,6 +13,9 @@ import {
   UTMTemplateCampaignToken,
   UTMTemplateContentToken,
   UTMTemplateTermToken,
+  UTMDateFormat,
+  UTM_DATE_FORMATS,
+  DEFAULT_UTM_DATE_FORMAT,
 } from '@/lib/distribution/platform-registry'
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
@@ -37,7 +40,7 @@ function getValidationError(value: string): string | null {
 }
 
 function getFallbackError(token: string, fallback: string): string | null {
-  if (token === 'auto' || token === 'none') return null
+  if (token === 'auto' || token === 'none' || token === 'date') return null
   if (!fallback) return 'Required'
   if (!UTM_VALUE_PATTERN.test(fallback)) return 'Lowercase letters, numbers, hyphens, underscores only'
   return null
@@ -51,12 +54,14 @@ const MEDIUM_TOKEN_LABELS: Record<string, string> = {
 const CAMPAIGN_TOKEN_LABELS: Record<UTMTemplateCampaignToken, string> = {
   auto:          'Auto-ID (current)',
   campaign_name: 'Campaign name',
+  date:          'Date',
   custom:        'Custom value',
 }
 
 const CONTENT_TOKEN_LABELS: Record<UTMTemplateContentToken, string> = {
   auto:   'Auto-ID (current)',
   cta:    'CTA text',
+  date:   'Date',
   custom: 'Custom value',
 }
 
@@ -64,7 +69,31 @@ const TERM_TOKEN_LABELS: Record<UTMTemplateTermToken, string> = {
   none:   'None (omit)',
   lens:   'Lens',
   voice:  'Voice',
+  date:   'Date',
   custom: 'Custom value',
+}
+
+const DATE_FORMAT_LABELS: Record<UTMDateFormat, string> = {
+  'yyyy-mm-dd': 'YYYY-MM-DD  (2026-06-07)',
+  'yyyy-mm':    'YYYY-MM  (2026-06)',
+  'yyyymmdd':   'YYYYMMDD  (20260607)',
+  'yyyy':       'YYYY  (2026)',
+  'mmm-yyyy':   'MMM-YYYY  (jun-2026)',
+}
+
+function formatPreviewDate(format: UTMDateFormat): string {
+  const now   = new Date()
+  const yyyy  = now.getFullYear().toString()
+  const mm    = String(now.getMonth() + 1).padStart(2, '0')
+  const dd    = String(now.getDate()).padStart(2, '0')
+  const mmm   = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][now.getMonth()]
+  switch (format) {
+    case 'yyyy-mm-dd': return `${yyyy}-${mm}-${dd}`
+    case 'yyyy-mm':    return `${yyyy}-${mm}`
+    case 'yyyymmdd':   return `${yyyy}${mm}${dd}`
+    case 'yyyy':       return yyyy
+    case 'mmm-yyyy':   return `${mmm}-${yyyy}`
+  }
 }
 
 export default function UTMSettingsPage() {
@@ -391,13 +420,18 @@ export default function UTMSettingsPage() {
               token={templates.campaign.token}
               fallback={templates.campaign.fallback}
               fallbackLabel={templates.campaign.token === 'custom' ? 'Value' : 'Fallback'}
-              showFallback={templates.campaign.token !== 'auto'}
-              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, token: t as UTMTemplateCampaignToken } }))}
+              showFallback={templates.campaign.token !== 'auto' && templates.campaign.token !== 'date'}
+              showDateFormat={templates.campaign.token === 'date'}
+              dateFormat={templates.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT}
+              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, token: t as UTMTemplateCampaignToken, dateFormat: t === 'date' ? (prev.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined } }))}
               onFallbackChange={(f) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, fallback: f } }))}
+              onDateFormatChange={(fmt) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, dateFormat: fmt } }))}
               fallbackError={getFallbackError(templates.campaign.token, templates.campaign.fallback)}
               preview={
                 templates.campaign.token === 'auto'
                   ? 'utm_campaign=clout_c_abc123…'
+                  : templates.campaign.token === 'date'
+                  ? `utm_campaign=${formatPreviewDate(templates.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
                   : templates.campaign.token === 'custom'
                   ? `utm_campaign=${templates.campaign.fallback || '…'}`
                   : `utm_campaign={campaign_name} or "${templates.campaign.fallback || '…'}"`
@@ -410,13 +444,18 @@ export default function UTMSettingsPage() {
               token={templates.content.token}
               fallback={templates.content.fallback}
               fallbackLabel={templates.content.token === 'custom' ? 'Value' : 'Fallback'}
-              showFallback={templates.content.token !== 'auto'}
-              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, token: t as UTMTemplateContentToken } }))}
+              showFallback={templates.content.token !== 'auto' && templates.content.token !== 'date'}
+              showDateFormat={templates.content.token === 'date'}
+              dateFormat={templates.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT}
+              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, token: t as UTMTemplateContentToken, dateFormat: t === 'date' ? (prev.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined } }))}
               onFallbackChange={(f) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, fallback: f } }))}
+              onDateFormatChange={(fmt) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, dateFormat: fmt } }))}
               fallbackError={getFallbackError(templates.content.token, templates.content.fallback)}
               preview={
                 templates.content.token === 'auto'
                   ? 'utm_content=out_def456…'
+                  : templates.content.token === 'date'
+                  ? `utm_content=${formatPreviewDate(templates.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
                   : templates.content.token === 'custom'
                   ? `utm_content=${templates.content.fallback || '…'}`
                   : `utm_content={cta} or "${templates.content.fallback || '…'}"`
@@ -429,13 +468,18 @@ export default function UTMSettingsPage() {
               token={templates.term.token}
               fallback={templates.term.fallback}
               fallbackLabel={templates.term.token === 'custom' ? 'Value' : 'Fallback'}
-              showFallback={templates.term.token !== 'none'}
-              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, token: t as UTMTemplateTermToken } }))}
+              showFallback={templates.term.token !== 'none' && templates.term.token !== 'date'}
+              showDateFormat={templates.term.token === 'date'}
+              dateFormat={templates.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT}
+              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, token: t as UTMTemplateTermToken, dateFormat: t === 'date' ? (prev.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined } }))}
               onFallbackChange={(f) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, fallback: f } }))}
+              onDateFormatChange={(fmt) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, dateFormat: fmt } }))}
               fallbackError={getFallbackError(templates.term.token, templates.term.fallback)}
               preview={
                 templates.term.token === 'none'
                   ? '(omitted)'
+                  : templates.term.token === 'date'
+                  ? `utm_term=${formatPreviewDate(templates.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
                   : templates.term.token === 'custom'
                   ? `utm_term=${templates.term.fallback || '…'}`
                   : `utm_term={${templates.term.token}} or "${templates.term.fallback || '…'}"`
@@ -462,21 +506,25 @@ export default function UTMSettingsPage() {
 // ── TemplateRow sub-component ────────────────────────────────────────────────
 
 interface TemplateRowProps {
-  label:            string
-  tokenOptions:     { value: string; label: string }[]
-  token:            string
-  fallback:         string
-  fallbackLabel:    string
-  showFallback:     boolean
-  onTokenChange:    (token: string) => void
-  onFallbackChange: (value: string) => void
-  fallbackError:    string | null
-  preview:          string
+  label:              string
+  tokenOptions:       { value: string; label: string }[]
+  token:              string
+  fallback:           string
+  fallbackLabel:      string
+  showFallback:       boolean
+  showDateFormat?:    boolean
+  dateFormat?:        UTMDateFormat
+  onTokenChange:      (token: string) => void
+  onFallbackChange:   (value: string) => void
+  onDateFormatChange?: (format: UTMDateFormat) => void
+  fallbackError:      string | null
+  preview:            string
 }
 
 function TemplateRow({
   label, tokenOptions, token, fallback, fallbackLabel, showFallback,
-  onTokenChange, onFallbackChange, fallbackError, preview,
+  showDateFormat, dateFormat, onTokenChange, onFallbackChange, onDateFormatChange,
+  fallbackError, preview,
 }: TemplateRowProps) {
   function normalizeOnBlur(value: string) {
     return value.trim().toLowerCase()
@@ -495,6 +543,21 @@ function TemplateRow({
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+
+        {showDateFormat && dateFormat && onDateFormatChange && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-zinc-400">Format:</span>
+            <select
+              value={dateFormat}
+              onChange={(e) => onDateFormatChange(e.target.value as UTMDateFormat)}
+              className="rounded-md border border-zinc-200 px-2 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-300 bg-white"
+            >
+              {UTM_DATE_FORMATS.map((fmt) => (
+                <option key={fmt} value={fmt}>{DATE_FORMAT_LABELS[fmt]}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {showFallback && (
           <div className="flex items-center gap-1.5">

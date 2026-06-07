@@ -114,7 +114,7 @@ export function GoogleSearchConsoleCard() {
       {/* Header */}
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200">
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 transition-all duration-200', !connected && 'grayscale opacity-50')}>
             <Search className="h-4 w-4 text-[#4285F4]" />
           </div>
           <div className="pt-0.5">

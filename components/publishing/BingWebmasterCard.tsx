@@ -111,7 +111,7 @@ export function BingWebmasterCard() {
       {/* Header */}
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200">
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 transition-all duration-200', !connected && 'grayscale opacity-50')}>
             <BingIcon className="h-6 w-6" />
           </div>
           <div className="pt-0.5">

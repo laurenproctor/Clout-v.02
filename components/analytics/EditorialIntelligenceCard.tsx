@@ -138,7 +138,7 @@ export function EditorialIntelligenceCard() {
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100">
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 transition-all duration-200${!state.connected ? ' grayscale opacity-50' : ''}`}>
             <GoogleIcon className="h-5 w-5" />
           </div>
           <div className="pt-0.5">

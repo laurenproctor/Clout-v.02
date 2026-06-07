@@ -254,7 +254,8 @@ function SignalFeedSettingsContent() {
         <div className="mt-8 space-y-10">
 
           <section>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Topics</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Topics</p>
+            <p className="mb-3 text-sm text-zinc-500">The subjects your feed monitors. Signals — news, trends, and conversations — are filtered to match these topics, so you only see what&apos;s relevant to your brand.</p>
             <TopicSelector
               selected={settings.content_topics}
               onChange={topics => setSettings(s => ({ ...s, content_topics: topics }))}
@@ -262,7 +263,8 @@ function SignalFeedSettingsContent() {
           </section>
 
           <section>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Focus Areas</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Focus Areas</p>
+            <p className="mb-3 text-sm text-zinc-500">The specific services or products your brand offers. These sharpen the feed&apos;s relevance by prioritizing signals that relate to what you actually do — not just your broader industry.</p>
             <FocusAreaSelector
               selected={settings.services}
               onChange={services => setSettings(s => ({ ...s, services }))}
@@ -270,7 +272,8 @@ function SignalFeedSettingsContent() {
           </section>
 
           <section>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Competitors</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Competitors</p>
+            <p className="mb-3 text-sm text-zinc-500">Brands you&apos;re competing with. The feed surfaces their content moves, press coverage, and campaigns alongside yours — so you can spot gaps and react before they pull ahead.</p>
             <CompetitorInput
               competitors={settings.competitors}
               onChange={competitors => setSettings(s => ({ ...s, competitors }))}
@@ -280,9 +283,9 @@ function SignalFeedSettingsContent() {
           </section>
 
           <section>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Website Intelligence</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Website Intelligence</p>
             <p className="mb-3 text-sm text-zinc-500">
-              Enter your website URL to surface content opportunities from your existing assets.
+              Your website gives the feed context about what you&apos;ve already covered. Once analyzed, signals are matched against your existing content so you can identify genuine gaps rather than topics you&apos;ve already addressed.
             </p>
             <div className="flex items-center gap-2">
               <input
@@ -312,7 +315,8 @@ function SignalFeedSettingsContent() {
           </section>
 
           <section>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Editorial Voice</p>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Editorial Voice</p>
+            <p className="mb-3 text-sm text-zinc-500">The tone and perspective you write in. This shapes how signal summaries and content ideas are framed — so the feed speaks in a voice that already sounds like yours.</p>
             <EditorialVoiceSelector
               selected={settings.editorial_voices}
               onChange={voices => setSettings(s => ({ ...s, editorial_voices: voices }))}

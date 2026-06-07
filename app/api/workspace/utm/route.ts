@@ -12,12 +12,15 @@ import {
   UTMTemplateCampaignToken,
   UTMTemplateContentToken,
   UTMTemplateTermToken,
+  UTMDateFormat,
+  UTM_DATE_FORMATS,
+  DEFAULT_UTM_DATE_FORMAT,
 } from '@/lib/distribution/platform-registry'
 
 const UTM_VALUE_PATTERN = /^[a-z0-9_-]+$/
-const CAMPAIGN_TOKENS:  UTMTemplateCampaignToken[] = ['auto', 'campaign_name', 'custom']
-const CONTENT_TOKENS:   UTMTemplateContentToken[]  = ['auto', 'cta', 'custom']
-const TERM_TOKENS:      UTMTemplateTermToken[]      = ['none', 'lens', 'voice', 'custom']
+const CAMPAIGN_TOKENS:  UTMTemplateCampaignToken[] = ['auto', 'campaign_name', 'date', 'custom']
+const CONTENT_TOKENS:   UTMTemplateContentToken[]  = ['auto', 'cta', 'date', 'custom']
+const TERM_TOKENS:      UTMTemplateTermToken[]      = ['none', 'lens', 'voice', 'date', 'custom']
 
 function validateUTMValue(value: unknown, field: string): string | null {
   if (typeof value !== 'string' || value.length === 0) return `${field} is required`
@@ -35,6 +38,14 @@ function validateFallback(value: unknown, field: string, required: boolean): str
   return validateUTMValue(value, field)
 }
 
+function validateDateFormat(value: unknown, field: string): string | null {
+  if (value === undefined || value === null) return null
+  if (!UTM_DATE_FORMATS.includes(value as UTMDateFormat)) {
+    return `${field} must be one of: ${UTM_DATE_FORMATS.join(', ')}`
+  }
+  return null
+}
+
 function validateTemplates(raw: unknown): { error: string } | { templates: UTMTemplateSettings } {
   if (typeof raw !== 'object' || raw === null) return { error: 'Invalid _templates object' }
   const t = raw as Record<string, unknown>
@@ -44,30 +55,57 @@ function validateTemplates(raw: unknown): { error: string } | { templates: UTMTe
   if (!CAMPAIGN_TOKENS.includes(camp.token as UTMTemplateCampaignToken)) {
     return { error: `_templates.campaign.token must be one of: ${CAMPAIGN_TOKENS.join(', ')}` }
   }
-  const campErr = validateFallback(camp.fallback, '_templates.campaign.fallback', camp.token !== 'auto')
+  const campFallbackRequired = camp.token !== 'auto' && camp.token !== 'date'
+  const campErr = validateFallback(camp.fallback, '_templates.campaign.fallback', campFallbackRequired)
   if (campErr) return { error: campErr }
+  if (camp.token === 'date') {
+    const fmtErr = validateDateFormat(camp.dateFormat, '_templates.campaign.dateFormat')
+    if (fmtErr) return { error: fmtErr }
+  }
 
   const cont = t.content as Record<string, unknown> | undefined
   if (!cont) return { error: '_templates.content is required' }
   if (!CONTENT_TOKENS.includes(cont.token as UTMTemplateContentToken)) {
     return { error: `_templates.content.token must be one of: ${CONTENT_TOKENS.join(', ')}` }
   }
-  const contErr = validateFallback(cont.fallback, '_templates.content.fallback', cont.token !== 'auto')
+  const contFallbackRequired = cont.token !== 'auto' && cont.token !== 'date'
+  const contErr = validateFallback(cont.fallback, '_templates.content.fallback', contFallbackRequired)
   if (contErr) return { error: contErr }
+  if (cont.token === 'date') {
+    const fmtErr = validateDateFormat(cont.dateFormat, '_templates.content.dateFormat')
+    if (fmtErr) return { error: fmtErr }
+  }
 
   const term = t.term as Record<string, unknown> | undefined
   if (!term) return { error: '_templates.term is required' }
   if (!TERM_TOKENS.includes(term.token as UTMTemplateTermToken)) {
     return { error: `_templates.term.token must be one of: ${TERM_TOKENS.join(', ')}` }
   }
-  const termErr = validateFallback(term.fallback, '_templates.term.fallback', ['lens', 'voice', 'custom'].includes(term.token as string))
+  const termFallbackRequired = ['lens', 'voice', 'custom'].includes(term.token as string)
+  const termErr = validateFallback(term.fallback, '_templates.term.fallback', termFallbackRequired)
   if (termErr) return { error: termErr }
+  if (term.token === 'date') {
+    const fmtErr = validateDateFormat(term.dateFormat, '_templates.term.dateFormat')
+    if (fmtErr) return { error: fmtErr }
+  }
 
   return {
     templates: {
-      campaign: { token: camp.token as UTMTemplateCampaignToken, fallback: (camp.fallback as string) ?? '' },
-      content:  { token: cont.token as UTMTemplateContentToken,  fallback: (cont.fallback as string) ?? '' },
-      term:     { token: term.token as UTMTemplateTermToken,      fallback: (term.fallback as string) ?? '' },
+      campaign: {
+        token:      camp.token as UTMTemplateCampaignToken,
+        fallback:   (camp.fallback as string) ?? '',
+        dateFormat: camp.token === 'date' ? ((camp.dateFormat as UTMDateFormat) ?? DEFAULT_UTM_DATE_FORMAT) : undefined,
+      },
+      content: {
+        token:      cont.token as UTMTemplateContentToken,
+        fallback:   (cont.fallback as string) ?? '',
+        dateFormat: cont.token === 'date' ? ((cont.dateFormat as UTMDateFormat) ?? DEFAULT_UTM_DATE_FORMAT) : undefined,
+      },
+      term: {
+        token:      term.token as UTMTemplateTermToken,
+        fallback:   (term.fallback as string) ?? '',
+        dateFormat: term.token === 'date' ? ((term.dateFormat as UTMDateFormat) ?? DEFAULT_UTM_DATE_FORMAT) : undefined,
+      },
     },
   }
 }

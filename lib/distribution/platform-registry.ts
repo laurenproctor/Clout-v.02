@@ -7,14 +7,18 @@ export type UTMConfig = {
   term?: string
 }
 
-export type UTMTemplateCampaignToken = 'auto' | 'campaign_name' | 'custom'
-export type UTMTemplateContentToken  = 'auto' | 'cta' | 'custom'
-export type UTMTemplateTermToken     = 'none' | 'lens' | 'voice' | 'custom'
+export type UTMDateFormat = 'yyyy-mm-dd' | 'yyyy-mm' | 'yyyymmdd' | 'yyyy' | 'mmm-yyyy'
+export const UTM_DATE_FORMATS: UTMDateFormat[] = ['yyyy-mm-dd', 'yyyy-mm', 'yyyymmdd', 'yyyy', 'mmm-yyyy']
+export const DEFAULT_UTM_DATE_FORMAT: UTMDateFormat = 'yyyy-mm'
+
+export type UTMTemplateCampaignToken = 'auto' | 'campaign_name' | 'date' | 'custom'
+export type UTMTemplateContentToken  = 'auto' | 'cta' | 'date' | 'custom'
+export type UTMTemplateTermToken     = 'none' | 'lens' | 'voice' | 'date' | 'custom'
 
 export type UTMTemplateSettings = {
-  campaign: { token: UTMTemplateCampaignToken; fallback: string }
-  content:  { token: UTMTemplateContentToken;  fallback: string }
-  term:     { token: UTMTemplateTermToken;      fallback: string }
+  campaign: { token: UTMTemplateCampaignToken; fallback: string; dateFormat?: UTMDateFormat }
+  content:  { token: UTMTemplateContentToken;  fallback: string; dateFormat?: UTMDateFormat }
+  term:     { token: UTMTemplateTermToken;      fallback: string; dateFormat?: UTMDateFormat }
 }
 
 export const DEFAULT_UTM_TEMPLATES: UTMTemplateSettings = {

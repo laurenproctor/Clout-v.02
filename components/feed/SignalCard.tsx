@@ -63,6 +63,11 @@ export function SignalCard({
   const handleDismiss = useCallback(() => {
     recordInteraction(card.id, 'dismissed')
     onDismiss?.(card.id)
+    fetch('/api/feed/dismiss', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId: card.id }),
+    }).catch(() => {})
   }, [card.id, onDismiss])
 
   const toneStyle = {

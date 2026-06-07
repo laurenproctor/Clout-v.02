@@ -105,13 +105,14 @@ export function PlatformCard({
   connected,
   onConnect,
   connectHref,
-  connectLabel = 'Enable Channel',
+  connectLabel,
   onDisconnect,
   onAddAnother,
   addAnotherHref,
   addAnotherLabel,
   infoNote,
 }: PlatformCardProps) {
+  const resolvedConnectLabel = connectLabel ?? `Connect ${name}`
   const isConnected = connected.length > 0
   const isDegraded = connected.some((a) => (a.consecutiveFailures ?? 0) >= 3)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
@@ -253,7 +254,7 @@ export function PlatformCard({
             href={connectHref}
             className="block w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-zinc-700"
           >
-            {connectLabel}
+            {resolvedConnectLabel}
           </a>
         ) : onConnect ? (
           <button
@@ -261,7 +262,7 @@ export function PlatformCard({
             onClick={onConnect}
             className="w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
           >
-            {connectLabel}
+            {resolvedConnectLabel}
           </button>
         ) : null}
 

@@ -18,7 +18,6 @@ create index if not exists workspace_slug_history_workspace_idx
 
 alter table workspace_slug_history enable row level security;
 
-drop policy if exists "workspace_slug_history_select" on workspace_slug_history;
 create policy "workspace_slug_history_select" on workspace_slug_history
   for select using (
     workspace_id in (

@@ -817,7 +817,6 @@ function PublishingInfrastructureContent() {
                 connected={accounts}
                 onConnect={guardedOnConnect(isLinkedIn ? () => setShowLinkedInPicker(true) : undefined)}
                 connectHref={!isLinkedIn ? guardedHref(connectHref) : undefined}
-                connectLabel="Enable Channel"
                 onDisconnect={handleDisconnectChannel}
                 onAddAnother={guardedOnConnect(isLinkedIn ? () => setShowLinkedInPicker(true) : undefined)}
                 addAnotherHref={!isLinkedIn ? guardedHref(connectHref) : undefined}
