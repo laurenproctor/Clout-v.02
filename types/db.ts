@@ -647,10 +647,13 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          extracted_angles: Json | null
           id: string
           is_private: boolean
           notes: string | null
           raw_content: string | null
+          research_sources: Json | null
+          research_summary: string | null
           source: Database["public"]["Enums"]["capture_source"]
           source_url: string | null
           status: Database["public"]["Enums"]["capture_status"]
@@ -665,10 +668,13 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          extracted_angles?: Json | null
           id?: string
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          research_sources?: Json | null
+          research_summary?: string | null
           source: Database["public"]["Enums"]["capture_source"]
           source_url?: string | null
           status?: Database["public"]["Enums"]["capture_status"]
@@ -683,10 +689,13 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          extracted_angles?: Json | null
           id?: string
           is_private?: boolean
           notes?: string | null
           raw_content?: string | null
+          research_sources?: Json | null
+          research_summary?: string | null
           source?: Database["public"]["Enums"]["capture_source"]
           source_url?: string | null
           status?: Database["public"]["Enums"]["capture_status"]
@@ -776,6 +785,12 @@ export type Database = {
           account_type: string
           config: Json
           created_at: string
+          google_account_id: string | null
+          google_location_address: Json | null
+          google_location_name: string | null
+          google_location_numeric_id: string | null
+          google_profile_photo_url: string | null
+          google_verified: boolean | null
           id: string
           is_active: boolean
           label: string | null
@@ -788,6 +803,12 @@ export type Database = {
           account_type?: string
           config?: Json
           created_at?: string
+          google_account_id?: string | null
+          google_location_address?: Json | null
+          google_location_name?: string | null
+          google_location_numeric_id?: string | null
+          google_profile_photo_url?: string | null
+          google_verified?: boolean | null
           id?: string
           is_active?: boolean
           label?: string | null
@@ -800,6 +821,12 @@ export type Database = {
           account_type?: string
           config?: Json
           created_at?: string
+          google_account_id?: string | null
+          google_location_address?: Json | null
+          google_location_name?: string | null
+          google_location_numeric_id?: string | null
+          google_profile_photo_url?: string | null
+          google_verified?: boolean | null
           id?: string
           is_active?: boolean
           label?: string | null
@@ -1175,13 +1202,81 @@ export type Database = {
           },
         ]
       }
+      email_events: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          last_attempted_at: string | null
+          payload: Json | null
+          recipient_email: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          type: string
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          last_attempted_at?: string | null
+          payload?: Json | null
+          recipient_email: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          last_attempted_at?: string | null
+          payload?: Json | null
+          recipient_email?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generations: {
         Row: {
+          angle_id: string | null
           capture_id: string
           completed_at: string | null
           created_at: string
           duration_ms: number | null
           error_message: string | null
+          generation_group_id: string | null
           id: string
           lens_id: string
           model: string
@@ -1193,11 +1288,13 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          angle_id?: string | null
           capture_id: string
           completed_at?: string | null
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          generation_group_id?: string | null
           id?: string
           lens_id: string
           model: string
@@ -1209,11 +1306,13 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          angle_id?: string | null
           capture_id?: string
           completed_at?: string | null
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          generation_group_id?: string | null
           id?: string
           lens_id?: string
           model?: string
@@ -1573,6 +1672,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           funnel_stage: string | null
+          generation_group_id: string | null
           generation_id: string | null
           goal: string | null
           id: string
@@ -1582,6 +1682,7 @@ export type Database = {
           narrative_role: string | null
           performance_snapshot: Json | null
           provider_post_id: string | null
+          provider_post_url: string | null
           published_at: string | null
           resonance_prediction: string | null
           scheduled_at: string | null
@@ -1602,6 +1703,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           funnel_stage?: string | null
+          generation_group_id?: string | null
           generation_id?: string | null
           goal?: string | null
           id?: string
@@ -1611,6 +1713,7 @@ export type Database = {
           narrative_role?: string | null
           performance_snapshot?: Json | null
           provider_post_id?: string | null
+          provider_post_url?: string | null
           published_at?: string | null
           resonance_prediction?: string | null
           scheduled_at?: string | null
@@ -1631,6 +1734,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           funnel_stage?: string | null
+          generation_group_id?: string | null
           generation_id?: string | null
           goal?: string | null
           id?: string
@@ -1640,6 +1744,7 @@ export type Database = {
           narrative_role?: string | null
           performance_snapshot?: Json | null
           provider_post_id?: string | null
+          provider_post_url?: string | null
           published_at?: string | null
           resonance_prediction?: string | null
           scheduled_at?: string | null
@@ -1823,6 +1928,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_health_logs: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          platform: string
+          workspace_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          platform: string
+          workspace_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          platform?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_health_logs_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_health_logs_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3015,6 +3171,42 @@ export type Database = {
           },
         ]
       }
+      workspace_distribution_settings: {
+        Row: {
+          updated_at: string
+          updated_by: string | null
+          utm_settings: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          updated_at?: string
+          updated_by?: string | null
+          utm_settings?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          updated_at?: string
+          updated_by?: string | null
+          utm_settings?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_distribution_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_distribution_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_feed_settings: {
         Row: {
           brand_name: string | null
@@ -3022,6 +3214,9 @@ export type Database = {
           competitors: string[] | null
           content_topics: string[] | null
           created_at: string | null
+          derived_topics: string[] | null
+          feed_preferences: Json | null
+          knowledge_signals_cache: Json | null
           services: string[] | null
           tone_preference: Database["public"]["Enums"]["tone_pref"]
           updated_at: string | null
@@ -3035,6 +3230,9 @@ export type Database = {
           competitors?: string[] | null
           content_topics?: string[] | null
           created_at?: string | null
+          derived_topics?: string[] | null
+          feed_preferences?: Json | null
+          knowledge_signals_cache?: Json | null
           services?: string[] | null
           tone_preference?: Database["public"]["Enums"]["tone_pref"]
           updated_at?: string | null
@@ -3048,6 +3246,9 @@ export type Database = {
           competitors?: string[] | null
           content_topics?: string[] | null
           created_at?: string | null
+          derived_topics?: string[] | null
+          feed_preferences?: Json | null
+          knowledge_signals_cache?: Json | null
           services?: string[] | null
           tone_preference?: Database["public"]["Enums"]["tone_pref"]
           updated_at?: string | null
@@ -3202,6 +3403,7 @@ export type Database = {
           slug: string
           slug_changed_at: string | null
           updated_at: string
+          utm_settings: Json | null
         }
         Insert: {
           assigned_operator_id?: string | null
@@ -3216,6 +3418,7 @@ export type Database = {
           slug: string
           slug_changed_at?: string | null
           updated_at?: string
+          utm_settings?: Json | null
         }
         Update: {
           assigned_operator_id?: string | null
@@ -3230,6 +3433,7 @@ export type Database = {
           slug?: string
           slug_changed_at?: string | null
           updated_at?: string
+          utm_settings?: Json | null
         }
         Relationships: [
           {
@@ -3284,7 +3488,7 @@ export type Database = {
         | "assign"
         | "restore"
         | "soft_delete"
-      capture_source: "text" | "voice" | "structured" | "url"
+      capture_source: "text" | "voice" | "structured" | "url" | "topic"
       capture_status: "pending" | "processing" | "ready" | "failed"
       channel_platform:
         | "linkedin"
@@ -3292,13 +3496,25 @@ export type Database = {
         | "twitter"
         | "wordpress"
         | "shopify"
+        | "x"
+        | "threads"
+        | "facebook"
+        | "instagram"
+        | "tiktok"
+        | "google_business_profile"
       draft_format: "linkedin" | "twitter" | "blog" | "newsletter" | "instagram"
       draft_tone:
         | "authoritative"
         | "conversational"
         | "provocative"
         | "educational"
-      feed_tab: "news" | "services" | "concepts" | "competitors"
+      feed_tab:
+        | "news"
+        | "services"
+        | "concepts"
+        | "competitors"
+        | "website"
+        | "knowledge"
       generation_status: "pending" | "generating" | "complete" | "failed"
       job_status: "queued" | "running" | "done" | "failed" | "canceled"
       job_type: "transcribe" | "generate" | "summarize" | "reformat"
@@ -3468,7 +3684,7 @@ export const Constants = {
         "restore",
         "soft_delete",
       ],
-      capture_source: ["text", "voice", "structured", "url"],
+      capture_source: ["text", "voice", "structured", "url", "topic"],
       capture_status: ["pending", "processing", "ready", "failed"],
       channel_platform: [
         "linkedin",
@@ -3476,6 +3692,12 @@ export const Constants = {
         "twitter",
         "wordpress",
         "shopify",
+        "x",
+        "threads",
+        "facebook",
+        "instagram",
+        "tiktok",
+        "google_business_profile",
       ],
       draft_format: ["linkedin", "twitter", "blog", "newsletter", "instagram"],
       draft_tone: [
@@ -3484,7 +3706,14 @@ export const Constants = {
         "provocative",
         "educational",
       ],
-      feed_tab: ["news", "services", "concepts", "competitors"],
+      feed_tab: [
+        "news",
+        "services",
+        "concepts",
+        "competitors",
+        "website",
+        "knowledge",
+      ],
       generation_status: ["pending", "generating", "complete", "failed"],
       job_status: ["queued", "running", "done", "failed", "canceled"],
       job_type: ["transcribe", "generate", "summarize", "reformat"],
