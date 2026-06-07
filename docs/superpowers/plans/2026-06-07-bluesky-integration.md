@@ -543,15 +543,20 @@ export async function GET(req: NextRequest) {
     },
   }).eq('id', channelId)
 
-  // Store DID in channel_credentials.account_id — this is the key used at publish time
-  // access_token stores the DID as a lookup sentinel (actual auth is via oauth session)
+  // IMPORTANT: BlueSky does NOT use access_token for auth.
+  // Authentication is session-based via @atproto/oauth-client-node (DPoP-bound).
+  // The actual session is stored in bluesky_oauth_sessions keyed by DID.
+  // access_token is NOT NULL in channel_credentials so we store the DID here as
+  // a sentinel to satisfy the constraint — it is NOT an OAuth token.
+  // At publish time, publishBlueSkyOutput reads accountId (the DID) to call
+  // oauthClient.restore(did), NOT to make authenticated HTTP calls with access_token.
   const credResult = await upsertChannelCredential({
     channelId,
     workspaceId,
-    accessToken:  did,
+    accessToken:  did,   // DID sentinel — NOT an OAuth token; see comment above
     refreshToken: null,
     expiresAt:    null,
-    accountId:    did,
+    accountId:    did,   // canonical lookup key used by publishBlueSkyOutput
     accountName:  displayName ?? handle,
     accountEmail: null,
   })
@@ -687,8 +692,10 @@ Expected: FAIL — `detectLang` not found.
 import { RichText } from '@atproto/api'
 import type { Agent } from '@atproto/api'
 
-// Heuristic: detect primary script from Unicode ranges.
-// Covers major non-Latin scripts. Defaults to 'en' for Latin/unknown.
+// Lightweight script-based fallback, NOT true language detection.
+// French, Spanish, German, Portuguese etc. all resolve to 'en' (Latin script).
+// Accurate for CJK, Arabic, Cyrillic, Hebrew, Devanagari.
+// Replace with a proper language detection library if multilingual accuracy matters.
 export function detectLang(text: string): string {
   if (/[一-鿿぀-ヿㇰ-ㇿ]/.test(text)) return 'zh'
   if (/[가-힯]/.test(text)) return 'ko'
@@ -736,14 +743,14 @@ git commit -m "feat(bluesky): add rich text processing with language detection"
 - Create: `lib/bluesky/publish.ts`
 - Create: `tests/bluesky/publish.test.ts`
 
-Core publish logic. `formatBlueSkyText` prepares content (trim, no hashtag injection — BlueSky culture discourages it). `postToBlueSky` validates length, restores agent, detects facets, posts.
+Core publish logic. `formatBlueSkyText` prepares content (trim, no hashtag injection). `buildBlueSkyPostUrl` centralizes AT URI → bsky.app URL conversion. `postToBlueSky` validates length, restores agent, detects facets, posts.
 
 - [ ] **Write failing tests first**
 
 ```ts
 // tests/bluesky/publish.test.ts
 import { describe, it, expect } from 'vitest'
-import { formatBlueSkyText, postToBlueSky } from '@/lib/bluesky/publish'
+import { formatBlueSkyText, postToBlueSky, buildBlueSkyPostUrl } from '@/lib/bluesky/publish'
 import type { OutputContent } from '@/types/domain'
 
 function makeContent(body: string | null): OutputContent {
@@ -762,6 +769,13 @@ describe('formatBlueSkyText', () => {
   it('does not append hashtags', () => {
     const content = { body: 'test post', hashtags: ['foo', 'bar'] } as unknown as OutputContent
     expect(formatBlueSkyText(content)).toBe('test post')
+  })
+})
+
+describe('buildBlueSkyPostUrl', () => {
+  it('converts an AT URI to a bsky.app URL', () => {
+    const uri = 'at://did:plc:abc123/app.bsky.feed.post/xyz789'
+    expect(buildBlueSkyPostUrl(uri)).toBe('https://bsky.app/profile/did:plc:abc123/post/xyz789')
   })
 })
 
@@ -800,6 +814,15 @@ import { restoreAgent } from './client'
 
 export function formatBlueSkyText(content: OutputContent): string {
   return content.body?.trim() ?? ''
+}
+
+// Converts an AT URI (at://did:plc:xxx/app.bsky.feed.post/yyy) to a bsky.app URL.
+// AT URI format: at://<did>/<collection>/<rkey>
+export function buildBlueSkyPostUrl(atUri: string): string {
+  const parts = atUri.split('/')
+  const did   = parts[2]  // 'did:plc:xxx'
+  const rkey  = parts[4]  // 'yyy'
+  return `https://bsky.app/profile/${did}/post/${rkey}`
 }
 
 export async function postToBlueSky(
@@ -886,7 +909,7 @@ const DEFAULT_CONFIG: Partial<Record<ChannelPlatform, Record<string, unknown>>> 
 
 At the top of the file, add the import:
 ```ts
-import { postToBlueSky } from '@/lib/bluesky/publish'
+import { postToBlueSky, buildBlueSkyPostUrl } from '@/lib/bluesky/publish'
 ```
 
 After `publishInstagramOutput` (near the bottom of the file), add:
@@ -916,6 +939,9 @@ export async function publishBlueSkyOutput(
     )
   }
 
+  // accountId holds the DID — used to restore the DPoP session from bluesky_oauth_sessions.
+  // NOTE: access_token also contains the DID (as a NOT NULL sentinel), but we use
+  // accountId here to make the intent clear. Real auth is via oauthClient.restore(did).
   const did = credResult.data.accountId
   if (!did) {
     throw Object.assign(
@@ -943,7 +969,7 @@ Add before `default`:
 ```ts
     case 'bluesky': {
       const { postId } = await publishBlueSkyOutput(outputToPublish, opts)
-      return { postUrn: postId, postUrl: `https://bsky.app/profile/${postId.split('/')[2]}/post/${postId.split('/').pop()}` }
+      return { postUrn: postId, postUrl: buildBlueSkyPostUrl(postId) }
     }
 ```
 
@@ -1073,6 +1099,11 @@ git add lib/trigger/jobs/cleanup-bluesky-oauth-states.ts
 git commit -m "feat(bluesky): add daily cleanup job for expired OAuth states"
 ```
 
+**Future backlog (not blocking launch):**
+- Stale session cleanup — `bluesky_oauth_sessions` rows from disconnected/abandoned accounts accumulate indefinitely. Add a separate job that deletes rows whose `channel_id` references an inactive or deleted channel.
+- Orphaned session detection — sessions with no matching `channel_credentials` row.
+- ON DELETE CASCADE handles hard-deleted channels automatically; consider adding an audit log entry on deletion.
+
 ---
 
 ## Task 16: Create `lib/syndication/platforms/bluesky.ts`
@@ -1088,7 +1119,7 @@ Match the full shape of `X_PLATFORM_MODEL` — `platform`, `rhetoricalEnvironmen
 export const BLUESKY_PLATFORM_MODEL = {
   platform: 'bluesky' as const,
 
-  rhetoricalEnvironment: `BlueSky is a text-first network built by people who left Twitter seeking more genuine discourse. The community skews intellectual, curious, and actively skeptical of corporate/hustle content. Authenticity is valued over virality. Hashtag spam is disliked — the culture expects you to say something real, not optimize for reach. @mentions and links are first-class. The feed rewards a single well-formed thought over a performative content strategy.`,
+  rhetoricalEnvironment: `BlueSky is a text-first network that rewards authentic perspective, thoughtful participation, and concise communication. Posts tend to perform best when they express a single clear idea rather than optimizing for engagement mechanics. The community values intellectual honesty and genuine voice. Hashtag spam is actively disliked. @mentions and links are first-class. A well-formed thought outperforms a content strategy every time.`,
 
   preWritingFramework: `Before writing, complete this analysis:
 
