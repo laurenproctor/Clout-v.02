@@ -1,4 +1,4 @@
-export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads' | 'facebook' | 'google_business_profile' | 'medium'
+export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads' | 'facebook' | 'google_business_profile' | 'medium' | 'bluesky'
 
 export type SyndicationPhase =
   | 'extracting'
