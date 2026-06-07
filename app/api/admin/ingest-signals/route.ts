@@ -51,7 +51,7 @@ async function runIngestion(): Promise<IngestResult> {
     { data: wsSettings, error: wsError },
     { data: profiles, error: profilesError },
   ] = await Promise.all([
-    supabase.from('workspace_feed_settings').select('content_topics, services'),
+    supabase.from('workspace_feed_settings').select('content_topics, services, derived_topics'),
     supabase
       .from('user_profiles')
       .select('content_topics, services')
@@ -74,6 +74,8 @@ async function runIngestion(): Promise<IngestResult> {
   for (const ws of wsSettings ?? []) {
     for (const t of ws.content_topics ?? []) uniqueTopics.add(t)
     for (const s of ws.services ?? []) uniqueServices.add(s)
+    // Approved derived topics (validated by Claude preference profile)
+    for (const t of ws.derived_topics ?? []) uniqueTopics.add(t)
   }
 
   // Legacy user_profiles (onboarding path, pre-workspace-settings migration)

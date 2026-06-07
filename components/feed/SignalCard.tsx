@@ -6,7 +6,15 @@ import { GdeltScoreTooltip } from './GdeltScoreTooltip'
 import { BadgeGap } from './BadgeGap'
 import { BadgeTiming } from './BadgeTiming'
 import { DraftPanel } from './DraftPanel'
-import type { SignalCard as SignalCardType } from '@/types/feed'
+import type { SignalCard as SignalCardType, UserSignalInteractionType } from '@/types/feed'
+
+function recordInteraction(cardId: string, type: UserSignalInteractionType) {
+  fetch('/api/feed/interactions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ signal_card_id: cardId, interaction_type: type }),
+  }).catch(() => {})
+}
 
 function sourceDomain(url: string | null): string | null {
   if (!url) return null
@@ -53,6 +61,7 @@ export function SignalCard({
   }, [panelOpen])
 
   const handleDismiss = useCallback(() => {
+    recordInteraction(card.id, 'dismissed')
     onDismiss?.(card.id)
   }, [card.id, onDismiss])
 
@@ -123,6 +132,7 @@ export function SignalCard({
                 href={card.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => recordInteraction(card.id, 'source_opened')}
                 style={{
                   fontSize: '11px',
                   fontWeight: 500,

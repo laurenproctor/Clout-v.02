@@ -181,9 +181,11 @@ export interface CompetitorEntity {
 export type UserSignalInteractionType =
   | 'viewed'
   | 'dismissed'
+  | 'card_expanded'
+  | 'source_opened'
   | 'draft_started'
-  | 'draft_copied'
   | 'draft_edited'
+  | 'draft_copied'
   | 'published'
   | 'engagement_reported'
   | 'repost_detected'
