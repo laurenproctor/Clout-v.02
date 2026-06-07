@@ -14,6 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_connections: {
+        Row: {
+          access_token: string
+          connected_by: string | null
+          created_at: string
+          expires_at: number | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_token: string
+          connected_by?: string | null
+          created_at?: string
+          expires_at?: number | null
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_token?: string
+          connected_by?: string | null
+          created_at?: string
+          expires_at?: number | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_connections_connected_by_fkey"
+            columns: ["connected_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_events: {
+        Row: {
+          avg_engagement_time: number | null
+          conversion_type: string | null
+          conversions: number
+          engaged_sessions: number
+          event_date: string
+          id: string
+          landing_page: string | null
+          property_id: string
+          revenue: number | null
+          session_count: number
+          synced_at: string
+          utm_campaign: string | null
+          utm_campaign_n: string | null
+          utm_content: string | null
+          utm_content_n: string | null
+          utm_medium: string | null
+          utm_medium_n: string | null
+          utm_source: string | null
+          utm_source_n: string | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_engagement_time?: number | null
+          conversion_type?: string | null
+          conversions?: number
+          engaged_sessions?: number
+          event_date: string
+          id?: string
+          landing_page?: string | null
+          property_id: string
+          revenue?: number | null
+          session_count?: number
+          synced_at?: string
+          utm_campaign?: string | null
+          utm_campaign_n?: string | null
+          utm_content?: string | null
+          utm_content_n?: string | null
+          utm_medium?: string | null
+          utm_medium_n?: string | null
+          utm_source?: string | null
+          utm_source_n?: string | null
+          workspace_id: string
+        }
+        Update: {
+          avg_engagement_time?: number | null
+          conversion_type?: string | null
+          conversions?: number
+          engaged_sessions?: number
+          event_date?: string
+          id?: string
+          landing_page?: string | null
+          property_id?: string
+          revenue?: number | null
+          session_count?: number
+          synced_at?: string
+          utm_campaign?: string | null
+          utm_campaign_n?: string | null
+          utm_content?: string | null
+          utm_content_n?: string | null
+          utm_medium?: string | null
+          utm_medium_n?: string | null
+          utm_source?: string | null
+          utm_source_n?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_properties: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          property_id: string
+          property_name: string | null
+          property_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          property_id: string
+          property_name?: string | null
+          property_type: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          property_id?: string
+          property_name?: string | null
+          property_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_properties_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_events: {
         Row: {
           created_at: string
@@ -333,12 +499,12 @@ export type Database = {
           id: string
           imagery_type: string | null
           mood_traits: string[]
-          negative_example_board: string[]
+          negative_example_board: string[] | null
           negative_rules: string[]
           overlay_text_style: string | null
-          subjects: string[]
+          subjects: string[] | null
           updated_at: string
-          uploaded_imagery: string[]
+          uploaded_imagery: string[] | null
           visual_styles: string[]
           workspace_id: string
         }
@@ -350,12 +516,12 @@ export type Database = {
           id?: string
           imagery_type?: string | null
           mood_traits?: string[]
-          negative_example_board?: string[]
+          negative_example_board?: string[] | null
           negative_rules?: string[]
           overlay_text_style?: string | null
-          subjects?: string[]
+          subjects?: string[] | null
           updated_at?: string
-          uploaded_imagery?: string[]
+          uploaded_imagery?: string[] | null
           visual_styles?: string[]
           workspace_id: string
         }
@@ -367,12 +533,12 @@ export type Database = {
           id?: string
           imagery_type?: string | null
           mood_traits?: string[]
-          negative_example_board?: string[]
+          negative_example_board?: string[] | null
           negative_rules?: string[]
           overlay_text_style?: string | null
-          subjects?: string[]
+          subjects?: string[] | null
           updated_at?: string
-          uploaded_imagery?: string[]
+          uploaded_imagery?: string[] | null
           visual_styles?: string[]
           workspace_id?: string
         }
@@ -390,15 +556,15 @@ export type Database = {
         Row: {
           accent_color: string
           accent_color_2: string | null
-          dark_bg_color: string | null
           brand_name: string | null
           created_at: string
+          dark_bg_color: string | null
           font_body: string
           font_body_url: string | null
           font_heading: string
           font_heading_url: string | null
           id: string
-          logo_library: string[]
+          logo_library: string[] | null
           logo_url: string | null
           logo_url_dark: string | null
           logo_url_light: string | null
@@ -416,15 +582,15 @@ export type Database = {
         Insert: {
           accent_color?: string
           accent_color_2?: string | null
-          dark_bg_color?: string | null
           brand_name?: string | null
           created_at?: string
+          dark_bg_color?: string | null
           font_body?: string
           font_body_url?: string | null
           font_heading?: string
           font_heading_url?: string | null
           id?: string
-          logo_library?: string[]
+          logo_library?: string[] | null
           logo_url?: string | null
           logo_url_dark?: string | null
           logo_url_light?: string | null
@@ -442,15 +608,15 @@ export type Database = {
         Update: {
           accent_color?: string
           accent_color_2?: string | null
-          dark_bg_color?: string | null
           brand_name?: string | null
           created_at?: string
+          dark_bg_color?: string | null
           font_body?: string
           font_body_url?: string | null
           font_heading?: string
           font_heading_url?: string | null
           id?: string
-          logo_library?: string[]
+          logo_library?: string[] | null
           logo_url?: string | null
           logo_url_dark?: string | null
           logo_url_light?: string | null
@@ -617,6 +783,11 @@ export type Database = {
         Row: {
           account_id: string | null
           account_type: string
+          apple_address: Json | null
+          apple_business_id: string | null
+          apple_company_id: string | null
+          apple_location_id: string | null
+          apple_location_name: string | null
           config: Json
           created_at: string
           google_account_id: string | null
@@ -629,13 +800,18 @@ export type Database = {
           is_active: boolean
           label: string | null
           platform: Database["public"]["Enums"]["channel_platform"]
-          profile_image_url: string | null
+          provider_credential_id: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           account_id?: string | null
           account_type?: string
+          apple_address?: Json | null
+          apple_business_id?: string | null
+          apple_company_id?: string | null
+          apple_location_id?: string | null
+          apple_location_name?: string | null
           config?: Json
           created_at?: string
           google_account_id?: string | null
@@ -648,13 +824,18 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           platform: Database["public"]["Enums"]["channel_platform"]
-          profile_image_url?: string | null
+          provider_credential_id?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           account_id?: string | null
           account_type?: string
+          apple_address?: Json | null
+          apple_business_id?: string | null
+          apple_company_id?: string | null
+          apple_location_id?: string | null
+          apple_location_name?: string | null
           config?: Json
           created_at?: string
           google_account_id?: string | null
@@ -667,11 +848,18 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           platform?: Database["public"]["Enums"]["channel_platform"]
-          profile_image_url?: string | null
+          provider_credential_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "channels_provider_credential_id_fkey"
+            columns: ["provider_credential_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_provider_credentials"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "channels_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -680,6 +868,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      competitor_content_global: {
+        Row: {
+          competitor_domain: string
+          content: string | null
+          external_id: string
+          fetched_at: string
+          id: string
+          importance_score: number
+          metrics: Json
+          published_at: string | null
+          source_confidence: string
+          source_type: string
+          summary: string | null
+          thumbnail_url: string | null
+          title: string | null
+          topics: Json
+          url: string
+        }
+        Insert: {
+          competitor_domain: string
+          content?: string | null
+          external_id: string
+          fetched_at?: string
+          id?: string
+          importance_score?: number
+          metrics?: Json
+          published_at?: string | null
+          source_confidence?: string
+          source_type: string
+          summary?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          topics?: Json
+          url: string
+        }
+        Update: {
+          competitor_domain?: string
+          content?: string | null
+          external_id?: string
+          fetched_at?: string
+          id?: string
+          importance_score?: number
+          metrics?: Json
+          published_at?: string | null
+          source_confidence?: string
+          source_type?: string
+          summary?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          topics?: Json
+          url?: string
+        }
+        Relationships: []
       }
       competitor_entities: {
         Row: {
@@ -786,60 +1028,6 @@ export type Database = {
           },
         ]
       }
-      competitor_content_global: {
-        Row: {
-          id:                string
-          competitor_domain: string
-          source_type:       string
-          external_id:       string
-          title:             string | null
-          content:           string | null
-          summary:           string | null
-          url:               string
-          thumbnail_url:     string | null
-          published_at:      string | null
-          fetched_at:        string
-          metrics:           Json
-          topics:            Json
-          importance_score:  number
-          source_confidence: string
-        }
-        Insert: {
-          id?:                string
-          competitor_domain:  string
-          source_type:        string
-          external_id:        string
-          title?:             string | null
-          content?:           string | null
-          summary?:           string | null
-          url:                string
-          thumbnail_url?:     string | null
-          published_at?:      string | null
-          fetched_at?:        string
-          metrics?:           Json
-          topics?:            Json
-          importance_score?:  number
-          source_confidence?: string
-        }
-        Update: {
-          id?:                string
-          competitor_domain?: string
-          source_type?:       string
-          external_id?:       string
-          title?:             string | null
-          content?:           string | null
-          summary?:           string | null
-          url?:               string
-          thumbnail_url?:     string | null
-          published_at?:      string | null
-          fetched_at?:        string
-          metrics?:           Json
-          topics?:            Json
-          importance_score?:  number
-          source_confidence?: string
-        }
-        Relationships: []
-      }
       concept_cluster_signals: {
         Row: {
           card_id: string
@@ -912,56 +1100,75 @@ export type Database = {
         }
         Relationships: []
       }
-      email_events: {
+      content_attribution: {
         Row: {
-          attempt_count: number
+          canonical_content_id: string | null
           created_at: string
-          error: string | null
           id: string
-          idempotency_key: string
-          last_attempted_at: string | null
-          payload: Json | null
-          recipient_email: string
-          resend_id: string | null
-          sent_at: string | null
-          status: string
-          type: string
-          user_id: string | null
-          workspace_id: string | null
+          lens_id: string | null
+          narrative_type: string | null
+          output_id: string
+          platform: string
+          strategic_intent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          workspace_id: string
         }
         Insert: {
-          attempt_count?: number
+          canonical_content_id?: string | null
           created_at?: string
-          error?: string | null
           id?: string
-          idempotency_key: string
-          last_attempted_at?: string | null
-          payload?: Json | null
-          recipient_email: string
-          resend_id?: string | null
-          sent_at?: string | null
-          status?: string
-          type: string
-          user_id?: string | null
-          workspace_id?: string | null
+          lens_id?: string | null
+          narrative_type?: string | null
+          output_id: string
+          platform: string
+          strategic_intent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id: string
         }
         Update: {
-          attempt_count?: number
+          canonical_content_id?: string | null
           created_at?: string
-          error?: string | null
           id?: string
-          idempotency_key?: string
-          last_attempted_at?: string | null
-          payload?: Json | null
-          recipient_email?: string
-          resend_id?: string | null
-          sent_at?: string | null
-          status?: string
-          type?: string
-          user_id?: string | null
-          workspace_id?: string | null
+          lens_id?: string | null
+          narrative_type?: string | null
+          output_id?: string
+          platform?: string
+          strategic_intent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "content_attribution_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_attribution_output_id_fkey"
+            columns: ["output_id"]
+            isOneToOne: true
+            referencedRelation: "outputs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_attribution_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       draft_cache: {
         Row: {
@@ -1016,6 +1223,72 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          last_attempted_at: string | null
+          payload: Json | null
+          recipient_email: string
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          type: string
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          last_attempted_at?: string | null
+          payload?: Json | null
+          recipient_email: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          last_attempted_at?: string | null
+          payload?: Json | null
+          recipient_email?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1168,6 +1441,60 @@ export type Database = {
           },
         ]
       }
+      lens_performance: {
+        Row: {
+          authority_score: number | null
+          avg_assisted_conversions: number | null
+          avg_conversion_rate: number | null
+          avg_traffic: number | null
+          computed_at: string
+          computed_for_date: string
+          id: string
+          lens_id: string
+          resonance_score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          authority_score?: number | null
+          avg_assisted_conversions?: number | null
+          avg_conversion_rate?: number | null
+          avg_traffic?: number | null
+          computed_at?: string
+          computed_for_date?: string
+          id?: string
+          lens_id: string
+          resonance_score?: number | null
+          workspace_id: string
+        }
+        Update: {
+          authority_score?: number | null
+          avg_assisted_conversions?: number | null
+          avg_conversion_rate?: number | null
+          avg_traffic?: number | null
+          computed_at?: string
+          computed_for_date?: string
+          id?: string
+          lens_id?: string
+          resonance_score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_performance_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_performance_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lenses: {
         Row: {
           created_at: string
@@ -1224,6 +1551,50 @@ export type Database = {
           },
           {
             foreignKeyName: "lenses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narrative_performance: {
+        Row: {
+          avg_conversion_rate: number | null
+          avg_engagement_rate: number | null
+          avg_session_duration: number | null
+          computed_at: string
+          computed_for_date: string
+          id: string
+          narrative_type: string
+          sample_size: number
+          workspace_id: string
+        }
+        Insert: {
+          avg_conversion_rate?: number | null
+          avg_engagement_rate?: number | null
+          avg_session_duration?: number | null
+          computed_at?: string
+          computed_for_date?: string
+          id?: string
+          narrative_type: string
+          sample_size?: number
+          workspace_id: string
+        }
+        Update: {
+          avg_conversion_rate?: number | null
+          avg_engagement_rate?: number | null
+          avg_session_duration?: number | null
+          computed_at?: string
+          computed_for_date?: string
+          id?: string
+          narrative_type?: string
+          sample_size?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrative_performance_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1623,7 +1994,22 @@ export type Database = {
           platform?: string
           workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_health_logs_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_health_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       publish_logs: {
         Row: {
@@ -1986,6 +2372,56 @@ export type Database = {
             foreignKeyName: "scheduling_preferences_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_console_metrics: {
+        Row: {
+          avg_position: number | null
+          clicks: number
+          created_at: string
+          ctr: number | null
+          id: string
+          impressions: number
+          landing_page: string
+          query: string
+          recorded_at: string
+          site_url: string
+          workspace_id: string
+        }
+        Insert: {
+          avg_position?: number | null
+          clicks?: number
+          created_at?: string
+          ctr?: number | null
+          id?: string
+          impressions?: number
+          landing_page: string
+          query: string
+          recorded_at: string
+          site_url: string
+          workspace_id: string
+        }
+        Update: {
+          avg_position?: number | null
+          clicks?: number
+          created_at?: string
+          ctr?: number | null
+          id?: string
+          impressions?: number
+          landing_page?: string
+          query?: string
+          recorded_at?: string
+          site_url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_console_metrics_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
@@ -2730,6 +3166,131 @@ export type Database = {
           },
         ]
       }
+      workspace_competitor_content: {
+        Row: {
+          content_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content_id: string
+          workspace_id: string
+        }
+        Update: {
+          content_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_competitor_content_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "competitor_content_global"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_competitor_content_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_distribution_settings: {
+        Row: {
+          updated_at: string
+          updated_by: string | null
+          utm_settings: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          updated_at?: string
+          updated_by?: string | null
+          utm_settings?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          updated_at?: string
+          updated_by?: string | null
+          utm_settings?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_distribution_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_distribution_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_feed_settings: {
+        Row: {
+          brand_name: string | null
+          competitor_metadata: Json | null
+          competitors: string[] | null
+          content_topics: string[] | null
+          created_at: string | null
+          derived_topics: string[] | null
+          feed_preferences: Json | null
+          knowledge_signals_cache: Json | null
+          services: string[] | null
+          tone_preference: Database["public"]["Enums"]["tone_pref"]
+          updated_at: string | null
+          website_feed_cache: Json | null
+          website_url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          brand_name?: string | null
+          competitor_metadata?: Json | null
+          competitors?: string[] | null
+          content_topics?: string[] | null
+          created_at?: string | null
+          derived_topics?: string[] | null
+          feed_preferences?: Json | null
+          knowledge_signals_cache?: Json | null
+          services?: string[] | null
+          tone_preference?: Database["public"]["Enums"]["tone_pref"]
+          updated_at?: string | null
+          website_feed_cache?: Json | null
+          website_url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          brand_name?: string | null
+          competitor_metadata?: Json | null
+          competitors?: string[] | null
+          content_topics?: string[] | null
+          created_at?: string | null
+          derived_topics?: string[] | null
+          feed_preferences?: Json | null
+          knowledge_signals_cache?: Json | null
+          services?: string[] | null
+          tone_preference?: Database["public"]["Enums"]["tone_pref"]
+          updated_at?: string | null
+          website_feed_cache?: Json | null
+          website_url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_feed_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invites: {
         Row: {
           accepted_at: string | null
@@ -2738,7 +3299,7 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
-          role: Database['public']['Enums']['workspace_role']
+          role: Database["public"]["Enums"]["workspace_role"]
           token: string
           workspace_id: string
         }
@@ -2749,33 +3310,34 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by: string
-          role?: Database['public']['Enums']['workspace_role']
+          role?: Database["public"]["Enums"]["workspace_role"]
           token?: string
           workspace_id: string
         }
         Update: {
           accepted_at?: string | null
+          created_at?: string
           email?: string
           expires_at?: string
           id?: string
           invited_by?: string
-          role?: Database['public']['Enums']['workspace_role']
+          role?: Database["public"]["Enums"]["workspace_role"]
           token?: string
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "workspace_invites_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "workspace_invites_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_invites_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2826,105 +3388,52 @@ export type Database = {
           },
         ]
       }
-      workspace_feed_settings: {
+      workspace_provider_credentials: {
         Row: {
-          workspace_id: string
-          content_topics: string[]
-          services: string[]
-          tone_preference: string
-          brand_name: string
-          competitors: string[]
-          competitor_metadata: Json | null
-          website_url: string | null
-          feed_preferences: Json | null
-          derived_topics: string[]
+          connected_by: string | null
           created_at: string
-          updated_at: string | null
-        }
-        Insert: {
-          workspace_id: string
-          content_topics?: string[]
-          services?: string[]
-          tone_preference?: string
-          brand_name?: string
-          competitors?: string[]
-          competitor_metadata?: Json | null
-          website_url?: string | null
-          feed_preferences?: Json | null
-          derived_topics?: string[]
-          created_at?: string
-          updated_at?: string | null
-        }
-        Update: {
-          workspace_id?: string
-          content_topics?: string[]
-          services?: string[]
-          tone_preference?: string
-          brand_name?: string
-          competitors?: string[]
-          competitor_metadata?: Json | null
-          website_url?: string | null
-          feed_preferences?: Json | null
-          derived_topics?: string[]
-          created_at?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "workspace_feed_settings_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: true
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      workspaces: {
-        Row: {
-          assigned_operator_id: string | null
-          avatar_url: string | null
-          brand_color: string | null
-          created_at: string
-          deleted_at: string | null
+          credential_version: number
+          encrypted_data: string
           id: string
-          name: string
-          plan: Database["public"]["Enums"]["subscription_plan"]
-          slug: string
-          slug_changed_at: string | null
+          key_version: number
+          last_validated_at: string | null
+          last_validation_error: string | null
+          provider: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
-          assigned_operator_id?: string | null
-          avatar_url?: string | null
-          brand_color?: string | null
+          connected_by?: string | null
           created_at?: string
-          deleted_at?: string | null
+          credential_version?: number
+          encrypted_data: string
           id?: string
-          name: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          slug: string
-          slug_changed_at?: string | null
+          key_version?: number
+          last_validated_at?: string | null
+          last_validation_error?: string | null
+          provider: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
-          assigned_operator_id?: string | null
-          avatar_url?: string | null
-          brand_color?: string | null
+          connected_by?: string | null
           created_at?: string
-          deleted_at?: string | null
+          credential_version?: number
+          encrypted_data?: string
           id?: string
-          name?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          slug?: string
-          slug_changed_at?: string | null
+          key_version?: number
+          last_validated_at?: string | null
+          last_validation_error?: string | null
+          provider?: string
           updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "workspaces_assigned_operator_id_fkey"
-            columns: ["assigned_operator_id"]
+            foreignKeyName: "workspace_provider_credentials_workspace_id_fkey"
+            columns: ["workspace_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2952,67 +3461,61 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
-          }
-        ]
-      }
-      workspace_distribution_settings: {
-        Row: {
-          workspace_id: string
-          utm_settings: Json
-          updated_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          workspace_id: string
-          utm_settings?: Json
-          updated_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          workspace_id?: string
-          utm_settings?: Json
-          updated_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "workspace_distribution_settings_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: true
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      workspace_competitor_content: {
-        Row: {
-          workspace_id: string
-          content_id:   string
-        }
-        Insert: {
-          workspace_id: string
-          content_id:   string
-        }
-        Update: {
-          workspace_id?: string
-          content_id?:   string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "workspace_competitor_content_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
           },
+        ]
+      }
+      workspaces: {
+        Row: {
+          assigned_operator_id: string | null
+          avatar_url: string | null
+          brand_color: string | null
+          created_at: string
+          custom_audiences: string[] | null
+          deleted_at: string | null
+          id: string
+          name: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          slug: string
+          slug_changed_at: string | null
+          updated_at: string
+          utm_settings: Json | null
+        }
+        Insert: {
+          assigned_operator_id?: string | null
+          avatar_url?: string | null
+          brand_color?: string | null
+          created_at?: string
+          custom_audiences?: string[] | null
+          deleted_at?: string | null
+          id?: string
+          name: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          slug: string
+          slug_changed_at?: string | null
+          updated_at?: string
+          utm_settings?: Json | null
+        }
+        Update: {
+          assigned_operator_id?: string | null
+          avatar_url?: string | null
+          brand_color?: string | null
+          created_at?: string
+          custom_audiences?: string[] | null
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          slug?: string
+          slug_changed_at?: string | null
+          updated_at?: string
+          utm_settings?: Json | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "workspace_competitor_content_content_id_fkey"
-            columns: ["content_id"]
+            foreignKeyName: "workspaces_assigned_operator_id_fkey"
+            columns: ["assigned_operator_id"]
             isOneToOne: false
-            referencedRelation: "competitor_content_global"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3023,6 +3526,14 @@ export type Database = {
     }
     Functions: {
       auth_user_id: { Args: never; Returns: string }
+      compute_lens_performance: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
+      compute_narrative_performance: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
       increment_connection_failure: {
         Args: {
           p_connection_id: string
@@ -3066,13 +3577,20 @@ export type Database = {
         | "instagram"
         | "tiktok"
         | "google_business_profile"
+        | "apple_business_connect"
       draft_format: "linkedin" | "twitter" | "blog" | "newsletter" | "instagram"
       draft_tone:
         | "authoritative"
         | "conversational"
         | "provocative"
         | "educational"
-      feed_tab: "news" | "website" | "knowledge" | "concepts" | "competitors"
+      feed_tab:
+        | "news"
+        | "services"
+        | "concepts"
+        | "competitors"
+        | "website"
+        | "knowledge"
       generation_status: "pending" | "generating" | "complete" | "failed"
       job_status: "queued" | "running" | "done" | "failed" | "canceled"
       job_type: "transcribe" | "generate" | "summarize" | "reformat"
@@ -3256,6 +3774,7 @@ export const Constants = {
         "instagram",
         "tiktok",
         "google_business_profile",
+        "apple_business_connect",
       ],
       draft_format: ["linkedin", "twitter", "blog", "newsletter", "instagram"],
       draft_tone: [
@@ -3264,7 +3783,14 @@ export const Constants = {
         "provocative",
         "educational",
       ],
-      feed_tab: ["news", "website", "knowledge", "concepts", "competitors"],
+      feed_tab: [
+        "news",
+        "services",
+        "concepts",
+        "competitors",
+        "website",
+        "knowledge",
+      ],
       generation_status: ["pending", "generating", "complete", "failed"],
       job_status: ["queued", "running", "done", "failed", "canceled"],
       job_type: ["transcribe", "generate", "summarize", "reformat"],

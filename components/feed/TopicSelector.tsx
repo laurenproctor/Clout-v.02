@@ -47,6 +47,34 @@ export function TopicSelector({ selected, onChange }: TopicSelectorProps) {
     }
   }
 
+  function addBulkTopics(raw: string) {
+    const topics = raw
+      .split(/[\n,]+/)
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+    const toAdd = topics.filter(t => !selected.includes(t))
+    const remaining = 10 - selected.length
+    if (toAdd.length > 0) onChange([...selected, ...toAdd.slice(0, remaining)])
+    setQuery('')
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value
+    if (val.includes(',') || val.includes('\n')) {
+      addBulkTopics(val)
+    } else {
+      setQuery(val)
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData('text')
+    if (text.includes(',') || text.includes('\n')) {
+      e.preventDefault()
+      addBulkTopics(text)
+    }
+  }
+
   const atMax = selected.length >= 10
   const countColor = selected.length < 3 ? '#ef4444' : '#9ca3af'
 
@@ -55,9 +83,10 @@ export function TopicSelector({ selected, onChange }: TopicSelectorProps) {
       <input
         type="text"
         value={query}
-        onChange={e => setQuery(e.target.value)}
+        onChange={handleChange}
+        onPaste={handlePaste}
         onKeyDown={e => { if (e.key === 'Enter') addCustomTopic() }}
-        placeholder="Search topics or type your own…"
+        placeholder="Search or type topics — paste a comma-separated list to add many at once"
         style={{
           width: '100%',
           padding: '10px 12px',

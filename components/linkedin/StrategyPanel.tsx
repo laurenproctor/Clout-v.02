@@ -20,6 +20,7 @@ interface StrategyPanelProps {
   onGenerate: () => void
   readOnly?: boolean
   showGenerateButton?: boolean
+  savedAudiences?: string[]
 }
 
 const pillBase = 'text-xs rounded-full px-3 py-1.5 transition-colors cursor-pointer'
@@ -64,6 +65,7 @@ export function StrategyPanel({
   onGenerate,
   readOnly,
   showGenerateButton,
+  savedAudiences = [],
 }: StrategyPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -163,16 +165,35 @@ export function StrategyPanel({
         <div>
           <p className={sectionLabel}>Audience</p>
           <div className="flex flex-wrap gap-2">
-            {audiences.map(item => (
+            {audiences.filter(item => item.value !== 'custom').map(item => (
               <Pill
                 key={item.value}
                 selected={values.audience === item.value}
-                onClick={() => !readOnly && onChange({ audience: item.value, ...(item.value !== 'custom' && { customAudience: undefined }) })}
+                onClick={() => !readOnly && onChange({ audience: item.value, customAudience: undefined })}
                 disabled={readOnly}
               >
                 {item.label}
               </Pill>
             ))}
+            {savedAudiences
+              .filter(saved => !audiences.some(a => a.label.toLowerCase() === saved.toLowerCase()))
+              .map(saved => (
+                <Pill
+                  key={saved}
+                  selected={values.audience === 'custom' && values.customAudience === saved}
+                  onClick={() => !readOnly && onChange({ audience: 'custom', customAudience: saved })}
+                  disabled={readOnly}
+                >
+                  {saved}
+                </Pill>
+              ))}
+            <Pill
+              selected={values.audience === 'custom' && !savedAudiences.some(s => s === values.customAudience)}
+              onClick={() => !readOnly && onChange({ audience: 'custom', customAudience: '' })}
+              disabled={readOnly}
+            >
+              Custom…
+            </Pill>
           </div>
           {values.audience === 'custom' && (
             <input

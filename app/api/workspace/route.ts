@@ -10,7 +10,7 @@ export async function GET() {
   const [workspaceRes, membersRes, subRes] = await Promise.all([
     supabase
       .from('workspaces')
-      .select('id, name, slug, plan, avatar_url, brand_color, slug_changed_at')
+      .select('id, name, slug, plan, avatar_url, brand_color, slug_changed_at, custom_audiences')
       .eq('id', session.workspaceId)
       .single(),
     supabase

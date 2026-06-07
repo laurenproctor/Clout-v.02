@@ -1,13 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
+import { Check, Loader2 } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { CreateWorkspaceModal } from '@/components/shell/create-workspace-modal'
 import { useCanCreateWorkspace } from '@/hooks/use-entitlements'
+
+type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
 type WorkspaceData = {
   id: string
@@ -36,8 +39,8 @@ export default function WorkspaceSettingsPage() {
 
   const [name, setName] = useState('')
   const [brandColor, setBrandColor] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [identityStatus, setIdentityStatus] = useState<SaveStatus>('idle')
+  const [identityError, setIdentityError] = useState<string | null>(null)
 
   const [slug, setSlug] = useState('')
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
@@ -50,6 +53,11 @@ export default function WorkspaceSettingsPage() {
   const [deleting, setDeleting] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const canCreate = useCanCreateWorkspace()
+
+  const identityLoaded = useRef(false)
+  const identityTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const identitySaveData = useRef({ name, brandColor })
+  useEffect(() => { identitySaveData.current = { name, brandColor } })
 
   useEffect(() => {
     fetch('/api/workspace')
@@ -68,7 +76,11 @@ export default function WorkspaceSettingsPage() {
           }
         }
         if (ws?.subscription) setSub(ws.subscription)
+      })
+      .catch(() => {})
+      .finally(() => {
         setLoading(false)
+        setTimeout(() => { identityLoaded.current = true }, 0)
       })
   }, [])
 
@@ -88,19 +100,36 @@ export default function WorkspaceSettingsPage() {
   const canEdit = activeWorkspace.userRole === 'owner' || activeWorkspace.userRole === 'admin'
   const isRateLimited = slugDaysLeft !== null
 
-  async function handleSaveIdentity() {
-    setSaving(true)
-    const res = await fetch('/api/workspace', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, brand_color: brandColor }),
-    })
-    if (res.ok) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+  const handleSaveIdentity = useCallback(async () => {
+    setIdentityStatus('saving')
+    setIdentityError(null)
+    const { name: n, brandColor: bc } = identitySaveData.current
+    try {
+      const res = await fetch('/api/workspace', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: n, brand_color: bc }),
+      })
+      if (res.ok) {
+        setIdentityStatus('saved')
+        setTimeout(() => setIdentityStatus('idle'), 3000)
+      } else {
+        setIdentityError('Save failed')
+        setIdentityStatus('error')
+      }
+    } catch {
+      setIdentityError('Save failed')
+      setIdentityStatus('error')
     }
-    setSaving(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!identityLoaded.current || !canEdit) return
+    setIdentityStatus('unsaved')
+    if (identityTimer.current) clearTimeout(identityTimer.current)
+    identityTimer.current = setTimeout(handleSaveIdentity, 1500)
+    return () => { if (identityTimer.current) clearTimeout(identityTimer.current) }
+  }, [name, brandColor, handleSaveIdentity, canEdit])
 
   async function handleSaveSlug() {
     setSlugSaving(true)
@@ -145,7 +174,39 @@ export default function WorkspaceSettingsPage() {
     <div className="space-y-8 max-w-2xl">
       {/* Identity */}
       <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-900">Identity</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-900">Identity</h2>
+          <div className="flex items-center gap-3">
+            {(identityStatus === 'unsaved' || identityStatus === 'error') && (
+              <span className={cn('flex items-center gap-1.5 text-xs', {
+                'text-amber-500': identityStatus === 'unsaved',
+                'text-red-500': identityStatus === 'error',
+              })}>
+                {identityStatus === 'unsaved' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />}
+                {identityStatus === 'unsaved' ? 'Unsaved changes' : (identityError ?? 'Save failed')}
+              </span>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={handleSaveIdentity}
+                disabled={identityStatus === 'saving' || identityStatus === 'saved'}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-white transition-all',
+                  identityStatus === 'saved'
+                    ? 'bg-emerald-600 cursor-default'
+                    : identityStatus === 'saving'
+                      ? 'bg-zinc-900 opacity-50 cursor-not-allowed'
+                      : 'bg-zinc-900 hover:bg-zinc-700'
+                )}
+              >
+                {identityStatus === 'saved' && <Check className="h-3 w-3" />}
+                {identityStatus === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                {identityStatus === 'saved' ? 'Saved' : identityStatus === 'saving' ? 'Saving…' : 'Save'}
+              </button>
+            )}
+          </div>
+        </div>
 
         <div>
           <label className="block text-xs font-medium text-zinc-500 mb-1.5">Workspace name</label>
@@ -175,14 +236,6 @@ export default function WorkspaceSettingsPage() {
             />
           </div>
         </div>
-
-        <button
-          onClick={handleSaveIdentity}
-          disabled={!canEdit || saving}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-zinc-800 transition-colors"
-        >
-          {saved ? 'Saved' : saving ? 'Saving...' : 'Save changes'}
-        </button>
       </section>
 
       {/* Workspace URL */}
@@ -276,7 +329,7 @@ export default function WorkspaceSettingsPage() {
           Create workspace
         </button>
         {canCreate === false && (
-          <p className="text-xs text-zinc-400">You've reached the workspace limit for your plan.</p>
+          <p className="text-xs text-zinc-400">You&apos;ve reached the workspace limit for your plan.</p>
         )}
       </section>
 

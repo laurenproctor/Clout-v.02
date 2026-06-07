@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Lock, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { Lock, Plus, Trash2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
 interface NamedItem {
   name: string
@@ -148,9 +150,13 @@ export default function ProfileSettingsPage() {
     private_feed_operator_visible: false,
   })
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<SaveStatus>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const loaded = useRef(false)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveData = useRef(profile)
+  useEffect(() => { saveData.current = profile })
 
   useEffect(() => {
     fetch('/api/profile')
@@ -167,42 +173,57 @@ export default function ProfileSettingsPage() {
           sample_content: data.sample_content ?? [],
           private_feed_operator_visible: data.private_feed_operator_visible ?? false,
         })
-        setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false)
+        setTimeout(() => { loaded.current = true }, 0)
+      })
   }, [])
 
-  async function handleSave() {
-    setSaving(true)
-    setError(null)
-    // Filter out incomplete items before saving
-    const cleanModels = profile.mental_models.filter((m) => m.name.trim())
-    const cleanPhilosophies = profile.philosophies.filter((p) => p.name.trim())
-
-    const res = await fetch('/api/profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        display_name: profile.display_name || null,
-        bio: profile.bio || null,
-        tone_notes: profile.tone_notes || null,
-        industries: profile.industries,
-        target_audiences: profile.target_audiences,
-        mental_models: cleanModels,
-        philosophies: cleanPhilosophies,
-        sample_content: profile.sample_content,
-        private_feed_operator_visible: profile.private_feed_operator_visible,
-      }),
-    })
-    if (res.ok) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } else {
-      const data = await res.json()
-      setError(data.error ?? 'Save failed')
+  const handleSave = useCallback(async () => {
+    setStatus('saving')
+    setSaveError(null)
+    const p = saveData.current
+    const cleanModels = p.mental_models.filter((m) => m.name.trim())
+    const cleanPhilosophies = p.philosophies.filter((p) => p.name.trim())
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: p.display_name || null,
+          bio: p.bio || null,
+          tone_notes: p.tone_notes || null,
+          industries: p.industries,
+          target_audiences: p.target_audiences,
+          mental_models: cleanModels,
+          philosophies: cleanPhilosophies,
+          sample_content: p.sample_content,
+          private_feed_operator_visible: p.private_feed_operator_visible,
+        }),
+      })
+      if (res.ok) {
+        setStatus('saved')
+        setTimeout(() => setStatus('idle'), 3000)
+      } else {
+        const data = await res.json()
+        setSaveError(data.error ?? 'Save failed')
+        setStatus('error')
+      }
+    } catch {
+      setSaveError('Save failed')
+      setStatus('error')
     }
-    setSaving(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!loaded.current) return
+    setStatus('unsaved')
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(handleSave, 1500)
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+  }, [profile, handleSave])
 
   if (loading) {
     return (
@@ -214,178 +235,198 @@ export default function ProfileSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-zinc-900">Profile</h1>
-        <p className="mt-0.5 text-sm text-zinc-500">Your thought leader identity — the context behind every generation.</p>
-      </div>
-
-      {/* Identity */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
-        <h2 className="text-sm font-medium text-zinc-900">Identity</h2>
-        <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Display name</label>
-          <input
-            className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
-            placeholder="Your name"
-            value={profile.display_name ?? ''}
-            onChange={(e) => setProfile((p) => ({ ...p, display_name: e.target.value }))}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Bio</label>
-          <textarea
-            className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
-            rows={3}
-            placeholder="What do you stand for?"
-            value={profile.bio ?? ''}
-            onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Tone notes</label>
-          <p className="text-xs text-zinc-400 mt-0.5 mb-1.5">How should Clout sound when writing in your voice?</p>
-          <textarea
-            className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
-            rows={2}
-            placeholder="Direct but warm. Never uses jargon. Confident without being arrogant."
-            value={profile.tone_notes ?? ''}
-            onChange={(e) => setProfile((p) => ({ ...p, tone_notes: e.target.value }))}
-          />
-        </div>
-        <TagInput
-          label="Industries"
-          values={profile.industries}
-          onChange={(v) => setProfile((p) => ({ ...p, industries: v }))}
-          placeholder="SaaS, fintech, healthcare..."
-        />
-        <TagInput
-          label="Target audiences"
-          values={profile.target_audiences}
-          onChange={(v) => setProfile((p) => ({ ...p, target_audiences: v }))}
-          placeholder="Founders, CTOs, investors..."
-        />
-      </div>
-
-      {/* Mental models */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6">
-        <NamedItemEditor
-          label="Mental models"
-          description="Frameworks you use to understand the world. These shape how Clout reasons through your captures."
-          items={profile.mental_models}
-          onChange={(items) => setProfile((p) => ({ ...p, mental_models: items }))}
-          namePlaceholder="e.g. First Principles"
-          descriptionPlaceholder="Break problems down to their fundamental truths rather than reasoning by analogy."
-        />
-      </div>
-
-      {/* Philosophies */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6">
-        <NamedItemEditor
-          label="Philosophies"
-          description="Core beliefs that inform your perspective. Clout uses these to make your content distinctly yours."
-          items={profile.philosophies}
-          onChange={(items) => setProfile((p) => ({ ...p, philosophies: items }))}
-          namePlaceholder="e.g. Simplicity over complexity"
-          descriptionPlaceholder="The best solutions are often the simplest ones. Complexity is a sign of unfinished thinking."
-        />
-      </div>
-
-      {/* Sample content */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
-        <div>
-          <h2 className="text-sm font-medium text-zinc-900">Writing samples</h2>
-          <p className="mt-0.5 text-xs text-zinc-400">
-            Paste examples of your best writing. Clout uses these to match your voice.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          {profile.sample_content.map((sample, index) => (
-            <div key={index} className="relative">
-              <textarea
-                className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none pr-8"
-                rows={4}
-                placeholder="Paste a writing sample here..."
-                value={sample}
-                onChange={(e) => {
-                  const updated = [...profile.sample_content]
-                  updated[index] = e.target.value
-                  setProfile((p) => ({ ...p, sample_content: updated }))
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const updated = profile.sample_content.filter((_, i) => i !== index)
-                  setProfile((p) => ({ ...p, sample_content: updated }))
-                }}
-                className="absolute top-2 right-2 text-zinc-300 hover:text-red-500 transition-colors"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          {profile.sample_content.length < 3 && (
+    <div className="mx-auto max-w-2xl pb-16">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-zinc-100 -mx-4 px-4 sm:-mx-5 sm:px-5 md:-mx-6 md:px-6 mb-6">
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <h1 className="text-base font-semibold text-zinc-900">Profile</h1>
+            <p className="text-xs text-zinc-400">Your thought leader identity — context behind every generation.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {(status === 'unsaved' || status === 'error') && (
+              <span className={cn('flex items-center gap-1.5 text-xs', {
+                'text-amber-500': status === 'unsaved',
+                'text-red-500': status === 'error',
+              })}>
+                {status === 'unsaved' && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />}
+                {status === 'unsaved' ? 'Unsaved changes' : (saveError ?? 'Save failed')}
+              </span>
+            )}
             <button
               type="button"
-              onClick={() => setProfile((p) => ({ ...p, sample_content: [...p.sample_content, ''] }))}
-              className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors w-full justify-center"
-            >
-              + Add writing sample
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Private feed */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Lock className="h-4 w-4 text-zinc-400" />
-          <h2 className="text-sm font-medium text-zinc-900">Private Feed</h2>
-        </div>
-        <p className="text-sm text-zinc-500">Control whether your assigned operator can see your Private feed.</p>
-        <div className="space-y-3">
-          {[
-            { value: false, label: 'Keep it private', description: 'Only you can see your Private feed.' },
-            { value: true, label: 'Allow operator access', description: 'Your assigned operator can see your Private feed.' },
-          ].map(({ value, label, description }) => (
-            <button
-              key={String(value)}
-              type="button"
-              onClick={() => setProfile((p) => ({ ...p, private_feed_operator_visible: value }))}
+              onClick={handleSave}
+              disabled={status === 'saving' || status === 'saved'}
               className={cn(
-                'w-full rounded-lg border p-4 text-left transition-colors',
-                profile.private_feed_operator_visible === value ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-300'
+                'flex items-center gap-1.5 rounded-md px-4 py-1.5 text-xs font-medium text-white transition-all',
+                status === 'saved'
+                  ? 'bg-emerald-600 cursor-default'
+                  : status === 'saving'
+                    ? 'bg-zinc-900 opacity-50 cursor-not-allowed'
+                    : 'bg-zinc-900 hover:bg-zinc-700'
               )}
             >
-              <div className="flex items-center gap-3">
-                <div className={cn('h-4 w-4 shrink-0 rounded-full border-2 transition-colors',
-                  profile.private_feed_operator_visible === value ? 'border-zinc-900 bg-zinc-900' : 'border-zinc-300'
-                )} />
-                <div>
-                  <p className="text-sm font-medium text-zinc-900">{label}</p>
-                  <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
-                </div>
-              </div>
+              {status === 'saved' && <Check className="h-3 w-3" />}
+              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
             </button>
-          ))}
+          </div>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="space-y-8">
+        {/* Identity */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+          <h2 className="text-sm font-medium text-zinc-900">Identity</h2>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Display name</label>
+            <input
+              className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              placeholder="Your name"
+              value={profile.display_name ?? ''}
+              onChange={(e) => setProfile((p) => ({ ...p, display_name: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Bio</label>
+            <textarea
+              className="mt-1.5 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
+              rows={3}
+              placeholder="What do you stand for?"
+              value={profile.bio ?? ''}
+              onChange={(e) => setProfile((p) => ({ ...p, bio: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Tone notes</label>
+            <p className="text-xs text-zinc-400 mt-0.5 mb-1.5">How should Clout sound when writing in your voice?</p>
+            <textarea
+              className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none"
+              rows={2}
+              placeholder="Direct but warm. Never uses jargon. Confident without being arrogant."
+              value={profile.tone_notes ?? ''}
+              onChange={(e) => setProfile((p) => ({ ...p, tone_notes: e.target.value }))}
+            />
+          </div>
+          <TagInput
+            label="Industries"
+            values={profile.industries}
+            onChange={(v) => setProfile((p) => ({ ...p, industries: v }))}
+            placeholder="SaaS, fintech, healthcare..."
+          />
+          <TagInput
+            label="Target audiences"
+            values={profile.target_audiences}
+            onChange={(v) => setProfile((p) => ({ ...p, target_audiences: v }))}
+            placeholder="Founders, CTOs, investors..."
+          />
+        </div>
 
-      <div className="flex justify-end pb-8">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={cn(
-            'rounded-md px-5 py-2 text-sm font-medium transition-colors',
-            saving ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-700'
-          )}
-        >
-          {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save profile'}
-        </button>
+        {/* Mental models */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6">
+          <NamedItemEditor
+            label="Mental models"
+            description="Frameworks you use to understand the world. These shape how Clout reasons through your captures."
+            items={profile.mental_models}
+            onChange={(items) => setProfile((p) => ({ ...p, mental_models: items }))}
+            namePlaceholder="e.g. First Principles"
+            descriptionPlaceholder="Break problems down to their fundamental truths rather than reasoning by analogy."
+          />
+        </div>
+
+        {/* Philosophies */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6">
+          <NamedItemEditor
+            label="Philosophies"
+            description="Core beliefs that inform your perspective. Clout uses these to make your content distinctly yours."
+            items={profile.philosophies}
+            onChange={(items) => setProfile((p) => ({ ...p, philosophies: items }))}
+            namePlaceholder="e.g. Simplicity over complexity"
+            descriptionPlaceholder="The best solutions are often the simplest ones. Complexity is a sign of unfinished thinking."
+          />
+        </div>
+
+        {/* Sample content */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+          <div>
+            <h2 className="text-sm font-medium text-zinc-900">Writing samples</h2>
+            <p className="mt-0.5 text-xs text-zinc-400">
+              Paste examples of your best writing. Clout uses these to match your voice.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {profile.sample_content.map((sample, index) => (
+              <div key={index} className="relative">
+                <textarea
+                  className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none resize-none pr-8"
+                  rows={4}
+                  placeholder="Paste a writing sample here..."
+                  value={sample}
+                  onChange={(e) => {
+                    const updated = [...profile.sample_content]
+                    updated[index] = e.target.value
+                    setProfile((p) => ({ ...p, sample_content: updated }))
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = profile.sample_content.filter((_, i) => i !== index)
+                    setProfile((p) => ({ ...p, sample_content: updated }))
+                  }}
+                  className="absolute top-2 right-2 text-zinc-300 hover:text-red-500 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {profile.sample_content.length < 3 && (
+              <button
+                type="button"
+                onClick={() => setProfile((p) => ({ ...p, sample_content: [...p.sample_content, ''] }))}
+                className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 transition-colors w-full justify-center"
+              >
+                + Add writing sample
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Private feed */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-zinc-400" />
+            <h2 className="text-sm font-medium text-zinc-900">Private Feed</h2>
+          </div>
+          <p className="text-sm text-zinc-500">Control whether your assigned operator can see your Private feed.</p>
+          <div className="space-y-3">
+            {[
+              { value: false, label: 'Keep it private', description: 'Only you can see your Private feed.' },
+              { value: true, label: 'Allow operator access', description: 'Your assigned operator can see your Private feed.' },
+            ].map(({ value, label, description }) => (
+              <button
+                key={String(value)}
+                type="button"
+                onClick={() => setProfile((p) => ({ ...p, private_feed_operator_visible: value }))}
+                className={cn(
+                  'w-full rounded-lg border p-4 text-left transition-colors',
+                  profile.private_feed_operator_visible === value ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-300'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn('h-4 w-4 shrink-0 rounded-full border-2 transition-colors',
+                    profile.private_feed_operator_visible === value ? 'border-zinc-900 bg-zinc-900' : 'border-zinc-300'
+                  )} />
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900">{label}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{description}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

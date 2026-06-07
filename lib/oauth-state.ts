@@ -3,12 +3,13 @@ import { createHmac, timingSafeEqual } from 'crypto'
 
 const STATE_TTL_SECONDS = 600 // 10 minutes
 
-interface StatePayload {
+export interface StatePayload {
   workspaceId:   string
   nonce:         string
   exp:           number
   codeVerifier?: string  // PKCE only — X OAuth 2.0
   returnTo?:     string
+  instanceUrl?:  string  // Mastodon only — federated instance URL
 }
 
 function secret(): string {
@@ -20,7 +21,8 @@ function secret(): string {
 export function signOAuthState(
   workspaceId: string,
   codeVerifier?: string,
-  returnTo?: string
+  returnTo?: string,
+  instanceUrl?: string,
 ): string {
   const payload: StatePayload = {
     workspaceId,
@@ -28,6 +30,7 @@ export function signOAuthState(
     exp:   Math.floor(Date.now() / 1000) + STATE_TTL_SECONDS,
     ...(codeVerifier ? { codeVerifier } : {}),
     ...(returnTo ? { returnTo } : {}),
+    ...(instanceUrl ? { instanceUrl } : {}),
   }
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url')
   const sig  = createHmac('sha256', secret()).update(data).digest('base64url')

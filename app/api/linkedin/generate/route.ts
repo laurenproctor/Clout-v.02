@@ -4,6 +4,7 @@ import { listLenses } from '@/lib/domain/lens'
 import { runLinkedInGeneration } from '@/lib/linkedin/runGeneration'
 import { scrapeUrl } from '@/lib/scraper'
 import type { LinkedInGenerationRequest } from '@/lib/linkedin/types'
+import { saveCustomAudience } from '@/lib/audiences'
 
 export const maxDuration = 120
 
@@ -69,6 +70,10 @@ export async function POST(req: NextRequest) {
 
   const ctx = { request, lenses: resolvedLenses }
   const stream = runLinkedInGeneration(ctx)
+
+  if (request.audience === 'custom' && request.customAudience?.trim()) {
+    saveCustomAudience(session.workspaceId, request.customAudience).catch(() => {})
+  }
 
   return new Response(stream, {
     headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },
