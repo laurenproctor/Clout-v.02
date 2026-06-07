@@ -783,6 +783,11 @@ export type Database = {
         Row: {
           account_id: string | null
           account_type: string
+          apple_address: Json | null
+          apple_business_id: string | null
+          apple_company_id: string | null
+          apple_location_id: string | null
+          apple_location_name: string | null
           config: Json
           created_at: string
           google_account_id: string | null
@@ -795,12 +800,18 @@ export type Database = {
           is_active: boolean
           label: string | null
           platform: Database["public"]["Enums"]["channel_platform"]
+          provider_credential_id: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           account_id?: string | null
           account_type?: string
+          apple_address?: Json | null
+          apple_business_id?: string | null
+          apple_company_id?: string | null
+          apple_location_id?: string | null
+          apple_location_name?: string | null
           config?: Json
           created_at?: string
           google_account_id?: string | null
@@ -813,12 +824,18 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           platform: Database["public"]["Enums"]["channel_platform"]
+          provider_credential_id?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           account_id?: string | null
           account_type?: string
+          apple_address?: Json | null
+          apple_business_id?: string | null
+          apple_company_id?: string | null
+          apple_location_id?: string | null
+          apple_location_name?: string | null
           config?: Json
           created_at?: string
           google_account_id?: string | null
@@ -831,10 +848,18 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           platform?: Database["public"]["Enums"]["channel_platform"]
+          provider_credential_id?: string | null
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "channels_provider_credential_id_fkey"
+            columns: ["provider_credential_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_provider_credentials"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "channels_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -3363,6 +3388,56 @@ export type Database = {
           },
         ]
       }
+      workspace_provider_credentials: {
+        Row: {
+          connected_by: string | null
+          created_at: string
+          credential_version: number
+          encrypted_data: string
+          id: string
+          key_version: number
+          last_validated_at: string | null
+          last_validation_error: string | null
+          provider: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          connected_by?: string | null
+          created_at?: string
+          credential_version?: number
+          encrypted_data: string
+          id?: string
+          key_version?: number
+          last_validated_at?: string | null
+          last_validation_error?: string | null
+          provider: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          connected_by?: string | null
+          created_at?: string
+          credential_version?: number
+          encrypted_data?: string
+          id?: string
+          key_version?: number
+          last_validated_at?: string | null
+          last_validation_error?: string | null
+          provider?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_provider_credentials_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_slug_history: {
         Row: {
           changed_at: string
@@ -3502,6 +3577,7 @@ export type Database = {
         | "instagram"
         | "tiktok"
         | "google_business_profile"
+        | "apple_business_connect"
       draft_format: "linkedin" | "twitter" | "blog" | "newsletter" | "instagram"
       draft_tone:
         | "authoritative"
@@ -3698,6 +3774,7 @@ export const Constants = {
         "instagram",
         "tiktok",
         "google_business_profile",
+        "apple_business_connect",
       ],
       draft_format: ["linkedin", "twitter", "blog", "newsletter", "instagram"],
       draft_tone: [
