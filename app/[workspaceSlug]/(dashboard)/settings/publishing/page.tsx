@@ -107,6 +107,14 @@ function BlueSkyIcon({ className }: { className?: string }) {
   )
 }
 
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 814 1000" fill="currentColor" className={className}>
+      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-166.8-105.4C71.5 813.5 12.2 690.2 12.2 573.4c0-214 139.8-327.6 277.9-327.6 71 0 130.2 46.5 173.9 46.5 41.9 0 107.9-49.4 188.3-49.4 30.2 0 108.2 2.6 168.1 80.6zm-119-189.4c29.7-35.1 51.1-83.8 51.1-132.5 0-6.5-.6-13-.6-19.1-48.8 1.9-106.8 32.5-142.1 72.5-26.5 29.9-51.9 78.6-51.9 128.1 0 7.1 1.3 14.3 1.9 16.5 3.2.6 8.4 1.3 13.6 1.3 43.9 0 97.2-29.3 128-66.8z" />
+    </svg>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Platform = 'linkedin' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'bluesky'
@@ -122,6 +130,8 @@ interface Channel {
   google_location_name?: string | null
   google_location_address?: { locality?: string; administrativeArea?: string } | null
   google_verified?: boolean | null
+  apple_business_name?: string | null
+  apple_address?: { city?: string; stateOrProvince?: string } | null
 }
 
 interface PendingPage    { id: string; name: string }
@@ -135,6 +145,15 @@ interface PendingGBPLocation {
   state: string | null
   isVerified: boolean
   profilePhotoUrl: string | null
+}
+
+interface PendingABCLocation {
+  locationId: string
+  businessId: string
+  companyId:  string
+  name:       string
+  city:       string | null
+  state:      string | null
 }
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -205,7 +224,7 @@ const SOCIAL_PLATFORMS: {
   },
 ]
 
-const PLANNED = ['YouTube', 'Reddit', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch'] as const
+const PLANNED = ['YouTube', 'Reddit', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Nextdoor', 'Patch'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
@@ -459,6 +478,265 @@ function GBPLocationPicker({
   )
 }
 
+function ABCConnectModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose:   () => void
+  onSuccess: (locations: PendingABCLocation[]) => void
+}) {
+  const [keyId,      setKeyId]      = useState('')
+  const [issuerId,   setIssuerId]   = useState('')
+  const [privateKey, setPrivateKey] = useState('')
+  const [error,      setError]      = useState('')
+  const [loading,    setLoading]    = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!keyId.trim() || !issuerId.trim() || !privateKey.trim()) {
+      setError('All three fields are required.')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/channels/apple-business-connect/connect', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          keyId:      keyId.trim(),
+          issuerId:   issuerId.trim(),
+          privateKey: privateKey.trim(),
+        }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        setError(data.error ?? 'Invalid credentials or API error. Verify your Key ID, Issuer ID, and private key.')
+        return
+      }
+      const locRes  = await fetch('/api/channels/apple-business-connect/pending-locations')
+      const locData = await locRes.json().catch(() => ({})) as { locations?: PendingABCLocation[] }
+      onSuccess(locData.locations ?? [])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-black">
+              <AppleIcon className="h-4 w-4 text-white" />
+            </div>
+            <p className="text-sm font-semibold text-zinc-900">Connect Apple Business Connect</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mb-4 text-xs text-zinc-400">
+          Find these in{' '}
+          <a
+            href="https://businessconnect.apple.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline"
+          >
+            Apple Business Connect → API Keys
+          </a>
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <div className="mb-1 flex items-baseline justify-between">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Key ID</label>
+              <span className="text-[10px] text-zinc-400">e.g. ABC123XYZ</span>
+            </div>
+            <input
+              type="text"
+              value={keyId}
+              onChange={e => { setKeyId(e.target.value); setError('') }}
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400"
+              autoFocus
+            />
+          </div>
+          <div>
+            <div className="mb-1 flex items-baseline justify-between">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Issuer ID</label>
+              <span className="text-[10px] text-zinc-400">UUID format</span>
+            </div>
+            <input
+              type="text"
+              value={issuerId}
+              onChange={e => { setIssuerId(e.target.value); setError('') }}
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 font-mono text-sm outline-none focus:border-zinc-400"
+            />
+          </div>
+          <div>
+            <div className="mb-1 flex items-baseline justify-between">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Private Key</label>
+              <span className="text-[10px] text-zinc-400">PEM — include BEGIN/END headers</span>
+            </div>
+            <textarea
+              value={privateKey}
+              onChange={e => { setPrivateKey(e.target.value); setError('') }}
+              rows={4}
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2 font-mono text-xs outline-none focus:border-zinc-400"
+            />
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+            Your private key is encrypted at rest and never exposed in the UI after saving.
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+            >
+              {loading ? 'Validating…' : 'Validate & Connect'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ABCLocationPicker({
+  locations,
+  onConnect,
+  onClose,
+  onReenterCredentials,
+}: {
+  locations:            PendingABCLocation[]
+  onConnect:            (locationIds: string[]) => Promise<void>
+  onClose:              () => void
+  onReenterCredentials: () => void
+}) {
+  const [search,     setSearch]     = useState('')
+  const [selected,   setSelected]   = useState<Set<string>>(new Set())
+  const [connecting, setConnecting] = useState(false)
+
+  const sorted   = [...locations].sort((a, b) => a.name.localeCompare(b.name))
+  const q        = search.toLowerCase()
+  const filtered = sorted.filter(loc =>
+    !q ||
+    loc.name.toLowerCase().includes(q) ||
+    loc.city?.toLowerCase().includes(q) ||
+    loc.state?.toLowerCase().includes(q)
+  )
+
+  function toggle(locationId: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(locationId)) next.delete(locationId)
+      else next.add(locationId)
+      return next
+    })
+  }
+
+  async function handleConnect() {
+    if (selected.size === 0 || connecting) return
+    setConnecting(true)
+    await onConnect([...selected])
+    setConnecting(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-semibold text-zinc-900">Connect Apple Business Connect</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {locations.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-sm text-zinc-500">No locations found.</p>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+              Ensure your API key has access to at least one verified business location in Apple Business Connect.
+            </p>
+            <button
+              onClick={onReenterCredentials}
+              className="mt-3 text-xs text-blue-500 hover:underline"
+            >
+              Re-enter Credentials
+            </button>
+          </div>
+        ) : (
+          <>
+            {locations.length > 8 && (
+              <input
+                type="text"
+                placeholder="Search locations…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="mb-3 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+              />
+            )}
+
+            <div className="max-h-72 overflow-y-auto space-y-0.5">
+              {filtered.map(loc => (
+                <label
+                  key={loc.locationId}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 hover:border-zinc-200"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(loc.locationId)}
+                    onChange={() => toggle(loc.locationId)}
+                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-zinc-900">{loc.name}</p>
+                    {(loc.city || loc.state) && (
+                      <p className="text-xs text-zinc-400">
+                        {[loc.city, loc.state].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                </label>
+              ))}
+              {filtered.length === 0 && (
+                <p className="py-4 text-center text-sm text-zinc-400">No locations match your search.</p>
+              )}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-4">
+              <span className="text-xs text-zinc-400">
+                {selected.size > 0 ? `${selected.size} selected` : 'Select locations to connect'}
+              </span>
+              <button
+                onClick={handleConnect}
+                disabled={selected.size === 0 || connecting}
+                className={cn(
+                  'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                  selected.size > 0 && !connecting
+                    ? 'bg-zinc-900 text-white hover:bg-zinc-700'
+                    : 'cursor-not-allowed bg-zinc-100 text-zinc-400'
+                )}
+              >
+                {connecting ? 'Connecting…' : 'Connect Selected'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 function PublishingInfrastructureContent() {
@@ -483,6 +761,8 @@ function PublishingInfrastructureContent() {
   const [igAccounts,   setIgAccounts]   = useState<PendingAccount[] | null>(null)
   const [liProfiles,   setLiProfiles]   = useState<PendingLiProfile[] | null>(null)
   const [gbpLocations, setGbpLocations] = useState<PendingGBPLocation[] | null>(null)
+  const [abcLocations, setAbcLocations] = useState<PendingABCLocation[] | null>(null)
+  const [showABCModal, setShowABCModal] = useState(false)
 
   function flash(msg: string, ok: boolean) {
     setToast({ msg, ok })
@@ -666,6 +946,38 @@ function PublishingInfrastructureContent() {
     }
   }
 
+  async function handleConnectABC() {
+    const storedRes = await fetch('/api/channels/apple-business-connect/connect-stored', { method: 'POST' })
+    if (storedRes.ok) {
+      const locRes  = await fetch('/api/channels/apple-business-connect/pending-locations')
+      const locData = await locRes.json().catch(() => ({})) as { locations?: PendingABCLocation[] }
+      setAbcLocations(locData.locations ?? [])
+    } else {
+      setShowABCModal(true)
+    }
+  }
+
+  async function handleSelectABCLocations(locationIds: string[]) {
+    const res = await fetch('/api/channels/apple-business-connect/select-locations', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ locationIds }),
+    })
+    if (res.ok) {
+      setAbcLocations(null)
+      await reloadChannels()
+      flash(
+        locationIds.length === 1
+          ? 'Apple Business Connect location connected.'
+          : `${locationIds.length} Apple Business Connect locations connected.`,
+        true,
+      )
+    } else {
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      flash(data.error ?? 'Failed to connect locations.', false)
+    }
+  }
+
   // Gate connect actions behind the entitlement check.
   // While loading (null) we allow; only block when explicitly false.
   const connectBlocked = canConnect === false
@@ -683,6 +995,7 @@ function PublishingInfrastructureContent() {
   const wpConnections      = connections.filter(c => c.provider === 'wordpress')
   const shopifyConnections = connections.filter(c => c.provider === 'shopify')
   const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
+  const abcChannels        = socialChannels.filter(c => c.platform === 'apple_business_connect' && c.is_active)
 
   const [feedUrl, setFeedUrl]     = useState<string | null>(null)
   const [feedCopied, setFeedCopied] = useState(false)
@@ -794,6 +1107,26 @@ function PublishingInfrastructureContent() {
           locations={gbpLocations}
           onConnect={handleSelectGBPLocations}
           onClose={() => setGbpLocations(null)}
+        />
+      )}
+      {showABCModal && !connectBlocked && (
+        <ABCConnectModal
+          onClose={() => setShowABCModal(false)}
+          onSuccess={locations => {
+            setShowABCModal(false)
+            setAbcLocations(locations)
+          }}
+        />
+      )}
+      {abcLocations !== null && (
+        <ABCLocationPicker
+          locations={abcLocations}
+          onConnect={handleSelectABCLocations}
+          onClose={() => setAbcLocations(null)}
+          onReenterCredentials={() => {
+            setAbcLocations(null)
+            setShowABCModal(true)
+          }}
         />
       )}
 
@@ -946,6 +1279,30 @@ function PublishingInfrastructureContent() {
             onDisconnect={handleDisconnectChannel}
             addAnotherHref={guardedHref('/api/channels/google-business-profile/connect')}
             onAddAnother={connectBlocked ? guardedOnConnect(undefined) : undefined}
+          />
+          <PlatformCard
+            name="Apple Business Connect"
+            tagline="Maps presence · business showcase"
+            iconColorClass=""
+            icon={
+              <div className="flex h-full w-full items-center justify-center rounded-xl bg-black">
+                <AppleIcon className="h-[18px] w-[18px] text-white" />
+              </div>
+            }
+            connected={abcChannels.map(c => ({
+              id:       c.id,
+              label:    c.label ?? 'Connected location',
+              subtitle: [
+                c.apple_business_name,
+                c.apple_address?.city,
+                c.apple_address?.stateOrProvince,
+              ].filter(Boolean).join(' · ') || undefined,
+            }))}
+            onConnect={guardedOnConnect(handleConnectABC)}
+            connectLabel="Connect Location"
+            onDisconnect={handleDisconnectChannel}
+            onAddAnother={guardedOnConnect(handleConnectABC)}
+            addAnotherLabel="Add another location"
           />
         </div>
       </section>
