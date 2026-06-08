@@ -29,6 +29,7 @@ import {
   Activity,
   Newspaper,
   Users,
+  MessageCircle,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -39,6 +40,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider'
 const navItems = (slug: string) => [
   { label: 'Dashboard', href: `/${slug}/dashboard`, icon: LayoutDashboard },
   { label: 'Signal Feed', href: `/${slug}/feed`, icon: Rss },
+  { label: 'Conversations', href: `/${slug}/conversations`, icon: MessageCircle },
   { label: 'Calendar', href: `/${slug}/calendar`, icon: CalendarDays },
   { label: 'Capture', href: `/${slug}/capture`, icon: Zap },
   { label: 'Create', href: `/${slug}/create`, icon: Sparkles },
