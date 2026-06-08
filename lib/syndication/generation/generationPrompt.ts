@@ -130,6 +130,7 @@ export function buildGenerationUserMessage(platform: Platform): string {
     facebook: 'Facebook post',
     google_business_profile: 'Google Business Profile',
     medium: 'Medium article',
+    bluesky: 'Bluesky',
   }
   const verb = platform === 'google_business_profile' ? 'Write a Local Update for' : 'Write a promotional post for'
   return `${verb} ${platformNames[platform]}. Output only the final text.`

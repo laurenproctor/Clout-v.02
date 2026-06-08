@@ -22,6 +22,7 @@ const EXPECTED_GENERATION: Record<Platform, { maxTokens: number }> = {
   facebook:               { maxTokens: 600  },
   google_business_profile:{ maxTokens: 350  },
   medium:                 { maxTokens: 1600 },
+  bluesky:                { maxTokens: 160  },
 }
 
 const EXPECTED_IDENTITY: Record<Platform, { label: string; descriptor: string }> = {
@@ -33,6 +34,7 @@ const EXPECTED_IDENTITY: Record<Platform, { label: string; descriptor: string }>
   facebook:               { label: 'Facebook',               descriptor: 'Personal · story-driven · conversation-first'        },
   google_business_profile:{ label: 'Google Business Profile', descriptor: 'Local updates · search presence · trust signals'   },
   medium:                 { label: 'Medium',                 descriptor: 'Editorial · longform · authority-native'             },
+  bluesky:                { label: 'Bluesky',                descriptor: 'Short-form · conversational · decentralised'         },
 }
 
 describe('PLATFORM_REGISTRY — structural integrity', () => {

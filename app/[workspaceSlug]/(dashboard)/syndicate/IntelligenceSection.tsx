@@ -16,6 +16,7 @@ const PLATFORM_DEFAULTS: Record<Platform, string> = {
   facebook: 'Open with a personal story hook in the first 250 characters; end with a question that invites the reader\'s own experience',
   google_business_profile: 'Lead with the operational fact; keep it under 300 characters; no hashtags',
   medium: 'State the thesis in the first two sentences; earn it over the full piece',
+  bluesky: 'Open with a sharp single thought; keep it under 300 characters; no hashtags unless earned',
 }
 
 const PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']

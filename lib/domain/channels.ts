@@ -23,13 +23,13 @@ export async function createOrUpdateChannelByAccountId(params: {
   const supabase = await createClient()
   const { workspaceId, platform, accountId, accountType, label, profileImageUrl } = params
 
-  const { data: existing } = await supabase
-    .from('channels')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existing } = await (supabase.from('channels') as any)
     .select('id')
     .eq('workspace_id', workspaceId)
     .eq('platform', platform)
     .eq('account_id', accountId)
-    .maybeSingle()
+    .maybeSingle() as { data: { id: string } | null }
 
   if (existing) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

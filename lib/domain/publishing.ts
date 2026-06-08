@@ -512,18 +512,22 @@ export async function publishOutput(
   }
 
   const supabase = createServiceClient()
-  const { data: channel } = await supabase
+  const { data: channelRow } = await supabase
     .from('channels')
     .select('platform')
     .eq('id', output.channelId)
     .single()
 
-  if (!channel) {
+  if (!channelRow) {
     throw Object.assign(
       new Error('Channel not found.'),
       { code: 'no_channel', retryable: false }
     )
   }
+
+  // Cast to string so the switch below works with platform values (like 'bluesky')
+  // that post-date the current generated Supabase types.
+  const channel = { platform: channelRow.platform as string }
 
   const outputContent = output.content as Record<string, unknown>
   const { body: renderedBody } = await renderOutputForPlatform({
