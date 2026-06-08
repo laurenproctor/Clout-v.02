@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
         provider_credential_id: providerCredId,
         apple_company_id:       matchedGroup.company.id,
         apple_business_id:      matchedGroup.business.id,
+        apple_business_name:    matchedGroup.business.name,
         apple_location_id:      matchedLoc.id,
         apple_location_name:    matchedLoc.name,
         apple_address:          (matchedLoc.address ?? null) as Json | null,
