@@ -21,7 +21,7 @@ export class SubstackProvider implements ConversationProvider {
         contentHash: contentHash(canonical),
         canonicalUrl: canonical,
         contentType: isNote ? ('note' as const) : ('article' as const),
-        title: p.title,
+        title: p.title ?? null,
         author: null,
         authorUrl: null,
         publication: hostname.replace('.substack.com', ''),

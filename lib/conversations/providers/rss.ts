@@ -22,7 +22,7 @@ export class RSSProvider implements ConversationProvider {
       contentHash: contentHash(p.url),
       canonicalUrl: p.url,
       contentType: 'article' as const,
-      title: p.title,
+      title: p.title ?? null,
       author: null,
       authorUrl: null,
       publication: hostname,
