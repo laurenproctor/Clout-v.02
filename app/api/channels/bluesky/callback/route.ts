@@ -106,10 +106,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Attach channel_id + workspace_id to the session row written by client.callback()
-  // bluesky_oauth_sessions is not yet in the generated Supabase types — use `as any`
-  // until the next `supabase gen types` run.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).from('bluesky_oauth_sessions').update({
+  await supabase.from('bluesky_oauth_sessions').update({
     channel_id:   channelId,
     workspace_id: workspaceId,
     updated_at:   new Date().toISOString(),

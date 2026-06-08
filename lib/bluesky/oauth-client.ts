@@ -1,15 +1,6 @@
 import { NodeOAuthClient } from '@atproto/oauth-client-node'
 import type { NodeSavedState, NodeSavedSession } from '@atproto/oauth-client-node'
-import { createClient } from '@supabase/supabase-js'
-
-// Untyped Supabase client for tables not yet in generated Database types
-// (bluesky_oauth_states and bluesky_oauth_sessions are new and not in db.ts yet)
-function createUntypedServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+import { createServiceClient } from '@/lib/supabase/service'
 
 function getAppUrl(): string {
   const url = process.env.NEXT_PUBLIC_APP_URL
@@ -36,7 +27,7 @@ function buildClient(): NodeOAuthClient {
 
     stateStore: {
       async get(key: string): Promise<NodeSavedState | undefined> {
-        const supabase = createUntypedServiceClient()
+        const supabase = createServiceClient()
         const { data } = await supabase
           .from('bluesky_oauth_states')
           .select('state_data, expires_at')
@@ -50,7 +41,7 @@ function buildClient(): NodeOAuthClient {
         return data.state_data as NodeSavedState
       },
       async set(key: string, value: NodeSavedState): Promise<void> {
-        const supabase = createUntypedServiceClient()
+        const supabase = createServiceClient()
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
         await supabase.from('bluesky_oauth_states').upsert(
           { key, state_data: value, expires_at: expiresAt },
@@ -58,14 +49,14 @@ function buildClient(): NodeOAuthClient {
         )
       },
       async del(key: string): Promise<void> {
-        const supabase = createUntypedServiceClient()
+        const supabase = createServiceClient()
         await supabase.from('bluesky_oauth_states').delete().eq('key', key)
       },
     },
 
     sessionStore: {
       async get(sub: string): Promise<NodeSavedSession | undefined> {
-        const supabase = createUntypedServiceClient()
+        const supabase = createServiceClient()
         const { data } = await supabase
           .from('bluesky_oauth_sessions')
           .select('session_data')
@@ -75,14 +66,14 @@ function buildClient(): NodeOAuthClient {
         return data.session_data as NodeSavedSession
       },
       async set(sub: string, value: NodeSavedSession): Promise<void> {
-        const supabase = createUntypedServiceClient()
+        const supabase = createServiceClient()
         await supabase.from('bluesky_oauth_sessions').upsert(
           { sub, session_data: value, updated_at: new Date().toISOString() },
           { onConflict: 'sub' }
         )
       },
       async del(sub: string): Promise<void> {
-        const supabase = createUntypedServiceClient()
+        const supabase = createServiceClient()
         await supabase.from('bluesky_oauth_sessions').delete().eq('sub', sub)
       },
     },
