@@ -867,6 +867,7 @@ export type Database = {
           account_type: string
           apple_address: Json | null
           apple_business_id: string | null
+          apple_business_name: string | null
           apple_company_id: string | null
           apple_location_id: string | null
           apple_location_name: string | null
@@ -891,6 +892,7 @@ export type Database = {
           account_type?: string
           apple_address?: Json | null
           apple_business_id?: string | null
+          apple_business_name?: string | null
           apple_company_id?: string | null
           apple_location_id?: string | null
           apple_location_name?: string | null
@@ -915,6 +917,7 @@ export type Database = {
           account_type?: string
           apple_address?: Json | null
           apple_business_id?: string | null
+          apple_business_name?: string | null
           apple_company_id?: string | null
           apple_location_id?: string | null
           apple_location_name?: string | null
