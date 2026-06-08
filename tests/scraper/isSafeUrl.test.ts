@@ -26,8 +26,20 @@ describe('isSafeUrl', () => {
     expect(isSafeUrl('https://127.0.0.1/secret')).toBe(false)
   })
 
+  it('rejects other loopback addresses (127.0.0.2)', () => {
+    expect(isSafeUrl('https://127.0.0.2/secret')).toBe(false)
+  })
+
   it('rejects IPv6 loopback ::1', () => {
     expect(isSafeUrl('https://[::1]/secret')).toBe(false)
+  })
+
+  it('rejects IPv6-mapped IPv4 for private range', () => {
+    expect(isSafeUrl('https://[::ffff:192.168.1.1]/secret')).toBe(false)
+  })
+
+  it('rejects IPv6-mapped IPv4 for loopback', () => {
+    expect(isSafeUrl('https://[::ffff:127.0.0.1]/secret')).toBe(false)
   })
 
   it('rejects 10.x.x.x private range', () => {
@@ -52,6 +64,14 @@ describe('isSafeUrl', () => {
 
   it('rejects AWS/GCP/Azure IMDS endpoint', () => {
     expect(isSafeUrl('https://169.254.169.254/latest/meta-data/')).toBe(false)
+  })
+
+  it('rejects 0.0.0.0', () => {
+    expect(isSafeUrl('https://0.0.0.0/admin')).toBe(false)
+  })
+
+  it('rejects full link-local range (169.254.x.x)', () => {
+    expect(isSafeUrl('https://169.254.1.1/metadata')).toBe(false)
   })
 
   it('rejects GCP metadata endpoint', () => {
