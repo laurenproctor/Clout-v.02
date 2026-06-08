@@ -7,6 +7,10 @@
     {
       "path": "/api/admin/ingest-competitor-content",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/admin/ingest-conversations",
+      "schedule": "0 */3 * * *"
     }
   ]
 }
