@@ -15,6 +15,7 @@ import {
 import { postToFacebookPage } from '@/lib/facebook'
 import { createInstagramImageContainer, publishInstagramContainer } from '@/lib/instagram'
 import { postToBlueSky, buildBlueSkyPostUrl } from '@/lib/bluesky/publish'
+import { postToMastodon, formatMastodonText } from '@/lib/mastodon'
 import { createWordPressPost } from '@/lib/wordpress'
 import { createLocalPost, normalizeGBPPostState } from '@/lib/channels/google-business-profile/publish'
 import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
@@ -579,6 +580,10 @@ export async function publishOutput(
     case 'bluesky': {
       const { postId } = await publishBlueSkyOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl: buildBlueSkyPostUrl(postId) }
+    }
+    case 'mastodon': {
+      const { postId, postUrl } = await publishMastodonOutput(outputToPublish, opts)
+      return { postUrn: postId, postUrl }
     }
     case 'tiktok':
       throw Object.assign(
@@ -1365,4 +1370,95 @@ export async function publishBlueSkyOutput(
   })
 
   return { postId }
+}
+
+// ─── Mastodon ─────────────────────────────────────────────────────────────────
+
+export async function publishMastodonOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postId: string; postUrl: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a Mastodon channel.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  if (output.providerPostId) {
+    return { postId: output.providerPostId, postUrl: output.providerPostUrl ?? output.providerPostId }
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('Mastodon account not connected. Go to Channels and reconnect your account.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+
+  const cred = credResult.data
+
+  const supabase = createServiceClient()
+  const { data: channelRow } = await supabase
+    .from('channels')
+    .select('config')
+    .eq('id', output.channelId)
+    .single()
+
+  const config = (channelRow?.config ?? {}) as Record<string, unknown>
+  const instanceUrl = config.instance_url as string | undefined
+  if (!instanceUrl) {
+    throw Object.assign(
+      new Error('Mastodon instance URL missing. Please reconnect your account.'),
+      { code: 'missing_instance_url', retryable: false }
+    )
+  }
+
+  const charLimit = (config.char_limit as number | undefined) ?? 500
+  const text = formatMastodonText(output.content as OutputContent, charLimit)
+
+  if (!text) {
+    throw Object.assign(
+      new Error('Post content is empty.'),
+      { code: 'no_content', retryable: false }
+    )
+  }
+
+  const spoilerText = (output.content as Record<string, unknown>).spoilerText as string | undefined
+
+  const startedAt = Date.now()
+  let mastodonStatus: { id: string; url: string }
+
+  try {
+    mastodonStatus = await postToMastodon(instanceUrl, cred.accessToken, text, spoilerText)
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'mastodon',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'publish_error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:    output.workspaceId,
+    outputId:       output.id,
+    channelId:      output.channelId,
+    platform:       'mastodon',
+    status:         'success',
+    providerPostId: mastodonStatus.id,
+    wasRetry:       opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { postId: mastodonStatus.id, postUrl: mastodonStatus.url }
 }

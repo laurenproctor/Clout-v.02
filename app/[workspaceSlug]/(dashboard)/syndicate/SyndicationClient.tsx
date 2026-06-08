@@ -14,11 +14,11 @@ import { IntelligenceSection } from './IntelligenceSection'
 import LocalDistributionSection from './LocalDistributionSection'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
-const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook', 'google_business_profile']
-// GBP is not toggled on by default — user opts in
+const ALL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook', 'google_business_profile', 'mastodon']
+// GBP and Mastodon are not toggled on by default — user opts in
 const DEFAULT_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
 // Platforms rendered in the social PlatformGrid (GBP is in LocalDistributionSection)
-const SOCIAL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook']
+const SOCIAL_PLATFORMS: Platform[] = ['x', 'linkedin', 'threads', 'substack', 'blog', 'facebook', 'mastodon']
 
 const PUBLISH_ROUTE: Partial<Record<Platform, string>> = {
   linkedin: '/api/channels/linkedin/post',
@@ -26,6 +26,7 @@ const PUBLISH_ROUTE: Partial<Record<Platform, string>> = {
   threads: '/api/channels/threads/post',
   facebook: '/api/channels/facebook/post',
   google_business_profile: '/api/channels/google-business-profile/post',
+  mastodon: '/api/channels/mastodon/post',
 }
 
 // Maps syndication platform keys → channel table platform values

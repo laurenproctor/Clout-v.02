@@ -1,4 +1,4 @@
-export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads' | 'facebook' | 'google_business_profile' | 'medium' | 'bluesky'
+export type Platform = 'x' | 'linkedin' | 'substack' | 'blog' | 'threads' | 'facebook' | 'google_business_profile' | 'medium' | 'bluesky' | 'mastodon'
 
 export type SyndicationPhase =
   | 'extracting'
@@ -41,6 +41,7 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   google_business_profile: 'Google Business Profile',
   medium: 'Medium',
   bluesky: 'BlueSky',
+  mastodon: 'Mastodon',
 }
 
 export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
@@ -53,4 +54,5 @@ export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
   google_business_profile: 'Local updates · search presence · trust signals',
   medium: 'Editorial · longform · authority-native',
   bluesky: 'Text-first · authentic · discourse-native',
+  mastodon: 'Fediverse · community-first · hashtag-native',
 }

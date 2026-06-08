@@ -107,6 +107,14 @@ function BlueSkyIcon({ className }: { className?: string }) {
   )
 }
 
+function MastodonIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 1 .084.048v2.166c0 .037.015.073.043.098.028.024.065.036.103.033 2.178-.726 4.353-1.515 6.037-2.945 2.088-1.761 2.79-4.163 3.225-6.745.28-1.667.304-3.354.17-5.029-.036-.443-.066-.886-.098-1.328l-.01-.132zm-5.13 9.66h-3.147v-7.02c0-1.48-.622-2.232-1.87-2.232-1.378 0-2.068.894-2.068 2.663v3.861H8.015v-3.861c0-1.769-.69-2.663-2.068-2.663-1.249 0-1.87.751-1.87 2.231v7.02H.93V9.38c0-1.48.378-2.654 1.133-3.523.778-.868 1.797-1.313 3.062-1.313 1.466 0 2.575.563 3.311 1.69l.713 1.196.714-1.196c.736-1.127 1.845-1.69 3.31-1.69 1.265 0 2.284.445 3.062 1.313.755.869 1.133 2.044 1.133 3.522v5.594z" />
+    </svg>
+  )
+}
+
 function AppleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 814 1000" fill="currentColor" className={className}>
@@ -117,7 +125,7 @@ function AppleIcon({ className }: { className?: string }) {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Platform = 'linkedin' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'bluesky'
+type Platform = 'linkedin' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'bluesky' | 'mastodon'
 
 interface Channel {
   id: string
@@ -222,9 +230,17 @@ const SOCIAL_PLATFORMS: {
     Icon:           BlueSkyIcon,
     connectHref:    null,
   },
+  {
+    key:            'mastodon',
+    name:           'Mastodon',
+    tagline:        'Fediverse distribution',
+    iconColorClass: 'text-[#6364FF]',
+    Icon:           MastodonIcon,
+    connectHref:    null,
+  },
 ]
 
-const PLANNED = ['YouTube', 'Reddit', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Nextdoor', 'Patch'] as const
+const PLANNED = ['YouTube', 'Reddit', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Nextdoor', 'Patch'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
@@ -298,6 +314,59 @@ function BlueSkyConnectModal({ onClose, initialHandle }: { onClose: () => void; 
             placeholder="@username.bsky.social"
             value={handle}
             onChange={e => { setHandle(e.target.value); setError('') }}
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+            autoFocus
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose}
+              className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-100">
+              Cancel
+            </button>
+            <button type="submit"
+              className="rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-700">
+              Connect
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function MastodonConnectModal({ onClose }: { onClose: () => void }) {
+  const [instance, setInstance] = useState('')
+  const [error, setError]       = useState('')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const normalized = instance.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase()
+    if (!normalized) {
+      setError('Enter your Mastodon instance URL')
+      return
+    }
+    window.location.href = `/api/channels/mastodon/connect?instance=${encodeURIComponent(normalized)}`
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-semibold text-zinc-900">Connect Mastodon</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mb-4 text-sm text-zinc-500">
+          Enter your Mastodon instance URL (e.g. mastodon.social, fosstodon.org).
+          Mastodon only — Pleroma, Akkoma, and Misskey are not supported.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="text"
+            placeholder="mastodon.social"
+            value={instance}
+            onChange={e => { setInstance(e.target.value); setError('') }}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
             autoFocus
           />
@@ -756,6 +825,7 @@ function PublishingInfrastructureContent() {
   const [showShopifyPicker,   setShowShopifyPicker]    = useState(false)
   const [showBlueSkyModal,    setShowBlueSkyModal]     = useState(false)
   const [blueSkyReconnectHandle, setBlueSkyReconnectHandle] = useState<string | undefined>(undefined)
+  const [showMastodonModal,   setShowMastodonModal]    = useState(false)
 
   const [fbPages,      setFbPages]      = useState<PendingPage[] | null>(null)
   const [igAccounts,   setIgAccounts]   = useState<PendingAccount[] | null>(null)
@@ -804,6 +874,10 @@ function PublishingInfrastructureContent() {
     else if (connected === 'google') flash('Google Analytics & Search Console connected.', true)
     else if (connected === 'bing') flash('Bing Webmaster Tools connected.', true)
     else if (connected === 'bluesky')              flash('BlueSky connected.', true)
+    else if (connected === 'mastodon')             flash('Mastodon connected.', true)
+    else if (error === 'mastodon_denied')          flash('Mastodon connection cancelled.', false)
+    else if (error === 'mastodon_registration_failed') flash('Mastodon app registration failed. Check the instance URL and try again.', false)
+    else if (error === 'mastodon_app_not_found')   flash('Mastodon app registration not found. Try connecting again.', false)
     else if (error === 'gbp_no_locations')
       flash('No Google Business Profile locations found on this account.', false)
     else if (error === 'facebook_no_pages')
@@ -1060,6 +1134,9 @@ function PublishingInfrastructureContent() {
           onClose={() => { setShowBlueSkyModal(false); setBlueSkyReconnectHandle(undefined) }}
         />
       )}
+      {showMastodonModal && !connectBlocked && (
+        <MastodonConnectModal onClose={() => setShowMastodonModal(false)} />
+      )}
       {liProfiles && (
         <PickerModal
           title="Choose a LinkedIn account to connect"
@@ -1220,8 +1297,10 @@ function PublishingInfrastructureContent() {
               profileImageUrl: c.profile_image_url ?? undefined,
             }))
 
-            const isLinkedIn = key === 'linkedin'
-            const isBlueSky  = key === 'bluesky'
+            const isLinkedIn  = key === 'linkedin'
+            const isBlueSky   = key === 'bluesky'
+            const isMastodon  = key === 'mastodon'
+            const isModalPlatform = isBlueSky || isLinkedIn || isMastodon
 
             return (
               <PlatformCard
@@ -1234,16 +1313,18 @@ function PublishingInfrastructureContent() {
                 onConnect={guardedOnConnect(
                   isBlueSky  ? () => setShowBlueSkyModal(true) :
                   isLinkedIn ? () => setShowLinkedInPicker(true) :
+                  isMastodon ? () => setShowMastodonModal(true) :
                   undefined
                 )}
-                connectHref={!isBlueSky && !isLinkedIn ? guardedHref(connectHref) : undefined}
+                connectHref={!isModalPlatform ? guardedHref(connectHref) : undefined}
                 onDisconnect={handleDisconnectChannel}
                 onAddAnother={guardedOnConnect(
                   isBlueSky  ? () => setShowBlueSkyModal(true) :
                   isLinkedIn ? () => setShowLinkedInPicker(true) :
+                  isMastodon ? () => setShowMastodonModal(true) :
                   undefined
                 )}
-                addAnotherHref={!isBlueSky && !isLinkedIn ? guardedHref(connectHref) : undefined}
+                addAnotherHref={!isModalPlatform ? guardedHref(connectHref) : undefined}
               />
             )
           })}

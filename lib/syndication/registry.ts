@@ -9,6 +9,7 @@ import { FACEBOOK_PLATFORM_MODEL } from './platforms/facebook'
 import { GBP_PLATFORM_MODEL } from './platforms/google-business-profile'
 import { MEDIUM_PLATFORM_MODEL } from './platforms/medium'
 import { BLUESKY_PLATFORM_MODEL } from './platforms/bluesky'
+import { MASTODON_PLATFORM_MODEL } from './platforms/mastodon'
 
 // ─── Identity ─────────────────────────────────────────────────────────────────
 
@@ -252,6 +253,27 @@ export const PLATFORM_REGISTRY: Record<Platform, PlatformDefinition> = {
       maxTokens:      150,
       maxPostLength:  300,
       softPostLength: 270,
+    },
+  },
+  mastodon: {
+    identity: {
+      id:         'mastodon',
+      label:      'Mastodon',
+      descriptor: 'Fediverse · community-first · hashtag-native',
+    },
+    model:        MASTODON_PLATFORM_MODEL as PlatformBehaviorModel,
+    capabilities: {
+      supportsThreads:    false,
+      supportsMedia:      false, // Phase 2: POST /api/v2/media then attach media_ids to /api/v1/statuses
+      supportsCarousel:   false,
+      supportsPolls:      false,
+      nativeScheduling:   false,
+      platformScheduling: true,
+    },
+    generation: {
+      maxTokens:      150,
+      maxPostLength:  500,
+      softPostLength: 470,
     },
   },
 }

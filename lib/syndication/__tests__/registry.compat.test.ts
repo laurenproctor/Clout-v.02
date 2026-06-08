@@ -23,6 +23,7 @@ const EXPECTED_GENERATION: Record<Platform, { maxTokens: number }> = {
   google_business_profile:{ maxTokens: 350  },
   medium:                 { maxTokens: 1600 },
   bluesky:                { maxTokens: 160  },
+  mastodon:               { maxTokens: 150  },
 }
 
 const EXPECTED_IDENTITY: Record<Platform, { label: string; descriptor: string }> = {
@@ -35,6 +36,7 @@ const EXPECTED_IDENTITY: Record<Platform, { label: string; descriptor: string }>
   google_business_profile:{ label: 'Google Business Profile', descriptor: 'Local updates · search presence · trust signals'   },
   medium:                 { label: 'Medium',                 descriptor: 'Editorial · longform · authority-native'             },
   bluesky:                { label: 'Bluesky',                descriptor: 'Short-form · conversational · decentralised'         },
+  mastodon:               { label: 'Mastodon',               descriptor: 'Fediverse · community-first · hashtag-native'        },
 }
 
 describe('PLATFORM_REGISTRY — structural integrity', () => {

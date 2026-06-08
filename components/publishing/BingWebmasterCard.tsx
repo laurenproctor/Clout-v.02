@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { TrendingUp, MousePointerClick, Eye, ChevronDown, ChevronUp } from 'lucide-react'
+import { TrendingUp, Search, MousePointerClick, Eye, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BingSite { siteUrl: string; verified: boolean }
@@ -30,13 +30,6 @@ interface BingState {
   summary:         Summary | null
 }
 
-function BingIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <path d="M5.64 0L4.32.48v18.24l1.32.48 5.64-3.12-3-1.92-2.64.96V3.6l3.96 2.4 8.28-4.56z" fill="#0078D4"/>
-    </svg>
-  )
-}
 
 function StatPill({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
   return (
@@ -112,7 +105,7 @@ export function BingWebmasterCard() {
       <div className="flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
           <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200 transition-all duration-200', !connected && 'grayscale opacity-50')}>
-            <BingIcon className="h-6 w-6" />
+            <Search className="h-4 w-4 text-[#0078D4]" />
           </div>
           <div className="pt-0.5">
             <h3 className="font-[Signifier,_Georgia,_serif] text-base font-semibold leading-tight text-zinc-900">

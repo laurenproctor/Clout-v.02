@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       analytics_connections: {
@@ -867,7 +842,6 @@ export type Database = {
           account_type: string
           apple_address: Json | null
           apple_business_id: string | null
-          apple_business_name: string | null
           apple_company_id: string | null
           apple_location_id: string | null
           apple_location_name: string | null
@@ -892,7 +866,6 @@ export type Database = {
           account_type?: string
           apple_address?: Json | null
           apple_business_id?: string | null
-          apple_business_name?: string | null
           apple_company_id?: string | null
           apple_location_id?: string | null
           apple_location_name?: string | null
@@ -917,7 +890,6 @@ export type Database = {
           account_type?: string
           apple_address?: Json | null
           apple_business_id?: string | null
-          apple_business_name?: string | null
           apple_company_id?: string | null
           apple_location_id?: string | null
           apple_location_name?: string | null
@@ -1248,6 +1220,447 @@ export type Database = {
           },
           {
             foreignKeyName: "content_attribution_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_followed_authors: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          publication: string | null
+          url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          publication?: string | null
+          url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          publication?: string | null
+          url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_followed_authors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_followed_publications: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          rss_url: string | null
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          rss_url?: string | null
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          rss_url?: string | null
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_followed_publications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_items: {
+        Row: {
+          author: string | null
+          author_url: string | null
+          body_html: string | null
+          body_markdown: string | null
+          canonical_url: string | null
+          content_hash: string | null
+          content_type: string
+          created_at: string
+          excerpt: string | null
+          external_id: string
+          hero_image: string | null
+          id: string
+          metadata: Json
+          publication: string | null
+          published_at: string | null
+          source_id: string
+          source_url: string
+          summary: string | null
+          title: string | null
+          workspace_id: string
+        }
+        Insert: {
+          author?: string | null
+          author_url?: string | null
+          body_html?: string | null
+          body_markdown?: string | null
+          canonical_url?: string | null
+          content_hash?: string | null
+          content_type: string
+          created_at?: string
+          excerpt?: string | null
+          external_id: string
+          hero_image?: string | null
+          id?: string
+          metadata?: Json
+          publication?: string | null
+          published_at?: string | null
+          source_id: string
+          source_url: string
+          summary?: string | null
+          title?: string | null
+          workspace_id: string
+        }
+        Update: {
+          author?: string | null
+          author_url?: string | null
+          body_html?: string | null
+          body_markdown?: string | null
+          canonical_url?: string | null
+          content_hash?: string | null
+          content_type?: string
+          created_at?: string
+          excerpt?: string | null
+          external_id?: string
+          hero_image?: string | null
+          id?: string
+          metadata?: Json
+          publication?: string | null
+          published_at?: string | null
+          source_id?: string
+          source_url?: string
+          summary?: string | null
+          title?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_opportunities: {
+        Row: {
+          authority_score: number
+          explanation: string
+          generated_at: string
+          id: string
+          item_id: string
+          opportunity_score: number
+          opportunity_type: string
+          overall_score: number
+          relevance_score: number
+          status: string
+          suppressed_reason: string | null
+          theme_id: string | null
+          timeliness_score: number
+          title: string
+          uniqueness_score: number
+          why_this_matters: string | null
+          workspace_id: string
+        }
+        Insert: {
+          authority_score?: number
+          explanation: string
+          generated_at?: string
+          id?: string
+          item_id: string
+          opportunity_score: number
+          opportunity_type: string
+          overall_score: number
+          relevance_score: number
+          status?: string
+          suppressed_reason?: string | null
+          theme_id?: string | null
+          timeliness_score: number
+          title: string
+          uniqueness_score: number
+          why_this_matters?: string | null
+          workspace_id: string
+        }
+        Update: {
+          authority_score?: number
+          explanation?: string
+          generated_at?: string
+          id?: string
+          item_id?: string
+          opportunity_score?: number
+          opportunity_type?: string
+          overall_score?: number
+          relevance_score?: number
+          status?: string
+          suppressed_reason?: string | null
+          theme_id?: string | null
+          timeliness_score?: number
+          title?: string
+          uniqueness_score?: number
+          why_this_matters?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_opportunities_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_opportunities_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_themes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_opportunities_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_responses: {
+        Row: {
+          content: string
+          created_at: string
+          generation_metadata: Json | null
+          id: string
+          model: string | null
+          opportunity_id: string
+          published_at: string | null
+          published_channel: string | null
+          published_url: string | null
+          response_type: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          generation_metadata?: Json | null
+          id?: string
+          model?: string | null
+          opportunity_id: string
+          published_at?: string | null
+          published_channel?: string | null
+          published_url?: string | null
+          response_type: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          generation_metadata?: Json | null
+          id?: string
+          model?: string | null
+          opportunity_id?: string
+          published_at?: string | null
+          published_channel?: string | null
+          published_url?: string | null
+          response_type?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_responses_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_responses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_sources: {
+        Row: {
+          active: boolean
+          author: string | null
+          authority_score: number
+          consecutive_failures: number
+          created_at: string
+          id: string
+          last_error_at: string | null
+          last_fetched_at: string | null
+          last_successful_fetch_at: string | null
+          source_type: string
+          source_url: string
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          author?: string | null
+          authority_score?: number
+          consecutive_failures?: number
+          created_at?: string
+          id?: string
+          last_error_at?: string | null
+          last_fetched_at?: string | null
+          last_successful_fetch_at?: string | null
+          source_type: string
+          source_url: string
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          author?: string | null
+          authority_score?: number
+          consecutive_failures?: number
+          created_at?: string
+          id?: string
+          last_error_at?: string | null
+          last_fetched_at?: string | null
+          last_successful_fetch_at?: string | null
+          source_type?: string
+          source_url?: string
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_theme_items: {
+        Row: {
+          item_id: string
+          theme_id: string
+        }
+        Insert: {
+          item_id: string
+          theme_id: string
+        }
+        Update: {
+          item_id?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_theme_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_theme_items_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_themes: {
+        Row: {
+          active: boolean
+          content_hash: string | null
+          created_at: string
+          first_detected_at: string
+          id: string
+          last_seen_at: string
+          summary: string
+          theme_score: number
+          theme_status: string
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          content_hash?: string | null
+          created_at?: string
+          first_detected_at?: string
+          id?: string
+          last_seen_at?: string
+          summary: string
+          theme_score: number
+          theme_status?: string
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          content_hash?: string | null
+          created_at?: string
+          first_detected_at?: string
+          id?: string
+          last_seen_at?: string
+          summary?: string
+          theme_score?: number
+          theme_status?: string
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_themes_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1642,6 +2055,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mastodon_app_registrations: {
+        Row: {
+          client_id: string
+          client_secret: string
+          created_at: string | null
+          id: string
+          instance_url: string
+          max_characters: number | null
+          software_name: string | null
+          software_version: string | null
+        }
+        Insert: {
+          client_id: string
+          client_secret: string
+          created_at?: string | null
+          id?: string
+          instance_url: string
+          max_characters?: number | null
+          software_name?: string | null
+          software_version?: string | null
+        }
+        Update: {
+          client_id?: string
+          client_secret?: string
+          created_at?: string | null
+          id?: string
+          instance_url?: string
+          max_characters?: number | null
+          software_name?: string | null
+          software_version?: string | null
+        }
+        Relationships: []
       }
       narrative_performance: {
         Row: {
@@ -3834,9 +4280,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       audit_action: [

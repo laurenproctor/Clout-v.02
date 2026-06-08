@@ -10,6 +10,7 @@ const DEFAULT_CONFIG: Partial<Record<ChannelPlatform, Record<string, unknown>>> 
   tiktok:    {},
   newsletter: {},
   bluesky:   { char_limit: 300 },
+  mastodon:  { char_limit: 500 },
 }
 
 export async function createOrUpdateChannelByAccountId(params: {
