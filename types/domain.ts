@@ -437,3 +437,126 @@ export interface AssistantSession {
   createdAt: string
   completedAt: string | null
 }
+
+// ─── Conversations ────────────────────────────────────────────────────────────
+
+export type ConversationSourceType = 'substack' | 'rss' | 'generic'
+export type ConversationContentType = 'article' | 'note' | 'post'
+export type ConversationThemeStatus = 'active' | 'cooling' | 'archived'
+export type ConversationOpportunityType =
+  | 'comment' | 'note' | 'post' | 'framework'
+  | 'narrative' | 'question' | 'counterpoint' | 'agreement'
+export type ConversationOpportunityStatus =
+  | 'active' | 'saved' | 'drafted' | 'published' | 'dismissed' | 'suppressed'
+export type ConversationResponseStatus = 'draft' | 'published' | 'discarded'
+
+export interface ConversationSource {
+  id: string
+  workspaceId: string
+  sourceType: ConversationSourceType
+  sourceUrl: string
+  title: string | null
+  author: string | null
+  active: boolean
+  authorityScore: number
+  lastFetchedAt: string | null
+  lastSuccessfulFetchAt: string | null
+  lastErrorAt: string | null
+  consecutiveFailures: number
+  createdAt: string
+}
+
+export interface ConversationFollowedAuthor {
+  id: string
+  workspaceId: string
+  name: string
+  url: string | null
+  publication: string | null
+  active: boolean
+  createdAt: string
+}
+
+export interface ConversationFollowedPublication {
+  id: string
+  workspaceId: string
+  name: string
+  url: string
+  rssUrl: string | null
+  active: boolean
+  createdAt: string
+}
+
+export interface ConversationItem {
+  id: string
+  sourceId: string
+  workspaceId: string
+  externalId: string
+  contentHash: string | null
+  canonicalUrl: string | null
+  contentType: ConversationContentType
+  title: string | null
+  author: string | null
+  authorUrl: string | null
+  publication: string | null
+  sourceUrl: string
+  excerpt: string | null
+  bodyMarkdown: string | null
+  summary: string | null
+  heroImage: string | null
+  publishedAt: string | null
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
+export interface ConversationTheme {
+  id: string
+  workspaceId: string
+  title: string
+  summary: string
+  themeScore: number
+  contentHash: string | null
+  firstDetectedAt: string
+  lastSeenAt: string
+  themeStatus: ConversationThemeStatus
+  active: boolean
+  createdAt: string
+  itemCount?: number
+}
+
+export interface ConversationOpportunity {
+  id: string
+  workspaceId: string
+  itemId: string
+  themeId: string | null
+  opportunityType: ConversationOpportunityType
+  title: string
+  explanation: string
+  whyThisMatters: string | null
+  relevanceScore: number
+  timelinessScore: number
+  uniquenessScore: number
+  opportunityScore: number
+  authorityScore: number
+  overallScore: number
+  status: ConversationOpportunityStatus
+  suppressedReason: string | null
+  generatedAt: string
+  item?: ConversationItem & {
+    source?: Pick<ConversationSource, 'id' | 'sourceType' | 'title' | 'author' | 'sourceUrl' | 'authorityScore'>
+  }
+}
+
+export interface ConversationResponse {
+  id: string
+  workspaceId: string
+  opportunityId: string
+  responseType: string
+  content: string
+  status: ConversationResponseStatus
+  publishedChannel: string | null
+  publishedUrl: string | null
+  publishedAt: string | null
+  model: string | null
+  generationMetadata: Record<string, unknown> | null
+  createdAt: string
+}
