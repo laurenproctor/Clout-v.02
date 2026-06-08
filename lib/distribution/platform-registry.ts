@@ -33,6 +33,7 @@ export type PlatformEntry = {
 }
 
 export const DISTRIBUTION_PLATFORMS: Record<string, PlatformEntry> = {
+  bluesky:                 { label: 'BlueSky',                 defaultUTM: { source: 'bluesky',         medium: 'social'     } },
   linkedin:                { label: 'LinkedIn',                defaultUTM: { source: 'linkedin',        medium: 'social'     } },
   x:                       { label: 'X (Twitter)',             defaultUTM: { source: 'x',               medium: 'social'     } },
   threads:                 { label: 'Threads',                 defaultUTM: { source: 'threads',         medium: 'social'     } },
