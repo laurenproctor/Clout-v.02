@@ -14,6 +14,7 @@ import {
 } from '@/lib/threads'
 import { postToFacebookPage } from '@/lib/facebook'
 import { createInstagramImageContainer, publishInstagramContainer } from '@/lib/instagram'
+import { postToBlueSky, buildBlueSkyPostUrl } from '@/lib/bluesky/publish'
 import { createWordPressPost } from '@/lib/wordpress'
 import { createLocalPost, normalizeGBPPostState } from '@/lib/channels/google-business-profile/publish'
 import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
@@ -570,6 +571,10 @@ export async function publishOutput(
     case 'instagram': {
       const { postId } = await publishInstagramOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl: `https://www.instagram.com/p/${postId}/` }
+    }
+    case 'bluesky': {
+      const { postId } = await publishBlueSkyOutput(outputToPublish, opts)
+      return { postUrn: postId, postUrl: buildBlueSkyPostUrl(postId) }
     }
     case 'tiktok':
       throw Object.assign(
@@ -1276,6 +1281,79 @@ export async function publishInstagramOutput(
     outputId:       output.id,
     channelId:      output.channelId,
     platform:       'instagram',
+    status:         'success',
+    providerPostId: postId,
+    wasRetry:       opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { postId }
+}
+
+// ─── BlueSky ──────────────────────────────────────────────────────────────────
+
+export async function publishBlueSkyOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ postId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a BlueSky channel.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  if (output.providerPostId) {
+    return { postId: output.providerPostId }
+  }
+
+  const credResult = await getChannelCredential(output.channelId)
+  if (!credResult.ok) {
+    throw Object.assign(
+      new Error('BlueSky account not connected. Go to Channels and reconnect your account.'),
+      { code: 'not_connected', retryable: false }
+    )
+  }
+
+  // accountId holds the DID — used to restore the DPoP session from bluesky_oauth_sessions.
+  // NOTE: access_token also contains the DID (as a NOT NULL sentinel), but we use
+  // accountId here to make the intent clear. Real auth is via oauthClient.restore(did).
+  const did = credResult.data.accountId
+  if (!did) {
+    throw Object.assign(
+      new Error('BlueSky account ID missing. Please reconnect your account.'),
+      { code: 'missing_account_id', retryable: false }
+    )
+  }
+
+  const startedAt = Date.now()
+  let postId: string
+
+  try {
+    const result = await postToBlueSky(did, output.content as OutputContent)
+    postId = result.postId
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'bluesky',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'publish_error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:    output.workspaceId,
+    outputId:       output.id,
+    channelId:      output.channelId,
+    platform:       'bluesky',
     status:         'success',
     providerPostId: postId,
     wasRetry:       opts?.wasRetry ?? false,

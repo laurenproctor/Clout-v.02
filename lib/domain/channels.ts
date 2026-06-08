@@ -9,6 +9,7 @@ const DEFAULT_CONFIG: Partial<Record<ChannelPlatform, Record<string, unknown>>> 
   instagram: {},
   tiktok:    {},
   newsletter: {},
+  bluesky:   { char_limit: 300 },
 }
 
 export async function createOrUpdateChannelByAccountId(params: {
