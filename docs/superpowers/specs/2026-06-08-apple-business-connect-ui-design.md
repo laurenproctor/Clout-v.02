@@ -100,12 +100,21 @@ Both the API and UI handle duplicates:
 
 The UI location picker does not need its own deduplication logic since the API handles it before the list reaches the client.
 
+### Credential persistence point
+
+`workspace_provider_credentials` is **only written in `select-locations`** (`upsertProviderCredential` is not called anywhere in the `connect` route). The `connect` route validates credentials against the ABC API and stores them temporarily in a signed `abc_pending` cookie (10-minute TTL, httpOnly). No database write occurs until the user completes location selection.
+
+This means:
+- A successful `connect` call with no subsequent `select-locations` leaves no trace in the database
+- Once `select-locations` succeeds, credentials are persisted and become available for future `connect-stored` calls
+- The `connect-stored` route reads from `workspace_provider_credentials`, so it will only find credentials if at least one location has been successfully connected
+
 ### Cancellation after credential validation
 
 If the user closes `ABCLocationPicker` without selecting any locations:
 - The `abc_pending` cookie expires naturally (10-minute TTL)
-- `workspace_provider_credentials` is **not written** until `select-locations` is called — so no credentials are stored and the state is clean
-- "Add Location" will again attempt `connect-stored`, find no credentials, and fall back to credential entry
+- `workspace_provider_credentials` is **not written** (confirmed above — only `select-locations` does this), so no credentials are stored and the state is clean
+- "Add Location" will again attempt `connect-stored`, find no stored credentials, and fall back to credential entry
 
 ---
 
