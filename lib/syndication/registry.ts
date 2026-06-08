@@ -8,6 +8,7 @@ import { THREADS_PLATFORM_MODEL } from './platforms/threads'
 import { FACEBOOK_PLATFORM_MODEL } from './platforms/facebook'
 import { GBP_PLATFORM_MODEL } from './platforms/google-business-profile'
 import { MEDIUM_PLATFORM_MODEL } from './platforms/medium'
+import { BLUESKY_PLATFORM_MODEL } from './platforms/bluesky'
 
 // ─── Identity ─────────────────────────────────────────────────────────────────
 
@@ -229,6 +230,28 @@ export const PLATFORM_REGISTRY: Record<Platform, PlatformDefinition> = {
     generation: {
       maxTokens: 1600,
       preferredFormat: 'html',
+    },
+  },
+
+  bluesky: {
+    identity: {
+      id:         'bluesky',
+      label:      'BlueSky',
+      descriptor: 'Text-first · authentic · discourse-native',
+    },
+    model:        BLUESKY_PLATFORM_MODEL as PlatformBehaviorModel,
+    capabilities: {
+      supportsThreads:    false,
+      supportsMedia:      false,
+      supportsCarousel:   false,
+      supportsPolls:      false,
+      nativeScheduling:   false,
+      platformScheduling: true,
+    },
+    generation: {
+      maxTokens:      150,
+      maxPostLength:  300,
+      softPostLength: 270,
     },
   },
 }

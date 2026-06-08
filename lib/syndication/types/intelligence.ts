@@ -40,6 +40,7 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   facebook: 'Facebook',
   google_business_profile: 'Google Business Profile',
   medium: 'Medium',
+  bluesky: 'BlueSky',
 }
 
 export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
@@ -51,4 +52,5 @@ export const PLATFORM_DESCRIPTORS: Record<Platform, string> = {
   facebook: 'Personal · story-driven · conversation-first',
   google_business_profile: 'Local updates · search presence · trust signals',
   medium: 'Editorial · longform · authority-native',
+  bluesky: 'Text-first · authentic · discourse-native',
 }
