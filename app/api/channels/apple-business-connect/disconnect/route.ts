@@ -11,7 +11,8 @@ export async function DELETE() {
 
   const supabase = createServiceClient()
 
-  await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
     .from('channels')
     .update({
       is_active:              false,
@@ -21,7 +22,7 @@ export async function DELETE() {
     .eq('workspace_id', session.workspaceId)
     .eq('platform', 'apple_business_connect')
 
-  await deleteProviderCredential(session.workspaceId, 'apple_business_connect')
+  await deleteProviderCredential(session.workspaceId, 'apple_business_connect' as never)
 
   const res = NextResponse.json({ ok: true })
   res.cookies.delete('abc_pending')

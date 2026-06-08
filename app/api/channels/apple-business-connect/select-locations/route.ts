@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
       label:       matchedLoc.name,
     })
 
-    await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
       .from('channels')
       .update({
         provider_credential_id: providerCredId,
