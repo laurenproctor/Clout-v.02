@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/admin/ingest-conversations",
-      "schedule": "0 */3 * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
