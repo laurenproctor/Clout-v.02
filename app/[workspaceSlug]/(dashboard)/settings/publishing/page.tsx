@@ -99,9 +99,17 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+function BlueSkyIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 600 530" fill="currentColor" className={className}>
+      <path d="M135.72 44.03C202.216 93.951 273.74 195.17 300 249.49c26.262-54.316 97.782-155.54 164.28-205.46C512.26 8.009 590-19.862 590 68.825c0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.092 82.697 152.22-122.39 125.59-175.91-31.511-189.63-71.766-2.514-7.38-3.69-10.832-3.708-7.896-.017-2.935-1.193.516-3.707 7.896-13.714 40.255-67.233 197.36-189.63 71.766-64.444-66.128-34.605-132.26 82.697-152.22-67.108 11.421-142.55-7.45-163.25-81.433C20.153 217.613 10 86.535 10 68.825c0-88.687 77.742-60.816 125.72-24.795z" />
+    </svg>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Platform = 'linkedin' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads'
+type Platform = 'linkedin' | 'x' | 'instagram' | 'tiktok' | 'facebook' | 'threads' | 'bluesky'
 
 interface Channel {
   id: string
@@ -187,9 +195,17 @@ const SOCIAL_PLATFORMS: {
     Icon: FacebookIcon,
     connectHref: '/api/channels/facebook/connect',
   },
+  {
+    key:            'bluesky',
+    name:           'BlueSky',
+    tagline:        'Open social distribution',
+    iconColorClass: 'text-[#0085ff]',
+    Icon:           BlueSkyIcon,
+    connectHref:    null,
+  },
 ]
 
-const PLANNED = ['YouTube', 'Reddit', 'Bluesky', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch'] as const
+const PLANNED = ['YouTube', 'Reddit', 'Mastodon', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Apple Business Connect', 'Nextdoor', 'Patch'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
@@ -228,6 +244,56 @@ function LinkedInTypePicker({ onClose }: { onClose: () => void }) {
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function BlueSkyConnectModal({ onClose, initialHandle }: { onClose: () => void; initialHandle?: string }) {
+  const [handle, setHandle] = useState(initialHandle ?? '')
+  const [error, setError]   = useState('')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const normalized = handle.trim().replace(/^@/, '')
+    if (!normalized) {
+      setError('Enter your BlueSky handle')
+      return
+    }
+    window.location.href = `/api/channels/bluesky/connect?handle=${encodeURIComponent(normalized)}`
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-sm font-semibold text-zinc-900">Connect BlueSky</p>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mb-4 text-sm text-zinc-500">Enter your BlueSky handle to connect your account.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="text"
+            placeholder="@username.bsky.social"
+            value={handle}
+            onChange={e => { setHandle(e.target.value); setError('') }}
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+            autoFocus
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose}
+              className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-100">
+              Cancel
+            </button>
+            <button type="submit"
+              className="rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-700">
+              Connect
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
@@ -410,6 +476,8 @@ function PublishingInfrastructureContent() {
   const [showLinkedInPicker,  setShowLinkedInPicker]  = useState(false)
   const [showWordPressPicker, setShowWordPressPicker]  = useState(false)
   const [showShopifyPicker,   setShowShopifyPicker]    = useState(false)
+  const [showBlueSkyModal,    setShowBlueSkyModal]     = useState(false)
+  const [blueSkyReconnectHandle, setBlueSkyReconnectHandle] = useState<string | undefined>(undefined)
 
   const [fbPages,      setFbPages]      = useState<PendingPage[] | null>(null)
   const [igAccounts,   setIgAccounts]   = useState<PendingAccount[] | null>(null)
@@ -455,6 +523,7 @@ function PublishingInfrastructureContent() {
     else if (connected === 'google_business_profile') flash('Google Business Profile location connected.', true)
     else if (connected === 'google') flash('Google Analytics & Search Console connected.', true)
     else if (connected === 'bing') flash('Bing Webmaster Tools connected.', true)
+    else if (connected === 'bluesky')              flash('BlueSky connected.', true)
     else if (error === 'gbp_no_locations')
       flash('No Google Business Profile locations found on this account.', false)
     else if (error === 'facebook_no_pages')
@@ -473,6 +542,8 @@ function PublishingInfrastructureContent() {
     else if (error === 'bing_denied') flash('Bing connection cancelled.', false)
     else if (error === 'bing_token_exchange_failed') flash('Bing rejected the connection. Check your app credentials.', false)
     else if (error === 'bing_server_error') flash('Bing connection failed — server error. Try again.', false)
+    else if (error === 'bluesky_denied')           flash('BlueSky connection cancelled.', false)
+    else if (error === 'bluesky_handle_not_found') flash('BlueSky handle not found. Check the handle and try again.', false)
     else if (error === 'profile_fetch_failed')
       flash("Connected but couldn't fetch your profile. Try again.", false)
     else if (error === 'channel_db_failed' || error === 'credential_db_failed')
@@ -502,6 +573,11 @@ function PublishingInfrastructureContent() {
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.locations) setGbpLocations(data.locations) })
       router.replace('/settings/publishing')
+    } else if (searchParams.get('reconnect') === 'bluesky') {
+      const handle = searchParams.get('handle') ?? undefined
+      setBlueSkyReconnectHandle(handle)
+      setShowBlueSkyModal(true)
+      router.replace(`/${slug}/settings/publishing`)
     } else if (connected || error) {
       router.replace('/settings/publishing')
     }
@@ -665,6 +741,12 @@ function PublishingInfrastructureContent() {
       {showLinkedInPicker && !connectBlocked && (
         <LinkedInTypePicker onClose={() => setShowLinkedInPicker(false)} />
       )}
+      {showBlueSkyModal && !connectBlocked && (
+        <BlueSkyConnectModal
+          initialHandle={blueSkyReconnectHandle}
+          onClose={() => { setShowBlueSkyModal(false); setBlueSkyReconnectHandle(undefined) }}
+        />
+      )}
       {liProfiles && (
         <PickerModal
           title="Choose a LinkedIn account to connect"
@@ -806,6 +888,7 @@ function PublishingInfrastructureContent() {
             }))
 
             const isLinkedIn = key === 'linkedin'
+            const isBlueSky  = key === 'bluesky'
 
             return (
               <PlatformCard
@@ -815,11 +898,19 @@ function PublishingInfrastructureContent() {
                 iconColorClass={iconColorClass}
                 icon={<Icon className="h-5 w-5" />}
                 connected={accounts}
-                onConnect={guardedOnConnect(isLinkedIn ? () => setShowLinkedInPicker(true) : undefined)}
-                connectHref={!isLinkedIn ? guardedHref(connectHref) : undefined}
+                onConnect={guardedOnConnect(
+                  isBlueSky  ? () => setShowBlueSkyModal(true) :
+                  isLinkedIn ? () => setShowLinkedInPicker(true) :
+                  undefined
+                )}
+                connectHref={!isBlueSky && !isLinkedIn ? guardedHref(connectHref) : undefined}
                 onDisconnect={handleDisconnectChannel}
-                onAddAnother={guardedOnConnect(isLinkedIn ? () => setShowLinkedInPicker(true) : undefined)}
-                addAnotherHref={!isLinkedIn ? guardedHref(connectHref) : undefined}
+                onAddAnother={guardedOnConnect(
+                  isBlueSky  ? () => setShowBlueSkyModal(true) :
+                  isLinkedIn ? () => setShowLinkedInPicker(true) :
+                  undefined
+                )}
+                addAnotherHref={!isBlueSky && !isLinkedIn ? guardedHref(connectHref) : undefined}
               />
             )
           })}
