@@ -74,6 +74,7 @@ export interface ConnectedAccount {
   id: string
   label: string
   accountType?: string
+  subtitle?: string
   tokenExpiresAt?: number | null
   reconnectHref?: string
   consecutiveFailures?: number
@@ -186,11 +187,11 @@ export function PlatformCard({
                     <p className="truncate text-sm font-medium text-zinc-900">
                       {account.label}
                     </p>
-                    {account.accountType && account.accountType !== 'personal' && (
-                      <p className="text-xs capitalize text-zinc-400">
-                        {account.accountType}
-                      </p>
-                    )}
+                    {account.subtitle ? (
+                      <p className="text-xs text-zinc-400">{account.subtitle}</p>
+                    ) : (account.accountType && account.accountType !== 'personal') ? (
+                      <p className="text-xs capitalize text-zinc-400">{account.accountType}</p>
+                    ) : null}
                     {account.lastPublishedAt && (
                       <p className="text-xs text-zinc-400">
                         Last published {relativeTime(account.lastPublishedAt)}
