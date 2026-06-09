@@ -8,11 +8,14 @@ import { X, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal'
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
+import { ConnectSubstackModal } from '@/components/publishing/ConnectSubstackModal'
 import { PlatformCard, type ConnectedAccount } from '@/components/publishing/PlatformCard'
 import { GoogleSearchConsoleCard } from '@/components/publishing/GoogleSearchConsoleCard'
 import { BingWebmasterCard } from '@/components/publishing/BingWebmasterCard'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import { useCanConnectAccount } from '@/hooks/use-entitlements'
+
+const SUBSTACK_ENABLED = process.env.NEXT_PUBLIC_SUBSTACK_PUBLISHING_ENABLED === 'true'
 
 // ─── Platform icons ───────────────────────────────────────────────────────────
 
@@ -241,7 +244,10 @@ const SOCIAL_PLATFORMS: {
   },
 ]
 
-const PLANNED = ['YouTube', 'Reddit', 'Ghost', 'Substack', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Nextdoor', 'Patch'] as const
+const PLANNED_BASE = ['YouTube', 'Reddit', 'Ghost', 'Beehiiv', 'Webflow', 'Squarespace', 'Wix', 'HubSpot', 'Nextdoor', 'Patch'] as const
+const PLANNED = SUBSTACK_ENABLED
+  ? PLANNED_BASE
+  : [...PLANNED_BASE, 'Substack'] as const
 const FLOW_STEPS = ['Studio', 'Intelligence', 'Publish', 'Reach'] as const
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
@@ -821,9 +827,10 @@ function PublishingInfrastructureContent() {
 
   const canConnect = useCanConnectAccount()
 
-  const [showLinkedInPicker,  setShowLinkedInPicker]  = useState(false)
-  const [showWordPressPicker, setShowWordPressPicker]  = useState(false)
-  const [showShopifyPicker,   setShowShopifyPicker]    = useState(false)
+  const [showLinkedInPicker,   setShowLinkedInPicker]   = useState(false)
+  const [showWordPressPicker,  setShowWordPressPicker]   = useState(false)
+  const [showShopifyPicker,    setShowShopifyPicker]     = useState(false)
+  const [showSubstackPicker,   setShowSubstackPicker]    = useState(false)
   const [showBlueSkyModal,    setShowBlueSkyModal]     = useState(false)
   const [blueSkyReconnectHandle, setBlueSkyReconnectHandle] = useState<string | undefined>(undefined)
   const [showMastodonModal,   setShowMastodonModal]    = useState(false)
@@ -1067,8 +1074,9 @@ function PublishingInfrastructureContent() {
     return handler
   }
 
-  const wpConnections      = connections.filter(c => c.provider === 'wordpress')
-  const shopifyConnections = connections.filter(c => c.provider === 'shopify')
+  const wpConnections       = connections.filter(c => c.provider === 'wordpress')
+  const shopifyConnections  = connections.filter(c => c.provider === 'shopify')
+  const substackConnections = connections.filter(c => c.provider === 'substack')
   const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
   const abcChannels        = socialChannels.filter(c => c.platform === 'apple_business_connect' && c.is_active)
 
@@ -1179,6 +1187,16 @@ function PublishingInfrastructureContent() {
       )}
       {showShopifyPicker && (
         <ConnectShopifyModal onClose={() => setShowShopifyPicker(false)} />
+      )}
+      {SUBSTACK_ENABLED && showSubstackPicker && (
+        <ConnectSubstackModal
+          onClose={() => setShowSubstackPicker(false)}
+          onConnected={c => {
+            setConnections(prev => [c, ...prev])
+            setShowSubstackPicker(false)
+            flash('Substack connected.', true)
+          }}
+        />
       )}
       {gbpLocations && (
         <GBPLocationPicker
@@ -1438,6 +1456,30 @@ function PublishingInfrastructureContent() {
             addAnotherLabel="Add another Shopify store"
             connectLabel="Connect Shopify"
           />
+          {SUBSTACK_ENABLED && (
+            <PlatformCard
+              name="Substack"
+              tagline="Newsletter drafts · subscription-native publishing"
+              iconColorClass="text-[#FF6719]"
+              icon={
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
+                </svg>
+              }
+              connected={substackConnections.map(c => ({
+                id:                  c.id,
+                label:               c.label,
+                consecutiveFailures: c.consecutiveFailureCount,
+                lastPublishedAt:     c.lastSuccessfulPublishAt,
+              }))}
+              onConnect={guardedOnConnect(() => setShowSubstackPicker(true))}
+              onDisconnect={handleDisconnectConnection}
+              onAddAnother={guardedOnConnect(() => setShowSubstackPicker(true))}
+              addAnotherLabel="Add another Substack"
+              connectLabel="Connect Substack"
+              infoNote="Beta — creates drafts only. Publish from the Substack editor."
+            />
+          )}
           {/* Medium — RSS import (Medium v1 API no longer accepts new connections) */}
           <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6">
             <div className="mb-5 flex items-start gap-3">

@@ -1,3 +1,19 @@
+export type SubstackArticleLength = 'short' | 'standard' | 'long'
+export type SubstackArticleType   = 'essay' | 'analysis' | 'commentary' | 'explainer'
+
+export const SUBSTACK_LENGTH_TARGETS: Record<SubstackArticleLength, { label: string; words: string }> = {
+  short:    { label: 'Short',    words: '400–600 words'  },
+  standard: { label: 'Standard', words: '600–900 words'  },
+  long:     { label: 'Long',     words: '900–1400 words' },
+}
+
+export const SUBSTACK_ARTICLE_TYPES: Record<SubstackArticleType, { label: string; description: string }> = {
+  essay:       { label: 'Essay',       description: 'Developed argument with a clear thesis and narrative arc' },
+  analysis:    { label: 'Analysis',    description: 'Evidence-driven breakdown of a topic, trend, or event' },
+  commentary:  { label: 'Commentary',  description: 'Opinionated response to news, ideas, or cultural moments' },
+  explainer:   { label: 'Explainer',   description: 'Accessible deep-dive that builds understanding from first principles' },
+}
+
 export const SUBSTACK_PLATFORM_MODEL = {
   platform: 'substack' as const,
   rhetoricalEnvironment: `Substack is a long-form, subscription-native environment where readers arrive with deliberate attention and expect immersive prose. The dominant expectation is a writer with a developed worldview engaging seriously with an idea.
