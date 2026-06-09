@@ -49,6 +49,7 @@ function parseJinaMarkdown(raw: string, originalUrl: string): ScrapedArticle {
     markdownContent: markdown,
     excerpt: markdown.slice(0, 200),
     wordCount,
+    extractionMethod: 'jina' as const,
   }
 }
 

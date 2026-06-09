@@ -4,6 +4,7 @@ import { extractWithReadability } from './readability'
 import { sanitizeHtml } from './sanitize'
 import { toMarkdown } from './markdown'
 import { fetchWithJina } from './jina'
+import { ExtractionError } from './errors'
 import type { ScrapedArticle } from './types'
 
 export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
@@ -39,6 +40,10 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
     try {
       extracted = await extractWithReadability(html, url)
     } catch (err) {
+      if (err instanceof ExtractionError) {
+        console.warn(`[scraper] readability extraction failed for ${url}, falling back to Jina`)
+        return fetchWithJina(url)
+      }
       throw err
     }
   }
@@ -46,6 +51,12 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
   const cleanHtml = sanitizeHtml(extracted.html, substack)
   const markdown = toMarkdown(cleanHtml)
   const wordCount = markdown.split(/\s+/).filter(Boolean).length
+
+  // Fall back to Jina if readability returned insufficient content (e.g. lazy-loaded SPA)
+  if (!substack && wordCount < 30) {
+    console.warn(`[scraper] readability returned only ${wordCount} words for ${url}, falling back to Jina`)
+    return fetchWithJina(url)
+  }
 
   return {
     url,
@@ -57,5 +68,6 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
     markdownContent: markdown,
     excerpt: extracted.excerpt,
     wordCount,
+    extractionMethod: 'readability' as const,
   }
 }
