@@ -136,7 +136,7 @@ export default function WorkspaceSettingsPage() {
     setSlugError(null)
     const res = await fetch('/api/workspace/slug', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-workspace-slug': activeWorkspace.slug },
       body: JSON.stringify({ slug }),
     })
     if (res.ok) {
