@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import type { ExtractionResult } from './types'
+import { ExtractionError } from './errors'
 
 const CONTENT_SELECTORS = [
   'article',
@@ -85,7 +86,7 @@ export async function extractWithReadability(html: string, _url: string): Promis
   }
 
   if (!contentHtml || contentHtml.trim().length < 100) {
-    throw new Error('EXTRACTION_FAILED: Could not extract readable content from page')
+    throw new ExtractionError('Could not extract readable content from page')
   }
 
   return { ...meta, html: contentHtml }

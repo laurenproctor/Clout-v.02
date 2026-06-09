@@ -8,6 +8,7 @@ export interface ScrapedArticle {
   markdownContent: string
   excerpt?: string
   wordCount: number
+  extractionMethod: 'readability' | 'jina'
 }
 
 export interface ExtractionResult {
