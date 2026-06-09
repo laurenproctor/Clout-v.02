@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { tokens } from '@/lib/feed/tokens'
 import type { CompetitorContentItem } from '@/app/api/competitors/content/route'
+import { CompetitorIntelDraftPanel } from './CompetitorIntelDraftPanel'
 
 const SOURCE_LABEL: Record<string, string> = {
   blog:      'Blog',
@@ -74,7 +76,8 @@ function fmt(n: number): string {
   return String(n)
 }
 
-function ContentCard({ item, index }: { item: CompetitorContentItem; index: number }) {
+function ContentCard({ item, index, onDismiss }: { item: CompetitorContentItem; index: number; onDismiss?: (id: string) => void }) {
+  const [panelOpen, setPanelOpen] = useState(false)
   const m = item.metrics ?? {}
   const metricParts: string[] = []
   if (m.likes    != null) metricParts.push(`${fmt(m.likes)} likes`)
@@ -154,23 +157,65 @@ function ContentCard({ item, index }: { item: CompetitorContentItem; index: numb
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-          {metricParts.length > 0 && (
-            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-              {metricParts.join(' · ')}
-            </span>
-          )}
-          {item.url && (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: '11px', fontWeight: 600, color: '#4f46e5', textDecoration: 'none', marginLeft: 'auto' }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {metricParts.length > 0 && (
+              <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                {metricParts.join(' · ')}
+              </span>
+            )}
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '11px', fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}
+              >
+                View →
+              </a>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => onDismiss?.(item.id)}
+              style={{
+                padding:         '5px 10px',
+                fontSize:        '12px',
+                fontWeight:      500,
+                backgroundColor: 'transparent',
+                color:           '#9ca3af',
+                border:          '1px solid #e5e7eb',
+                borderRadius:    '3px',
+                cursor:          'pointer',
+              }}
+              aria-label="Dismiss signal"
             >
-              View →
-            </a>
-          )}
+              Dismiss
+            </button>
+            <button
+              onClick={() => setPanelOpen(prev => !prev)}
+              style={{
+                padding:         '5px 12px',
+                fontSize:        '12px',
+                fontWeight:      600,
+                backgroundColor: panelOpen ? '#374151' : 'var(--workspace-accent, #1a1560)',
+                color:           '#fff',
+                border:          'none',
+                borderRadius:    '3px',
+                cursor:          'pointer',
+                transition:      'background-color 0.1s',
+              }}
+            >
+              {panelOpen ? 'Close' : 'Generate'}
+            </button>
+          </div>
         </div>
       </div>
+
+      <CompetitorIntelDraftPanel
+        item={item}
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+      />
     </div>
   )
 }
@@ -184,6 +229,13 @@ interface Props {
 
 export function CompetitorIntelligenceFeed({ items, loading, error, onRetry }: Props) {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>()
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
+
+  const handleDismiss = (id: string) => {
+    setDismissedIds(prev => new Set(prev).add(id))
+  }
+
+  const visibleItems = items.filter(item => !dismissedIds.has(item.id))
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', color: '#9ca3af', fontSize: '14px' }}>
@@ -222,11 +274,11 @@ export function CompetitorIntelligenceFeed({ items, loading, error, onRetry }: P
     <div>
       <div style={{ marginBottom: '12px' }}>
         <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9ca3af' }}>
-          Competitor Intelligence · {items.length} items
+          Competitor Intelligence · {visibleItems.length} items
         </span>
       </div>
-      {items.map((item, index) => (
-        <ContentCard key={item.id} item={item} index={index} />
+      {visibleItems.map((item, index) => (
+        <ContentCard key={item.id} item={item} index={index} onDismiss={handleDismiss} />
       ))}
     </div>
   )
