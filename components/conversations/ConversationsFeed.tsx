@@ -1,12 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { OpportunityCard } from './OpportunityCard'
 import { ConversationThemeCard } from './ConversationThemeCard'
 import { SourcesTable } from './SourcesTable'
 import { ParticipationHistory } from './ParticipationHistory'
 import type { ConversationOpportunity, ConversationSource, ConversationResponse, ConversationTheme } from '@/types/domain'
+
+type PollingState =
+  | { status: 'polling'; label: string }
+  | { status: 'success'; message: string }
+  | { status: 'timeout' }
 
 export function ConversationsFeed() {
   const [tab, setTab] = useState('opportunities')
@@ -15,6 +21,18 @@ export function ConversationsFeed() {
   const [sources, setSources] = useState<ConversationSource[]>([])
   const [responses, setResponses] = useState<ConversationResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [pollingState, setPollingState] = useState<PollingState | null>(null)
+
+  // Refs so the polling closure never captures stale state
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const prevIdsRef = useRef<Set<string>>(new Set())
+  const opportunitiesRef = useRef<ConversationOpportunity[]>([])
+
+  // Keep opportunitiesRef in sync
+  useEffect(() => { opportunitiesRef.current = opportunities }, [opportunities])
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
 
   const loadOpportunities = useCallback(async () => {
     setLoading(true)
@@ -25,6 +43,58 @@ export function ConversationsFeed() {
       setLoading(false)
     }
   }, [])
+
+  const startOpportunityPolling = useCallback((sourceLabel: string) => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    setTab('opportunities')
+    prevIdsRef.current = new Set(opportunitiesRef.current.map(o => o.id))
+    setPollingState({ status: 'polling', label: sourceLabel })
+
+    let attempts = 0
+    const MAX_ATTEMPTS = 15 // 15 × 8s ≈ 2 minutes
+
+    intervalRef.current = setInterval(async () => {
+      attempts++
+      try {
+        const res = await fetch('/api/conversations/opportunities?status=active&limit=50')
+
+        if (res.status === 401 || res.status === 403 || res.status === 404) {
+          clearInterval(intervalRef.current!)
+          setPollingState(null)
+          return
+        }
+        if (!res.ok) {
+          if (attempts >= MAX_ATTEMPTS) {
+            clearInterval(intervalRef.current!)
+            setPollingState({ status: 'timeout' })
+          }
+          return
+        }
+
+        const data: ConversationOpportunity[] = await res.json()
+        const newItems = data.filter(o => !prevIdsRef.current.has(o.id))
+
+        if (newItems.length > 0) {
+          setOpportunities(data)
+          clearInterval(intervalRef.current!)
+          const count = newItems.length
+          setPollingState({ status: 'success', message: `${count} new opportunity${count !== 1 ? 's' : ''} found` })
+          setTimeout(() => setPollingState(null), 4000)
+          return
+        }
+
+        if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(intervalRef.current!)
+          setPollingState({ status: 'timeout' })
+        }
+      } catch {
+        if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(intervalRef.current!)
+          setPollingState({ status: 'timeout' })
+        }
+      }
+    }, 8000)
+  }, []) // all state accessed via stable setters or refs
 
   const loadThemes = useCallback(async () => {
     setLoading(true)
@@ -85,6 +155,23 @@ export function ConversationsFeed() {
         </div>
 
         <TabsContent value="opportunities" className="flex-1 overflow-y-auto p-6 mt-0">
+          {pollingState?.status === 'polling' && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 max-w-2xl">
+              <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
+              <span>Fetching conversations from {pollingState.label}…</span>
+            </div>
+          )}
+          {pollingState?.status === 'success' && (
+            <div className="flex items-center gap-2 text-sm text-green-600 mb-4 max-w-2xl">
+              <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>{pollingState.message}</span>
+            </div>
+          )}
+          {pollingState?.status === 'timeout' && (
+            <div className="text-sm text-muted-foreground mb-4 max-w-2xl">
+              Still processing — check back soon.
+            </div>
+          )}
           {loading ? (
             <div className="space-y-3 max-w-2xl">
               {[1, 2, 3].map(i => <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />)}
@@ -123,7 +210,13 @@ export function ConversationsFeed() {
         </TabsContent>
 
         <TabsContent value="sources" className="flex-1 overflow-y-auto p-6 mt-0">
-          <SourcesTable sources={sources} onSourcesChange={loadSources} onPreferencesChange={loadOpportunities} />
+          <SourcesTable
+            sources={sources}
+            onSourcesChange={loadSources}
+            onPreferencesChange={loadOpportunities}
+            onSourceCreated={startOpportunityPolling}
+            onFocusTopicAdded={() => startOpportunityPolling('your focus topics')}
+          />
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 overflow-y-auto p-6 mt-0">

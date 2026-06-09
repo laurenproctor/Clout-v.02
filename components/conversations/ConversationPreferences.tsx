@@ -9,6 +9,7 @@ import type { ConversationPreferences } from '@/types/domain'
 
 interface Props {
   onPreferencesChange?: () => void
+  onFocusTopicAdded?: () => void
 }
 
 function TagInput({
@@ -81,7 +82,7 @@ function TagInput({
   )
 }
 
-export function ConversationPreferences({ onPreferencesChange }: Props) {
+export function ConversationPreferences({ onPreferencesChange, onFocusTopicAdded }: Props) {
   const [open, setOpen] = useState(true)
   const [focusTopics, setFocusTopics] = useState<string[]>([])
   const [blockedKeywords, setBlockedKeywords] = useState<string[]>([])
@@ -90,6 +91,10 @@ export function ConversationPreferences({ onPreferencesChange }: Props) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevInstantRef = useRef<{ blocked: string[]; score: number } | null>(null)
+  // Tracks saved focus topics to detect when new ones are added
+  const savedTopicsRef = useRef<string[]>([])
+  // Set when handleFocusTopicsChange detects a newly added topic, cleared after save
+  const shouldReprocessRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/conversations/preferences')
@@ -100,6 +105,7 @@ export function ConversationPreferences({ onPreferencesChange }: Props) {
           setBlockedKeywords(data.blockedKeywords)
           setMinScore(data.minOpportunityScore)
           prevInstantRef.current = { blocked: data.blockedKeywords, score: data.minOpportunityScore }
+          savedTopicsRef.current = data.focusTopics
         }
         setLoaded(true)
       })
@@ -122,6 +128,13 @@ export function ConversationPreferences({ onPreferencesChange }: Props) {
       if (res.ok) {
         setSaveStatus('saved')
         if (triggerRefetch) onPreferencesChange?.()
+        if (shouldReprocessRef.current) {
+          shouldReprocessRef.current = false
+          savedTopicsRef.current = topics
+          // Fire-and-forget — triggers background re-ingest with updated focus topics
+          fetch('/api/conversations/reprocess', { method: 'POST' }).catch(() => {})
+          onFocusTopicAdded?.()
+        }
         setTimeout(() => setSaveStatus('idle'), 2000)
       } else {
         setSaveStatus('idle')
@@ -129,7 +142,7 @@ export function ConversationPreferences({ onPreferencesChange }: Props) {
     } catch {
       setSaveStatus('idle')
     }
-  }, [onPreferencesChange])
+  }, [onPreferencesChange, onFocusTopicAdded])
 
   function scheduleSave(
     topics: string[],
@@ -151,6 +164,9 @@ export function ConversationPreferences({ onPreferencesChange }: Props) {
 
   function handleFocusTopicsChange(topics: string[]) {
     setFocusTopics(topics)
+    // Set reprocess flag if any new topic was introduced (set-based, handles "remove one, add another")
+    const hasNewTopic = topics.some(t => !savedTopicsRef.current.includes(t))
+    if (hasNewTopic) shouldReprocessRef.current = true
     if (loaded) scheduleSave(topics, blockedKeywords, minScore, false)
   }
 
@@ -195,8 +211,8 @@ export function ConversationPreferences({ onPreferencesChange }: Props) {
             <p className="text-xs text-muted-foreground">
               Boost relevance for opportunities touching these topics.
             </p>
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              Changes apply on the next ingest run, not immediately.
+            <p className="text-xs text-muted-foreground">
+              New topics trigger a background refresh when saved.
             </p>
           </div>
 
