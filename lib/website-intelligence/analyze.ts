@@ -6,6 +6,11 @@ export interface WebsiteAnalysisResult {
   items: WebsiteOpportunity[]
   gaps: WebsiteContentGap[]
   assets: WebsiteAsset[]
+  meta: {
+    extractionMethod: 'readability' | 'jina'
+    durationMs: number
+    version: number
+  }
 }
 
 const SYSTEM_PROMPT = `You are a content strategist analyzing a company's website to identify high-impact content opportunities for LinkedIn and other professional channels.
@@ -71,7 +76,9 @@ Rules:
 - If the page has very little content, still try to identify at least 1-2 opportunities
 - Output ONLY valid JSON. No markdown, no explanation.`
 
-function parseAnalysisResponse(content: string): WebsiteAnalysisResult {
+type ParsedAnalysis = Omit<WebsiteAnalysisResult, 'meta'>
+
+function parseAnalysisResponse(content: string): ParsedAnalysis {
   const jsonMatch = content.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     console.error('[website-intelligence/analyze] no JSON in Claude response, first 500 chars:', content.slice(0, 500))
@@ -92,6 +99,7 @@ function parseAnalysisResponse(content: string): WebsiteAnalysisResult {
 }
 
 export async function analyzeWebsiteForOpportunities(url: string): Promise<WebsiteAnalysisResult> {
+  const start = Date.now()
   const scraped = await scrapeUrl(url)
 
   const userMessage = `Website URL: ${url}
@@ -108,7 +116,15 @@ ${scraped.markdownContent.slice(0, 6000)}`
     maxTokens: 8192,
   })
 
-  return parseAnalysisResponse(result.content)
+  const parsed = parseAnalysisResponse(result.content)
+  return {
+    ...parsed,
+    meta: {
+      extractionMethod: scraped.extractionMethod,
+      durationMs: Date.now() - start,
+      version: 1,
+    },
+  }
 }
 
 export async function analyzeContentForOpportunities(
@@ -116,6 +132,7 @@ export async function analyzeContentForOpportunities(
   sourceUrl: string,
   sourceName: string,
 ): Promise<WebsiteAnalysisResult> {
+  const start = Date.now()
   const userMessage = `Source name: ${sourceName}
 Source URL: ${sourceUrl}
 
@@ -129,5 +146,13 @@ ${text.slice(0, 6000)}`
     maxTokens: 8192,
   })
 
-  return parseAnalysisResponse(result.content)
+  const parsed = parseAnalysisResponse(result.content)
+  return {
+    ...parsed,
+    meta: {
+      extractionMethod: 'readability',
+      durationMs: Date.now() - start,
+      version: 1,
+    },
+  }
 }

@@ -1,11 +1,25 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { WebsiteAnalysisResult } from '@/lib/website-intelligence/analyze'
 
-interface CacheShape {
+export interface CacheShape {
   items: object[]
   gaps: object[]
   assets: object[]
   analyzed_at?: string
+  extraction_method?: 'readability' | 'jina'
+  duration_ms?: number
+  version?: number
+}
+
+export function resultToCache(result: WebsiteAnalysisResult): CacheShape {
+  return {
+    items: result.items,
+    gaps: result.gaps,
+    assets: result.assets,
+    extraction_method: result.meta.extractionMethod,
+    duration_ms: result.meta.durationMs,
+    version: result.meta.version,
+  }
 }
 
 export async function readCache(
@@ -43,7 +57,6 @@ export function mergeIntoCache(
   existing: CacheShape,
   newResult: WebsiteAnalysisResult,
 ): CacheShape {
-  // Merge new results into existing, deduplicating by id
   const existingItemIds = new Set((existing.items as Array<{ id?: string }>).map(i => i.id).filter(Boolean))
   const existingGapIds = new Set((existing.gaps as Array<{ id?: string }>).map(g => g.id).filter(Boolean))
   const existingAssetIds = new Set((existing.assets as Array<{ id?: string }>).map(a => a.id).filter(Boolean))
@@ -56,5 +69,8 @@ export function mergeIntoCache(
     items: [...existing.items, ...newItems],
     gaps: [...existing.gaps, ...newGaps],
     assets: [...existing.assets, ...newAssets],
+    extraction_method: newResult.meta.extractionMethod,
+    duration_ms: newResult.meta.durationMs,
+    version: newResult.meta.version,
   }
 }

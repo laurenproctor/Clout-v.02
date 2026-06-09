@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeWebsiteForOpportunities } from '@/lib/website-intelligence/analyze'
-import { writeCache } from '../_cache'
+import type { WebsiteAnalysisResult } from '@/lib/website-intelligence/analyze'
+import { writeCache, resultToCache } from '../_cache'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
       { onConflict: 'workspace_id' }
     )
 
-  let result = { items: [] as object[], gaps: [] as object[], assets: [] as object[] }
+  let result: WebsiteAnalysisResult
   try {
     result = await analyzeWebsiteForOpportunities(website_url)
   } catch (err) {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: userMessage }, { status: 422 })
   }
 
-  await writeCache(supabase, session.workspaceId, result)
+  await writeCache(supabase, session.workspaceId, resultToCache(result))
 
   return NextResponse.json({
     configured: true,
