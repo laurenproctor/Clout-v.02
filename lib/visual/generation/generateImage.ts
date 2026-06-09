@@ -179,6 +179,10 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     const score = await scoreImageQuality(generatedProviderUrl, grammar, templateSpec)
     qualityScore = score.overall
 
+    // Save originals so the retry path can re-derive decisions against a fresh score.
+    const originalTemplateId   = templateId
+    const originalTemplateSpec = templateSpec
+
     // Confidence-gated template override — only switch when the vision model is sure.
     // Not applied in the overlay path: user's content type (headline vs. quote) determines
     // the template there, and that choice is not overridable by vision analysis.
@@ -225,11 +229,43 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         grammar: stricterGrammar,
       })
       const retried = await provider.generate({ prompt: retriedPrompt, aspectRatio, quality })
-      const retryScore = await scoreImageQuality(retried.providerUrl, grammar, templateSpec)
+      // Score against the original spec — the retry image may suit a different composition
+      // zone than whatever the first-pass override selected.
+      const retryScore = await scoreImageQuality(retried.providerUrl, grammar, originalTemplateSpec)
 
       if (retryScore.overall >= score.overall) {
         generatedProviderUrl = retried.providerUrl
         qualityScore = retryScore.overall
+
+        // Re-derive template override and logo placement from the retry image's score.
+        // Reset to originals first so this decision is independent of the first pass.
+        templateId   = originalTemplateId
+        templateSpec = originalTemplateSpec
+        templateOverrideUsed = false
+        logoCorner   = null
+
+        if (
+          !hasOverlayContent &&
+          retryScore.openZone &&
+          retryScore.openZoneConfidence != null &&
+          retryScore.openZoneConfidence >= ZONE_CONFIDENCE_THRESHOLD &&
+          ZONE_TO_TEMPLATE[retryScore.openZone] !== templateId
+        ) {
+          const overrideId = ZONE_TO_TEMPLATE[retryScore.openZone]
+          try {
+            const overrideSpec = getTemplateSpec(overrideId)
+            templateId   = overrideId
+            templateSpec = overrideSpec
+            templateOverrideUsed = true
+          } catch {
+            // Unknown template — keep original selection
+          }
+        }
+
+        if (retryScore.logoSafeZone && retryScore.logoVisibilityScore != null && retryScore.logoVisibilityScore >= 0.5) {
+          const allowed = templateSpec.allowedLogoCorners
+          logoCorner = allowed.includes(retryScore.logoSafeZone) ? retryScore.logoSafeZone : null
+        }
       }
     }
   }
