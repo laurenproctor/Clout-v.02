@@ -8,6 +8,7 @@ import '@/lib/trigger/jobs/generate'
 import '@/lib/trigger/jobs/publish-scheduled'
 import '@/lib/trigger/jobs/sync-analytics'
 import '@/lib/trigger/jobs/transcribe'
+import '@/lib/trigger/jobs/website-intelligence-weekly'
 
 // Trigger.dev webhook endpoint
 // Trigger.dev v4 uses a separate CLI dev server; this route is a stub for local dev.
