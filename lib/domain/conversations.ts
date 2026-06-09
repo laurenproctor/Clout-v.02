@@ -3,8 +3,15 @@ import type {
   ConversationSource, ConversationItem, ConversationOpportunity,
   ConversationResponse, ConversationTheme, ConversationFollowedAuthor,
   ConversationFollowedPublication, ConversationSourceType, ConversationContentType,
-  ConversationOpportunityType, ConversationOpportunityStatus, DomainResult,
+  ConversationOpportunityType, ConversationOpportunityStatus, ConversationPreferences, DomainResult,
 } from '@/types/domain'
+
+const DEFAULT_PREFERENCES: ConversationPreferences = {
+  focusTopics: [],
+  blockedKeywords: [],
+  minOpportunityScore: 40,
+  mutedSources: [],
+}
 
 // conversation_* tables are not yet in types/db.ts (apply migration, then regenerate types).
 // All queries cast supabase to `any` to bypass strict table typing until then.
@@ -260,7 +267,7 @@ export async function ageConversationThemes(workspaceId: string): Promise<void> 
 
 export async function listConversationOpportunities(
   workspaceId: string,
-  options: { status?: ConversationOpportunityStatus; limit?: number; offset?: number } = {}
+  options: { status?: ConversationOpportunityStatus; limit?: number; offset?: number; minScore?: number } = {}
 ): Promise<DomainResult<ConversationOpportunity[]>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
@@ -273,6 +280,7 @@ export async function listConversationOpportunities(
     .order('overall_score', { ascending: false })
     .range(offset, offset + limit - 1)
   if (options.status) q = q.eq('status', options.status)
+  if (options.minScore && options.minScore > 0) q = q.gte('overall_score', options.minScore)
   const { data, error } = await q
   if (error) return { ok: false, error: error.message }
   return { ok: true, data: data.map(toOpportunity) }
@@ -443,17 +451,63 @@ export async function loadFollowedContext(workspaceId: string): Promise<{
   }
 }
 
+// ─── Preferences ─────────────────────────────────────────────────────────────
+
+export async function getConversationPreferences(workspaceId: string): Promise<DomainResult<ConversationPreferences>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any
+  const { data, error } = await supabase
+    .from('workspace_feed_settings')
+    .select('conversation_preferences')
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
+  if (error) return { ok: false, error: error.message }
+  const prefs = (data?.conversation_preferences as Partial<ConversationPreferences>) ?? {}
+  return {
+    ok: true,
+    data: {
+      focusTopics: prefs.focusTopics ?? DEFAULT_PREFERENCES.focusTopics,
+      blockedKeywords: prefs.blockedKeywords ?? DEFAULT_PREFERENCES.blockedKeywords,
+      minOpportunityScore: prefs.minOpportunityScore ?? DEFAULT_PREFERENCES.minOpportunityScore,
+      mutedSources: prefs.mutedSources ?? DEFAULT_PREFERENCES.mutedSources,
+    },
+  }
+}
+
+export async function upsertConversationPreferences(
+  workspaceId: string,
+  prefs: Partial<ConversationPreferences>
+): Promise<DomainResult<ConversationPreferences>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any
+  const existing = await getConversationPreferences(workspaceId)
+  const current = existing.ok ? existing.data : DEFAULT_PREFERENCES
+  const merged: ConversationPreferences = {
+    focusTopics: prefs.focusTopics ?? current.focusTopics,
+    blockedKeywords: prefs.blockedKeywords ?? current.blockedKeywords,
+    minOpportunityScore: prefs.minOpportunityScore ?? current.minOpportunityScore,
+    mutedSources: prefs.mutedSources ?? current.mutedSources,
+  }
+  const { error } = await supabase
+    .from('workspace_feed_settings')
+    .upsert({ workspace_id: workspaceId, conversation_preferences: merged }, { onConflict: 'workspace_id' })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: merged }
+}
+
 // ─── Workspace context ────────────────────────────────────────────────────────
 
 export async function loadConversationWorkspaceContext(workspaceId: string) {
-  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any
   const [profileRes, feedRes, recentOutputsRes] = await Promise.all([
     supabase.from('profiles').select('display_name, tone_notes, mental_models, philosophies, target_audiences, sample_content').eq('workspace_id', workspaceId).maybeSingle(),
-    supabase.from('workspace_feed_settings').select('content_topics, services').eq('workspace_id', workspaceId).maybeSingle(),
+    supabase.from('workspace_feed_settings').select('content_topics, services, conversation_preferences').eq('workspace_id', workspaceId).maybeSingle(),
     supabase.from('outputs').select('content').eq('workspace_id', workspaceId).eq('status', 'published').order('created_at', { ascending: false }).limit(5),
   ])
   const p = profileRes.data
   const f = feedRes.data
+  const prefs = (f?.conversation_preferences as Partial<ConversationPreferences>) ?? {}
   const recentPosts = ((recentOutputsRes.data ?? []) as { content: unknown }[])
     .map(o => (typeof o.content === 'object' && o.content !== null ? (o.content as Record<string, unknown>).body ?? '' : String(o.content ?? '')))
     .filter(Boolean)
@@ -467,6 +521,8 @@ export async function loadConversationWorkspaceContext(workspaceId: string) {
     sampleContent: (p?.sample_content as string[]) ?? [],
     contentTopics: (f?.content_topics as string[]) ?? [],
     services: (f?.services as string[]) ?? [],
+    focusTopics: prefs.focusTopics ?? [],
+    blockedKeywords: prefs.blockedKeywords ?? [],
     recentPublishedPosts: recentPosts as string[],
     activeThemes: [] as { title: string; themeScore: number; sourceCount: number }[],
   }

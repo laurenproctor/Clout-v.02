@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AddSourceModal } from './AddSourceModal'
+import { ConversationPreferences } from './ConversationPreferences'
 import type { ConversationSource } from '@/types/domain'
 
-interface Props { sources: ConversationSource[]; onSourcesChange: () => void }
+interface Props { sources: ConversationSource[]; onSourcesChange: () => void; onPreferencesChange?: () => void }
 
-export function SourcesTable({ sources, onSourcesChange }: Props) {
+export function SourcesTable({ sources, onSourcesChange, onPreferencesChange }: Props) {
   const [showModal, setShowModal] = useState(false)
 
   async function toggleActive(source: ConversationSource) {
@@ -28,6 +29,7 @@ export function SourcesTable({ sources, onSourcesChange }: Props) {
 
   return (
     <div className="max-w-2xl">
+      <ConversationPreferences onPreferencesChange={onPreferencesChange} />
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium">Monitored Sources</h2>

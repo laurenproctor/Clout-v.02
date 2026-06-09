@@ -560,3 +560,10 @@ export interface ConversationResponse {
   generationMetadata: Record<string, unknown> | null
   createdAt: string
 }
+
+export interface ConversationPreferences {
+  focusTopics: string[]
+  blockedKeywords: string[]
+  minOpportunityScore: number
+  mutedSources: string[]
+}

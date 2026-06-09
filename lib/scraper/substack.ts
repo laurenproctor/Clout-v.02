@@ -283,3 +283,70 @@ export function extractSubstack(html: string): ExtractionResult {
 
   return { title, author, siteName, publishedAt, html: bodyHtml, excerpt }
 }
+
+// ─── List API ───────────────────────────────────────────────────────────────
+
+export interface SubstackApiListPost {
+  id: number
+  title?: string
+  subtitle?: string
+  description?: string
+  slug: string
+  post_date?: string
+  cover_image?: string
+  canonical_url?: string
+  type?: 'newsletter' | 'podcast'
+  audience?: 'everyone' | 'only_paid'
+  reaction_count?: number
+  comment_count?: number
+  body_html?: string
+  truncated_body_text?: string
+  publishedBylines?: {
+    name?: string
+    photo_url?: string
+    publicationUsers?: {
+      is_primary?: boolean
+      publication?: {
+        name?: string
+        logo_url?: string
+      }
+    }[]
+  }[]
+}
+
+export async function fetchSubstackApiList(origin: string): Promise<SubstackApiListPost[]> {
+  try {
+    const res = await fetch(`${origin}/api/v1/posts?limit=25`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) return []
+    const data: unknown = await res.json()
+    return Array.isArray(data) ? (data as SubstackApiListPost[]) : []
+  } catch {
+    return []
+  }
+}
+
+// ─── Custom-domain probe ────────────────────────────────────────────────────
+
+export async function probeSubstackOrigin(url: string): Promise<boolean> {
+  try {
+    const { origin } = new URL(url)
+    const res = await fetch(origin, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(3_000),
+    })
+    if (!res.ok) return false
+    const html = await res.text()
+    return isSubstack(url, html)
+  } catch {
+    return false
+  }
+}

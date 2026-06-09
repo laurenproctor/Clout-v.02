@@ -20,6 +20,7 @@ export interface WorkspaceContext {
   contentTopics: string[]
   services: string[]
   sampleContent: string[]
+  focusTopics: string[]
   recentPublishedPosts: string[]
   activeThemes: ActiveThemeSummary[]
 }
@@ -84,6 +85,10 @@ function buildAnalysisSystemPrompt(ctx: WorkspaceContext): string {
     ? `\nACTIVE CROSS-SOURCE THEMES (detected this cycle — multiple publications covering these):\n${ctx.activeThemes.map(t => `- "${t.title}" (score: ${t.themeScore}, ${t.sourceCount} source${t.sourceCount !== 1 ? 's' : ''})`).join('\n')}`
     : ''
 
+  const focusTopicsSection = ctx.focusTopics.length > 0
+    ? `\nFocus topics (mild relevance nudge — if content closely matches one of these, apply a small boost to relevanceScore, at most +5–10 points; do NOT apply a large boost — these are ranking hints, not hard requirements):\n${ctx.focusTopics.join(', ')}`
+    : ''
+
   return `You analyze published content to identify high-value participation opportunities for a thought leader.
 
 WORKSPACE CONTEXT
@@ -93,7 +98,7 @@ Services: ${ctx.services.join(', ') || 'none listed'}
 Voice/Tone: ${ctx.toneNotes || 'professional'}
 Mental models: ${ctx.mentalModels}
 Core philosophies: ${ctx.philosophies}
-Target audiences: ${ctx.targetAudiences.join(', ') || 'general'}${recentPostsSummary}${themesSummary}
+Target audiences: ${ctx.targetAudiences.join(', ') || 'general'}${focusTopicsSection}${recentPostsSummary}${themesSummary}
 
 TASK
 Return a JSON object with:

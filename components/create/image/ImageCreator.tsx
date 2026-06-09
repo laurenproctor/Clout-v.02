@@ -21,6 +21,21 @@ interface GeneratedResult {
   generationGroupId: string
 }
 
+interface GenerationParams {
+  imageStyle: ImageStyle
+  quoteText: string
+  attribution: string
+  headlineText: string
+  subtext: string
+  blogTopic: string
+  backgroundSource: 'none' | 'upload' | 'generate'
+  backgroundDescription: string
+  uploadedImageUrl: string | null
+  includeLogo: boolean
+  colorScheme: 'light' | 'dark'
+  aspectRatio: AspectRatio
+}
+
 interface ImageCreatorProps {
   workspaceId: string
   logoUrl: string | null
@@ -67,6 +82,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   const [result, setResult] = useState<GeneratedResult | null>(null)
   const [downloadName, setDownloadName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const lastGeneratedParams = useRef<GenerationParams | null>(null)
 
   useEffect(() => {
     setAspectRatio(imageStyle === 'quote-overlay' ? 'square' : 'landscape')
@@ -100,32 +116,52 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function buildContent(): string {
-    // Logo is composited server-side for headline-overlay and quote-overlay; only use text hint for blog images
-    const logoSuffix = (includeLogo && imageStyle === 'blog-image') ? ' Include brand logo in corner.' : ''
-    const schemeSuffix = colorScheme === 'dark'
-      ? ' Dark color scheme: deep backgrounds, light text, moody and high-contrast.'
-      : ' Light color scheme: bright backgrounds, clean and airy aesthetic.'
-    const bgDescSuffix = backgroundSource === 'generate' && backgroundDescription.trim()
-      ? ` Background image: ${backgroundDescription.trim()}.`
-      : ''
-    switch (imageStyle) {
-      case 'quote-overlay':
-        return `Quote card: "${quoteText}" — ${attribution || 'Brand Voice'}. Create a striking social image with this quote as the focal point.${bgDescSuffix}${schemeSuffix}${logoSuffix}`
-      case 'headline-overlay': {
-        // Generate a clean background — text and logo are composited separately via Satori
-        const bgDesc = backgroundSource === 'generate' && backgroundDescription.trim()
-          ? ` ${backgroundDescription.trim()}.`
-          : ''
-        return `Hero banner background for: ${headlineText}.${bgDesc} Clean composition with clear space for text overlay — no text or logos in the image.${schemeSuffix}`
-      }
-      case 'blog-image':
-        return `Editorial blog photograph for: ${blogTopic}. No text overlays. Pure photography.${schemeSuffix}${logoSuffix}`
+  function getCurrentParams(): GenerationParams {
+    return {
+      imageStyle,
+      quoteText,
+      attribution,
+      headlineText,
+      subtext,
+      blogTopic,
+      backgroundSource,
+      backgroundDescription,
+      uploadedImageUrl,
+      includeLogo,
+      colorScheme,
+      aspectRatio,
     }
   }
 
-  function buildKeyIdea(): string {
-    switch (imageStyle) {
+  function hasFormChanges(): boolean {
+    if (!lastGeneratedParams.current) return true
+    return JSON.stringify(getCurrentParams()) !== JSON.stringify(lastGeneratedParams.current)
+  }
+
+  function buildContentFromParams(p: GenerationParams): string {
+    const logoSuffix = (p.includeLogo && p.imageStyle === 'blog-image') ? ' Include brand logo in corner.' : ''
+    const schemeSuffix = p.colorScheme === 'dark'
+      ? ' Dark color scheme: deep backgrounds, light text, moody and high-contrast.'
+      : ' Light color scheme: bright backgrounds, clean and airy aesthetic.'
+    const bgDescSuffix = p.backgroundSource === 'generate' && p.backgroundDescription.trim()
+      ? ` Background image: ${p.backgroundDescription.trim()}.`
+      : ''
+    switch (p.imageStyle) {
+      case 'quote-overlay':
+        return `Quote card: "${p.quoteText}" — ${p.attribution || 'Brand Voice'}. Create a striking social image with this quote as the focal point.${bgDescSuffix}${schemeSuffix}${logoSuffix}`
+      case 'headline-overlay': {
+        const bgDesc = p.backgroundSource === 'generate' && p.backgroundDescription.trim()
+          ? ` ${p.backgroundDescription.trim()}.`
+          : ''
+        return `Hero banner background for: ${p.headlineText}.${bgDesc} Clean composition with clear space for text overlay — no text or logos in the image.${schemeSuffix}`
+      }
+      case 'blog-image':
+        return `Editorial blog photograph for: ${p.blogTopic}. No text overlays. Pure photography.${schemeSuffix}${logoSuffix}`
+    }
+  }
+
+  function buildKeyIdeaFromParams(p: GenerationParams): string {
+    switch (p.imageStyle) {
       case 'quote-overlay':   return 'quote card'
       case 'headline-overlay': return 'hero banner with headline'
       case 'blog-image':      return 'editorial photograph no text'
@@ -142,32 +178,33 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   }
 
   async function handleGenerate() {
+    // Snapshot current form values before anything async happens
+    const params = getCurrentParams()
+
     setGenState('generating')
     setError(null)
 
     try {
       const body: Record<string, unknown> = {
-        content: buildContent(),
-        keyIdea: buildKeyIdea(),
-        platform: STYLE_PLATFORM[imageStyle],
-        aspectRatio,
+        content: buildContentFromParams(params),
+        keyIdea: buildKeyIdeaFromParams(params),
+        platform: STYLE_PLATFORM[params.imageStyle],
+        aspectRatio: params.aspectRatio,
       }
-      if (backgroundSource === 'upload' && uploadedImageUrl) {
-        body.suppliedBackgroundUrl = uploadedImageUrl
+      if (params.backgroundSource === 'upload' && params.uploadedImageUrl) {
+        body.suppliedBackgroundUrl = params.uploadedImageUrl
       }
-      // For headline-overlay: send exact text and logo so server composites via brand settings.
-      if (imageStyle === 'headline-overlay') {
-        body.overlayHeadline = headlineText.trim()
-        if (subtext.trim()) body.overlaySubtext = subtext.trim()
-        body.includeLogo = includeLogo
-        body.colorScheme = colorScheme
+      if (params.imageStyle === 'headline-overlay') {
+        body.overlayHeadline = params.headlineText.trim()
+        if (params.subtext.trim()) body.overlaySubtext = params.subtext.trim()
+        body.includeLogo = params.includeLogo
+        body.colorScheme = params.colorScheme
       }
-      // For quote-overlay: send quote and attribution as overlay params for server-side compositing.
-      if (imageStyle === 'quote-overlay' && quoteText.trim()) {
-        body.overlayQuote = quoteText.trim()
-        if (attribution.trim()) body.overlayAttribution = attribution.trim()
-        body.includeLogo = includeLogo
-        body.colorScheme = colorScheme
+      if (params.imageStyle === 'quote-overlay' && params.quoteText.trim()) {
+        body.overlayQuote = params.quoteText.trim()
+        if (params.attribution.trim()) body.overlayAttribution = params.attribution.trim()
+        body.includeLogo = params.includeLogo
+        body.colorScheme = params.colorScheme
       }
 
       const res = await fetch('/api/visual/generate', {
@@ -182,12 +219,13 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
       }
 
       const data = await res.json() as GeneratedResult & { aspectRatio?: AspectRatio }
-      setResult({ ...data, aspectRatio })
+      setResult({ ...data, aspectRatio: params.aspectRatio })
       setDownloadName(
-        imageStyle === 'headline-overlay' ? headlineText.trim()
-        : imageStyle === 'quote-overlay'   ? quoteText.trim().slice(0, 60)
-        : blogTopic.trim()
+        params.imageStyle === 'headline-overlay' ? params.headlineText.trim()
+        : params.imageStyle === 'quote-overlay'  ? params.quoteText.trim().slice(0, 60)
+        : params.blogTopic.trim()
       )
+      lastGeneratedParams.current = params
       setGenState('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
@@ -532,7 +570,11 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
             )}
           >
             {genState === 'generating' && <Loader2 className="h-4 w-4 animate-spin" />}
-            {genState === 'generating' ? 'Generating…' : result ? 'Regenerate' : 'Generate Image'}
+            {genState === 'generating'
+              ? 'Generating…'
+              : result
+                ? hasFormChanges() ? 'Regenerate with Changes' : 'Regenerate'
+                : 'Generate Image'}
           </button>
 
           {error && (

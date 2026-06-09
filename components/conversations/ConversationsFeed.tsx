@@ -123,7 +123,7 @@ export function ConversationsFeed() {
         </TabsContent>
 
         <TabsContent value="sources" className="flex-1 overflow-y-auto p-6 mt-0">
-          <SourcesTable sources={sources} onSourcesChange={loadSources} />
+          <SourcesTable sources={sources} onSourcesChange={loadSources} onPreferencesChange={loadOpportunities} />
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 overflow-y-auto p-6 mt-0">

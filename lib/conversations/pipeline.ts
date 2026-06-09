@@ -1,6 +1,7 @@
 import { getProvider } from './providers'
 import { analyzeConversationItem, computeTimelinessScore, computeOverallScore } from './analysis'
 import { detectAndSaveThemes } from './themes'
+import { matchesBlockedKeyword, buildSearchableText } from './utils'
 import {
   listActiveConversationSources,
   insertConversationItemIfNew,
@@ -9,6 +10,7 @@ import {
   markSourceError,
   loadConversationWorkspaceContext,
   loadFollowedContext,
+  getConversationPreferences,
   linkOpportunitiesToThemes,
   suppressSimilarOpportunities,
 } from '@/lib/domain/conversations'
@@ -35,7 +37,7 @@ async function ingestSource(source: ConversationSource): Promise<{
   skipped: number
   errors: number
 }> {
-  const provider = getProvider(source.sourceUrl)
+  const provider = getProvider(source.sourceUrl, source.sourceType)
   let normalized: NormalizedItem[]
 
   try {
@@ -78,6 +80,91 @@ async function ingestSource(source: ConversationSource): Promise<{
   return { newItems, skipped, errors }
 }
 
+export async function ingestSingleSource(source: ConversationSource): Promise<void> {
+  const { newItems } = await ingestSource(source)
+  if (newItems.length === 0) return
+
+  const wsId = source.workspaceId
+
+  let activeThemes: ActiveThemeSummary[] = []
+  try {
+    activeThemes = await detectAndSaveThemes(wsId)
+  } catch (err) {
+    console.error(`[conversations] theme detection failed for workspace ${wsId}:`, err)
+  }
+
+  const [context, followedCtx, prefsResult] = await Promise.all([
+    loadConversationWorkspaceContext(wsId),
+    loadFollowedContext(wsId),
+    getConversationPreferences(wsId),
+  ])
+  const blockedKeywords = prefsResult.ok ? prefsResult.data.blockedKeywords : []
+  const contextWithThemes = { ...context, activeThemes }
+
+  let sonnetCallCount = 0
+
+  for (const { item, normalized: n } of newItems) {
+    if (sonnetCallCount >= MAX_SONNET_ANALYSES_PER_WORKSPACE) break
+
+    const searchableText = buildSearchableText([n.title, n.excerpt, item.summary])
+    if (matchesBlockedKeyword(searchableText, blockedKeywords)) continue
+
+    const authorNorm = n.author ? normalizeAuthorName(n.author) : null
+    const isFollowedAuthor = authorNorm
+      ? followedCtx.authorNames.some(a => normalizeAuthorName(a) === authorNorm)
+      : false
+    const isFollowedPub = followedCtx.publicationUrls.some(url =>
+      source.sourceUrl.startsWith(url) || url.startsWith(source.sourceUrl)
+    )
+    const timelinessScore = computeTimelinessScore(n.publishedAt)
+
+    try {
+      const analysis = await analyzeConversationItem(n, contextWithThemes)
+      sonnetCallCount++
+      const boostedRelevance = Math.min(100,
+        analysis.relevanceScore +
+        (isFollowedAuthor ? 20 : 0) +
+        (isFollowedPub ? 15 : 0)
+      )
+
+      if (boostedRelevance >= 40 && analysis.opportunities.length > 0) {
+        await insertConversationOpportunities(
+          analysis.opportunities.map(o => ({
+            workspaceId: wsId,
+            itemId: item.id,
+            themeId: null,
+            opportunityType: o.opportunityType,
+            title: o.title,
+            explanation: o.explanation,
+            whyThisMatters: o.whyThisMatters ?? null,
+            relevanceScore: boostedRelevance,
+            timelinessScore,
+            uniquenessScore: analysis.uniquenessScore,
+            opportunityScore: o.opportunityScore,
+            authorityScore: source.authorityScore,
+            overallScore: computeOverallScore(
+              boostedRelevance, timelinessScore,
+              analysis.uniquenessScore, o.opportunityScore,
+              source.authorityScore
+            ),
+          }))
+        )
+      }
+    } catch (err) {
+      console.error(`[conversations] analysis failed for item ${item.id}:`, err)
+    }
+
+    await new Promise(r => setTimeout(r, 200))
+  }
+
+  try {
+    await linkOpportunitiesToThemes(wsId)
+    await suppressSimilarOpportunities(wsId)
+  } catch (err) {
+    console.error(`[conversations] phase 4 failed for workspace ${wsId}:`, err)
+  }
+}
+
 export async function ingestAllSources(workspaceId?: string): Promise<{
   totalProcessed: number; totalSkipped: number; totalErrors: number
 }> {
@@ -111,10 +198,13 @@ export async function ingestAllSources(workspaceId?: string): Promise<{
     }
 
     // Phase 3: Opportunity analysis (Sonnet, with theme context)
-    const [context, followedCtx] = await Promise.all([
+    // Load all workspace context + preferences once — not per item
+    const [context, followedCtx, prefsResult] = await Promise.all([
       loadConversationWorkspaceContext(wsId),
       loadFollowedContext(wsId),
+      getConversationPreferences(wsId),
     ])
+    const blockedKeywords = prefsResult.ok ? prefsResult.data.blockedKeywords : []
     const contextWithThemes = { ...context, activeThemes }
 
     // Priority ordering before applying workspace caps
@@ -140,6 +230,9 @@ export async function ingestAllSources(workspaceId?: string): Promise<{
         console.log(`[conversations] workspace ${wsId} hit Sonnet cap (${MAX_SONNET_ANALYSES_PER_WORKSPACE}), stopping Phase 3`)
         break
       }
+
+      const searchableText = buildSearchableText([n.title, n.excerpt, item.summary])
+      if (matchesBlockedKeyword(searchableText, blockedKeywords)) continue
 
       const timelinessScore = computeTimelinessScore(n.publishedAt)
 

@@ -9,7 +9,8 @@ const providers: ConversationProvider[] = [
   new GenericArticleProvider(), // always matches — keep last
 ]
 
-export function getProvider(url: string): ConversationProvider {
+export function getProvider(url: string, sourceType?: string): ConversationProvider {
+  if (sourceType === 'substack') return new SubstackProvider()
   return providers.find(p => p.canHandle(url)) ?? new GenericArticleProvider()
 }
 
