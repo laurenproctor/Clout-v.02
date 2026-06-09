@@ -84,20 +84,21 @@ export async function getSession(): Promise<AuthSession | null> {
     }
   }
 
-  // Fallback: first workspace the user joined
-  const { data: member } = (await supabase
+  // Fallback: first non-deleted workspace the user joined
+  const { data: memberships } = (await supabase
     .from('workspace_members')
-    .select('workspace_id')
+    .select('workspace_id, workspaces(id, deleted_at)')
     .eq('user_id', user.id)
-    .order('joined_at', { ascending: true })
-    .limit(1)
-    .single()) as { data: { workspace_id: string } | null }
+    .order('joined_at', { ascending: true })) as {
+      data: Array<{ workspace_id: string; workspaces: { id: string; deleted_at: string | null } | null }> | null
+    }
 
-  if (!member) return null
+  const firstActive = (memberships ?? []).find(m => !m.workspaces?.deleted_at)
+  if (!firstActive) return null
 
   return {
     clerkId,
     userId: user.id,
-    workspaceId: member.workspace_id,
+    workspaceId: firstActive.workspace_id,
   }
 }

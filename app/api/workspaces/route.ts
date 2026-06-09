@@ -10,25 +10,27 @@ export async function GET() {
   const supabase = createServiceClient()
   const { data: memberships } = await supabase
     .from('workspace_members')
-    .select('role, workspaces(id, name, slug, plan, avatar_url, brand_color)')
+    .select('role, workspaces(id, name, slug, plan, avatar_url, brand_color, deleted_at)')
     .eq('user_id', session.userId)
     .order('joined_at', { ascending: true })
 
-  const workspaces = (memberships ?? []).map((m) => {
-    const ws = m.workspaces as {
-      id: string; name: string; slug: string; plan: string
-      avatar_url: string | null; brand_color: string | null
-    }
-    return {
-      id: ws.id,
-      name: ws.name,
-      slug: ws.slug,
-      plan: ws.plan,
-      avatarUrl: ws.avatar_url,
-      brandColor: ws.brand_color,
-      role: m.role,
-    }
-  })
+  const workspaces = (memberships ?? [])
+    .filter((m) => !(m.workspaces as { deleted_at?: string | null } | null)?.deleted_at)
+    .map((m) => {
+      const ws = m.workspaces as {
+        id: string; name: string; slug: string; plan: string
+        avatar_url: string | null; brand_color: string | null
+      }
+      return {
+        id: ws.id,
+        name: ws.name,
+        slug: ws.slug,
+        plan: ws.plan,
+        avatarUrl: ws.avatar_url,
+        brandColor: ws.brand_color,
+        role: m.role,
+      }
+    })
 
   return NextResponse.json({ workspaces })
 }
