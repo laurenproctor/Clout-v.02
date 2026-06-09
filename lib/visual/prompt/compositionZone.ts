@@ -5,6 +5,13 @@
 
 import type { TemplateSpec } from '../types/template'
 
+const DESIGN_DIRECTOR_PREFIX =
+  'Preserve a clear content zone with no overlapping foreground subjects. ' +
+  'Maintain unobstructed negative space in the designated text placement area. ' +
+  'Avoid placing the primary subject in the headline zone. ' +
+  'Favor asymmetrical editorial layouts over centered subject placement. ' +
+  'Ensure a corner of the frame has clean space for a small logo.'
+
 const ZONE_DIRECTIVES: Record<TemplateSpec['compositionZone'], string> = {
   'bottom-left':
     'heavy negative space in the lower-left third, dark shadow zone or gradient falloff lower-left, main visual subject positioned upper-right or center-right, clear open area lower-left for text overlay',
@@ -20,5 +27,5 @@ const ZONE_DIRECTIVES: Record<TemplateSpec['compositionZone'], string> = {
 }
 
 export function buildCompositionZoneDirective(templateSpec: TemplateSpec): string {
-  return ZONE_DIRECTIVES[templateSpec.compositionZone]
+  return `${DESIGN_DIRECTOR_PREFIX} ${ZONE_DIRECTIVES[templateSpec.compositionZone]}`
 }

@@ -4,6 +4,7 @@
 // Quote in <h3>, attribution below, optional logo top-right.
 
 import type { BrandTokens } from '@/lib/visual/types/template'
+import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
 
 interface QuoteCardProps {
   quote: string
@@ -41,7 +42,7 @@ export function QuoteCard({
   width,
   height,
 }: QuoteCardProps) {
-  const pad = Math.round(Math.min(width, height) * 0.055)
+  const pad = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
   const logoSize = Math.round(Math.min(width, height) * 0.07)
   const logoWidth = Math.round(logoSize * 3.5)
   const quoteSize = Math.round(Math.min(width, height) * 0.055)
@@ -82,10 +83,11 @@ export function QuoteCard({
     .overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(
-        180deg,
+      background: radial-gradient(
+        ellipse 90% 80% at 50% 50%,
         ${brand.surface}CC 0%,
-        ${brand.surface}EE 100%
+        ${brand.surface}99 60%,
+        rgba(0,0,0,0) 100%
       );
     }
 

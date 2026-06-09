@@ -1,15 +1,14 @@
-// components/visual/templates/puppeteer/EditorialHeroCard.tsx
+// components/visual/templates/puppeteer/SplitPanelCard.tsx
 // Full-document React component for Puppeteer rendering.
-// Rendered via ReactDOMServer.renderToStaticMarkup() — full CSS allowed (no Satori constraints).
-// Layout: full-bleed background. Gradient legibility zone bottom-left. Logo top-right.
+// Layout: text right 42% of canvas, subject left 58%. Logo top-left.
+// Mirrors EditorialHeroCard structure with opposite text placement.
 
 import type { BrandTokens } from '@/lib/visual/types/template'
 import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
 
-interface EditorialHeroCardProps {
+interface SplitPanelCardProps {
   headline: string
   subtext?: string
-  authorCredit?: string
   backgroundUrl: string
   logoUrl?: string
   brand: BrandTokens
@@ -31,10 +30,9 @@ function fontFaceRule(family: string, url: string | undefined): string {
   `
 }
 
-export function EditorialHeroCard({
+export function SplitPanelCard({
   headline,
   subtext,
-  authorCredit,
   backgroundUrl,
   logoUrl,
   brand,
@@ -42,15 +40,13 @@ export function EditorialHeroCard({
   fontBodyUrl,
   width,
   height,
-}: EditorialHeroCardProps) {
+}: SplitPanelCardProps) {
   const pad = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
   const logoHeight = Math.round(Math.min(width, height) * 0.07)
   const logoWidth = Math.round(logoHeight * 3.5)
-  const textZoneW = Math.round(width * 0.58)
-  const textZoneH = Math.round(height * 0.52)
+  const textZoneW = Math.round(width * 0.42)
   const headlineSize = Math.round(Math.min(width, height) * 0.075)
   const bodySize = Math.round(Math.min(width, height) * 0.025)
-  const labelSize = Math.round(Math.min(width, height) * 0.018)
 
   const css = `
     ${fontFaceRule(brand.fontHeading, fontHeadingUrl)}
@@ -82,29 +78,29 @@ export function EditorialHeroCard({
 
     .gradient-panel {
       position: absolute;
-      bottom: 0;
-      left: 0;
+      top: 0;
+      right: 0;
       width: ${textZoneW}px;
-      height: ${textZoneH}px;
-      background: radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%);
+      height: ${height}px;
+      background: radial-gradient(ellipse 120% 100% at 100% 50%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%);
     }
 
     .logo {
       position: absolute;
       top: ${pad}px;
-      right: ${pad}px;
+      left: ${pad}px;
       width: ${logoWidth}px;
       height: ${logoHeight}px;
       object-fit: contain;
-      object-position: right center;
+      object-position: left center;
     }
 
     .text-block {
       position: absolute;
-      bottom: ${pad}px;
-      left: ${pad}px;
-      max-width: ${Math.round(width * SAFE_ZONE.maxTextWidth)}px;
-      max-height: ${textZoneH - 2 * pad}px;
+      top: 50%;
+      right: ${pad}px;
+      transform: translateY(-50%);
+      max-width: ${Math.round(textZoneW - pad * 1.5)}px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -119,7 +115,7 @@ export function EditorialHeroCard({
       line-height: 1.05;
       letter-spacing: -0.02em;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -132,21 +128,9 @@ export function EditorialHeroCard({
       opacity: 0.78;
       line-height: 1.6;
       display: -webkit-box;
-      -webkit-line-clamp: 2;
+      -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
-    }
-
-    .credit {
-      font-family: ${JSON.stringify(brand.fontBody)}, system-ui, sans-serif;
-      font-size: ${labelSize}px;
-      font-weight: 500;
-      color: ${brand.accent};
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
   `
 
@@ -170,7 +154,6 @@ export function EditorialHeroCard({
           <div className="text-block">
             {headline && <h2>{headline}</h2>}
             {subtext && <p className="subtext">{subtext}</p>}
-            {authorCredit && <span className="credit">{authorCredit}</span>}
           </div>
         </div>
       </body>

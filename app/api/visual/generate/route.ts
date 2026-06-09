@@ -153,10 +153,16 @@ export async function POST(req: NextRequest) {
       .eq('workspace_id', session.workspaceId)
       .maybeSingle()
 
+    // Prefer SVG URLs when available — sharper at 3× DPI.
+    function preferSvg(...urls: (string | null | undefined)[]): string | undefined {
+      const available = urls.filter((u): u is string => !!u)
+      return available.find(u => u.toLowerCase().endsWith('.svg')) ?? available[0]
+    }
+
     // Dark scheme needs a light logo (readable on dark bg); light scheme needs a dark logo.
     const resolvedLogoUrl = colorScheme === 'dark'
-      ? (brand?.logo_url_light ?? brand?.logo_url ?? undefined)
-      : (brand?.logo_url_dark  ?? brand?.logo_url ?? undefined)
+      ? preferSvg(brand?.logo_url_light, brand?.logo_url)
+      : preferSvg(brand?.logo_url_dark, brand?.logo_url)
 
     overlayParams = {
       headline:       overlayHeadline,

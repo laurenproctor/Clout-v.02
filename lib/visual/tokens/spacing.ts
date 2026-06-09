@@ -10,6 +10,17 @@ export const SPACING = {
   xxl: 96,
 } as const
 
+// Safe zone enforcement for hybrid-overlay templates.
+// headlineFloor is the minimum px from any canvas edge for text.
+// headlineRatio ensures it scales on larger canvases.
+// Usage: Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
+export const SAFE_ZONE = {
+  headlineFloor: 96,
+  headlineRatio: 0.08,
+  logo:          60,
+  maxTextWidth:  0.42,
+} as const
+
 // Padding applied to text zones within templates
 export const TEXT_ZONE_PADDING = {
   'editorial-hero':   { x: 64, y: 64 },

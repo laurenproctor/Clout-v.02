@@ -1,15 +1,13 @@
-// components/visual/templates/puppeteer/EditorialHeroCard.tsx
+// components/visual/templates/puppeteer/UpperLeftCard.tsx
 // Full-document React component for Puppeteer rendering.
-// Rendered via ReactDOMServer.renderToStaticMarkup() — full CSS allowed (no Satori constraints).
-// Layout: full-bleed background. Gradient legibility zone bottom-left. Logo top-right.
+// Layout: text upper-left quadrant (top 52% × left 42%), subject lower-right. Logo bottom-right.
 
 import type { BrandTokens } from '@/lib/visual/types/template'
 import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
 
-interface EditorialHeroCardProps {
+interface UpperLeftCardProps {
   headline: string
   subtext?: string
-  authorCredit?: string
   backgroundUrl: string
   logoUrl?: string
   brand: BrandTokens
@@ -31,10 +29,9 @@ function fontFaceRule(family: string, url: string | undefined): string {
   `
 }
 
-export function EditorialHeroCard({
+export function UpperLeftCard({
   headline,
   subtext,
-  authorCredit,
   backgroundUrl,
   logoUrl,
   brand,
@@ -42,15 +39,14 @@ export function EditorialHeroCard({
   fontBodyUrl,
   width,
   height,
-}: EditorialHeroCardProps) {
+}: UpperLeftCardProps) {
   const pad = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
   const logoHeight = Math.round(Math.min(width, height) * 0.07)
   const logoWidth = Math.round(logoHeight * 3.5)
-  const textZoneW = Math.round(width * 0.58)
+  const textZoneW = Math.round(width * 0.42)
   const textZoneH = Math.round(height * 0.52)
   const headlineSize = Math.round(Math.min(width, height) * 0.075)
   const bodySize = Math.round(Math.min(width, height) * 0.025)
-  const labelSize = Math.round(Math.min(width, height) * 0.018)
 
   const css = `
     ${fontFaceRule(brand.fontHeading, fontHeadingUrl)}
@@ -82,16 +78,16 @@ export function EditorialHeroCard({
 
     .gradient-panel {
       position: absolute;
-      bottom: 0;
+      top: 0;
       left: 0;
       width: ${textZoneW}px;
       height: ${textZoneH}px;
-      background: radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%);
+      background: radial-gradient(ellipse 120% 120% at 0% 0%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%);
     }
 
     .logo {
       position: absolute;
-      top: ${pad}px;
+      bottom: ${pad}px;
       right: ${pad}px;
       width: ${logoWidth}px;
       height: ${logoHeight}px;
@@ -101,10 +97,10 @@ export function EditorialHeroCard({
 
     .text-block {
       position: absolute;
-      bottom: ${pad}px;
+      top: ${pad}px;
       left: ${pad}px;
-      max-width: ${Math.round(width * SAFE_ZONE.maxTextWidth)}px;
-      max-height: ${textZoneH - 2 * pad}px;
+      max-width: ${Math.round(textZoneW - pad * 1.5)}px;
+      max-height: ${textZoneH - pad * 2}px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -136,18 +132,6 @@ export function EditorialHeroCard({
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-
-    .credit {
-      font-family: ${JSON.stringify(brand.fontBody)}, system-ui, sans-serif;
-      font-size: ${labelSize}px;
-      font-weight: 500;
-      color: ${brand.accent};
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
   `
 
   return (
@@ -170,7 +154,6 @@ export function EditorialHeroCard({
           <div className="text-block">
             {headline && <h2>{headline}</h2>}
             {subtext && <p className="subtext">{subtext}</p>}
-            {authorCredit && <span className="credit">{authorCredit}</span>}
           </div>
         </div>
       </body>

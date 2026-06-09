@@ -11,7 +11,7 @@ import type { TemplateSpec } from '../types/template'
 import type { VisualGrammar } from '../types/grammar'
 import { translateAttentionStrategy, translateCreativeRisk } from './socialTranslation'
 import { getPlatformHint } from './platformHints'
-import { getQualityDirectives } from './qualityDirectives'
+import { getQualityDirectives, COMPOSITION_SUFFIX } from './qualityDirectives'
 import { formatPromptForProvider } from './providerTranslation'
 import { buildCompositionZoneDirective } from './compositionZone'
 import { buildGrammarDirectives } from '../grammar/imageLanguage'
@@ -80,6 +80,9 @@ export function buildImagePrompt(params: {
   // 12. Quality directives + no-text rule
   //     For hybrid-overlay, we still want no text — the template renders all typography.
   clauses.push(getQualityDirectives(true))
+
+  // 13. Composition standard — appended last so it reads as a finishing constraint
+  clauses.push(COMPOSITION_SUFFIX)
 
   return formatPromptForProvider(clauses, provider)
 }

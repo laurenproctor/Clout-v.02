@@ -6,6 +6,7 @@
 // compilation (lib/visual/prompt/) is the provider translation layer.
 // All provider-specific behavior lives in lib/visual/providers/.
 
+import { after } from 'next/server'
 import { generateVisualIntent } from './generateVisualIntent'
 import { buildImagePrompt } from '../prompt'
 import { getOpenAIProvider } from '../providers/openai'
@@ -23,13 +24,14 @@ import { renderTemplate } from '../rendering'
 import { extractTemplateProps } from './extractTemplateProps'
 import { scoreImageQuality, IMAGE_QUALITY_THRESHOLD } from './scoreImageQuality'
 import { getPlatformSize } from '../tokens/sizes'
+import { trackGeneration, wasLogoRepositioned } from '../telemetry/track'
 import type { Json } from '@/types/db'
 import type {
   GenerateImageInput,
   VisualAsset,
   VisualIntent,
 } from '../types/visual'
-import type { EditorialHeroProps, QuoteMonolithProps } from '../types/template'
+import type { EditorialHeroProps, QuoteMonolithProps, TemplateId, LogoCorner } from '../types/template'
 
 const PUPPETEER_ENABLED = process.env.ENABLE_PUPPETEER_RENDERING === 'true'
 
@@ -161,12 +163,51 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
   // ── Step 6: Quality scoring for hybrid-overlay ────────────────────────────
   let qualityScore: number | null = null
+  let logoCorner: LogoCorner | null = null
+  let templateOverrideUsed = false
+  let qualityGateTriggered = false
+
+  const ZONE_CONFIDENCE_THRESHOLD = 0.8
+  const ZONE_TO_TEMPLATE: Record<string, TemplateId> = {
+    'bottom-left': 'editorial-hero',
+    'center':      'quote-monolith',
+    'right':       'split-panel',
+    'upper-left':  'upper-left',
+  }
 
   if (isHybridOverlay && templateSpec && grammar && !input.suppliedBackgroundUrl) {
     const score = await scoreImageQuality(generatedProviderUrl, grammar, templateSpec)
     qualityScore = score.overall
 
+    // Confidence-gated template override — only switch when the vision model is sure.
+    // Not applied in the overlay path: user's content type (headline vs. quote) determines
+    // the template there, and that choice is not overridable by vision analysis.
+    if (
+      !hasOverlayContent &&
+      score.openZone &&
+      score.openZoneConfidence != null &&
+      score.openZoneConfidence >= ZONE_CONFIDENCE_THRESHOLD &&
+      ZONE_TO_TEMPLATE[score.openZone] !== templateId
+    ) {
+      const overrideId = ZONE_TO_TEMPLATE[score.openZone]
+      try {
+        const overrideSpec = getTemplateSpec(overrideId)
+        templateId = overrideId
+        templateSpec = overrideSpec
+        templateOverrideUsed = true
+      } catch {
+        // Unknown template — keep original selection
+      }
+    }
+
+    // Logo placement: pick best corner from template's allowed set
+    if (score.logoSafeZone && score.logoVisibilityScore != null && score.logoVisibilityScore >= 0.5) {
+      const allowed = templateSpec.allowedLogoCorners
+      logoCorner = allowed.includes(score.logoSafeZone) ? score.logoSafeZone : null
+    }
+
     if (score.overall < IMAGE_QUALITY_THRESHOLD) {
+      qualityGateTriggered = true
       // One retry with stricter exclusions
       const stricterGrammar = {
         ...grammar,
@@ -393,6 +434,23 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     intentInputTokens,
     intentOutputTokens,
   })
+
+  // Fire telemetry after response — never blocks the caller
+  const defaultLogoCorner = templateSpec?.allowedLogoCorners[0] ?? null
+  after(trackGeneration({
+    imageId:               row.id,
+    workspaceId,
+    templateId,
+    qualityScore,
+    openZone:              null,     // populated by scoreImageQuality run; not surfaced here yet
+    openZoneConfidence:    null,
+    logoVisibilityScore:   null,
+    templateOverrideUsed,
+    logoRepositioned:      wasLogoRepositioned(logoCorner, defaultLogoCorner as LogoCorner),
+    qualityGateTriggered,
+    regenerationRequested: qualityGateTriggered,
+    rejectionReason:       null,
+  }))
 
   return {
     id:               row.id,

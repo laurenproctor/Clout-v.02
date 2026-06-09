@@ -13,6 +13,8 @@ import { QuoteMonolith } from '@/components/visual/templates/QuoteMonolith'
 import { StatMonument } from '@/components/visual/templates/StatMonument'
 import { EditorialHeroCard } from '@/components/visual/templates/puppeteer/EditorialHeroCard'
 import { QuoteCard } from '@/components/visual/templates/puppeteer/QuoteCard'
+import { SplitPanelCard } from '@/components/visual/templates/puppeteer/SplitPanelCard'
+import { UpperLeftCard } from '@/components/visual/templates/puppeteer/UpperLeftCard'
 
 export type { SatoriFont }
 
@@ -34,6 +36,12 @@ export async function renderTemplate(
         break
       case 'quote-monolith':
         component = QuoteCard
+        break
+      case 'split-panel':
+        component = SplitPanelCard
+        break
+      case 'upper-left':
+        component = UpperLeftCard
         break
       default:
         throw new Error(`No Puppeteer template for templateId: ${(props as TemplateProps).templateId}`)
@@ -57,6 +65,20 @@ export async function renderTemplate(
       break
     case 'stat-monument':
       element = createElement(StatMonument, { ...props, brand, width, height })
+      break
+    case 'split-panel':
+    case 'upper-left':
+      // No Satori fallback — these templates are Puppeteer-only.
+      // If Puppeteer is disabled, fall through to editorial-hero as a safe default.
+      element = createElement(EditorialHero, {
+        ...props,
+        templateId: 'editorial-hero' as const,
+        headline: (props as import('../types/template').SplitPanelProps).headline,
+        backgroundUrl: (props as import('../types/template').SplitPanelProps).backgroundUrl,
+        brand,
+        width,
+        height,
+      })
       break
     default: {
       const _exhaustive: never = props

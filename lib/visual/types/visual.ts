@@ -153,6 +153,7 @@ export interface OverlayParams {
   secondaryColor?: string
   accentColor?: string
   colorScheme?: 'light' | 'dark'
+  logoCorner?: import('./template').LogoCorner  // vision-selected corner; undefined = template default
 }
 
 export interface GenerateImageInput {

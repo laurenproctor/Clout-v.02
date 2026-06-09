@@ -7,6 +7,7 @@
 
 import type { EditorialHeroProps, BrandTokens } from '@/lib/visual/types/template'
 import { SCALE, WEIGHT, LEADING } from '@/lib/visual/tokens/scale'
+import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
 
 interface EditorialHeroRenderProps extends EditorialHeroProps {
   brand: BrandTokens
@@ -26,7 +27,7 @@ export function EditorialHero({
 }: EditorialHeroRenderProps) {
   const textZoneWidth  = Math.round(width * 0.58)
   const textZoneHeight = Math.round(height * 0.52)
-  const padding = Math.round(Math.min(width, height) * 0.053)   // ~64px at 1200
+  const padding = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
   const logoHeight = Math.round(Math.min(width, height) * 0.07) // ~84px at 1200
   const logoWidth  = Math.round(logoHeight * 3.5)               // allow wide logos
 
@@ -66,7 +67,7 @@ export function EditorialHero({
           left: 0,
           width: `${textZoneWidth}px`,
           height: `${textZoneHeight}px`,
-          background: `linear-gradient(135deg, ${brand.overlay} 0%, rgba(0,0,0,0) 100%)`,
+          background: `radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%)`,
           display: 'flex',
         }}
       />
@@ -104,7 +105,7 @@ export function EditorialHero({
           position: 'absolute',
           bottom: `${padding}px`,
           left: `${padding}px`,
-          maxWidth: `${Math.round(width * 0.54)}px`,
+          maxWidth: `${Math.round(width * SAFE_ZONE.maxTextWidth)}px`,
           maxHeight: `${textZoneHeight - 2 * padding}px`,
           overflow: 'hidden',
           display: 'flex',

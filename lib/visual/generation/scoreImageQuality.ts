@@ -28,7 +28,15 @@ function buildScoringPrompt(grammar: VisualGrammar, templateSpec: TemplateSpec):
     ``,
     `Also compute: overall = (compositionClarity + negativeSpaceQuality * 2 + tonalBalance + aestheticConfidence) / 5`,
     ``,
-    `Return JSON: { compositionClarity, negativeSpaceQuality, tonalBalance, aestheticConfidence, overall }`,
+    `Also identify the zone with the most open negative space for a text overlay.`,
+    `Return one of: "bottom-left", "center", "right", "upper-left" as "openZone".`,
+    `Return a confidence score 0–1 as "openZoneConfidence" (1 = unmistakably clear, 0 = ambiguous).`,
+    ``,
+    `Identify the corner with the cleanest background for a small logo.`,
+    `Return one of: "top-left", "top-right", "bottom-left", "bottom-right" as "logoSafeZone".`,
+    `Return "logoVisibilityScore" 0–1 estimating how readable a logo would be there (1 = very clean).`,
+    ``,
+    `Return JSON: { compositionClarity, negativeSpaceQuality, tonalBalance, aestheticConfidence, overall, openZone, openZoneConfidence, logoSafeZone, logoVisibilityScore }`,
   ].join('\n')
 }
 
@@ -41,7 +49,7 @@ export async function scoreImageQuality(
     const result = await callClaude({
       systemPrompt: SYSTEM_PROMPT,
       userMessage:  `[Image URL: ${imageUrl}]\n\n${buildScoringPrompt(grammar, templateSpec)}`,
-      maxTokens: 200,
+      maxTokens: 300,
     })
 
     const parsed = parseJson<Partial<ImageQualityScore>>(result.content)

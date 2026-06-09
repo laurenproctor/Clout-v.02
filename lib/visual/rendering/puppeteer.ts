@@ -19,7 +19,7 @@ export class PuppeteerRenderer implements Renderer {
 
     const page = await browser.newPage()
     try {
-      await page.setViewport({ width, height, deviceScaleFactor: 1 })
+      await page.setViewport({ width, height, deviceScaleFactor: 3 })
       await page.setContent(html, { waitUntil: 'domcontentloaded' })
       // Explicit font wait — required for custom brand fonts to render correctly
       await page.evaluate(async () => { await document.fonts.ready })

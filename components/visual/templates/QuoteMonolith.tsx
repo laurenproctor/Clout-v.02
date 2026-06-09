@@ -7,6 +7,7 @@
 
 import type { QuoteMonolithProps, BrandTokens } from '@/lib/visual/types/template'
 import { SCALE, WEIGHT, LEADING } from '@/lib/visual/tokens/scale'
+import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
 
 interface QuoteMonolithRenderProps extends QuoteMonolithProps {
   brand: BrandTokens
@@ -22,8 +23,8 @@ export function QuoteMonolith({
   width,
   height,
 }: QuoteMonolithRenderProps) {
-  const horizontalPad = Math.round(width * 0.053)   // ~64px at 1200
-  const verticalPad   = Math.round(height * 0.11)   // ~80px at 720
+  const horizontalPad = Math.max(SAFE_ZONE.headlineFloor, Math.round(width * SAFE_ZONE.headlineRatio))
+  const verticalPad   = Math.max(SAFE_ZONE.headlineFloor, Math.round(height * SAFE_ZONE.headlineRatio))
 
   return (
     <div
@@ -65,7 +66,7 @@ export function QuoteMonolith({
             right: 0,
             bottom: 0,
             left: 0,
-            background: `linear-gradient(180deg, ${brand.surface}CC 0%, ${brand.surface}EE 100%)`,
+            background: `radial-gradient(ellipse 90% 80% at 50% 50%, ${brand.surface}CC 0%, ${brand.surface}99 60%, rgba(0,0,0,0) 100%)`,
             display: 'flex',
           }}
         />

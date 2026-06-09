@@ -6,6 +6,10 @@ export type TemplateId =
   | 'editorial-hero'
   | 'quote-monolith'
   | 'stat-monument'
+  | 'split-panel'
+  | 'upper-left'
+
+export type LogoCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
 // Color roles — templates reference roles, never specific colors.
 // Brand colors are mapped to these semantic roles by buildBrandTokens().
@@ -22,12 +26,14 @@ export interface BrandTokens {
 // Each template has its own composition spec.
 // compositionZone: where the background subject should be (text lives opposite)
 // textZone: where React renders typography
+// allowedLogoCorners: vision model picks the best from this set; first entry is the default
 export interface TemplateSpec {
   id: TemplateId
   compositionZone: 'bottom-left' | 'center' | 'right' | 'upper-left'
   textZone: 'bottom-left' | 'center' | 'right' | 'overlay'
   supportsBackground: boolean        // false = solid color only (no AI background)
   renderEngine: 'satori' | 'puppeteer'
+  allowedLogoCorners: LogoCorner[]   // ordered: first = template default
 }
 
 // ─── Template Props — discriminated union ────────────────────────────────────
@@ -64,7 +70,29 @@ export interface StatMonumentProps {
   backgroundUrl?: string
 }
 
+export interface SplitPanelProps {
+  templateId: 'split-panel'
+  headline: string          // max 8 words
+  subtext?: string
+  backgroundUrl: string
+  logoUrl?: string
+  fontHeadingUrl?: string
+  fontBodyUrl?: string
+}
+
+export interface UpperLeftProps {
+  templateId: 'upper-left'
+  headline: string          // max 8 words
+  subtext?: string
+  backgroundUrl: string
+  logoUrl?: string
+  fontHeadingUrl?: string
+  fontBodyUrl?: string
+}
+
 export type TemplateProps =
   | EditorialHeroProps
   | QuoteMonolithProps
   | StatMonumentProps
+  | SplitPanelProps
+  | UpperLeftProps

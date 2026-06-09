@@ -40,6 +40,18 @@ function buildUserMessage(
       label:      'optional — short uppercase label, e.g. "NEW RESEARCH"',
       source:     'optional — citation',
     },
+    'split-panel': {
+      templateId:  'split-panel',
+      headline:    'max 8 words, the core claim',
+      subtext:     'optional, max 20 words — supporting context',
+      authorCredit: 'optional — author name or source',
+    },
+    'upper-left': {
+      templateId:  'upper-left',
+      headline:    'max 8 words, the core claim',
+      subtext:     'optional, max 20 words — supporting context',
+      authorCredit: 'optional — author name or source',
+    },
   }
 
   return [

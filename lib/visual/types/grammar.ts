@@ -39,6 +39,14 @@ export interface ImageQualityScore {
   tonalBalance: number          // does tonal range match the grammar? 0–1
   aestheticConfidence: number   // overall editorial quality 0–1
   overall: number               // weighted average (negativeSpaceQuality × 2)
+
+  // Density-based layout selection (optional — present when Claude vision can determine)
+  openZone?: 'bottom-left' | 'center' | 'right' | 'upper-left'
+  openZoneConfidence?: number   // 0–1; 1 = unmistakably the best zone
+
+  // Logo placement intelligence
+  logoSafeZone?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  logoVisibilityScore?: number  // 0–1; estimated contrast/readability for a logo there
 }
 
 // Minimum quality score to proceed without regeneration.
