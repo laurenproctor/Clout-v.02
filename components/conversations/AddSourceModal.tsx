@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-interface Props { onAdded: () => void; onClose: () => void }
+interface Props { onAdded: () => void; onSourceCreated?: (label: string) => void; onClose: () => void }
 
-export function AddSourceModal({ onAdded, onClose }: Props) {
+export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -25,6 +25,7 @@ export function AddSourceModal({ onAdded, onClose }: Props) {
       })
       if (!res.ok) { setError((await res.json()).error ?? 'Failed to add source'); return }
       onAdded()
+      onSourceCreated?.(title.trim() || url.trim())
       onClose()
     } finally {
       setSubmitting(false)

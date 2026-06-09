@@ -1,24 +1,42 @@
 /* =============================================================================
    CLOUT DESIGN TOKENS
    Edit this file to change global colors, typefaces, spacing, and more.
+
+   ⟡ RECONCILED with the Clout design system (clout.you look): the --brand-*
+     block below was re-skinned to warm cream + olive + slate. Everything else
+     (shadcn semantic vars, goal colors, typography) is unchanged from your repo.
+     To revert the marketing palette, restore the old --brand-* values.
    ============================================================================= */
 
 /* --------------------------------------------------------------------------
-   BRAND NAMED COLORS — used by marketing site; do not override semantic vars
+   BRAND NAMED COLORS — used by the marketing site; do not override semantic vars
    -------------------------------------------------------------------------- */
 
 :root {
-  --brand-ink: #1A1A1A;
-  --brand-paper: #FFFFFF;
-  --brand-border-light: #E8E8E8;
-  --brand-muted-text: #6B6B6B;
-  --brand-surface: #F7F7F5;
-  --brand-blue: #2B4C7E;
+  /* Ink + paper surfaces */
+  --brand-ink: #1A1913;            /* warm near-black (was #1A1A1A) */
+  --brand-paper: #FFFFFF;          /* card / panel surface */
+  --brand-bg: #F6F2EC;             /* NEW — signature cream page background */
+  --brand-surface: #EFE9DC;        /* raised cream (was #F7F7F5) */
+  --brand-border-light: #E4DCCB;   /* warm hairline (was #E8E8E8) */
+  --brand-muted-text: #6B695E;     /* warm muted text (was #6B6B6B) */
+
+  /* Primary + dark bands */
+  --brand-olive: #3B3B1F;          /* NEW — primary brand color (clout.you) */
+  --brand-olive-hover: #4C4C2C;    /* NEW — primary hover */
+  --brand-blue: var(--brand-olive);/* back-compat: existing --brand-blue usages now read olive */
+  --brand-slate: #394A5D;          /* NEW — dark feature band ("How it works") */
+  --brand-deep-navy: #2A3744;      /* slate-deep for CTA / footer (was #1E2A3A) */
+
+  /* Light text on dark (olive / slate) surfaces */
+  --brand-paper-text: #F8F7E2;     /* NEW — warm off-white */
+  --brand-paper-muted: #D9D8C4;    /* NEW */
+
+  /* Secondary accents — unchanged, available if you want them */
   --brand-red: #C84B31;
   --brand-gold: #D4A574;
   --brand-sage: #8B9B88;
   --brand-warm-grey: #B3A598;
-  --brand-deep-navy: #1E2A3A;
 }
 
 /* --------------------------------------------------------------------------
@@ -41,7 +59,10 @@
   /* Heading font — Signifier files in /public/fonts/ */
   --font-heading: "Signifier", Georgia, "Times New Roman", serif;
 
-  /* Body / UI font */
+  /* Body / UI font.
+     Your repo uses Geist (kept by default). To match clout.you exactly, swap to
+     Manrope: add it via next/font or a <link>, then set:
+       --font-sans: "Manrope", var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif; */
   --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
 
   /* Monospace — used for code, timestamps, numeric data */

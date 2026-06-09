@@ -2,10 +2,11 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
+import MarketingHome from './(marketing)/page'
 
 export default async function RootPage() {
   const user = await getAuthenticatedUserId()
-  if (!user) redirect('/sign-in')
+  if (!user) return <MarketingHome />
 
   const supabase = createServiceClient()
   const jar = await cookies()

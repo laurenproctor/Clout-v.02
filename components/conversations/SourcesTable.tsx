@@ -7,9 +7,15 @@ import { AddSourceModal } from './AddSourceModal'
 import { ConversationPreferences } from './ConversationPreferences'
 import type { ConversationSource } from '@/types/domain'
 
-interface Props { sources: ConversationSource[]; onSourcesChange: () => void; onPreferencesChange?: () => void }
+interface Props {
+  sources: ConversationSource[]
+  onSourcesChange: () => void
+  onPreferencesChange?: () => void
+  onSourceCreated?: (label: string) => void
+  onFocusTopicAdded?: () => void
+}
 
-export function SourcesTable({ sources, onSourcesChange, onPreferencesChange }: Props) {
+export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, onSourceCreated, onFocusTopicAdded }: Props) {
   const [showModal, setShowModal] = useState(false)
 
   async function toggleActive(source: ConversationSource) {
@@ -29,7 +35,7 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange }: 
 
   return (
     <div className="max-w-2xl">
-      <ConversationPreferences onPreferencesChange={onPreferencesChange} />
+      <ConversationPreferences onPreferencesChange={onPreferencesChange} onFocusTopicAdded={onFocusTopicAdded} />
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium">Monitored Sources</h2>
@@ -71,7 +77,7 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange }: 
         </div>
       )}
 
-      {showModal && <AddSourceModal onAdded={onSourcesChange} onClose={() => setShowModal(false)} />}
+      {showModal && <AddSourceModal onAdded={onSourcesChange} onSourceCreated={onSourceCreated} onClose={() => setShowModal(false)} />}
     </div>
   )
 }

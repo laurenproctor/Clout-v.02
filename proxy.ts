@@ -11,6 +11,13 @@ const isPublicRoute = createRouteMatcher([
   '/api/trigger(.*)',
   '/api/admin(.*)',  // Admin routes use x-admin-secret / cron bearer auth, not Clerk
   '/',
+  '/features(.*)',
+  '/pricing(.*)',
+  '/about(.*)',
+  '/contact(.*)',
+  '/blog(.*)',
+  '/academy(.*)',
+  '/support(.*)',
 ])
 
 const isOperatorRoute = createRouteMatcher(['/operator(.*)'])

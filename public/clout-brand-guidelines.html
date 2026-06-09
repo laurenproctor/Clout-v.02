@@ -6,37 +6,54 @@
 <title>Brand Guidelines — Clout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Real Signifier from the app's /public/fonts/ (falls back to Newsreader elsewhere) */
+  @font-face {
+    font-family: "Signifier";
+    src: url("/fonts/signifier.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
   :root {
-    /* Clout Brand Colors */
-    --ink: #1A1A1A;
-    --paper: #FFFFFF;
-    --border: #E8E8E8;
-    --muted: #6B6B6B;
-    --surface: #F7F7F5;
-    
-    /* Clout Primary Palette */
-    --blue: #2B4C7E;
-    --red: #C84B31;
-    --yellow: #D4A574;
-    
-    /* Clout Secondary Palette */
-    --sage: #8B9B88;
-    --warm-grey: #B3A598;
-    --deep-navy: #1E2A3A;
-    
-    /* Typography - Using IBM Plex as substitute for Signifier/Suisse */
-    --serif: 'IBM Plex Serif', Georgia, serif;
-    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+    /* Clout brand colors — live clout.you palette */
+    --ink: #1A1913;          /* warm near-black text */
+    --ink-soft: #44423A;
+    --paper: #FFFFFF;        /* card surface */
+    --bg: #F6F2EC;           /* signature cream page */
+    --surface: #EFE9DC;      /* raised cream */
+    --border: #E4DCCB;       /* warm hairline */
+    --border-strong: #CFC6B2;
+    --muted: #6B695E;        /* warm muted text */
+
+    /* Primary + dark bands */
+    --olive: #3B3B1F;        /* PRIMARY brand color */
+    --olive-deep: #2C2C16;
+    --slate: #394A5D;        /* feature / section band */
+    --deep: #2A3744;         /* darkest — cover, footer */
+
+    /* On-dark text */
+    --paper-text: #F8F7E2;   /* warm off-white */
+    --paper-muted: rgba(248,247,226,0.6);
+
+    /* Utility / semantic */
+    --heart: #2F6BFF;        /* the "made with 💙" blue */
+    --success: #4F7A4A;
+    --warn: #B5482F;
+
+    /* Typefaces */
+    --serif: "Signifier", "Newsreader", Georgia, serif;
+    --sans: "Geist", system-ui, -apple-system, sans-serif;
   }
 
   html { font-size: 16px; }
   body {
     font-family: var(--sans);
-    background: var(--paper);
+    background: var(--bg);
     color: var(--ink);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -50,16 +67,16 @@
     height: 100vh;
     border-right: 1px solid var(--border);
     padding: 48px 28px;
-    background: var(--paper);
+    background: var(--bg);
     z-index: 100;
     overflow-y: auto;
   }
   .doc-nav .wordmark {
     font-family: var(--serif);
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: var(--ink);
+    color: var(--olive);
     margin-bottom: 40px;
     display: block;
   }
@@ -72,31 +89,27 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     display: block;
-    padding: 5px 0;
+    padding: 5px 0 5px 12px;
     border-left: 2px solid transparent;
-    padding-left: 12px;
     transition: color 0.15s, border-color 0.15s;
   }
-  .doc-nav a:hover { color: var(--ink); border-left-color: var(--blue); }
+  .doc-nav a:hover { color: var(--olive); border-left-color: var(--olive); }
   .doc-nav .nav-section {
     font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #BBBBBB;
+    color: #B6AE9C;
     margin: 24px 0 8px;
     padding-left: 12px;
   }
 
   /* MAIN */
-  .doc-main {
-    margin-left: 220px;
-    padding: 0;
-  }
+  .doc-main { margin-left: 220px; padding: 0; }
 
   /* COVER */
   .cover {
-    background: var(--deep-navy);
-    color: var(--paper);
+    background: var(--deep);
+    color: var(--paper-text);
     padding: 120px 80px 100px;
     position: relative;
     overflow: hidden;
@@ -106,7 +119,7 @@
     position: absolute;
     right: -40px; top: -40px;
     width: 480px; height: 480px;
-    border: 1px solid rgba(212,165,116,0.12);
+    border: 1px solid rgba(248,247,226,0.12);
     border-radius: 50%;
   }
   .cover::after {
@@ -114,14 +127,14 @@
     position: absolute;
     right: 60px; top: 60px;
     width: 300px; height: 300px;
-    border: 1px solid rgba(212,165,116,0.08);
+    border: 1px solid rgba(248,247,226,0.08);
     border-radius: 50%;
   }
   .cover-label {
     font-size: 11px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.45);
+    color: rgba(248,247,226,0.5);
     margin-bottom: 48px;
   }
   .cover h1 {
@@ -129,57 +142,43 @@
     font-size: 72px;
     line-height: 1.0;
     font-weight: 400;
-    color: var(--paper);
+    color: var(--paper-text);
     max-width: 640px;
     margin-bottom: 32px;
     letter-spacing: -0.02em;
   }
   .cover-sub {
     font-size: 16px;
-    color: rgba(255,255,255,0.55);
+    color: rgba(248,247,226,0.6);
     max-width: 480px;
     line-height: 1.7;
     margin-bottom: 64px;
   }
-  .cover-meta {
-    display: flex;
-    gap: 48px;
-  }
+  .cover-meta { display: flex; gap: 48px; }
   .cover-meta-item label {
     font-size: 10px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
+    color: rgba(248,247,226,0.35);
     display: block;
     margin-bottom: 4px;
   }
-  .cover-meta-item span {
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
-  }
+  .cover-meta-item span { font-size: 13px; color: rgba(248,247,226,0.75); }
 
   /* SECTIONS */
-  .section {
-    padding: 80px 80px;
-    border-bottom: 1px solid var(--border);
-  }
+  .section { padding: 80px; border-bottom: 1px solid var(--border); }
   .section:last-child { border-bottom: none; }
   .section-label {
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #BBBBBB;
+    color: #B6AE9C;
     margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 12px;
   }
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .section h2 {
     font-family: var(--serif);
     font-size: 40px;
@@ -205,164 +204,59 @@
     border: 1px solid var(--border);
     margin-top: 40px;
   }
-  .positioning-cell {
-    background: var(--paper);
-    padding: 32px;
-  }
+  .positioning-cell { background: var(--paper); padding: 32px; }
   .positioning-cell h3 {
     font-family: var(--sans);
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--olive);
     margin-bottom: 16px;
   }
-  .positioning-cell p {
-    font-size: 16px;
-    color: var(--ink);
-    line-height: 1.6;
-    max-width: none;
-    margin: 0;
-  }
+  .positioning-cell p { font-size: 16px; color: var(--ink); line-height: 1.6; max-width: none; margin: 0; }
 
   /* COLOR SWATCHES */
-  .color-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    margin-top: 32px;
-  }
-  .color-swatch {
-    border: 1px solid var(--border);
-  }
-  .color-preview {
-    height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .color-info {
-    padding: 16px 20px;
-    background: var(--paper);
-    border-top: 1px solid var(--border);
-  }
-  .color-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink);
-    margin-bottom: 8px;
-  }
-  .color-values {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .color-value {
-    font-family: monospace;
-    font-size: 11px;
-    color: var(--muted);
-  }
+  .color-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+  .color-swatch { border: 1px solid var(--border); }
+  .color-preview { height: 140px; display: flex; align-items: center; justify-content: center; }
+  .color-info { padding: 16px 20px; background: var(--paper); border-top: 1px solid var(--border); }
+  .color-name { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+  .color-values { display: flex; flex-direction: column; gap: 4px; }
+  .color-value { font-family: monospace; font-size: 11px; color: var(--muted); }
+  .palette-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 
   /* TYPOGRAPHY */
-  .type-specimen {
-    border: 1px solid var(--border);
-    padding: 40px;
-    margin-top: 24px;
-    background: var(--surface);
-  }
-  .type-sample {
-    margin-bottom: 48px;
-  }
+  .type-specimen { border: 1px solid var(--border); padding: 40px; margin-top: 24px; background: var(--surface); }
+  .type-sample { margin-bottom: 48px; }
   .type-sample:last-child { margin-bottom: 0; }
-  .type-label {
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-  .type-display {
-    font-size: 56px;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-  .type-scale {
-    display: grid;
-    gap: 20px;
-    margin-top: 32px;
-  }
-  .type-scale-item {
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border);
-  }
+  .type-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .type-display { font-size: 56px; line-height: 1.1; letter-spacing: -0.02em; }
+  .type-scale { display: grid; gap: 20px; margin-top: 32px; }
+  .type-scale-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
   .type-scale-item:last-child { border-bottom: none; }
-  .type-scale-label {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
+  .type-scale-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 
   /* SYNTHESIS AESTHETIC */
-  .synthesis-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-    margin-top: 40px;
-  }
-  .synthesis-principle {
-    border-left: 3px solid var(--blue);
-    padding-left: 24px;
-  }
-  .synthesis-principle h3 {
-    font-family: var(--serif);
-    font-size: 20px;
-    font-weight: 400;
-    margin-bottom: 12px;
-  }
-  .synthesis-principle p {
-    font-size: 14px;
-    color: var(--muted);
-    line-height: 1.7;
-  }
+  .synthesis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 40px; }
+  .synthesis-principle { border-left: 3px solid var(--olive); padding-left: 24px; }
+  .synthesis-principle h3 { font-family: var(--serif); font-size: 20px; font-weight: 400; margin-bottom: 12px; }
+  .synthesis-principle p { font-size: 14px; color: var(--muted); line-height: 1.7; }
 
   /* VOICE EXAMPLES */
-  .voice-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-    margin-top: 40px;
-  }
+  .voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 40px; }
   .voice-cell h3 {
     font-family: var(--sans);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-bottom: 20px;
     color: var(--ink);
   }
-  .voice-example {
-    padding: 20px 24px;
-    margin-bottom: 12px;
-    border-left: 3px solid;
-  }
-  .voice-example.correct {
-    background: rgba(139,155,136,0.08);
-    border-left-color: var(--sage);
-  }
-  .voice-example.incorrect {
-    background: rgba(200,75,49,0.05);
-    border-left-color: var(--red);
-  }
-  .voice-example p {
-    font-size: 14px;
-    color: var(--ink);
-    line-height: 1.6;
-    margin: 0;
-    max-width: none;
-  }
+  .voice-example { padding: 20px 24px; margin-bottom: 12px; border-left: 3px solid; }
+  .voice-example.correct { background: rgba(79,122,74,0.08); border-left-color: var(--success); }
+  .voice-example.incorrect { background: rgba(181,72,47,0.06); border-left-color: var(--warn); }
+  .voice-example p { font-size: 14px; color: var(--ink); line-height: 1.6; margin: 0; max-width: none; }
 
   /* FOOTER */
   .page-number {
@@ -374,61 +268,17 @@
     color: var(--muted);
     letter-spacing: 0.05em;
   }
-
-  .site-footer {
-    background: var(--deep-navy);
-    color: rgba(255,255,255,0.7);
-    padding: 64px 80px 32px;
-  }
-  .footer-cols {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 48px;
-    margin-bottom: 48px;
-  }
-  .footer-col-label {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.4);
-    margin-bottom: 16px;
-  }
-  .footer-col-text {
-    font-size: 13px;
-    line-height: 1.7;
-    color: rgba(255,255,255,0.6);
-  }
-  .footer-col-link {
-    display: block;
-    font-size: 13px;
-    color: rgba(255,255,255,0.6);
-    text-decoration: none;
-    margin-bottom: 8px;
-    transition: color 0.15s;
-  }
-  .footer-col-link:hover { color: rgba(255,255,255,0.9); }
-  .footer-bottom {
-    padding-top: 32px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .footer-copy-text {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-  }
-  .footer-legal-links {
-    display: flex;
-    gap: 24px;
-  }
-  .footer-legal-link {
-    font-size: 11px;
-    color: rgba(255,255,255,0.4);
-    text-decoration: none;
-    transition: color 0.15s;
-  }
-  .footer-legal-link:hover { color: rgba(255,255,255,0.7); }
+  .site-footer { background: var(--deep); color: var(--paper-muted); padding: 64px 80px 32px; }
+  .footer-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 48px; margin-bottom: 48px; }
+  .footer-col-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(248,247,226,0.4); margin-bottom: 16px; }
+  .footer-col-text { font-size: 13px; line-height: 1.7; color: rgba(248,247,226,0.6); }
+  .footer-col-link { display: block; font-size: 13px; color: rgba(248,247,226,0.6); text-decoration: none; margin-bottom: 8px; transition: color 0.15s; }
+  .footer-col-link:hover { color: rgba(248,247,226,0.95); }
+  .footer-bottom { padding-top: 32px; border-top: 1px solid rgba(248,247,226,0.1); display: flex; justify-content: space-between; align-items: center; }
+  .footer-copy-text { font-size: 11px; color: rgba(248,247,226,0.4); }
+  .footer-legal-links { display: flex; gap: 24px; }
+  .footer-legal-link { font-size: 11px; color: rgba(248,247,226,0.4); text-decoration: none; transition: color 0.15s; }
+  .footer-legal-link:hover { color: rgba(248,247,226,0.7); }
 </style>
 </head>
 <body>
@@ -459,13 +309,13 @@
 
   <!-- COVER -->
   <div class="cover">
-    <p class="cover-label">Brand Guidelines — Version 1.0</p>
+    <p class="cover-label">Brand Guidelines — Version 2.0</p>
     <h1>Thought leadership,<br>synthesized.</h1>
-    <p class="cover-sub">A visual and verbal identity that bridges raw thinking with polished expression. Editorial sophistication meets accessible clarity.</p>
+    <p class="cover-sub">A visual and verbal identity that bridges raw thinking with polished expression. Warm, editorial, quietly authoritative.</p>
     <div class="cover-meta">
       <div class="cover-meta-item">
         <label>Last Updated</label>
-        <span>April 2026</span>
+        <span>June 2026</span>
       </div>
       <div class="cover-meta-item">
         <label>Platform</label>
@@ -507,139 +357,139 @@
   <!-- COLOR PALETTE -->
   <section class="section" id="colors">
     <p class="section-label">02 &nbsp; Color Palette</p>
-    <h2>A palette of editorial<br>confidence and warmth.</h2>
-    <p>Our primary colors establish authority and accessibility. Secondary colors add warmth and nuance for supporting content.</p>
+    <h2>Warm cream, deep olive,<br>and quiet slate.</h2>
+    <p>The palette is deliberately narrow: a warm cream canvas, a dark olive-green for brand and action, and a muted slate for depth. Two darks on cream—never pure white, never loud.</p>
 
     <div style="margin-top: 32px; margin-bottom: 16px;">
-      <p style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);">Primary Palette</p>
+      <p class="palette-label">Primary Palette</p>
     </div>
     <div class="color-grid">
       <div class="color-swatch">
-        <div class="color-preview" style="background: #2B4C7E;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#2B4C7E</span>
+        <div class="color-preview" style="background: #3B3B1F;">
+          <span style="color: #F8F7E2; font-family: monospace; font-size: 12px;">#3B3B1F</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Editorial Blue</div>
+          <div class="color-name">Olive</div>
           <div class="color-values">
-            <span class="color-value">HEX: #2B4C7E</span>
-            <span class="color-value">RGB: 43, 76, 126</span>
-            <span class="color-value">Use: Headers, CTAs, key elements</span>
+            <span class="color-value">HEX: #3B3B1F</span>
+            <span class="color-value">RGB: 59, 59, 31</span>
+            <span class="color-value">Use: Primary buttons, logo, key marks</span>
           </div>
         </div>
       </div>
       <div class="color-swatch">
-        <div class="color-preview" style="background: #C84B31;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#C84B31</span>
+        <div class="color-preview" style="background: #394A5D;">
+          <span style="color: #F8F7E2; font-family: monospace; font-size: 12px;">#394A5D</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Accent Red</div>
+          <div class="color-name">Slate</div>
           <div class="color-values">
-            <span class="color-value">HEX: #C84B31</span>
-            <span class="color-value">RGB: 200, 75, 49</span>
-            <span class="color-value">Use: Highlights, emphasis, alerts</span>
+            <span class="color-value">HEX: #394A5D</span>
+            <span class="color-value">RGB: 57, 74, 93</span>
+            <span class="color-value">Use: Feature bands, "how it works"</span>
           </div>
         </div>
       </div>
       <div class="color-swatch">
-        <div class="color-preview" style="background: #D4A574;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#D4A574</span>
+        <div class="color-preview" style="background: #F6F2EC; border: 1px solid var(--border);">
+          <span style="color: #1A1913; font-family: monospace; font-size: 12px;">#F6F2EC</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Editorial Gold</div>
+          <div class="color-name">Cream</div>
           <div class="color-values">
-            <span class="color-value">HEX: #D4A574</span>
-            <span class="color-value">RGB: 212, 165, 116</span>
-            <span class="color-value">Use: Warmth, premium touches</span>
+            <span class="color-value">HEX: #F6F2EC</span>
+            <span class="color-value">RGB: 246, 242, 236</span>
+            <span class="color-value">Use: Page background, the canvas</span>
           </div>
         </div>
       </div>
     </div>
 
     <div style="margin-top: 40px; margin-bottom: 16px;">
-      <p style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);">Secondary Palette</p>
+      <p class="palette-label">Surfaces &amp; Depth</p>
     </div>
     <div class="color-grid">
       <div class="color-swatch">
-        <div class="color-preview" style="background: #8B9B88;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#8B9B88</span>
+        <div class="color-preview" style="background: #EFE9DC; border: 1px solid var(--border);">
+          <span style="color: #1A1913; font-family: monospace; font-size: 12px;">#EFE9DC</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Sage Green</div>
+          <div class="color-name">Cream Raised</div>
           <div class="color-values">
-            <span class="color-value">HEX: #8B9B88</span>
-            <span class="color-value">RGB: 139, 155, 136</span>
-            <span class="color-value">Use: Success states, calm accents</span>
+            <span class="color-value">HEX: #EFE9DC</span>
+            <span class="color-value">RGB: 239, 233, 220</span>
+            <span class="color-value">Use: Inset / raised surfaces</span>
           </div>
         </div>
       </div>
       <div class="color-swatch">
-        <div class="color-preview" style="background: #B3A598;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#B3A598</span>
+        <div class="color-preview" style="background: #2A3744;">
+          <span style="color: #F8F7E2; font-family: monospace; font-size: 12px;">#2A3744</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Warm Grey</div>
+          <div class="color-name">Deep Slate</div>
           <div class="color-values">
-            <span class="color-value">HEX: #B3A598</span>
-            <span class="color-value">RGB: 179, 165, 152</span>
-            <span class="color-value">Use: Borders, subtle backgrounds</span>
+            <span class="color-value">HEX: #2A3744</span>
+            <span class="color-value">RGB: 42, 55, 68</span>
+            <span class="color-value">Use: Footers, darkest bands</span>
           </div>
         </div>
       </div>
       <div class="color-swatch">
-        <div class="color-preview" style="background: #1E2A3A;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#1E2A3A</span>
+        <div class="color-preview" style="background: #CFC6B2;">
+          <span style="color: #1A1913; font-family: monospace; font-size: 12px;">#CFC6B2</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Deep Navy</div>
+          <div class="color-name">Warm Hairline</div>
           <div class="color-values">
-            <span class="color-value">HEX: #1E2A3A</span>
-            <span class="color-value">RGB: 30, 42, 58</span>
-            <span class="color-value">Use: Dark backgrounds, footers</span>
+            <span class="color-value">HEX: #CFC6B2</span>
+            <span class="color-value">RGB: 207, 198, 178</span>
+            <span class="color-value">Use: Borders, dividers</span>
           </div>
         </div>
       </div>
     </div>
 
     <div style="margin-top: 40px; margin-bottom: 16px;">
-      <p style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);">Neutral Palette</p>
+      <p class="palette-label">Ink, Paper &amp; Accent</p>
     </div>
     <div class="color-grid">
       <div class="color-swatch">
-        <div class="color-preview" style="background: #1A1A1A;">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#1A1A1A</span>
+        <div class="color-preview" style="background: #1A1913;">
+          <span style="color: #F8F7E2; font-family: monospace; font-size: 12px;">#1A1913</span>
         </div>
         <div class="color-info">
           <div class="color-name">Ink</div>
           <div class="color-values">
-            <span class="color-value">HEX: #1A1A1A</span>
-            <span class="color-value">RGB: 26, 26, 26</span>
-            <span class="color-value">Use: Body text, primary content</span>
+            <span class="color-value">HEX: #1A1913</span>
+            <span class="color-value">RGB: 26, 25, 19</span>
+            <span class="color-value">Use: Primary text (warm near-black)</span>
           </div>
         </div>
       </div>
       <div class="color-swatch">
-        <div class="color-preview" style="background: #6B6B6B; border: 1px solid var(--border);">
-          <span style="color: white; font-family: monospace; font-size: 12px;">#6B6B6B</span>
+        <div class="color-preview" style="background: #F8F7E2; border: 1px solid var(--border);">
+          <span style="color: #1A1913; font-family: monospace; font-size: 12px;">#F8F7E2</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Muted</div>
+          <div class="color-name">Paper Text</div>
           <div class="color-values">
-            <span class="color-value">HEX: #6B6B6B</span>
-            <span class="color-value">RGB: 107, 107, 107</span>
-            <span class="color-value">Use: Secondary text, labels</span>
+            <span class="color-value">HEX: #F8F7E2</span>
+            <span class="color-value">RGB: 248, 247, 226</span>
+            <span class="color-value">Use: Text on olive / slate surfaces</span>
           </div>
         </div>
       </div>
       <div class="color-swatch">
-        <div class="color-preview" style="background: #FFFFFF; border: 1px solid var(--border);">
-          <span style="color: #1A1A1A; font-family: monospace; font-size: 12px;">#FFFFFF</span>
+        <div class="color-preview" style="background: #2F6BFF;">
+          <span style="color: #FFFFFF; font-family: monospace; font-size: 12px;">#2F6BFF</span>
         </div>
         <div class="color-info">
-          <div class="color-name">Paper</div>
+          <div class="color-name">Heart Blue</div>
           <div class="color-values">
-            <span class="color-value">HEX: #FFFFFF</span>
-            <span class="color-value">RGB: 255, 255, 255</span>
-            <span class="color-value">Use: Canvas, card backgrounds</span>
+            <span class="color-value">HEX: #2F6BFF</span>
+            <span class="color-value">RGB: 47, 107, 255</span>
+            <span class="color-value">Use: Sparingly — the "💙" accent</span>
           </div>
         </div>
       </div>
@@ -649,44 +499,44 @@
   <!-- TYPOGRAPHY -->
   <section class="section" id="typography">
     <p class="section-label">03 &nbsp; Typography</p>
-    <h2>Signifier for soul.<br>Suisse for structure.</h2>
-    <p>Our typographic system pairs editorial warmth (Signifier) with Swiss precision (Suisse Int'l). Substitute with IBM Plex Serif and IBM Plex Sans when licensing is unavailable.</p>
+    <h2>Signifier for soul.<br>Geist for structure.</h2>
+    <p>Our typographic system pairs an elegant literary serif (Signifier) with Geist—the clean geometric sans used across the Clout app. Signifier is a licensed Klim typeface; Geist is open-source. Headlines are always set regular weight—never bold.</p>
 
     <div class="type-specimen">
       <div class="type-sample">
-        <p class="type-label">Display / Serif — Signifier (or IBM Plex Serif)</p>
+        <p class="type-label">Display / Serif — Signifier · Regular 400</p>
         <div class="type-display" style="font-family: var(--serif);">Turn daily ideas into powerful thought leadership.</div>
       </div>
       <div class="type-sample">
-        <p class="type-label">Body / Sans — Suisse Int'l (or IBM Plex Sans)</p>
-        <div class="type-display" style="font-family: var(--sans); font-size: 32px;">Your everyday thoughts deserve more than a notes app.</div>
+        <p class="type-label">Body / Sans — Geist</p>
+        <div class="type-display" style="font-family: var(--sans); font-size: 32px; font-weight: 500;">Your everyday thoughts deserve more than a notes app.</div>
       </div>
     </div>
 
     <div class="type-scale">
       <div class="type-scale-item">
-        <p class="type-scale-label">Display Large — 72px / -2% tracking</p>
+        <p class="type-scale-label">Display — 72px / -2% tracking / Signifier 400</p>
         <p style="font-family: var(--serif); font-size: 48px; line-height: 1.0; letter-spacing: -0.02em; margin: 0;">Brand Headlines</p>
       </div>
       <div class="type-scale-item">
-        <p class="type-scale-label">Heading 1 — 40px / -1% tracking</p>
+        <p class="type-scale-label">Heading 1 — 40px / -1% tracking / Signifier 400</p>
         <p style="font-family: var(--serif); font-size: 32px; line-height: 1.1; letter-spacing: -0.01em; margin: 0;">Section Titles</p>
       </div>
       <div class="type-scale-item">
-        <p class="type-scale-label">Heading 2 — 24px / 0% tracking</p>
+        <p class="type-scale-label">Heading 2 — 24px / Signifier 400</p>
         <p style="font-family: var(--serif); font-size: 24px; line-height: 1.2; margin: 0;">Content Headers</p>
       </div>
       <div class="type-scale-item">
-        <p class="type-scale-label">Body — 16px / 0% tracking / 1.7 line-height</p>
+        <p class="type-scale-label">Body — 16px / 1.7 line-height / Geist 400</p>
         <p style="font-family: var(--sans); font-size: 16px; line-height: 1.7; margin: 0; color: var(--muted);">This is the default body text size. Used for article content, descriptions, and longer-form reading. Maintains excellent readability across devices.</p>
       </div>
       <div class="type-scale-item">
-        <p class="type-scale-label">Caption — 13px / 4% tracking</p>
-        <p style="font-family: var(--sans); font-size: 13px; letter-spacing: 0.04em; margin: 0; color: var(--muted);">Supporting details, metadata, timestamps</p>
+        <p class="type-scale-label">Eyebrow — 13px / 14% tracking / Uppercase / Geist 700</p>
+        <p style="font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin: 0; color: var(--muted);">Capture → &nbsp; The Problem → &nbsp; Section Labels</p>
       </div>
       <div class="type-scale-item">
-        <p class="type-scale-label">Label — 11px / 12% tracking / Uppercase</p>
-        <p style="font-family: var(--sans); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; color: var(--muted);">SECTION LABELS AND CATEGORIES</p>
+        <p class="type-scale-label">Caption — 13px / 4% tracking / Geist 400</p>
+        <p style="font-family: var(--sans); font-size: 13px; letter-spacing: 0.04em; margin: 0; color: var(--muted);">Supporting details, metadata, timestamps</p>
       </div>
     </div>
   </section>
@@ -703,20 +553,20 @@
         <p>Layout, typography, and spacing follow editorial design principles. Think magazine spreads, not SaaS dashboards. Generous whitespace. Confident hierarchy. Room to breathe.</p>
       </div>
       <div class="synthesis-principle">
-        <h3>Organic Meets Geometric</h3>
-        <p>Real editorial photography (never stock lifestyle) paired with clean geometric elements. Circles, horizontal lines, structured grids—precision that frames the organic.</p>
+        <h3>Warmth Over Clinical</h3>
+        <p>Cream, not white. Warm near-black, not pure black. Soft, low, warm-tinted shadows. The brand should feel human and considered—analog texture in a digital product.</p>
       </div>
       <div class="synthesis-principle">
-        <h3>Portrait Over Landscape</h3>
-        <p>Default to portrait-format layouts (3:4 ratio) for hero images and key visuals. Suggests depth, encourages vertical scanning, feels less like a presentation deck.</p>
+        <h3>Two Darks on Cream</h3>
+        <p>Olive for action and brand, slate for depth and feature bands. Restraint is the system: no gradients, two background colors total, content does the talking.</p>
       </div>
       <div class="synthesis-principle">
         <h3>Restrained Animation</h3>
-        <p>Motion exists only to communicate state or guide attention. Subtle fades, gentle parallax, purposeful transitions. Never bounce, pulse, or call attention to cleverness.</p>
+        <p>Motion exists only to communicate state or guide attention. Subtle fades and gentle rises on scroll—eased, never bouncing. Never call attention to cleverness.</p>
       </div>
     </div>
 
-    <div style="margin-top: 32px; border-left: 3px solid var(--blue); padding: 20px 24px; background: var(--surface);">
+    <div style="margin-top: 32px; border-left: 3px solid var(--olive); padding: 20px 24px; background: var(--surface);">
       <p style="font-size: 14px; color: var(--ink); margin: 0; line-height: 1.8;">The synthesis aesthetic isn't decoration. It's the visual manifestation of our core value proposition: taking fragmented raw material and producing coherent finished work. Every design choice should reinforce this transformation.</p>
     </div>
   </section>
@@ -725,7 +575,7 @@
   <section class="section" id="voice">
     <p class="section-label">05 &nbsp; Voice & Tone</p>
     <h2>Write like an editor,<br>not a marketer.</h2>
-    <p>Our voice is confident without being performative. We acknowledge the messiness of real thinking while demonstrating the clarity that comes after synthesis.</p>
+    <p>Our voice is confident without being performative. We acknowledge the messiness of real thinking while demonstrating the clarity that comes after synthesis. We love the rule of three: "Real reach. Real relevance. Real clout."</p>
 
     <div class="voice-grid">
       <div class="voice-cell">
@@ -733,7 +583,7 @@
         <div class="voice-example correct"><p>Your best ideas are already there. We just help you find them.</p></div>
         <div class="voice-example correct"><p>Turn voice notes into LinkedIn posts. Coffee-shop conversations into newsletter content. Shower thoughts into strategic insights.</p></div>
         <div class="voice-example correct"><p>Thought leadership isn't manufactured. It's extracted from what you're already thinking.</p></div>
-        <div class="voice-example correct"><p>We're not writing for you. We're finding the through-line in what you've already said.</p></div>
+        <div class="voice-example correct"><p>Your thoughts. Our polish. The world's attention.</p></div>
       </div>
       <div class="voice-cell">
         <h3>Never write this way</h3>
@@ -751,31 +601,31 @@
 
   <!-- PHOTOGRAPHY -->
   <section class="section" id="photography">
-    <p class="section-label">06 &nbsp; Photography</p>
+    <p class="section-label">06 &nbsp; Photography & Illustration</p>
     <h2>Real people, real moments.<br>Never stock lifestyle.</h2>
-    <p>Photography should feel editorial—captured, not staged. Think New Yorker profiles, not LinkedIn ads. People working, thinking, in their element.</p>
+    <p>Photography should feel editorial—captured, not staged. Warm, natural light. Paired with the brand's hand-drawn marker illustrations (the "stress scribbles," the golden-ratio doodle) that add analog, human texture.</p>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px;">
       <div style="border: 1px solid var(--border); padding: 24px; background: var(--surface);">
-        <h3 style="font-family: var(--sans); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; color: var(--sage);">✓ Good</h3>
+        <h3 style="font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; color: var(--success);">✓ Good</h3>
         <ul style="list-style: none; font-size: 14px; color: var(--muted); line-height: 1.8;">
-          <li>• Editorial portraiture with natural lighting</li>
+          <li>• Editorial portraiture with natural, warm lighting</li>
           <li>• People at work, mid-thought, engaged</li>
           <li>• Authentic environments—offices, cafes, studios</li>
-          <li>• Portrait orientation (3:4) for hero images</li>
-          <li>• Muted, natural color grading</li>
+          <li>• Hand-drawn marker illustration for texture</li>
+          <li>• Muted, warm, natural color grading</li>
           <li>• Real professionals in their element</li>
         </ul>
       </div>
       <div style="border: 1px solid var(--border); padding: 24px; background: var(--surface);">
-        <h3 style="font-family: var(--sans); font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; color: var(--red);">✗ Avoid</h3>
+        <h3 style="font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; color: var(--warn);">✗ Avoid</h3>
         <ul style="list-style: none; font-size: 14px; color: var(--muted); line-height: 1.8;">
           <li>• Stock photos of people pointing at laptops</li>
           <li>• Overly posed "lifestyle" imagery</li>
           <li>• Diverse-team-in-meeting-room clichés</li>
-          <li>• Landscape hero images (feels like a deck)</li>
-          <li>• Over-saturated, artificially vibrant colors</li>
+          <li>• Cold, blue-grey or over-saturated grading</li>
           <li>• Generic "entrepreneur" aesthetics</li>
+          <li>• Emoji in UI (the footer 💙 is the only exception)</li>
         </ul>
       </div>
     </div>
@@ -785,32 +635,24 @@
   <section class="section" id="layout">
     <p class="section-label">07 &nbsp; Layout Principles</p>
     <h2>Structure guides the eye.<br>Whitespace does the work.</h2>
-    <p>Our layouts borrow from editorial design—asymmetric balance, generous margins, content that breathes. Every page should feel considered, never cluttered.</p>
+    <p>Our layouts borrow from editorial design—classical balance, generous margins, content that breathes. Every page should feel considered, never cluttered.</p>
 
     <div style="margin-top: 32px; display: grid; gap: 24px;">
       <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start;">
-        <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Grid System</div>
-        <div>
-          <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin-bottom: 12px;">12-column grid on desktop, 4-column on mobile. Generous gutters (32px+). Content width maxes at 1280px, reading width at 680px.</p>
-        </div>
+        <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Container</div>
+        <div><p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Content maxes at 1200px; hero copy in a ~760px column. Centered and generous. Big vertical rhythm between sections.</p></div>
       </div>
       <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; padding-top: 24px; border-top: 1px solid var(--border);">
         <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Spacing Scale</div>
-        <div>
-          <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin-bottom: 12px;">8px base unit. Stack: 8, 16, 24, 32, 48, 64, 80, 120px. Use consistently across all components.</p>
-        </div>
+        <div><p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">4px base unit. Stack: 8, 16, 24, 32, 48, 64, 96, 128px. Section padding runs 64–128px vertical.</p></div>
       </div>
       <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; padding-top: 24px; border-top: 1px solid var(--border);">
-        <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Asymmetry</div>
-        <div>
-          <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin-bottom: 12px;">Not everything needs to be centered or evenly split. Left-aligned text blocks next to right-floated imagery. Offset headings. Dynamic, not rigid.</p>
-        </div>
+        <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Eyebrows</div>
+        <div><p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Sections open with an uppercase, 14%-tracked eyebrow, usually with a trailing arrow (Capture →). The one pill-shaped element in the system.</p></div>
       </div>
       <div style="display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; padding-top: 24px; border-top: 1px solid var(--border);">
-        <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Section Breaks</div>
-        <div>
-          <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin-bottom: 12px;">Use horizontal rules sparingly. Prefer generous vertical space (80-120px) between major sections. Let whitespace create the separation.</p>
-        </div>
+        <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 4px;">Cards & Shadows</div>
+        <div><p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Softly-squared rectangles (~10px radius), warm hairline borders, soft low warm-tinted shadows—never harsh black. On slate bands, cards are outlined rather than filled.</p></div>
       </div>
     </div>
   </section>
@@ -819,22 +661,22 @@
   <section class="section" id="web">
     <p class="section-label">08 &nbsp; Web Design</p>
     <h2>Every page should feel<br>like opening a magazine.</h2>
-    <p>Web design at Clout prioritizes reading experience over conversion optimization theater. Clean, uncluttered, content-first.</p>
+    <p>Web design at Clout prioritizes reading experience over conversion-optimization theater. Clean, uncluttered, content-first—on warm cream.</p>
 
-    <div style="margin-top: 40px; border: 1px solid var(--border); background: var(--surface);">
-      <div style="padding: 32px; border-bottom: 1px solid var(--border);">
-        <p style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">Homepage Hero</p>
-        <h3 style="font-family: var(--serif); font-size: 56px; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 24px; color: var(--ink);">Turn daily ideas into powerful thought leadership.</h3>
+    <div style="margin-top: 40px; border: 1px solid var(--border); background: var(--bg);">
+      <div style="padding: 48px; border-bottom: 1px solid var(--border);">
+        <p style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px;">Thought leadership, synthesized.</p>
+        <h3 style="font-family: var(--serif); font-size: 52px; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; color: var(--ink);">Turn daily ideas into powerful thought leadership.</h3>
         <p style="font-size: 16px; color: var(--muted); line-height: 1.7; max-width: 560px; margin-bottom: 32px;">Your everyday thoughts deserve more than a notes app. Clout transforms everyday, off-the-cuff thoughts into clear, powerful content to grow your visibility and influence.</p>
         <div style="display: flex; gap: 16px;">
-          <button style="padding: 14px 32px; background: var(--blue); color: white; border: none; font-family: var(--sans); font-size: 14px; font-weight: 500; letter-spacing: 0.02em; cursor: pointer;">Get Started</button>
-          <button style="padding: 14px 32px; background: transparent; color: var(--blue); border: 1px solid var(--blue); font-family: var(--sans); font-size: 14px; font-weight: 500; letter-spacing: 0.02em; cursor: pointer;">Talk to Sales</button>
+          <button style="padding: 14px 32px; background: var(--olive); color: var(--paper-text); border: none; font-family: var(--sans); font-size: 14px; font-weight: 600; letter-spacing: 0.01em; cursor: pointer;">Get started</button>
+          <button style="padding: 14px 32px; background: transparent; color: var(--olive); border: 1px solid var(--olive); font-family: var(--sans); font-size: 14px; font-weight: 600; letter-spacing: 0.01em; cursor: pointer;">Talk to sales</button>
         </div>
       </div>
-      <div style="padding: 24px 32px; display: flex; gap: 32px; font-size: 12px; color: var(--muted);">
-        <span>→ Large, confident headline in Signifier</span>
-        <span>→ Supporting copy in Suisse Int'l, max 560px</span>
-        <span>→ Primary CTA uses Editorial Blue</span>
+      <div style="padding: 24px 48px; display: flex; gap: 32px; font-size: 12px; color: var(--muted); flex-wrap: wrap;">
+        <span>→ Large, confident headline in Signifier 400</span>
+        <span>→ Supporting copy in Geist, max 560px</span>
+        <span>→ Primary CTA in solid Olive with a grounded drop</span>
       </div>
     </div>
   </section>
@@ -846,16 +688,16 @@
     <p>Content marketing at Clout demonstrates our editorial lens. We show the transformation from raw to refined—before and after, messy to polished.</p>
 
     <div style="margin-top: 32px; display: grid; gap: 20px;">
-      <div style="border-left: 3px solid var(--sage); padding: 20px 24px; background: rgba(139,155,136,0.05);">
-        <p style="font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sage); margin-bottom: 8px;">Content Pillar: The Synthesis</p>
-        <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Before/after content showcasing raw voice notes transformed into polished LinkedIn posts. Show the editorial process, the thinking behind the synthesis.</p>
+      <div style="border-left: 3px solid var(--olive); padding: 20px 24px; background: rgba(59,59,31,0.05);">
+        <p style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--olive); margin-bottom: 8px;">Content Pillar: The Synthesis</p>
+        <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Before/after content showcasing raw voice notes transformed into polished posts. Show the editorial process, the thinking behind the synthesis.</p>
       </div>
-      <div style="border-left: 3px solid var(--yellow); padding: 20px 24px; background: rgba(212,165,116,0.05);">
-        <p style="font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px;">Content Pillar: Editorial Perspective</p>
+      <div style="border-left: 3px solid var(--slate); padding: 20px 24px; background: rgba(57,74,93,0.06);">
+        <p style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px;">Content Pillar: Editorial Perspective</p>
         <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Thought leadership about thought leadership. Meta-analysis of what makes content resonate. Our editorial POV on the industry we serve.</p>
       </div>
-      <div style="border-left: 3px solid var(--blue); padding: 20px 24px; background: rgba(43,76,126,0.05);">
-        <p style="font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px;">Content Pillar: Client Narratives</p>
+      <div style="border-left: 3px solid var(--success); padding: 20px 24px; background: rgba(79,122,74,0.07);">
+        <p style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--success); margin-bottom: 8px;">Content Pillar: Client Narratives</p>
         <p style="font-size: 14px; color: var(--ink); line-height: 1.7; margin: 0;">Deep-dive profiles of experts using Clout. Not testimonials—editorial features that explore their thinking and how synthesis amplified their voice.</p>
       </div>
     </div>
@@ -863,7 +705,7 @@
 
   <!-- FOOTER -->
   <div class="page-number">
-    <span>Brand Guidelines — v1.0</span>
+    <span>Brand Guidelines — v2.0</span>
     <span>Internal Use</span>
   </div>
 
@@ -886,13 +728,13 @@
       <p class="footer-col-label">Resources</p>
       <a href="/blog" class="footer-col-link">Blog</a>
       <a href="/support" class="footer-col-link">Support</a>
-      <a href="/brand-guidelines" class="footer-col-link">Brand Guidelines</a>
+      <a href="/clout-brand-guidelines.html" class="footer-col-link">Brand Guidelines</a>
     </div>
     <div>
       <p class="footer-col-label">Connect</p>
       <a href="mailto:hello@clout.you" class="footer-col-link">hello@clout.you</a>
       <a href="https://linkedin.com/company/70929805" class="footer-col-link">LinkedIn</a>
-      <p class="footer-col-text" style="margin-top: 16px;">A Storyworlding company.<br>Made with 💙 in NYC.</p>
+      <p class="footer-col-text" style="margin-top: 16px;">A Storyworlding company.<br>Made with <span style="color: var(--heart);">💙</span> in NYC.</p>
     </div>
   </div>
   <div class="footer-bottom">
