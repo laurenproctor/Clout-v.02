@@ -7,7 +7,7 @@
 
 import type { EditorialHeroProps, BrandTokens } from '@/lib/visual/types/template'
 import { SCALE, WEIGHT, LEADING } from '@/lib/visual/tokens/scale'
-import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
+import { EDITORIAL_HERO, fitHeadlineSize } from '@/lib/visual/tokens/editorial'
 
 interface EditorialHeroRenderProps extends EditorialHeroProps {
   brand: BrandTokens
@@ -26,8 +26,13 @@ export function EditorialHero({
   height,
 }: EditorialHeroRenderProps) {
   const textZoneWidth  = Math.round(width * 0.58)
-  const textZoneHeight = Math.round(height * 0.52)
-  const padding = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
+  const textZoneHeight = Math.round(height * EDITORIAL_HERO.textZoneHeightRatio)
+  const padding    = Math.max(EDITORIAL_HERO.paddingFloor, Math.round(Math.min(width, height) * EDITORIAL_HERO.paddingRatio))
+  const maxWidth   = Math.round(width * EDITORIAL_HERO.textWidthRatio)
+  const availableHeight = textZoneHeight - 2 * padding
+  const headlineSize = headline
+    ? fitHeadlineSize({ headline, subtext, availableHeight, availableWidth: maxWidth })
+    : SCALE.headline
   const logoHeight = Math.round(Math.min(width, height) * 0.07) // ~84px at 1200
   const logoWidth  = Math.round(logoHeight * 3.5)               // allow wide logos
 
@@ -105,8 +110,8 @@ export function EditorialHero({
           position: 'absolute',
           bottom: `${padding}px`,
           left: `${padding}px`,
-          maxWidth: `${Math.round(width * SAFE_ZONE.maxTextWidth)}px`,
-          maxHeight: `${textZoneHeight - 2 * padding}px`,
+          maxWidth: `${maxWidth}px`,
+          maxHeight: `${availableHeight}px`,
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -117,7 +122,7 @@ export function EditorialHero({
           <span
             style={{
               fontFamily: brand.fontHeading,
-              fontSize: `${SCALE.headline}px`,
+              fontSize: `${headlineSize}px`,
               fontWeight: WEIGHT.bold,
               color: brand.onSurface,
               lineHeight: LEADING.headline,

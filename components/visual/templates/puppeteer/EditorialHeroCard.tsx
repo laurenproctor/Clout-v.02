@@ -4,7 +4,7 @@
 // Layout: full-bleed background. Gradient legibility zone bottom-left. Logo top-right.
 
 import type { BrandTokens } from '@/lib/visual/types/template'
-import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
+import { EDITORIAL_HERO, fitHeadlineSize } from '@/lib/visual/tokens/editorial'
 
 interface EditorialHeroCardProps {
   headline: string
@@ -43,12 +43,16 @@ export function EditorialHeroCard({
   width,
   height,
 }: EditorialHeroCardProps) {
-  const pad = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
+  const pad = Math.max(EDITORIAL_HERO.paddingFloor, Math.round(Math.min(width, height) * EDITORIAL_HERO.paddingRatio))
   const logoHeight = Math.round(Math.min(width, height) * 0.07)
   const logoWidth = Math.round(logoHeight * 3.5)
   const textZoneW = Math.round(width * 0.58)
-  const textZoneH = Math.round(height * 0.52)
-  const headlineSize = Math.round(Math.min(width, height) * 0.075)
+  const textZoneH = Math.round(height * EDITORIAL_HERO.textZoneHeightRatio)
+  const maxTextW  = Math.round(width * EDITORIAL_HERO.textWidthRatio)
+  const availableH = textZoneH - 2 * pad
+  const headlineSize = headline
+    ? fitHeadlineSize({ headline, subtext, availableHeight: availableH, availableWidth: maxTextW })
+    : Math.round(Math.min(width, height) * 0.075)
   const bodySize = Math.round(Math.min(width, height) * 0.025)
   const labelSize = Math.round(Math.min(width, height) * 0.018)
 
@@ -103,8 +107,8 @@ export function EditorialHeroCard({
       position: absolute;
       bottom: ${pad}px;
       left: ${pad}px;
-      max-width: ${Math.round(width * SAFE_ZONE.maxTextWidth)}px;
-      max-height: ${textZoneH - 2 * pad}px;
+      max-width: ${maxTextW}px;
+      max-height: ${availableH}px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -119,7 +123,7 @@ export function EditorialHeroCard({
       line-height: 1.05;
       letter-spacing: -0.02em;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: ${EDITORIAL_HERO.lineClamp};
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
