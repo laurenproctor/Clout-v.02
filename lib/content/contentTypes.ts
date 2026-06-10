@@ -1,6 +1,6 @@
 // lib/content/contentTypes.ts
 import type { LucideIcon } from 'lucide-react'
-import { FileText, Briefcase, Mail, ImageIcon, Camera, MessageCircle } from 'lucide-react'
+import { FileText, Briefcase, Mail, ImageIcon, Camera, MessageCircle, Zap } from 'lucide-react'
 
 /**
  * Lifecycle status of a content type.
@@ -80,6 +80,15 @@ export const CONTENT_TYPES: ContentType[] = [
     route: '/create/instagram',
     status: 'active',
     icon: Camera,
+  },
+  {
+    id: 'substack-note',
+    title: 'Note',
+    description: 'Short observations and insights — write once, publish anywhere.',
+    ctaLabel: 'Write a Note',
+    route: '/create/note',
+    status: 'active',
+    icon: Zap,
   },
   {
     id: 'newsletter',

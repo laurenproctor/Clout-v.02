@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     visualObjective,
     audienceFrame,
     lensType,
+    backgroundMode,
     suppliedBackgroundUrl,
     overlayHeadline,
     overlaySubtext,
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
     visualObjective?:         string
     audienceFrame?:           string
     lensType?:                string
+    backgroundMode?:          'generated' | 'uploaded' | 'solid'
     suppliedBackgroundUrl?:   string
     overlayHeadline?:         string
     overlaySubtext?:          string
@@ -103,8 +105,12 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // ── Resolve background mode ───────────────────────────────────────────────
+  const resolvedBackgroundMode: 'generated' | 'uploaded' | 'solid' =
+    backgroundMode ?? (suppliedBackgroundUrl ? 'uploaded' : 'generated')
+
   // ── Validate ──────────────────────────────────────────────────────────────
-  if (!promptOverride && !suppliedBackgroundUrl && !overlayQuote && (!content || !platform)) {
+  if (!promptOverride && resolvedBackgroundMode !== 'solid' && !suppliedBackgroundUrl && !overlayHeadline && !overlayQuote && (!content || !platform)) {
     return NextResponse.json(
       { error: 'Provide either promptOverride, suppliedBackgroundUrl, overlayQuote, or both content and platform' },
       { status: 400 }
@@ -201,6 +207,7 @@ export async function POST(req: NextRequest) {
       visualObjective:         visualObjective as VisualObjective | undefined,
       audienceFrame,
       lensType:                lensType as LensType | undefined,
+      backgroundMode:          resolvedBackgroundMode,
       suppliedBackgroundUrl:   suppliedBackgroundUrl ?? undefined,
       overlayParams,
     })

@@ -463,6 +463,8 @@ export interface ConversationSource {
   lastSuccessfulFetchAt: string | null
   lastErrorAt: string | null
   consecutiveFailures: number
+  fetchStatus: string | null
+  fetchItemCount: number | null
   createdAt: string
 }
 

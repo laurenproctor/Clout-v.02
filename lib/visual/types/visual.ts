@@ -176,7 +176,8 @@ export interface GenerateImageInput {
   visualObjective?: VisualObjective
   audienceFrame?: string     // e.g. 'Executives', 'Engineers', 'Investors', 'Consumers', 'Creators'
   lensType?: LensType
-  suppliedBackgroundUrl?: string  // skip DALL-E and use this image as the background
+  backgroundMode?: 'generated' | 'uploaded' | 'solid'  // defaults to 'generated'
+  suppliedBackgroundUrl?: string  // required when backgroundMode === 'uploaded'
   overlayParams?: OverlayParams   // when set: forces hybrid-overlay with user's exact text (headline or quote)
 }
 

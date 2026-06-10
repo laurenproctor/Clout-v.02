@@ -205,6 +205,14 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
       }
       if (params.backgroundSource === 'upload' && params.uploadedImageUrl) {
         body.suppliedBackgroundUrl = params.uploadedImageUrl
+        body.backgroundMode = 'uploaded'
+      } else if (
+        params.backgroundSource === 'none' &&
+        (params.imageStyle === 'headline-overlay' || params.imageStyle === 'quote-overlay')
+      ) {
+        body.backgroundMode = 'solid'
+      } else {
+        body.backgroundMode = 'generated'
       }
       if (params.imageStyle === 'headline-overlay') {
         body.overlayHeadline = params.headlineText.trim()

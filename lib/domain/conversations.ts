@@ -48,7 +48,7 @@ export async function insertConversationSource(params: {
   const supabase = await createClient() as any
   const { data, error } = await supabase
     .from('conversation_sources')
-    .insert({ workspace_id: params.workspaceId, source_type: params.sourceType, source_url: params.sourceUrl, title: params.title ?? null, author: params.author ?? null })
+    .insert({ workspace_id: params.workspaceId, source_type: params.sourceType, source_url: params.sourceUrl, title: params.title ?? null, author: params.author ?? null, fetch_status: 'pending' })
     .select().single()
   if (error) return { ok: false, error: error.message }
   return { ok: true, data: toSource(data) }
@@ -76,12 +76,25 @@ export async function deleteConversationSource(id: string, workspaceId: string):
   return { ok: true, data: undefined }
 }
 
-export async function markSourceSuccess(id: string, itemCount: number): Promise<void> {
+export async function markSourceStatus(id: string, status: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any
+  await supabase.from('conversation_sources').update({ fetch_status: status }).eq('id', id)
+}
+
+export async function markSourceSuccess(
+  id: string,
+  itemCount: number,
+  fetchStatus?: string,
+  fetchItemCount?: number,
+): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const now = new Date().toISOString()
   const updates: Record<string, unknown> = { last_fetched_at: now, consecutive_failures: 0 }
   if (itemCount > 0) updates.last_successful_fetch_at = now
+  if (fetchStatus    != null) updates.fetch_status     = fetchStatus
+  if (fetchItemCount != null) updates.fetch_item_count = fetchItemCount
   await supabase.from('conversation_sources').update(updates).eq('id', id)
 }
 
@@ -97,6 +110,7 @@ export async function markSourceError(id: string): Promise<void> {
   await supabase.from('conversation_sources').update({
     last_fetched_at: now,
     last_error_at: now,
+    fetch_status: 'error',
     consecutive_failures: ((data?.consecutive_failures as number) ?? 0) + 1,
   }).eq('id', id)
 }
@@ -537,6 +551,7 @@ function toSource(r: any): ConversationSource {
     title: r.title, author: r.author, active: r.active, authorityScore: r.authority_score ?? 50,
     lastFetchedAt: r.last_fetched_at, lastSuccessfulFetchAt: r.last_successful_fetch_at ?? null,
     lastErrorAt: r.last_error_at ?? null, consecutiveFailures: r.consecutive_failures ?? 0,
+    fetchStatus: r.fetch_status ?? null, fetchItemCount: r.fetch_item_count ?? null,
     createdAt: r.created_at,
   }
 }

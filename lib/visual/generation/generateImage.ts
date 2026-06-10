@@ -123,6 +123,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     overlayParams,
   } = input
 
+  const backgroundMode = input.backgroundMode ?? (input.suppliedBackgroundUrl ? 'uploaded' : 'generated')
+
   // When overlay params include a headline or quote, force the hybrid-overlay path
   // with user's exact text — no Claude extraction.
   // headline → editorial-hero; quote → quote-monolith
@@ -139,8 +141,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     resolvedIntent = null
   } else if (intentOverride) {
     resolvedIntent = intentOverride
-  } else if (input.suppliedBackgroundUrl) {
-    // Background is user-supplied — no AI image will be generated.
+  } else if (backgroundMode !== 'generated') {
+    // Background is user-supplied or solid — no AI image will be generated.
     // Skipping generateVisualIntent saves Anthropic credits and avoids a
     // pipeline failure when credits are exhausted.
     resolvedIntent = null
@@ -215,12 +217,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
   // ── Step 5: Generate background (or use supplied image) ──────────────────
   const provider = getOpenAIProvider()
-  let generatedProviderUrl: string
-  let storedPrompt: string
+  let generatedProviderUrl: string | null = null
+  let storedPrompt: string = finalPrompt
 
-  if (input.suppliedBackgroundUrl) {
-    generatedProviderUrl = input.suppliedBackgroundUrl
+  if (backgroundMode === 'solid') {
+    // No background image — brand surface fills the template.
     storedPrompt = finalPrompt
+  } else if (backgroundMode === 'uploaded' && input.suppliedBackgroundUrl) {
+    generatedProviderUrl = input.suppliedBackgroundUrl
   } else {
     const generated = await provider.generate({ prompt: finalPrompt, aspectRatio, quality, seed })
     generatedProviderUrl = generated.providerUrl
@@ -241,7 +245,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     'upper-left':  'upper-left',
   }
 
-  if (isHybridOverlay && templateSpec && grammar && !input.suppliedBackgroundUrl) {
+  if (isHybridOverlay && templateSpec && grammar && backgroundMode === 'generated' && generatedProviderUrl !== null) {
     const score = await scoreImageQuality(generatedProviderUrl, grammar, templateSpec)
     qualityScore = score.overall
 
@@ -337,15 +341,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   }
 
   // ── Step 7: Upload background to Storage ──────────────────────────────────
-  const upload = await uploadImageFromUrl({
-    providerUrl: generatedProviderUrl,
-    workspaceId,
-    assetId,
-    subfolder: 'backgrounds',
-  })
+  const upload = generatedProviderUrl !== null
+    ? await uploadImageFromUrl({ providerUrl: generatedProviderUrl, workspaceId, assetId, subfolder: 'backgrounds' })
+    : null
 
   // ── Step 8: Render composed image (hybrid-overlay only) ───────────────────
   let composedUrl: string | null = null
+  let composedStoragePath: string | null = null
+  let composedFileSizeBytes: number | null = null
   let templatePayload: Record<string, unknown> | null = null
 
   if (isHybridOverlay && templateSpec && templateId) {
@@ -359,7 +362,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               templateId:     'quote-monolith',
               quote:          overlayParams.quote,
               attribution:    overlayParams.attribution,
-              backgroundUrl:  upload.publicUrl,
+              backgroundUrl:  upload?.publicUrl,
               logoUrl:        overlayParams.logoUrl,
               fontHeadingUrl: overlayParams.fontHeadingUrl,
               fontBodyUrl:    overlayParams.fontBodyUrl,
@@ -368,7 +371,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               templateId:     'editorial-hero',
               headline:       overlayParams.headline!,
               subtext:        overlayParams.subtext,
-              backgroundUrl:  upload.publicUrl,
+              backgroundUrl:  upload?.publicUrl,
               logoUrl:        overlayParams.logoUrl,
               fontHeadingUrl: overlayParams.fontHeadingUrl,
               fontBodyUrl:    overlayParams.fontBodyUrl,
@@ -404,11 +407,11 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         // For Satori: pre-resolve images to data URIs so the renderer never makes
         // outbound network requests. gpt-image-1 already returns base64; use it directly.
         // Puppeteer can load URLs natively so skip this for that path.
-        let renderBackgroundUrl: string = upload.publicUrl
+        let renderBackgroundUrl: string | undefined = upload?.publicUrl
         let renderLogoUrl: string | undefined = overlayParams.logoUrl
 
-        if (!PUPPETEER_ENABLED) {
-          if (generatedProviderUrl.startsWith('data:')) {
+        if (!PUPPETEER_ENABLED && upload?.publicUrl) {
+          if (generatedProviderUrl?.startsWith('data:')) {
             renderBackgroundUrl = generatedProviderUrl
           } else {
             try {
@@ -439,6 +442,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         const pngBuffer = await renderTemplate(templateSpec, renderProps, brandTokens, size.width, size.height, fonts)
         const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
         composedUrl = composedUpload.publicUrl
+        composedStoragePath = composedUpload.storagePath
+        composedFileSizeBytes = composedUpload.fileSizeBytes
 
       } else if (resolvedIntent && content && platform && brandProfile) {
         // ── Brand profile path: Claude extracts template props from content ──
@@ -446,7 +451,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
           templateSpec.id,
           content,
           resolvedIntent,
-          upload.publicUrl
+          upload?.publicUrl ?? ''
         )
         templatePayload = templateProps as unknown as Record<string, unknown>
 
@@ -473,6 +478,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         const pngBuffer = await renderTemplate(templateSpec, templateProps, brandTokens, size.width, size.height, fonts)
         const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
         composedUrl = composedUpload.publicUrl
+        composedStoragePath = composedUpload.storagePath
+        composedFileSizeBytes = composedUpload.fileSizeBytes
       }
 
     } catch (err) {
@@ -483,6 +490,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   }
 
   // ── Step 9: Persist to visual_assets ──────────────────────────────────────
+  // For solid-color cards, the composed PNG is the primary artifact.
+  // Publishing (publishing.ts) and gallery (visuals-tab.tsx) both read original_url,
+  // so it must always be a valid image URL — the composed card itself.
+  const primaryUrl    = backgroundMode === 'solid' ? composedUrl          : upload?.publicUrl
+  const primaryPath   = backgroundMode === 'solid' ? composedStoragePath  : upload?.storagePath
+  const primaryMime   = backgroundMode === 'solid' ? 'image/png'          : upload?.mimeType
+  const primarySize   = backgroundMode === 'solid' ? composedFileSizeBytes : upload?.fileSizeBytes
+
   const supabase = await createClient()
 
   const assetName = deriveAssetName({ overlayParams, resolvedIntent, keyIdea, templateId, platform })
@@ -499,15 +514,15 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     variation_reason:     variationReason ?? null,
     provider:             'openai' as const,
     provider_model:       'gpt-image-1',
-    original_url:         upload.publicUrl,
-    storage_path:         upload.storagePath,
+    original_url:         primaryUrl   ?? '',
+    storage_path:         primaryPath  ?? '',
     prompt:               storedPrompt,
     visual_intent:        resolvedIntent as unknown as Json | null,
     generation_mode:      mode,
     render_mode:          renderMode,
     aspect_ratio:         aspectRatio,
-    mime_type:            upload.mimeType,
-    file_size_bytes:      upload.fileSizeBytes,
+    mime_type:            primaryMime  ?? 'image/png',
+    file_size_bytes:      primarySize  ?? 0,
     seed:                 seed ?? null,
     status:               'completed' as const,
     intent_input_tokens:  intentInputTokens || null,

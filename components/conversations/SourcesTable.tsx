@@ -7,6 +7,19 @@ import { AddSourceModal } from './AddSourceModal'
 import { ConversationPreferences } from './ConversationPreferences'
 import type { ConversationSource } from '@/types/domain'
 
+function fetchStatusMessage(status: string | null): string | null {
+  switch (status) {
+    case 'pending':    return 'Waiting to fetch…'
+    case 'ingesting':  return 'Fetching posts…'
+    case 'analyzing':  return 'Analyzing content…'
+    case 'no_posts':   return 'No public posts found — may be paywalled'
+    case 'no_new_items': return 'No new posts since last check'
+    case 'below_threshold': return 'Posts found but none matched your topics'
+    case 'error':      return 'Failed to fetch — will retry automatically'
+    default:           return null
+  }
+}
+
 interface Props {
   sources: ConversationSource[]
   onSourcesChange: () => void
@@ -63,6 +76,9 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
                   {source.title ? source.sourceUrl : ''}
                   {source.lastFetchedAt ? ` · Last checked ${new Date(source.lastFetchedAt).toLocaleDateString()}` : ' · Not yet fetched'}
                 </p>
+                {fetchStatusMessage(source.fetchStatus) && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{fetchStatusMessage(source.fetchStatus)}</p>
+                )}
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Button size="sm" variant="ghost" onClick={() => toggleActive(source)} className="text-xs text-muted-foreground h-7 px-2">

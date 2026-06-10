@@ -8,6 +8,7 @@ import {
   insertConversationOpportunities,
   markSourceSuccess,
   markSourceError,
+  markSourceStatus,
   loadConversationWorkspaceContext,
   loadFollowedContext,
   getConversationPreferences,
@@ -34,6 +35,7 @@ function normalizeAuthorName(name: string): string {
 
 async function ingestSource(source: ConversationSource): Promise<{
   newItems: Array<{ item: ConversationItem; normalized: NormalizedItem }>
+  rawFetchCount: number
   skipped: number
   errors: number
 }> {
@@ -45,8 +47,10 @@ async function ingestSource(source: ConversationSource): Promise<{
   } catch (err) {
     console.error(`[conversations] fetch failed for source ${source.id}:`, err)
     await markSourceError(source.id)
-    return { newItems: [], skipped: 0, errors: 1 }
+    return { newItems: [], rawFetchCount: 0, skipped: 0, errors: 1 }
   }
+
+  const rawFetchCount = normalized.length
 
   const candidates = normalized
     .filter(item => {
@@ -76,13 +80,21 @@ async function ingestSource(source: ConversationSource): Promise<{
     newItems.push({ item: insertResult.data, normalized: n })
   }
 
-  await markSourceSuccess(source.id, newItems.length)
-  return { newItems, skipped, errors }
+  return { newItems, rawFetchCount, skipped, errors }
 }
 
 export async function ingestSingleSource(source: ConversationSource): Promise<void> {
-  const { newItems } = await ingestSource(source)
-  if (newItems.length === 0) return
+  await markSourceStatus(source.id, 'ingesting')
+
+  const { newItems, rawFetchCount, skipped } = await ingestSource(source)
+
+  if (newItems.length === 0) {
+    const status = rawFetchCount === 0 ? 'no_posts' : skipped > 0 ? 'no_new_items' : 'no_posts'
+    await markSourceSuccess(source.id, 0, status, rawFetchCount)
+    return
+  }
+
+  await markSourceStatus(source.id, 'analyzing')
 
   const wsId = source.workspaceId
 
@@ -102,6 +114,7 @@ export async function ingestSingleSource(source: ConversationSource): Promise<vo
   const contextWithThemes = { ...context, activeThemes }
 
   let sonnetCallCount = 0
+  let opportunitiesCreated = 0
 
   for (const { item, normalized: n } of newItems) {
     if (sonnetCallCount >= MAX_SONNET_ANALYSES_PER_WORKSPACE) break
@@ -149,6 +162,7 @@ export async function ingestSingleSource(source: ConversationSource): Promise<vo
             ),
           }))
         )
+        opportunitiesCreated++
       }
     } catch (err) {
       console.error(`[conversations] analysis failed for item ${item.id}:`, err)
@@ -156,6 +170,9 @@ export async function ingestSingleSource(source: ConversationSource): Promise<vo
 
     await new Promise(r => setTimeout(r, 200))
   }
+
+  const terminalStatus = opportunitiesCreated > 0 ? 'ok' : 'below_threshold'
+  await markSourceSuccess(source.id, newItems.length, terminalStatus, rawFetchCount)
 
   try {
     await linkOpportunitiesToThemes(wsId)
@@ -176,9 +193,16 @@ export async function ingestAllSources(workspaceId?: string): Promise<{
   let totalSkipped = 0, totalErrors = 0
 
   for (const source of sourcesResult.data) {
-    const { newItems, skipped, errors } = await ingestSource(source)
+    await markSourceStatus(source.id, 'ingesting')
+    const { newItems, rawFetchCount, skipped, errors } = await ingestSource(source)
     totalSkipped += skipped
     totalErrors += errors
+    if (newItems.length === 0) {
+      const status = rawFetchCount === 0 ? 'no_posts' : skipped > 0 ? 'no_new_items' : 'no_posts'
+      await markSourceSuccess(source.id, 0, status, rawFetchCount)
+    } else {
+      await markSourceStatus(source.id, 'analyzing')
+    }
     if (!workspaceNewItems.has(source.workspaceId)) workspaceNewItems.set(source.workspaceId, [])
     for (const entry of newItems) {
       workspaceNewItems.get(source.workspaceId)!.push({ ...entry, source })
@@ -224,6 +248,7 @@ export async function ingestAllSources(workspaceId?: string): Promise<{
       .slice(0, MAX_ITEMS_PER_WORKSPACE_PER_RUN)
 
     let sonnetCallCount = 0
+    const opportunityCountBySource = new Map<string, number>()
 
     for (const { item, normalized: n, source, isFollowedAuthor, isFollowedPub } of prioritized) {
       if (sonnetCallCount >= MAX_SONNET_ANALYSES_PER_WORKSPACE) {
@@ -267,6 +292,7 @@ export async function ingestAllSources(workspaceId?: string): Promise<{
               ),
             }))
           )
+          opportunityCountBySource.set(source.id, (opportunityCountBySource.get(source.id) ?? 0) + 1)
         }
       } catch (err) {
         console.error(`[conversations] analysis failed for item ${item.id}:`, err)
@@ -275,6 +301,15 @@ export async function ingestAllSources(workspaceId?: string): Promise<{
 
       totalProcessed++
       await new Promise(r => setTimeout(r, 200))
+    }
+
+    // Write terminal fetch_status for each source that had new items
+    const seenSourceIds = new Set<string>()
+    for (const { source } of allEntries) {
+      if (seenSourceIds.has(source.id)) continue
+      seenSourceIds.add(source.id)
+      const hasOpps = (opportunityCountBySource.get(source.id) ?? 0) > 0
+      await markSourceSuccess(source.id, allEntries.filter(e => e.source.id === source.id).length, hasOpps ? 'ok' : 'below_threshold')
     }
 
     // Phase 4: Link opportunities → themes, then suppress duplicates

@@ -47,35 +47,37 @@ export function EditorialHero({
         overflow: 'hidden',
       }}
     >
-      {/* Full-bleed background image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={backgroundUrl}
-        alt=""
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: width,
-          height: height,
-          objectFit: 'cover',
-        }}
-      />
+      {/* Full-bleed background image — omitted for solid-color brand cards */}
+      {backgroundUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={backgroundUrl}
+          alt=""
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: width,
+            height: height,
+            objectFit: 'cover',
+          }}
+        />
+      )}
 
-      {/* Gradient panel — creates legibility zone bottom-left.
-          AI is responsible for the background mood.
-          This gradient is the identity boundary. */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          width: `${textZoneWidth}px`,
-          height: `${textZoneHeight}px`,
-          background: `radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%)`,
-          display: 'flex',
-        }}
-      />
+      {/* Gradient legibility panel — only needed over a photo background */}
+      {backgroundUrl && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: `${textZoneWidth}px`,
+            height: `${textZoneHeight}px`,
+            background: `radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%)`,
+            display: 'flex',
+          }}
+        />
+      )}
 
       {/* Logo — anchored top-right */}
       {logoUrl && (

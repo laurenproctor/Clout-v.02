@@ -45,7 +45,7 @@ export interface EditorialHeroProps {
   headline: string          // max 8 words
   subtext?: string          // max 20 words
   authorCredit?: string
-  backgroundUrl: string
+  backgroundUrl?: string     // optional — undefined renders solid brand-surface background
   logoUrl?: string
   fontHeadingUrl?: string   // used by Puppeteer renderer for @font-face; ignored by Satori
   fontBodyUrl?: string      // used by Puppeteer renderer for @font-face; ignored by Satori

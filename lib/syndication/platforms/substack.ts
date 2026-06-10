@@ -14,6 +14,26 @@ export const SUBSTACK_ARTICLE_TYPES: Record<SubstackArticleType, { label: string
   explainer:   { label: 'Explainer',   description: 'Accessible deep-dive that builds understanding from first principles' },
 }
 
+export const SUBSTACK_NOTE_PLATFORM_MODEL = {
+  platform: 'substack-note' as const,
+  rhetoricalEnvironment: `Substack Notes is a short-form feed where writers share observations,
+fragments, and provocations between longer pieces. Readers expect a single clear idea —
+not a thread, not a listicle, not a pitch. The format rewards genuine noticing.`,
+  structuralRules: [
+    "Lead with the observation — no preamble, no 'I've been thinking about...'",
+    'One idea only. Resist the urge to add a second thought.',
+    'Prose only — no bullets, no headers, no numbered lists',
+    'End when the idea is complete, not when a word count is hit',
+  ],
+  lengthTarget: '50–200 words',
+  antiPatterns: [
+    "Do not use LinkedIn hook patterns ('Most people don't realize...')",
+    'Do not add a call to action or subscribe prompt',
+    'Do not summarize — trust the reader',
+    'Do not moralize or editorialize beyond what the observation earns',
+  ],
+}
+
 export const SUBSTACK_PLATFORM_MODEL = {
   platform: 'substack' as const,
   rhetoricalEnvironment: `Substack is a long-form, subscription-native environment where readers arrive with deliberate attention and expect immersive prose. The dominant expectation is a writer with a developed worldview engaging seriously with an idea.

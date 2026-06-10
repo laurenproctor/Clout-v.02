@@ -10,7 +10,7 @@ interface EditorialHeroCardProps {
   headline: string
   subtext?: string
   authorCredit?: string
-  backgroundUrl: string
+  backgroundUrl?: string
   logoUrl?: string
   brand: BrandTokens
   fontHeadingUrl?: string
@@ -162,9 +162,11 @@ export function EditorialHeroCard({
       </head>
       <body>
         <div className="root">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="bg" src={backgroundUrl} alt="" />
-          <div className="gradient-panel" />
+          {backgroundUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="bg" src={backgroundUrl} alt="" />
+          )}
+          {backgroundUrl && <div className="gradient-panel" />}
 
           {logoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
