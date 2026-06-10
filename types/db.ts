@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       analytics_connections: {
@@ -3517,6 +3542,7 @@ export type Database = {
           aspect_ratio: string
           composed_url: string | null
           created_at: string
+          description: string | null
           file_size_bytes: number | null
           generation_group_id: string
           generation_mode: string
@@ -3524,6 +3550,7 @@ export type Database = {
           intent_input_tokens: number | null
           intent_output_tokens: number | null
           mime_type: string
+          name: string | null
           original_url: string
           output_id: string | null
           overlay_payload: Json | null
@@ -3535,6 +3562,7 @@ export type Database = {
           quality_score: number | null
           render_mode: string
           seed: number | null
+          slug: string | null
           status: string
           storage_path: string
           template_id: string | null
@@ -3547,6 +3575,7 @@ export type Database = {
           aspect_ratio?: string
           composed_url?: string | null
           created_at?: string
+          description?: string | null
           file_size_bytes?: number | null
           generation_group_id: string
           generation_mode?: string
@@ -3554,6 +3583,7 @@ export type Database = {
           intent_input_tokens?: number | null
           intent_output_tokens?: number | null
           mime_type?: string
+          name?: string | null
           original_url: string
           output_id?: string | null
           overlay_payload?: Json | null
@@ -3565,6 +3595,7 @@ export type Database = {
           quality_score?: number | null
           render_mode?: string
           seed?: number | null
+          slug?: string | null
           status?: string
           storage_path: string
           template_id?: string | null
@@ -3577,6 +3608,7 @@ export type Database = {
           aspect_ratio?: string
           composed_url?: string | null
           created_at?: string
+          description?: string | null
           file_size_bytes?: number | null
           generation_group_id?: string
           generation_mode?: string
@@ -3584,6 +3616,7 @@ export type Database = {
           intent_input_tokens?: number | null
           intent_output_tokens?: number | null
           mime_type?: string
+          name?: string | null
           original_url?: string
           output_id?: string | null
           overlay_payload?: Json | null
@@ -3595,6 +3628,7 @@ export type Database = {
           quality_score?: number | null
           render_mode?: string
           seed?: number | null
+          slug?: string | null
           status?: string
           storage_path?: string
           template_id?: string | null
@@ -3620,6 +3654,84 @@ export type Database = {
           },
           {
             foreignKeyName: "visual_assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visual_generation_events: {
+        Row: {
+          created_at: string
+          id: string
+          image_id: string
+          logo_repositioned: boolean
+          logo_visibility_score: number | null
+          open_zone: string | null
+          open_zone_confidence: number | null
+          quality_gate_triggered: boolean
+          quality_score: number | null
+          regeneration_requested: boolean
+          rejection_reason: string | null
+          template_id: string | null
+          template_override_used: boolean
+          user_discarded: boolean | null
+          user_downloaded: boolean | null
+          user_published: boolean | null
+          user_regenerated: boolean | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_id: string
+          logo_repositioned?: boolean
+          logo_visibility_score?: number | null
+          open_zone?: string | null
+          open_zone_confidence?: number | null
+          quality_gate_triggered?: boolean
+          quality_score?: number | null
+          regeneration_requested?: boolean
+          rejection_reason?: string | null
+          template_id?: string | null
+          template_override_used?: boolean
+          user_discarded?: boolean | null
+          user_downloaded?: boolean | null
+          user_published?: boolean | null
+          user_regenerated?: boolean | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_id?: string
+          logo_repositioned?: boolean
+          logo_visibility_score?: number | null
+          open_zone?: string | null
+          open_zone_confidence?: number | null
+          quality_gate_triggered?: boolean
+          quality_score?: number | null
+          regeneration_requested?: boolean
+          rejection_reason?: string | null
+          template_id?: string | null
+          template_override_used?: boolean
+          user_discarded?: boolean | null
+          user_downloaded?: boolean | null
+          user_published?: boolean | null
+          user_regenerated?: boolean | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visual_generation_events_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "visual_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visual_generation_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -4287,6 +4399,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       audit_action: [

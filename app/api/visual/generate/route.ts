@@ -223,6 +223,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         assetId:           asset.id,
+        name:              asset.name ?? null,
+        slug:              asset.slug ?? null,
+        description:       asset.description ?? null,
         // composedUrl is the preferred display URL when available (hybrid-overlay);
         // fall back to originalUrl for fully-generated assets.
         url:               assetV2.composedUrl ?? asset.originalUrl,

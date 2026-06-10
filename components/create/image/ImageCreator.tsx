@@ -11,6 +11,9 @@ type GeneratorState = 'idle' | 'generating' | 'done' | 'error'
 
 interface GeneratedResult {
   assetId: string
+  name?: string | null
+  slug?: string | null
+  description?: string | null
   url: string
   backgroundUrl?: string
   composedUrl?: string | null
@@ -221,9 +224,10 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
       const data = await res.json() as GeneratedResult & { aspectRatio?: AspectRatio }
       setResult({ ...data, aspectRatio: params.aspectRatio })
       setDownloadName(
-        params.imageStyle === 'headline-overlay' ? params.headlineText.trim()
-        : params.imageStyle === 'quote-overlay'  ? params.quoteText.trim().slice(0, 60)
-        : params.blogTopic.trim()
+        data.name?.trim() ||
+        (params.imageStyle === 'headline-overlay' ? params.headlineText.trim()
+          : params.imageStyle === 'quote-overlay'  ? params.quoteText.trim().slice(0, 60)
+          : params.blogTopic.trim())
       )
       lastGeneratedParams.current = params
       setGenState('done')
@@ -609,6 +613,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                 prompt={result.prompt}
                 visualIntent={result.visualIntent}
                 assetId={result.assetId}
+                downloadSlug={result.slug}
                 downloadName={downloadName}
               />
             </div>

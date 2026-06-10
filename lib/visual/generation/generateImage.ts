@@ -28,12 +28,69 @@ import { trackGeneration, wasLogoRepositioned } from '../telemetry/track'
 import type { Json } from '@/types/db'
 import type {
   GenerateImageInput,
+  OverlayParams,
   VisualAsset,
   VisualIntent,
+  VisualPlatform,
 } from '../types/visual'
 import type { EditorialHeroProps, QuoteMonolithProps, TemplateId, LogoCorner } from '../types/template'
 
 const PUPPETEER_ENABLED = process.env.ENABLE_PUPPETEER_RENDERING === 'true'
+
+const MAX_NAME_LENGTH = 120
+const MAX_SLUG_LENGTH = 80
+const MAX_DESCRIPTION_LENGTH = 500
+
+const FALLBACK_NAMES: Record<string, string> = {
+  'editorial-hero-linkedin':  'LinkedIn Headline Banner',
+  'editorial-hero-instagram': 'Instagram Headline Banner',
+  'editorial-hero-x':         'X Headline Banner',
+  'quote-monolith-linkedin':  'LinkedIn Quote Card',
+  'quote-monolith-instagram': 'Instagram Quote Card',
+  'quote-monolith-x':         'X Quote Card',
+  'editorial-hero':           'Headline Banner',
+  'quote-monolith':           'Quote Card',
+  'blog':                     'Blog Feature Image',
+  'default':                  'Visual Asset',
+}
+
+function cleanName(input: string): string {
+  return input.replace(/\s+/g, ' ').replace(/[<>:"/\\|?*]+/g, '').trim()
+}
+
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, MAX_SLUG_LENGTH)
+}
+
+function deriveAssetName(opts: {
+  overlayParams?: OverlayParams
+  resolvedIntent: VisualIntent | null
+  keyIdea?: string
+  templateId: string | null
+  platform?: VisualPlatform
+}): string {
+  const { overlayParams, resolvedIntent, keyIdea, templateId, platform } = opts
+
+  if (overlayParams?.headline?.trim()) {
+    return cleanName(overlayParams.headline.trim().slice(0, MAX_NAME_LENGTH))
+  }
+
+  if (overlayParams?.quote?.trim()) {
+    const words = overlayParams.quote.trim().split(/\s+/).slice(0, 8).join(' ')
+    if (words) return cleanName(words)
+  }
+
+  if (keyIdea?.trim()) {
+    return cleanName(keyIdea.trim().slice(0, MAX_NAME_LENGTH))
+  }
+
+  if (resolvedIntent?.visualConcept?.trim()) {
+    return cleanName(resolvedIntent.visualConcept.trim().slice(0, MAX_NAME_LENGTH))
+  }
+
+  const key = templateId && platform ? `${templateId}-${platform}` : templateId ?? 'default'
+  return FALLBACK_NAMES[key] ?? FALLBACK_NAMES['default']
+}
 
 // Extended VisualAsset with Phase 2 fields
 export interface VisualAssetV2 extends VisualAsset {
@@ -418,6 +475,11 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
   // ── Step 9: Persist to visual_assets ──────────────────────────────────────
   const supabase = await createClient()
+
+  const assetName = deriveAssetName({ overlayParams, resolvedIntent, keyIdea, templateId, platform })
+  const assetSlug = slugify(assetName)
+  const assetDescription = resolvedIntent?.visualConcept?.trim().slice(0, MAX_DESCRIPTION_LENGTH) || null
+
   // Cast through unknown to accommodate Phase 2 columns (template_id, composed_url, etc.)
   // that exist in the DB via migration but may not yet be in the generated Supabase types.
   const insertPayload = {
@@ -445,6 +507,9 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     composed_url:         composedUrl,
     template_payload:     templatePayload as unknown as Json | null,
     quality_score:        qualityScore,
+    name:                 assetName,
+    slug:                 assetSlug,
+    description:          assetDescription,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -490,6 +555,9 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
   return {
     id:               row.id,
+    name:             row.name ?? assetName,
+    slug:             row.slug ?? assetSlug,
+    description:      row.description ?? assetDescription,
     workspaceId:      row.workspace_id,
     outputId:         row.output_id,
     parentAssetId:    row.parent_asset_id,

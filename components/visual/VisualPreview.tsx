@@ -14,7 +14,8 @@ interface VisualPreviewProps {
   prompt: string
   visualIntent: VisualIntent | null
   assetId: string
-  downloadName?: string        // content-derived filename (headline, topic, etc.)
+  downloadSlug?: string | null // server-derived slug — used directly as download filename
+  downloadName?: string        // fallback: content-derived name, slugified client-side
 }
 
 const ASPECT_CLASSES: Record<AspectRatio, string> = {
@@ -32,6 +33,7 @@ export function VisualPreview({
   prompt,
   visualIntent,
   assetId,
+  downloadSlug,
   downloadName,
 }: VisualPreviewProps) {
   const [copied, setCopied] = useState(false)
@@ -47,9 +49,10 @@ export function VisualPreview({
   }
 
   function downloadImage() {
-    const slug = downloadName
-      ? downloadName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
-      : `visual-${assetId.slice(0, 8)}`
+    const slug = downloadSlug
+      ?? (downloadName
+        ? downloadName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80)
+        : `visual-${assetId.slice(0, 8)}`)
     const link = document.createElement('a')
     link.href = displayUrl
     link.download = `${slug}.png`

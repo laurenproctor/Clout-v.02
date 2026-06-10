@@ -183,6 +183,9 @@ export interface GenerateImageInput {
 // ─── Persisted asset ────────────────────────────────────────────────────────
 export interface VisualAsset {
   id: string
+  name: string | null
+  slug: string | null
+  description: string | null
   workspaceId: string
   outputId: string | null
   parentAssetId: string | null
