@@ -173,6 +173,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
 
   function isReadyToGenerate(): boolean {
     if (genState === 'generating') return false
+    if (backgroundSource === 'upload' && isUploading) return false
     switch (imageStyle) {
       case 'quote-overlay':   return quoteText.trim().length > 0
       case 'headline-overlay': return headlineText.trim().length > 0
@@ -183,6 +184,14 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   async function handleGenerate() {
     // Snapshot current form values before anything async happens
     const params = getCurrentParams()
+
+    // Guard: if Upload tab is active but no image has been successfully uploaded,
+    // block generation to prevent silent fallback to DALL-E.
+    // Don't set genState('error') — keep the button active so the user can fix and retry.
+    if (params.backgroundSource === 'upload' && !params.uploadedImageUrl) {
+      setError('Please wait for your image to finish uploading, or choose a different background option.')
+      return
+    }
 
     setGenState('generating')
     setError(null)

@@ -139,6 +139,11 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     resolvedIntent = null
   } else if (intentOverride) {
     resolvedIntent = intentOverride
+  } else if (input.suppliedBackgroundUrl) {
+    // Background is user-supplied — no AI image will be generated.
+    // Skipping generateVisualIntent saves Anthropic credits and avoids a
+    // pipeline failure when credits are exhausted.
+    resolvedIntent = null
   } else {
     if (!content || !platform) {
       throw new Error('content and platform are required for content-derived generation')
@@ -190,9 +195,13 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   let finalPrompt: string
   if (promptOverride) {
     finalPrompt = promptOverride
+  } else if (!resolvedIntent) {
+    // No AI intent (prompt-driven mode or supplied background).
+    // Store the overlay text as the reference prompt so the DB row is human-readable.
+    finalPrompt = overlayParams?.headline ?? overlayParams?.quote ?? content ?? 'uploaded background'
   } else {
     finalPrompt = buildImagePrompt({
-      intent:        resolvedIntent!,
+      intent:        resolvedIntent,
       platform,
       aspectRatio,
       styleOverride: brandProfile?.compositionPreference ?? undefined,
