@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Loader2 } from 'lucide-react'
 import { AddSourceModal } from './AddSourceModal'
 import { ConversationPreferences } from './ConversationPreferences'
 import type { ConversationSource, ConversationSourceType } from '@/types/domain'
@@ -39,6 +40,20 @@ interface Props {
 
 export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, onSourceCreated, onFocusTopicAdded }: Props) {
   const [showModal, setShowModal] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshed, setRefreshed] = useState(false)
+
+  async function refreshNow() {
+    setRefreshing(true)
+    setRefreshed(false)
+    try {
+      await fetch('/api/conversations/reprocess', { method: 'POST' })
+      setRefreshed(true)
+      setTimeout(() => setRefreshed(false), 4000)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   async function toggleActive(source: ConversationSource) {
     await fetch(`/api/conversations/sources/${source.id}`, {
@@ -61,9 +76,18 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium">Monitored Sources</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Checked every 3 hours for new conversations.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {refreshed ? 'Fetch started — check Opportunities in a few minutes.' : 'Checked every 3 hours for new conversations.'}
+          </p>
         </div>
-        <Button size="sm" onClick={() => setShowModal(true)}>Add Source</Button>
+        <div className="flex items-center gap-2">
+          {sources.length > 0 && (
+            <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
+              {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Refresh now'}
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setShowModal(true)}>Add Source</Button>
+        </div>
       </div>
 
       {sources.length === 0 ? (
