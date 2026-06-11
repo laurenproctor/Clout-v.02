@@ -10,6 +10,13 @@ function isSubstackUrl(url: string): boolean {
   try { return /\.substack\.com(\/|$)/.test(url.trim()) } catch { return false }
 }
 
+function isRedditUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url.trim())
+    return hostname === 'reddit.com' || hostname === 'www.reddit.com' || hostname === 'old.reddit.com'
+  } catch { return false }
+}
+
 export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -18,6 +25,7 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
   const [error, setError] = useState('')
 
   const showNotesToggle = isSubstackUrl(url)
+  const showRedditHint  = isRedditUrl(url)
 
   async function postSource(sourceUrl: string, sourceTitle: string | null, mode: boolean) {
     const res = await fetch('/api/conversations/sources', {
@@ -79,8 +87,16 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">URL</label>
             <Input value={url} onChange={e => { setUrl(e.target.value); setNotesMode(false) }} autoFocus
-              placeholder="https://stratechery.com or https://foo.substack.com" />
+              placeholder="https://foo.substack.com, https://stratechery.com, or https://reddit.com/r/startups" />
           </div>
+          {showRedditHint && (
+            <p className="text-xs text-muted-foreground -mt-1">
+              Add a subreddit (<code>reddit.com/r/startups</code>), a global search
+              (<code>reddit.com/search?q=saas+pricing</code>), or a subreddit-scoped search
+              (<code>reddit.com/r/startups/search?q=pricing</code>).
+            </p>
+          )}
+
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">
               Display name <span className="font-normal">(optional)</span>

@@ -440,12 +440,12 @@ export interface AssistantSession {
 
 // ─── Conversations ────────────────────────────────────────────────────────────
 
-export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic'
-export type ConversationContentType = 'article' | 'note' | 'post'
+export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic' | 'reddit'
+export type ConversationContentType = 'article' | 'note' | 'post' | 'comment'
 export type ConversationThemeStatus = 'active' | 'cooling' | 'archived'
 export type ConversationOpportunityType =
   | 'comment' | 'note' | 'post' | 'framework'
-  | 'narrative' | 'question' | 'counterpoint' | 'agreement'
+  | 'narrative' | 'question' | 'counterpoint' | 'agreement' | 'pain_point'
 export type ConversationOpportunityStatus =
   | 'active' | 'saved' | 'drafted' | 'published' | 'dismissed' | 'suppressed'
 export type ConversationResponseStatus = 'draft' | 'published' | 'discarded'

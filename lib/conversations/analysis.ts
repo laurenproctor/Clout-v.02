@@ -2,7 +2,7 @@ import { callClaude } from '@/lib/ai/generate'
 import type { ConversationOpportunityType } from '@/types/domain'
 
 const VALID_TYPES: ConversationOpportunityType[] = [
-  'comment', 'note', 'post', 'framework', 'narrative', 'question', 'counterpoint', 'agreement',
+  'comment', 'note', 'post', 'framework', 'narrative', 'question', 'counterpoint', 'agreement', 'pain_point',
 ]
 
 export interface ActiveThemeSummary {
@@ -59,12 +59,19 @@ export function computeOverallScore(
 }
 
 export async function analyzeConversationItem(
-  item: { title: string | null; excerpt: string | null; bodyMarkdown: string | null; sourceUrl: string; publishedAt: string | null; contentType?: string },
+  item: { title: string | null; excerpt: string | null; bodyMarkdown: string | null; sourceUrl: string; publishedAt: string | null; contentType?: string; publication?: string | null },
   context: WorkspaceContext
 ): Promise<AnalysisResult> {
-  const isNote = item.contentType === 'note'
+  const isNote    = item.contentType === 'note'
+  const isReddit  = item.contentType === 'post' && item.publication?.startsWith('r/')
+  const isComment = item.contentType === 'comment'
+
   const content = (item.bodyMarkdown ?? item.excerpt ?? '').slice(0, 800)
-  const contentLabel = isNote ? '[Short-form Note — 50-200 words]\n' : ''
+
+  let contentLabel = ''
+  if (isNote)         contentLabel = '[Short-form Note — 50-200 words]\n'
+  else if (isReddit)  contentLabel = `[Reddit Post — community discussion in ${item.publication}]\n`
+  else if (isComment) contentLabel = `[Reddit Comment — firsthand experience/opinion in ${item.publication ?? 'a subreddit'}]\n`
 
   const result = await callClaude({
     systemPrompt: buildAnalysisSystemPrompt(context),
@@ -83,6 +90,31 @@ Content: ${contentLabel}${content}`,
       let score = opp.opportunityScore
       if (opp.opportunityType === 'note' || opp.opportunityType === 'comment') score += 15
       if (opp.opportunityType === 'framework' || opp.opportunityType === 'post') score -= 10
+      return { ...opp, opportunityScore: clamp(score) }
+    })
+  }
+
+  // Bias for Reddit community posts
+  if (isReddit) {
+    parsed.opportunities = parsed.opportunities.map(opp => {
+      let score = opp.opportunityScore
+      if (opp.opportunityType === 'comment')    score += 15
+      if (opp.opportunityType === 'question')   score += 10
+      if (opp.opportunityType === 'pain_point') score += 15
+      if (opp.opportunityType === 'framework')  score -= 5
+      return { ...opp, opportunityScore: clamp(score) }
+    })
+  }
+
+  // Bias for Reddit comments — firsthand pain points and experiences
+  if (isComment) {
+    parsed.opportunities = parsed.opportunities.map(opp => {
+      let score = opp.opportunityScore
+      if (opp.opportunityType === 'pain_point') score += 20
+      if (opp.opportunityType === 'narrative')  score += 10
+      if (opp.opportunityType === 'comment')    score += 10
+      if (opp.opportunityType === 'framework')  score -= 10
+      if (opp.opportunityType === 'post')       score -= 5
       return { ...opp, opportunityScore: clamp(score) }
     })
   }
@@ -121,7 +153,7 @@ Return a JSON object with:
 - opportunities: array of 0-3 high-value participation opportunities
 
 For each opportunity:
-- opportunityType: one of comment|note|post|framework|narrative|question|counterpoint|agreement
+- opportunityType: one of comment|note|post|framework|narrative|question|counterpoint|agreement|pain_point (pain_point = content reveals a pain your audience has; an opportunity to create content addressing it)
 - title: concise action phrase, max 80 chars (e.g. "Share your SaaS pricing framework in response")
 - explanation: 1-2 sentences on WHY this workspace should participate and WHAT specific value they'd add
 - whyThisMatters: 1 sentence on why this conversation matters NOW — if this article connects to an active theme above, reference that (e.g. "This is one of 4 sources discussing X this week"). Null if no broader context.

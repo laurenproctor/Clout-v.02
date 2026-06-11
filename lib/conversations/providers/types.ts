@@ -4,7 +4,7 @@ export interface NormalizedItem {
   externalId: string
   contentHash: string | null      // SHA-256 of canonicalUrl
   canonicalUrl: string | null     // normalized URL (no UTM params)
-  contentType: 'article' | 'note' | 'post'
+  contentType: 'article' | 'note' | 'post' | 'comment'
   title: string | null
   author: string | null
   authorUrl: string | null

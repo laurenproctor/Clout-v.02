@@ -12,6 +12,7 @@ const TYPE_BADGE: Record<ConversationSourceType, { label: string; cls: string }>
   substack_notes: { label: 'Notes',    cls: 'bg-purple-50 text-purple-700 border-purple-200' },
   rss:            { label: 'RSS',      cls: 'bg-blue-50 text-blue-700 border-blue-200' },
   generic:        { label: 'Web',      cls: 'bg-zinc-50 text-zinc-600 border-zinc-200' },
+  reddit:         { label: 'Reddit',   cls: 'bg-red-50 text-red-700 border-red-200' },
 }
 
 function fetchStatusMessage(status: string | null): string | null {

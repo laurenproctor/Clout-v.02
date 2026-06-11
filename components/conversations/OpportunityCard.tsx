@@ -10,6 +10,7 @@ import { NotePublishPanel } from './NotePublishPanel'
 const TYPE_LABELS: Record<ConversationOpportunityType, string> = {
   comment: 'Comment', note: 'Note', post: 'Post', framework: 'Framework',
   narrative: 'Story', question: 'Question', counterpoint: 'Counterpoint', agreement: 'Agreement',
+  pain_point: 'Pain Point',
 }
 
 const TYPE_COLORS: Record<ConversationOpportunityType, string> = {
@@ -21,6 +22,7 @@ const TYPE_COLORS: Record<ConversationOpportunityType, string> = {
   question: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   counterpoint: 'bg-red-50 text-red-700 border-red-200',
   agreement: 'bg-teal-50 text-teal-700 border-teal-200',
+  pain_point: 'bg-amber-50 text-amber-700 border-amber-200',
 }
 
 interface Props {
