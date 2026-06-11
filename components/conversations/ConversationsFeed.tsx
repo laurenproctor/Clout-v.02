@@ -5,9 +5,10 @@ import { Loader2, CheckCircle2 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { OpportunityCard } from './OpportunityCard'
 import { ConversationThemeCard } from './ConversationThemeCard'
+import { NarrativeCard } from './NarrativeCard'
 import { SourcesTable } from './SourcesTable'
 import { ParticipationHistory } from './ParticipationHistory'
-import type { ConversationOpportunity, ConversationSource, ConversationResponse, ConversationTheme } from '@/types/domain'
+import type { ConversationOpportunity, ConversationSource, ConversationResponse, ConversationTheme, ComputedNarrative } from '@/types/domain'
 
 type PollingState =
   | { status: 'polling'; label: string }
@@ -15,7 +16,9 @@ type PollingState =
   | { status: 'timeout' }
 
 export function ConversationsFeed() {
-  const [tab, setTab] = useState('opportunities')
+  const [tab, setTab] = useState('narratives')
+  const [narratives, setNarratives] = useState<ComputedNarrative[]>([])
+  const [narrativesLoading, setNarrativesLoading] = useState(true)
   const [opportunities, setOpportunities] = useState<ConversationOpportunity[]>([])
   const [themes, setThemes] = useState<ConversationTheme[]>([])
   const [sources, setSources] = useState<ConversationSource[]>([])
@@ -33,6 +36,19 @@ export function ConversationsFeed() {
 
   // Cleanup on unmount
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
+
+  const loadNarratives = useCallback(async () => {
+    setNarrativesLoading(true)
+    try {
+      const res = await fetch('/api/conversations/narratives')
+      if (res.ok) {
+        const json = await res.json() as { narratives: ComputedNarrative[] }
+        setNarratives(json.narratives ?? [])
+      }
+    } finally {
+      setNarrativesLoading(false)
+    }
+  }, [])
 
   const loadOpportunities = useCallback(async () => {
     setLoading(true)
@@ -117,11 +133,12 @@ export function ConversationsFeed() {
   }, [])
 
   useEffect(() => {
-    if (tab === 'opportunities') loadOpportunities()
-    else if (tab === 'themes') loadThemes()
-    else if (tab === 'sources') loadSources()
-    else if (tab === 'history') loadResponses()
-  }, [tab, loadOpportunities, loadThemes, loadSources, loadResponses])
+    if (tab === 'narratives')    loadNarratives()
+    else if (tab === 'opportunities') loadOpportunities()
+    else if (tab === 'themes')   loadThemes()
+    else if (tab === 'sources')  loadSources()
+    else if (tab === 'history')  loadResponses()
+  }, [tab, loadNarratives, loadOpportunities, loadThemes, loadSources, loadResponses])
 
   function removeOpportunity(id: string) {
     setOpportunities(prev => prev.filter(o => o.id !== id))
@@ -133,10 +150,11 @@ export function ConversationsFeed() {
         <div className="border-b px-6 flex-shrink-0">
           <TabsList className="h-10 bg-transparent p-0 gap-0">
             {[
+              { value: 'narratives',    label: 'Narratives',    count: narratives.length },
               { value: 'opportunities', label: 'Opportunities', count: opportunities.length },
-              { value: 'themes', label: 'Themes', count: themes.length },
-              { value: 'sources', label: 'Sources' },
-              { value: 'history', label: 'History' },
+              { value: 'themes',        label: 'Themes',        count: themes.length },
+              { value: 'sources',       label: 'Sources' },
+              { value: 'history',       label: 'History' },
             ].map(t => (
               <TabsTrigger
                 key={t.value}
@@ -153,6 +171,26 @@ export function ConversationsFeed() {
             ))}
           </TabsList>
         </div>
+
+        <TabsContent value="narratives" className="flex-1 overflow-y-auto p-6 mt-0">
+          {narrativesLoading ? (
+            <div className="space-y-3 max-w-2xl">
+              {[1, 2, 3].map(i => <div key={i} className="h-36 rounded-lg bg-muted animate-pulse" />)}
+            </div>
+          ) : narratives.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <p className="text-muted-foreground font-medium">No cross-source narratives yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Narratives emerge when the same topic appears across multiple platforms.
+                Check back after sources have been active for a few days.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-w-2xl">
+              {narratives.map(n => <NarrativeCard key={n.id} narrative={n} />)}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="opportunities" className="flex-1 overflow-y-auto p-6 mt-0">
           {pollingState?.status === 'polling' && (

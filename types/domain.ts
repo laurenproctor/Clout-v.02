@@ -440,7 +440,7 @@ export interface AssistantSession {
 
 // ─── Conversations ────────────────────────────────────────────────────────────
 
-export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic' | 'reddit'
+export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic' | 'reddit' | 'linkedin'
 export type ConversationContentType = 'article' | 'note' | 'post' | 'comment'
 export type ConversationThemeStatus = 'active' | 'cooling' | 'archived'
 export type ConversationOpportunityType =
@@ -568,4 +568,37 @@ export interface ConversationPreferences {
   blockedKeywords: string[]
   minOpportunityScore: number
   mutedSources: string[]
+}
+
+// ─── Narratives ───────────────────────────────────────────────────────────────
+
+export interface ComputedNarrativeSourceSummary {
+  sourceType: ConversationSourceType
+  label: string
+  count: number
+}
+
+export interface ComputedNarrativeOpportunity {
+  id: string
+  title: string
+  opportunityType: ConversationOpportunityType
+  overallScore: number
+  sourceType: ConversationSourceType
+  sourceTitle: string | null
+}
+
+export interface ComputedNarrative {
+  id: string
+  title: string
+  description: string
+  whyThisMatters: string
+  narrativeScore: number
+  velocityPct: number
+  sourceCount: number
+  opportunityCount: number
+  sourceSummary: ComputedNarrativeSourceSummary[]
+  recommendedAction: string
+  topOpportunities: ComputedNarrativeOpportunity[]
+  firstDetectedAt: string | null
+  lastDetectedAt: string | null
 }

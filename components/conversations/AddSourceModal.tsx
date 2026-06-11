@@ -17,6 +17,14 @@ function isRedditUrl(url: string): boolean {
   } catch { return false }
 }
 
+function isLinkedInUrl(url: string): boolean {
+  try {
+    const { hostname, pathname } = new URL(url.trim())
+    if (hostname !== 'linkedin.com' && hostname !== 'www.linkedin.com') return false
+    return pathname.startsWith('/in/') || pathname.startsWith('/company/') || pathname.startsWith('/posts/')
+  } catch { return false }
+}
+
 export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -24,8 +32,9 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const showNotesToggle = isSubstackUrl(url)
-  const showRedditHint  = isRedditUrl(url)
+  const showNotesToggle  = isSubstackUrl(url)
+  const showRedditHint   = isRedditUrl(url)
+  const showLinkedInHint = isLinkedInUrl(url)
 
   async function postSource(sourceUrl: string, sourceTitle: string | null, mode: boolean) {
     const res = await fetch('/api/conversations/sources', {
@@ -81,14 +90,21 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
       <div className="bg-background border rounded-xl shadow-xl w-full max-w-md p-6">
         <h2 className="text-base font-semibold mb-1">Add Source</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Add a Substack publication, RSS feed URL, or any publication homepage.
+          Add a Substack, RSS feed, subreddit, LinkedIn profile, or any publication homepage.
         </p>
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">URL</label>
             <Input value={url} onChange={e => { setUrl(e.target.value); setNotesMode(false) }} autoFocus
-              placeholder="https://foo.substack.com, https://stratechery.com, or https://reddit.com/r/startups" />
+              placeholder="https://reddit.com/r/startups, https://linkedin.com/company/openai, or https://foo.substack.com" />
           </div>
+          {showLinkedInHint && (
+            <p className="text-xs text-muted-foreground -mt-1">
+              Monitor a person (<code>linkedin.com/in/username</code>), a company
+              (<code>linkedin.com/company/name</code>), or a specific post
+              (<code>linkedin.com/posts/…</code>). Only publicly visible content is ingested.
+            </p>
+          )}
           {showRedditHint && (
             <p className="text-xs text-muted-foreground -mt-1">
               Add a subreddit (<code>reddit.com/r/startups</code>), a global search

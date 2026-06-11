@@ -62,16 +62,20 @@ export async function analyzeConversationItem(
   item: { title: string | null; excerpt: string | null; bodyMarkdown: string | null; sourceUrl: string; publishedAt: string | null; contentType?: string; publication?: string | null },
   context: WorkspaceContext
 ): Promise<AnalysisResult> {
-  const isNote    = item.contentType === 'note'
-  const isReddit  = item.contentType === 'post' && item.publication?.startsWith('r/')
-  const isComment = item.contentType === 'comment'
+  const isNote      = item.contentType === 'note'
+  const isReddit    = item.contentType === 'post' && item.publication?.startsWith('r/')
+  const isComment   = item.contentType === 'comment'
+  const isLinkedIn  = (item.contentType === 'post' || item.contentType === 'comment')
+    && (item.publication?.includes('linkedin.com') ?? false)
 
   const content = (item.bodyMarkdown ?? item.excerpt ?? '').slice(0, 800)
 
   let contentLabel = ''
-  if (isNote)         contentLabel = '[Short-form Note — 50-200 words]\n'
-  else if (isReddit)  contentLabel = `[Reddit Post — community discussion in ${item.publication}]\n`
-  else if (isComment) contentLabel = `[Reddit Comment — firsthand experience/opinion in ${item.publication ?? 'a subreddit'}]\n`
+  if (isNote)                                         contentLabel = '[Short-form Note — 50-200 words]\n'
+  else if (isLinkedIn && item.contentType === 'post') contentLabel = '[LinkedIn Post — professional network discussion]\n'
+  else if (isLinkedIn)                                contentLabel = '[LinkedIn Comment — professional perspective]\n'
+  else if (isReddit)                                  contentLabel = `[Reddit Post — community discussion in ${item.publication}]\n`
+  else if (isComment)                                 contentLabel = `[Reddit Comment — firsthand experience/opinion in ${item.publication ?? 'a subreddit'}]\n`
 
   const result = await callClaude({
     systemPrompt: buildAnalysisSystemPrompt(context),
@@ -107,7 +111,7 @@ Content: ${contentLabel}${content}`,
   }
 
   // Bias for Reddit comments — firsthand pain points and experiences
-  if (isComment) {
+  if (isComment && !isLinkedIn) {
     parsed.opportunities = parsed.opportunities.map(opp => {
       let score = opp.opportunityScore
       if (opp.opportunityType === 'pain_point') score += 20
@@ -115,6 +119,19 @@ Content: ${contentLabel}${content}`,
       if (opp.opportunityType === 'comment')    score += 10
       if (opp.opportunityType === 'framework')  score -= 10
       if (opp.opportunityType === 'post')       score -= 5
+      return { ...opp, opportunityScore: clamp(score) }
+    })
+  }
+
+  // Bias for LinkedIn — framework and narrative perform well on professional network
+  if (isLinkedIn) {
+    parsed.opportunities = parsed.opportunities.map(opp => {
+      let score = opp.opportunityScore
+      if (opp.opportunityType === 'comment')    score += 15
+      if (opp.opportunityType === 'pain_point') score += 15
+      if (opp.opportunityType === 'narrative')  score += 10
+      if (opp.opportunityType === 'framework')  score += 5
+      if (opp.opportunityType === 'question')   score += 5
       return { ...opp, opportunityScore: clamp(score) }
     })
   }
