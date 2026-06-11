@@ -21,7 +21,7 @@ interface VisualPreviewProps {
 const ASPECT_CLASSES: Record<AspectRatio, string> = {
   square:    'aspect-square',
   landscape: 'aspect-video',
-  portrait:  'aspect-[9/16]',
+  portrait:  'aspect-[4/5]',
 }
 
 export function VisualPreview({
