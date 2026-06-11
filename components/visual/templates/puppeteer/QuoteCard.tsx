@@ -17,6 +17,7 @@ interface QuoteCardProps {
   fontBodyUrl?: string
   width: number
   height: number
+  overlayOpacity?: number
 }
 
 function fontFaceRule(family: string, url: string | undefined): string {
@@ -41,6 +42,7 @@ export function QuoteCard({
   fontBodyUrl,
   width,
   height,
+  overlayOpacity,
 }: QuoteCardProps) {
   const pad = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
   const logoSize = Math.round(Math.min(width, height) * 0.07)
@@ -89,6 +91,7 @@ export function QuoteCard({
         ${brand.surface}99 60%,
         rgba(0,0,0,0) 100%
       );
+      opacity: ${overlayOpacity ?? 1};
     }
 
     .logo {

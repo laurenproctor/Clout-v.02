@@ -7,7 +7,7 @@ export const SCALE = {
   headline:  68,  // EditorialHero H1
   title:     48,  // QuoteMonolith quote text
   subhead:   24,  // Supporting context
-  body:      18,  // Secondary text
+  body:      28,  // Secondary text (minimum ~14px at preview scale)
   caption:   14,  // Attribution, author credits
   label:     12,  // Tracked caps, labels, sources
 } as const

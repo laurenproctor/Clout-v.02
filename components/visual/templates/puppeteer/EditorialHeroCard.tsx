@@ -6,6 +6,12 @@
 import type { BrandTokens } from '@/lib/visual/types/template'
 import { EDITORIAL_HERO, fitHeadlineSize } from '@/lib/visual/tokens/editorial'
 
+const TEXT_SHADOW: Record<string, string> = {
+  light:  '0 1px 3px rgba(0,0,0,0.20)',
+  medium: '0 2px 8px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.20)',
+  strong: '0 3px 16px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)',
+}
+
 interface EditorialHeroCardProps {
   headline: string
   subtext?: string
@@ -17,6 +23,8 @@ interface EditorialHeroCardProps {
   fontBodyUrl?: string
   width: number
   height: number
+  overlayOpacity?: number
+  textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }
 
 function fontFaceRule(family: string, url: string | undefined): string {
@@ -42,18 +50,21 @@ export function EditorialHeroCard({
   fontBodyUrl,
   width,
   height,
+  overlayOpacity,
+  textShadow,
 }: EditorialHeroCardProps) {
   const pad = Math.max(EDITORIAL_HERO.paddingFloor, Math.round(Math.min(width, height) * EDITORIAL_HERO.paddingRatio))
   const logoHeight = Math.round(Math.min(width, height) * 0.07)
   const logoWidth = Math.round(logoHeight * 3.5)
   const textZoneW = Math.round(width * 0.58)
   const textZoneH = Math.round(height * EDITORIAL_HERO.textZoneHeightRatio)
-  const maxTextW  = Math.round(width * EDITORIAL_HERO.textWidthRatio)
+  // Solid-color cards have no photo on the right — use wider text zone
+  const maxTextW  = Math.round(width * (backgroundUrl ? EDITORIAL_HERO.textWidthRatio : EDITORIAL_HERO.textWidthRatioSolid))
   const availableH = textZoneH - 2 * pad
   const headlineSize = headline
     ? fitHeadlineSize({ headline, subtext, availableHeight: availableH, availableWidth: maxTextW })
     : Math.round(Math.min(width, height) * 0.075)
-  const bodySize = Math.round(Math.min(width, height) * 0.025)
+  const bodySize = Math.max(28, Math.round(Math.min(width, height) * 0.026))
   const labelSize = Math.round(Math.min(width, height) * 0.018)
 
   const css = `
@@ -91,6 +102,7 @@ export function EditorialHeroCard({
       width: ${textZoneW}px;
       height: ${textZoneH}px;
       background: radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%);
+      opacity: ${overlayOpacity ?? 1};
     }
 
     .logo {
@@ -122,10 +134,7 @@ export function EditorialHeroCard({
       color: ${brand.onSurface};
       line-height: 1.05;
       letter-spacing: -0.02em;
-      display: -webkit-box;
-      -webkit-line-clamp: ${EDITORIAL_HERO.lineClamp};
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      ${TEXT_SHADOW[textShadow ?? ''] ? `text-shadow: ${TEXT_SHADOW[textShadow!]};` : ''}
     }
 
     .subtext {
@@ -135,10 +144,7 @@ export function EditorialHeroCard({
       color: ${brand.onSurface};
       opacity: 0.78;
       line-height: 1.6;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      ${TEXT_SHADOW[textShadow ?? ''] ? `text-shadow: ${TEXT_SHADOW[textShadow!]};` : ''}
     }
 
     .credit {

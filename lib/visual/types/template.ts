@@ -49,6 +49,8 @@ export interface EditorialHeroProps {
   logoUrl?: string
   fontHeadingUrl?: string   // used by Puppeteer renderer for @font-face; ignored by Satori
   fontBodyUrl?: string      // used by Puppeteer renderer for @font-face; ignored by Satori
+  overlayOpacity?: number
+  textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }
 
 export interface QuoteMonolithProps {
@@ -59,6 +61,7 @@ export interface QuoteMonolithProps {
   logoUrl?: string
   fontHeadingUrl?: string   // used by Puppeteer renderer for @font-face; ignored by Satori
   fontBodyUrl?: string      // used by Puppeteer renderer for @font-face; ignored by Satori
+  overlayOpacity?: number
 }
 
 export interface StatMonumentProps {
@@ -74,20 +77,24 @@ export interface SplitPanelProps {
   templateId: 'split-panel'
   headline: string          // max 8 words
   subtext?: string
-  backgroundUrl: string
+  backgroundUrl?: string
   logoUrl?: string
   fontHeadingUrl?: string
   fontBodyUrl?: string
+  overlayOpacity?: number
+  textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }
 
 export interface UpperLeftProps {
   templateId: 'upper-left'
   headline: string          // max 8 words
   subtext?: string
-  backgroundUrl: string
+  backgroundUrl?: string
   logoUrl?: string
   fontHeadingUrl?: string
   fontBodyUrl?: string
+  overlayOpacity?: number
+  textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }
 
 export type TemplateProps =

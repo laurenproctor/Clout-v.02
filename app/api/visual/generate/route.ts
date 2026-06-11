@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
     overlayAttribution,
     includeLogo,
     colorScheme,
+    overlayStrength,
+    textShadow,
   } = body as {
     outputId?:                string
     content?:                 string
@@ -89,6 +91,8 @@ export async function POST(req: NextRequest) {
     overlayAttribution?:      string
     includeLogo?:             boolean
     colorScheme?:             'light' | 'dark'
+    overlayStrength?:         'subtle' | 'balanced' | 'strong'
+    textShadow?:              'none' | 'light' | 'medium' | 'strong'
   }
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
@@ -148,6 +152,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Translate overlay strength to numeric opacity ─────────────────────────
+  const OVERLAY_OPACITY: Record<string, number> = { subtle: 0.35, balanced: 0.70, strong: 1.00 }
+  const overlayOpacity = overlayStrength != null ? OVERLAY_OPACITY[overlayStrength] : undefined
+
   // ── Resolve overlay params (headline-overlay compositing) ────────────────
   let overlayParams: OverlayParams | undefined
 
@@ -155,7 +163,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const { data: brand } = await supabase
       .from('brand_profiles')
-      .select('logo_url, logo_url_dark, logo_url_light, primary_color, secondary_color, accent_color, font_heading, font_heading_url, font_body, font_body_url')
+      .select('logo_url, logo_url_dark, logo_url_light, primary_color, secondary_color, accent_color, font_heading, font_heading_url, font_body, font_body_url, style_traits')
       .eq('workspace_id', session.workspaceId)
       .maybeSingle()
 
@@ -170,10 +178,20 @@ export async function POST(req: NextRequest) {
       ? preferSvg(brand?.logo_url_light, brand?.logo_url)
       : preferSvg(brand?.logo_url_dark, brand?.logo_url)
 
+    // Apply brand text capitalization to overlay content (not attribution — that's a name/credit line).
+    const textCap = (brand?.style_traits as Record<string, string> | null)?.text_capitalization
+    function cap(text: string | undefined): string | undefined {
+      if (!text || !textCap || textCap === 'default') return text
+      if (textCap === 'uppercase') return text.toUpperCase()
+      if (textCap === 'title') return text.replace(/\b\w/g, c => c.toUpperCase())
+      if (textCap === 'sentence') return text.charAt(0).toUpperCase() + text.slice(1)
+      return text
+    }
+
     overlayParams = {
-      headline:       overlayHeadline,
-      subtext:        overlaySubtext,
-      quote:          overlayQuote,
+      headline:       cap(overlayHeadline),
+      subtext:        cap(overlaySubtext),
+      quote:          cap(overlayQuote),
       attribution:    overlayAttribution,
       logoUrl:        includeLogo ? resolvedLogoUrl : undefined,
       fontHeading:    brand?.font_heading    ?? undefined,
@@ -184,6 +202,9 @@ export async function POST(req: NextRequest) {
       secondaryColor: brand?.secondary_color ?? undefined,
       accentColor:    brand?.accent_color    ?? undefined,
       colorScheme:    colorScheme ?? 'light',
+      overlayStrength: overlayStrength,
+      overlayOpacity:  overlayOpacity,
+      textShadow:      textShadow ?? undefined,
     }
   }
 
@@ -215,6 +236,7 @@ export async function POST(req: NextRequest) {
     const assetV2 = asset as typeof asset & {
       composedUrl: string | null
       templateId: string | null
+      readabilityRating: string | null
     }
 
     console.info('[visual/generate] generated', {
@@ -239,6 +261,7 @@ export async function POST(req: NextRequest) {
         backgroundUrl:     asset.originalUrl,
         composedUrl:       assetV2.composedUrl ?? null,
         templateId:        assetV2.templateId ?? null,
+        readabilityRating: assetV2.readabilityRating ?? null,
         visualIntent:      asset.visualIntent,
         prompt:            asset.prompt,
         aspectRatio:       asset.aspectRatio,

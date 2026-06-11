@@ -26,7 +26,14 @@ export interface BrandSettings {
     visual_density: 'compact' | 'balanced' | 'spacious'
     color_scheme: 'light' | 'dark'
     texture: 'none' | 'subtle' | 'medium' | 'bold'
+    text_capitalization?: 'default' | 'uppercase' | 'title' | 'sentence'
   }
+}
+
+function resolveCapitalizationStyle(cap: string | undefined): React.CSSProperties['textTransform'] {
+  if (cap === 'uppercase') return 'uppercase'
+  if (cap === 'title')     return 'capitalize'
+  return 'none'
 }
 
 const RADIUS_MAP = {
@@ -144,7 +151,8 @@ export function BrandPreview({ settings, typographySettings, activeCard = 'quote
     ? (settings.logo_url_light ?? settings.logo_url ?? null)
     : (settings.logo_url_dark ?? settings.logo_url ?? null)
 
-  const cardProps = { bg, text, accent, radius, density, headingFont, bodyFont, brandName, logoUrl: resolvedLogoUrl, typography: typographySettings }
+  const capitalization = resolveCapitalizationStyle(settings.style_traits.text_capitalization)
+  const cardProps = { bg, text, accent, radius, density, headingFont, bodyFont, brandName, logoUrl: resolvedLogoUrl, typography: typographySettings, capitalization }
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
@@ -198,13 +206,14 @@ type CardProps = {
   headingFont: string; bodyFont: string; brandName: string
   logoUrl: string | null
   typography?: TypographySettings
+  capitalization?: React.CSSProperties['textTransform']
 }
 
-function QuoteCard({ bg, text, accent, density, headingFont, bodyFont, brandName, logoUrl, typography }: CardProps) {
+function QuoteCard({ bg, text, accent, density, headingFont, bodyFont, brandName, logoUrl, typography, capitalization }: CardProps) {
   return (
     <div style={{ background: bg, padding: density.padding, fontFamily: bodyFont, color: text, height: '100%', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
       <div style={{ width: 24, height: 3, background: accent, borderRadius: 2 }} />
-      <blockquote style={{ ...applyTypo(typography?.h2, headingFont, text), fontSize: 'clamp(1rem, 3vw, 1.5rem)', margin: 0 }}>
+      <blockquote style={{ ...applyTypo(typography?.h2, headingFont, text), fontSize: 'clamp(1rem, 3vw, 1.5rem)', margin: 0, textTransform: capitalization }}>
         "The best ideas come from the intersection of discipline and curiosity."
       </blockquote>
       <div style={{ display: 'flex', alignItems: 'center', gap: density.gap }}>
@@ -228,14 +237,14 @@ function QuoteCard({ bg, text, accent, density, headingFont, bodyFont, brandName
   )
 }
 
-function SocialTile({ bg, text, accent, density, headingFont, bodyFont, brandName, logoUrl, typography }: CardProps) {
+function SocialTile({ bg, text, accent, density, headingFont, bodyFont, brandName, logoUrl, typography, capitalization }: CardProps) {
   return (
     <div style={{ background: bg, fontFamily: bodyFont, color: text, height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ height: '50%', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ ...applyTypo(typography?.h1, headingFont, bg), fontSize: '2rem' }}>01</span>
       </div>
       <div style={{ flex: 1, padding: density.padding, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
-        <p style={{ ...applyTypo(typography?.h2, headingFont, text), fontSize: 'clamp(0.9rem, 2.5vw, 1.2rem)', margin: 0 }}>
+        <p style={{ ...applyTypo(typography?.h2, headingFont, text), fontSize: 'clamp(0.9rem, 2.5vw, 1.2rem)', margin: 0, textTransform: capitalization }}>
           Building in public changes everything
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -252,14 +261,14 @@ function SocialTile({ bg, text, accent, density, headingFont, bodyFont, brandNam
   )
 }
 
-function CarouselCover({ bg, text, accent, density, headingFont, bodyFont, brandName, logoUrl, typography }: CardProps) {
+function CarouselCover({ bg, text, accent, density, headingFont, bodyFont, brandName, logoUrl, typography, capitalization }: CardProps) {
   return (
     <div style={{ background: bg, padding: density.padding, color: text, height: '100%', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
       <div style={{ position: 'absolute', top: '-20%', right: '-20%', width: '60%', height: '60%', borderRadius: '50%', background: accent, opacity: 0.15 }} />
       <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '40%', height: '40%', borderRadius: '50%', background: accent, opacity: 0.1 }} />
       <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
         <div style={{ width: 40, height: 2, background: accent, borderRadius: 2, margin: '0 auto 16px' }} />
-        <h2 style={{ ...applyTypo(typography?.h1, headingFont, text), fontSize: 'clamp(1.2rem, 4vw, 2rem)', margin: 0 }}>
+        <h2 style={{ ...applyTypo(typography?.h1, headingFont, text), fontSize: 'clamp(1.2rem, 4vw, 2rem)', margin: 0, textTransform: capitalization }}>
           5 Lessons From a Year of Building
         </h2>
         <p style={{ fontFamily: bodyFont, color: text, marginTop: density.gap, fontSize: '0.75rem', opacity: 0.6 }}>A thread</p>

@@ -9,6 +9,12 @@ import type { EditorialHeroProps, BrandTokens } from '@/lib/visual/types/templat
 import { SCALE, WEIGHT, LEADING } from '@/lib/visual/tokens/scale'
 import { EDITORIAL_HERO, fitHeadlineSize } from '@/lib/visual/tokens/editorial'
 
+const TEXT_SHADOW: Record<string, string> = {
+  light:  '0 1px 3px rgba(0,0,0,0.20)',
+  medium: '0 2px 8px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.20)',
+  strong: '0 3px 16px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)',
+}
+
 interface EditorialHeroRenderProps extends EditorialHeroProps {
   brand: BrandTokens
   width: number
@@ -24,11 +30,14 @@ export function EditorialHero({
   brand,
   width,
   height,
+  overlayOpacity,
+  textShadow,
 }: EditorialHeroRenderProps) {
   const textZoneWidth  = Math.round(width * 0.58)
   const textZoneHeight = Math.round(height * EDITORIAL_HERO.textZoneHeightRatio)
   const padding    = Math.max(EDITORIAL_HERO.paddingFloor, Math.round(Math.min(width, height) * EDITORIAL_HERO.paddingRatio))
-  const maxWidth   = Math.round(width * EDITORIAL_HERO.textWidthRatio)
+  // Solid-color cards have no photo on the right — use a wider text zone
+  const maxWidth   = Math.round(width * (backgroundUrl ? EDITORIAL_HERO.textWidthRatio : EDITORIAL_HERO.textWidthRatioSolid))
   const availableHeight = textZoneHeight - 2 * padding
   const headlineSize = headline
     ? fitHeadlineSize({ headline, subtext, availableHeight, availableWidth: maxWidth })
@@ -74,6 +83,7 @@ export function EditorialHero({
             width: `${textZoneWidth}px`,
             height: `${textZoneHeight}px`,
             background: `radial-gradient(ellipse 120% 100% at 0% 100%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%)`,
+            opacity: overlayOpacity ?? 1,
             display: 'flex',
           }}
         />
@@ -129,10 +139,7 @@ export function EditorialHero({
               color: brand.onSurface,
               lineHeight: LEADING.headline,
               letterSpacing: '-0.02em',
-              display: '-webkit-box',
-              WebkitLineClamp: 5,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              textShadow: TEXT_SHADOW[textShadow ?? ''] ?? undefined,
             }}
           >
             {headline}
@@ -148,10 +155,7 @@ export function EditorialHero({
               color: brand.onSurface,
               opacity: 0.78,
               lineHeight: LEADING.body,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              textShadow: TEXT_SHADOW[textShadow ?? ''] ?? undefined,
             }}
           >
             {subtext}

@@ -9,11 +9,10 @@ export const EDITORIAL_HERO = {
   textZoneHeightRatio: 0.65,  // fraction of canvas height allocated to gradient + text zone
   paddingFloor:        72,    // minimum px from canvas edge to text block
   paddingRatio:        0.08,  // scales padding on larger canvases
-  textWidthRatio:      0.42,  // max text block width as fraction of canvas width
-  headlineMinScale:    0.72,  // never shrink headline below 72% of base size (~49px at 68px base)
+  textWidthRatio:      0.42,  // max text block width as fraction of canvas width (when background image present)
+  textWidthRatioSolid: 0.65,  // wider text zone for solid-color cards (no photo to protect)
+  headlineMinScale:    0.65,  // never shrink headline below 65% of base size (~44px at 68px base)
   headlineTargetLines: 3,     // preferred max lines before font shrinks
-  headlineMaxLines:    4,     // hard max enforced at render time via -webkit-line-clamp
-  lineClamp:           4,     // -webkit-line-clamp value for Puppeteer CSS
   gap:                 16,    // px between headline and subtext elements
 } as const
 

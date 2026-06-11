@@ -42,6 +42,7 @@ const DEFAULT_BRAND: BrandSettings = {
     visual_density: 'balanced',
     color_scheme: 'light',
     texture: 'none',
+    text_capitalization: 'default',
   },
 }
 
@@ -563,6 +564,32 @@ export default function BrandSettingsPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* Text Capitalization */}
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">Text Capitalization</label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {([
+                      { value: 'default',   label: 'Default' },
+                      { value: 'uppercase', label: 'ALL CAPS' },
+                      { value: 'title',     label: 'Title Case' },
+                      { value: 'sentence',  label: 'Sentence case' },
+                    ] as const).map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => updateStyleTrait('text_capitalization' as keyof StyleTraits, value)}
+                        className={`rounded px-3 py-1.5 text-xs font-medium transition-colors border ${
+                          (brand.style_traits.text_capitalization ?? 'default') === value
+                            ? 'border-zinc-800 bg-zinc-800 text-white'
+                            : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
             </>

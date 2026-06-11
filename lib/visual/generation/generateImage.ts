@@ -19,10 +19,11 @@ import { selectTemplate, inferContentType } from '../templates/selector'
 import { getTemplateSpec } from '../templates/registry'
 import { buildBrandTokens } from '../brand/buildBrandTokens'
 import { normalizeBrandIdentity } from '../brand/normalizeBrandIdentity'
-import { loadFontsForSatori } from '../rendering/fonts'
+import { loadFontsForSatori, resolveGoogleFontWoff2Url } from '../rendering/fonts'
 import { renderTemplate } from '../rendering'
 import { extractTemplateProps } from './extractTemplateProps'
 import { scoreImageQuality, IMAGE_QUALITY_THRESHOLD } from './scoreImageQuality'
+import { scoreReadabilityLocal } from './scoreReadability'
 import { getPlatformSize } from '../tokens/sizes'
 import { trackGeneration, wasLogoRepositioned } from '../telemetry/track'
 import type { Json } from '@/types/db'
@@ -98,6 +99,7 @@ export interface VisualAssetV2 extends VisualAsset {
   composedUrl: string | null
   templatePayload: Record<string, unknown> | null
   qualityScore: number | null
+  readabilityRating: string | null
 }
 
 export async function generateImage(input: GenerateImageInput): Promise<VisualAssetV2> {
@@ -341,6 +343,25 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   }
 
   // ── Step 7: Upload background to Storage ──────────────────────────────────
+  // Fetch buffer once — used for readability scoring and to avoid a second fetch in the render path.
+  let imageBuffer: Buffer | null = null
+  if (generatedProviderUrl !== null && !generatedProviderUrl.startsWith('data:')) {
+    try {
+      const res = await fetch(generatedProviderUrl)
+      if (res.ok) imageBuffer = Buffer.from(await res.arrayBuffer())
+    } catch { /* fall through — upload will fetch independently */ }
+  }
+
+  // Score readability from buffer before upload (no extra network request)
+  let readabilityRating: string | null = null
+  if (imageBuffer && hasOverlayContent && backgroundMode === 'generated') {
+    const activeZone = templateSpec?.compositionZone ?? 'bottom-left'
+    try {
+      const score = await scoreReadabilityLocal(imageBuffer, activeZone)
+      readabilityRating = score.rating
+    } catch { /* non-fatal — generation succeeds without a score */ }
+  }
+
   const upload = generatedProviderUrl !== null
     ? await uploadImageFromUrl({ providerUrl: generatedProviderUrl, workspaceId, assetId, subfolder: 'backgrounds' })
     : null
@@ -357,6 +378,16 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
       if (hasOverlayContent && overlayParams) {
         // ── Overlay path: use user's exact headline/subtext/quote/logo, skip Claude extraction ──
+
+        // Resolve actual .woff2 URLs for brand fonts.
+        // brand_profiles stores the font NAME but no URL for curated/searched Google Fonts.
+        // Without a URL, Satori has no ArrayBuffer to load and Puppeteer's @font-face is empty —
+        // both silently fall back to system-ui. Fetching the CSS2 API gives us the real file URL.
+        const [resolvedFontHeadingUrl, resolvedFontBodyUrl] = await Promise.all([
+          overlayParams.fontHeadingUrl ?? resolveGoogleFontWoff2Url(overlayParams.fontHeading, 700),
+          overlayParams.fontBodyUrl    ?? resolveGoogleFontWoff2Url(overlayParams.fontBody,    400),
+        ])
+
         const overlayTemplateProps: EditorialHeroProps | QuoteMonolithProps = overlayParams.quote
           ? ({
               templateId:     'quote-monolith',
@@ -364,8 +395,9 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               attribution:    overlayParams.attribution,
               backgroundUrl:  upload?.publicUrl,
               logoUrl:        overlayParams.logoUrl,
-              fontHeadingUrl: overlayParams.fontHeadingUrl,
-              fontBodyUrl:    overlayParams.fontBodyUrl,
+              fontHeadingUrl: resolvedFontHeadingUrl ?? undefined,
+              fontBodyUrl:    resolvedFontBodyUrl    ?? undefined,
+              overlayOpacity: overlayParams.overlayOpacity,
             } satisfies QuoteMonolithProps)
           : ({
               templateId:     'editorial-hero',
@@ -373,8 +405,10 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               subtext:        overlayParams.subtext,
               backgroundUrl:  upload?.publicUrl,
               logoUrl:        overlayParams.logoUrl,
-              fontHeadingUrl: overlayParams.fontHeadingUrl,
-              fontBodyUrl:    overlayParams.fontBodyUrl,
+              fontHeadingUrl: resolvedFontHeadingUrl ?? undefined,
+              fontBodyUrl:    resolvedFontBodyUrl    ?? undefined,
+              overlayOpacity: overlayParams.overlayOpacity,
+              textShadow:     overlayParams.textShadow,
             } satisfies EditorialHeroProps)
 
         templatePayload = overlayTemplateProps as unknown as Record<string, unknown>
@@ -400,17 +434,20 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         const fonts = PUPPETEER_ENABLED ? [] : await loadFontsForSatori({
           fontHeading:    brandTokens.fontHeading,
           fontBody:       brandTokens.fontBody,
-          fontHeadingUrl: overlayParams.fontHeadingUrl ?? undefined,
-          fontBodyUrl:    overlayParams.fontBodyUrl    ?? undefined,
+          fontHeadingUrl: resolvedFontHeadingUrl ?? undefined,
+          fontBodyUrl:    resolvedFontBodyUrl    ?? undefined,
         })
 
-        // For Satori: pre-resolve images to data URIs so the renderer never makes
-        // outbound network requests. gpt-image-1 already returns base64; use it directly.
-        // Puppeteer can load URLs natively so skip this for that path.
+        // Pre-resolve all images to data URIs before rendering.
+        // Satori cannot make outbound network requests — data URIs are required.
+        // Puppeteer uses waitUntil:'domcontentloaded' + document.fonts.ready, which
+        // waits for fonts but NOT images — raw URLs cause a race where Chromium takes
+        // the screenshot before the background/logo has loaded. Embedding as data URIs
+        // avoids the race for both renderers.
         let renderBackgroundUrl: string | undefined = upload?.publicUrl
         let renderLogoUrl: string | undefined = overlayParams.logoUrl
 
-        if (!PUPPETEER_ENABLED && upload?.publicUrl) {
+        if (upload?.publicUrl) {
           if (generatedProviderUrl?.startsWith('data:')) {
             renderBackgroundUrl = generatedProviderUrl
           } else {
@@ -423,21 +460,22 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               }
             } catch { /* fall through to public URL */ }
           }
-          if (overlayParams.logoUrl) {
-            try {
-              const logoFetch = await fetch(overlayParams.logoUrl)
-              if (logoFetch.ok) {
-                const logoBuf = Buffer.from(await logoFetch.arrayBuffer())
-                const logoMime = (logoFetch.headers.get('content-type') ?? 'image/png').split(';')[0]
-                renderLogoUrl = `data:${logoMime};base64,${logoBuf.toString('base64')}`
-              }
-            } catch { /* fall through to URL */ }
-          }
+        }
+
+        if (overlayParams.logoUrl) {
+          try {
+            const logoFetch = await fetch(overlayParams.logoUrl)
+            if (logoFetch.ok) {
+              const logoBuf = Buffer.from(await logoFetch.arrayBuffer())
+              const logoMime = (logoFetch.headers.get('content-type') ?? 'image/png').split(';')[0]
+              renderLogoUrl = `data:${logoMime};base64,${logoBuf.toString('base64')}`
+            }
+          } catch { /* fall through to URL */ }
         }
 
         const renderProps: EditorialHeroProps | QuoteMonolithProps = overlayParams.quote
-          ? ({ ...(overlayTemplateProps as QuoteMonolithProps), backgroundUrl: renderBackgroundUrl, logoUrl: renderLogoUrl })
-          : ({ ...(overlayTemplateProps as EditorialHeroProps), backgroundUrl: renderBackgroundUrl, logoUrl: renderLogoUrl })
+          ? ({ ...(overlayTemplateProps as QuoteMonolithProps), backgroundUrl: renderBackgroundUrl, logoUrl: renderLogoUrl } satisfies QuoteMonolithProps)
+          : ({ ...(overlayTemplateProps as EditorialHeroProps), backgroundUrl: renderBackgroundUrl, logoUrl: renderLogoUrl } satisfies EditorialHeroProps)
 
         const pngBuffer = await renderTemplate(templateSpec, renderProps, brandTokens, size.width, size.height, fonts)
         const composedUpload = await uploadComposedPng({ pngBuffer, workspaceId, assetId })
@@ -534,6 +572,16 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     name:                 assetName,
     slug:                 assetSlug,
     description:          assetDescription,
+    generation_context:   {
+      backgroundMode:    backgroundMode,
+      preferredTextZone: null,
+      overlayStrength:   overlayParams?.overlayStrength ?? null,
+      overlayOpacity:    overlayParams?.overlayOpacity ?? null,
+      textShadow:        overlayParams?.textShadow ?? null,
+      colorScheme:       overlayParams?.colorScheme ?? 'light',
+      aspectRatio:       aspectRatio,
+      readabilityRating: readabilityRating,
+    } as unknown as Json,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -601,9 +649,10 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     status:           row.status as VisualAsset['status'],
     createdAt:        row.created_at,
     // Phase 2 fields
-    templateId:      (row as Record<string, unknown>).template_id as string | null,
-    composedUrl:     (row as Record<string, unknown>).composed_url as string | null,
-    templatePayload: (row as Record<string, unknown>).template_payload as Record<string, unknown> | null,
-    qualityScore:    (row as Record<string, unknown>).quality_score as number | null,
+    templateId:        (row as Record<string, unknown>).template_id as string | null,
+    composedUrl:       (row as Record<string, unknown>).composed_url as string | null,
+    templatePayload:   (row as Record<string, unknown>).template_payload as Record<string, unknown> | null,
+    qualityScore:      (row as Record<string, unknown>).quality_score as number | null,
+    readabilityRating: readabilityRating,
   }
 }

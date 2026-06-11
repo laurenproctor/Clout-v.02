@@ -18,10 +18,26 @@ interface GeneratedResult {
   backgroundUrl?: string
   composedUrl?: string | null
   templateId?: string | null
+  readabilityRating?: 'excellent' | 'good' | 'fair' | 'poor' | null
   visualIntent: VisualIntent | null
   prompt: string
   aspectRatio: AspectRatio
   generationGroupId: string
+}
+
+interface GenerationContext {
+  backgroundUrl: string
+  templateId: string | null
+  prompt: string | null
+  backgroundMode: 'generated' | 'uploaded' | 'solid'
+  imageStyle: string
+  aspectRatio: string
+  colorScheme: 'light' | 'dark'
+  includeLogo: boolean
+  preferredTextZone: string | null
+  overlayStrength: 'subtle' | 'balanced' | 'strong'
+  textShadow: 'none' | 'light' | 'medium' | 'strong'
+  readabilityRating: 'excellent' | 'good' | 'fair' | 'poor' | null
 }
 
 interface GenerationParams {
@@ -81,6 +97,9 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   const [includeLogo, setIncludeLogo] = useState(false)
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light')
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('landscape')
+  const [overlayStrength, setOverlayStrength] = useState<'subtle' | 'balanced' | 'strong'>('balanced')
+  const [textShadow, setTextShadow] = useState<'none' | 'light' | 'medium' | 'strong'>('none')
+  const [generationContext, setGenerationContext] = useState<GenerationContext | null>(null)
   const [genState, setGenState] = useState<GeneratorState>('idle')
   const [result, setResult] = useState<GeneratedResult | null>(null)
   const [downloadName, setDownloadName] = useState('')
@@ -194,6 +213,8 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
     }
 
     setGenState('generating')
+    setResult(null)
+    setGenerationContext(null)
     setError(null)
 
     try {
@@ -226,6 +247,10 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
         body.includeLogo = params.includeLogo
         body.colorScheme = params.colorScheme
       }
+      if (params.backgroundSource !== 'none') {
+        body.overlayStrength = overlayStrength
+        if (textShadow !== 'none') body.textShadow = textShadow
+      }
 
       const res = await fetch('/api/visual/generate', {
         method: 'POST',
@@ -246,11 +271,78 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
           : params.imageStyle === 'quote-overlay'  ? params.quoteText.trim().slice(0, 60)
           : params.blogTopic.trim())
       )
+      setGenerationContext({
+        backgroundUrl:    data.backgroundUrl ?? data.url,
+        templateId:       data.templateId    ?? null,
+        prompt:           data.prompt        ?? null,
+        backgroundMode:   params.backgroundSource === 'none' ? 'solid' : params.backgroundSource === 'upload' ? 'uploaded' : 'generated',
+        imageStyle:       params.imageStyle,
+        aspectRatio:      params.aspectRatio,
+        colorScheme:      params.colorScheme,
+        includeLogo:      params.includeLogo,
+        preferredTextZone: null,
+        overlayStrength,
+        textShadow,
+        readabilityRating: (data.readabilityRating ?? null) as 'excellent' | 'good' | 'fair' | 'poor' | null,
+      })
       lastGeneratedParams.current = params
       setGenState('done')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
       setGenState('error')
+    }
+  }
+
+  async function handleStyleUpdate(overrides?: {
+    overlayStrength?: 'subtle' | 'balanced' | 'strong'
+    textShadow?: 'none' | 'light' | 'medium' | 'strong'
+  }) {
+    if (!generationContext) return
+    setResult(null)
+    setGenState('generating')
+
+    const effectiveStrength = overrides?.overlayStrength ?? overlayStrength
+    const effectiveShadow   = overrides?.textShadow      ?? textShadow
+
+    try {
+      const body: Record<string, unknown> = {
+        backgroundMode:       'uploaded',
+        suppliedBackgroundUrl: generationContext.backgroundUrl,
+        aspectRatio,
+        colorScheme,
+        includeLogo,
+        overlayStrength:      effectiveStrength,
+      }
+      if (effectiveShadow !== 'none') body.textShadow = effectiveShadow
+      if (imageStyle === 'headline-overlay') {
+        body.overlayHeadline = headlineText
+        if (subtext.trim()) body.overlaySubtext = subtext.trim()
+      } else if (imageStyle === 'quote-overlay') {
+        body.overlayQuote = quoteText
+        if (attribution.trim()) body.overlayAttribution = attribution.trim()
+      }
+
+      const res = await fetch('/api/visual/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'Update failed')
+      }
+      const data = await res.json() as GeneratedResult
+      setResult({ ...data, aspectRatio })
+      setGenerationContext(prev => prev ? {
+        ...prev,
+        backgroundUrl:   data.backgroundUrl ?? prev.backgroundUrl,
+        overlayStrength: effectiveStrength,
+        textShadow:      effectiveShadow,
+      } : null)
+      setGenState('done')
+    } catch (err) {
+      setGenState('error')
+      setError(err instanceof Error ? err.message : 'Style update failed')
     }
   }
 
@@ -565,6 +657,54 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
             </div>
           </div>
 
+          {/* Overlay strength — only when a background image is used */}
+          {backgroundSource !== 'none' && (imageStyle === 'headline-overlay' || imageStyle === 'quote-overlay') && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-zinc-600">Overlay Strength</p>
+              <div className="flex gap-1">
+                {(['subtle', 'balanced', 'strong'] as const).map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setOverlayStrength(s)}
+                    className={cn(
+                      'flex-1 py-1.5 text-xs rounded-md border capitalize transition-colors',
+                      overlayStrength === s
+                        ? 'bg-zinc-900 text-white border-zinc-900'
+                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-400'
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Text shadow — only when a background image is used */}
+          {backgroundSource !== 'none' && (imageStyle === 'headline-overlay' || imageStyle === 'quote-overlay') && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-zinc-600">Text Shadow</p>
+              <div className="flex gap-1">
+                {(['none', 'light', 'medium', 'strong'] as const).map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setTextShadow(s)}
+                    className={cn(
+                      'flex-1 py-1.5 text-xs rounded-md border capitalize transition-colors',
+                      textShadow === s
+                        ? 'bg-zinc-900 text-white border-zinc-900'
+                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-400'
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Logo toggle */}
           {logoUrl && (
             <label className="flex cursor-pointer items-center gap-2.5">
@@ -620,7 +760,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
           )}
 
           {(genState === 'done' || genState === 'error') && result && (
-            <div className="w-full">
+            <div className="w-full space-y-3">
               <VisualPreview
                 url={result.url}
                 backgroundUrl={result.backgroundUrl}
@@ -633,6 +773,41 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                 downloadSlug={result.slug}
                 downloadName={downloadName}
               />
+
+              {generationContext?.readabilityRating && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-zinc-400">Readability:</span>
+                  <span className={cn(
+                    'font-medium',
+                    generationContext.readabilityRating === 'poor' || generationContext.readabilityRating === 'fair'
+                      ? 'text-amber-500'
+                      : 'text-green-600'
+                  )}>
+                    {{ excellent: 'Excellent', good: 'Good', fair: 'Fair', poor: 'Poor' }[generationContext.readabilityRating]}
+                  </span>
+                </div>
+              )}
+
+              {genState === 'done' && generationContext && (imageStyle === 'headline-overlay' || imageStyle === 'quote-overlay') && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleStyleUpdate()}
+                    className="flex-1 rounded-md border border-zinc-200 py-2 px-3 text-xs text-zinc-600 hover:border-zinc-400 transition-colors"
+                  >
+                    Update Style
+                  </button>
+                  {backgroundSource !== 'none' && (
+                    <button
+                      type="button"
+                      onClick={() => handleStyleUpdate({ overlayStrength: 'strong', textShadow: 'medium' })}
+                      className="flex-1 rounded-md border border-zinc-200 py-2 px-3 text-xs text-zinc-600 hover:border-zinc-400 transition-colors"
+                    >
+                      Improve Readability
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

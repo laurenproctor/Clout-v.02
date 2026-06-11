@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
+const ONBOARDING_SLUG_KEY = 'onboarding-workspace-slug'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6
@@ -139,8 +141,23 @@ export default function OnboardingPage() {
   const [editedDraft, setEditedDraft] = useState('')
   const [generatingLabel, setGeneratingLabel] = useState('Building your strategy…')
 
+  // Track workspace slug so we can redirect correctly after onboarding.
+  // Stored in both state (for renders) and a ref (so async callbacks see the
+  // latest value without waiting for a re-render cycle to settle).
+  const [workspaceSlug, setWorkspaceSlug] = useState<string | null>(null)
+  const workspaceSlugRef = useRef<string | null>(null)
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Hydrate slug from sessionStorage so onboarding survives page refreshes.
+  useEffect(() => {
+    const saved = sessionStorage.getItem(ONBOARDING_SLUG_KEY)
+    if (saved) {
+      setWorkspaceSlug(saved)
+      workspaceSlugRef.current = saved
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -210,6 +227,16 @@ export default function OnboardingPage() {
       const d = await res.json().catch(() => ({}))
       console.warn(`Onboarding step ${stepName}:`, d.error)
     }
+    return res.json().catch(() => ({}))
+  }
+
+  function redirectAfterOnboarding() {
+    const slug = workspaceSlugRef.current ?? workspaceSlug
+    const destination = slug ? `/${slug}/welcome` : '/'
+    sessionStorage.removeItem(ONBOARDING_SLUG_KEY)
+    // Fallback to root. Root resolves the user's workspace
+    // from the database and redirects appropriately.
+    router.push(destination)
   }
 
   async function next() {
@@ -218,7 +245,16 @@ export default function OnboardingPage() {
 
     try {
       const payload = stepPayload(step)
-      if (payload) await postStep(payload.stepName, payload.data)
+      if (payload) {
+        const result = await postStep(payload.stepName, payload.data)
+        // Capture the workspace slug from Step 1 so all redirect paths can use it.
+        if (step === 1 && result?.workspace?.slug) {
+          const slug = result.workspace.slug as string
+          setWorkspaceSlug(slug)
+          workspaceSlugRef.current = slug
+          sessionStorage.setItem(ONBOARDING_SLUG_KEY, slug)
+        }
+      }
 
       if (step === 6) {
         await runGeneration()
@@ -239,7 +275,7 @@ export default function OnboardingPage() {
       if (payload) await postStep(payload.stepName, payload.data)
     } catch { /* non-fatal */ }
     setLoading(false)
-    router.push('/dashboard')
+    redirectAfterOnboarding()
   }
 
   async function runGeneration() {
@@ -260,7 +296,7 @@ export default function OnboardingPage() {
     // 10s timeout fallback
     timeoutRef.current = setTimeout(() => {
       if (intervalRef.current) clearInterval(intervalRef.current)
-      router.push('/dashboard')
+      redirectAfterOnboarding()
     }, 10000)
 
     try {
@@ -274,12 +310,12 @@ export default function OnboardingPage() {
         setEditedDraft(data.draftPost ?? '')
         setPageState('results')
       } else {
-        router.push('/dashboard')
+        redirectAfterOnboarding()
       }
     } catch {
       if (intervalRef.current) clearInterval(intervalRef.current)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      router.push('/dashboard')
+      redirectAfterOnboarding()
     }
   }
 
@@ -391,13 +427,13 @@ export default function OnboardingPage() {
 
         <div className="flex items-center justify-between">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={redirectAfterOnboarding}
             className="text-sm text-zinc-400 hover:text-zinc-700 transition-colors"
           >
             Skip, take me to the dashboard
           </button>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={redirectAfterOnboarding}
             className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
           >
             Enter dashboard →

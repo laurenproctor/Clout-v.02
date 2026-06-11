@@ -5,17 +5,26 @@
 
 import type { BrandTokens } from '@/lib/visual/types/template'
 import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
+import { fitHeadlineSize } from '@/lib/visual/tokens/editorial'
+
+const TEXT_SHADOW: Record<string, string> = {
+  light:  '0 1px 3px rgba(0,0,0,0.20)',
+  medium: '0 2px 8px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.20)',
+  strong: '0 3px 16px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)',
+}
 
 interface SplitPanelCardProps {
   headline: string
   subtext?: string
-  backgroundUrl: string
+  backgroundUrl?: string
   logoUrl?: string
   brand: BrandTokens
   fontHeadingUrl?: string
   fontBodyUrl?: string
   width: number
   height: number
+  overlayOpacity?: number
+  textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }
 
 function fontFaceRule(family: string, url: string | undefined): string {
@@ -40,13 +49,18 @@ export function SplitPanelCard({
   fontBodyUrl,
   width,
   height,
+  overlayOpacity,
+  textShadow,
 }: SplitPanelCardProps) {
   const pad = Math.max(SAFE_ZONE.headlineFloor, Math.round(Math.min(width, height) * SAFE_ZONE.headlineRatio))
   const logoHeight = Math.round(Math.min(width, height) * 0.07)
   const logoWidth = Math.round(logoHeight * 3.5)
   const textZoneW = Math.round(width * 0.42)
-  const headlineSize = Math.round(Math.min(width, height) * 0.075)
-  const bodySize = Math.round(Math.min(width, height) * 0.025)
+  const maxTextW = Math.round(textZoneW - pad * 1.5)
+  const headlineSize = headline
+    ? fitHeadlineSize({ headline, subtext, availableHeight: height - pad * 2, availableWidth: maxTextW })
+    : Math.round(Math.min(width, height) * 0.075)
+  const bodySize = Math.max(28, Math.round(Math.min(width, height) * 0.026))
 
   const css = `
     ${fontFaceRule(brand.fontHeading, fontHeadingUrl)}
@@ -83,6 +97,7 @@ export function SplitPanelCard({
       width: ${textZoneW}px;
       height: ${height}px;
       background: radial-gradient(ellipse 120% 100% at 100% 50%, ${brand.overlay} 0%, ${brand.overlay}80 45%, rgba(0,0,0,0) 100%);
+      opacity: ${overlayOpacity ?? 1};
     }
 
     .logo {
@@ -100,7 +115,7 @@ export function SplitPanelCard({
       top: 50%;
       right: ${pad}px;
       transform: translateY(-50%);
-      max-width: ${Math.round(textZoneW - pad * 1.5)}px;
+      max-width: ${maxTextW}px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -114,10 +129,7 @@ export function SplitPanelCard({
       color: ${brand.onSurface};
       line-height: 1.05;
       letter-spacing: -0.02em;
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      ${TEXT_SHADOW[textShadow ?? ''] ? `text-shadow: ${TEXT_SHADOW[textShadow!]};` : ''}
     }
 
     .subtext {
@@ -127,10 +139,7 @@ export function SplitPanelCard({
       color: ${brand.onSurface};
       opacity: 0.78;
       line-height: 1.6;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      ${TEXT_SHADOW[textShadow ?? ''] ? `text-shadow: ${TEXT_SHADOW[textShadow!]};` : ''}
     }
   `
 
@@ -142,9 +151,11 @@ export function SplitPanelCard({
       </head>
       <body>
         <div className="root">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="bg" src={backgroundUrl} alt="" />
-          <div className="gradient-panel" />
+          {backgroundUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="bg" src={backgroundUrl} alt="" />
+          )}
+          {backgroundUrl && <div className="gradient-panel" />}
 
           {logoUrl && (
             // eslint-disable-next-line @next/next/no-img-element

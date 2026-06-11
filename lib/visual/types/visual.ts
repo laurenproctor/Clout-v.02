@@ -153,6 +153,9 @@ export interface OverlayParams {
   secondaryColor?: string
   accentColor?: string
   colorScheme?: 'light' | 'dark'
+  overlayStrength?: 'subtle' | 'balanced' | 'strong'  // UX label; translated to overlayOpacity in route
+  overlayOpacity?:  number                             // 0.0–1.0, preferred internal form
+  textShadow?:      'none' | 'light' | 'medium' | 'strong'
   logoCorner?: import('./template').LogoCorner  // vision-selected corner; undefined = template default
 }
 
