@@ -7,6 +7,20 @@ import type { ConversationProvider, NormalizedItem } from './types'
 
 const MAX_BODY_CHARS = 20_000
 
+// 'both' reserved for Phase 2 authenticated fetch
+type SubstackMode = 'articles' | 'notes'
+
+export function isSubstackNoteUrl(url: string): boolean {
+  // Substack Note URL patterns. Verify against real publications before updating.
+  // Current patterns: {pub}.substack.com/note/{slug} and /notes/ prefix
+  try {
+    const { pathname } = new URL(url)
+    return pathname.startsWith('/note/') || pathname.startsWith('/notes/')
+  } catch {
+    return false
+  }
+}
+
 function getBylinePublication(post: SubstackApiListPost) {
   const byline = post.publishedBylines?.[0]
   const users = byline?.publicationUsers ?? []
@@ -17,6 +31,8 @@ function getBylinePublication(post: SubstackApiListPost) {
 export class SubstackProvider implements ConversationProvider {
   sourceType = 'substack' as const
 
+  constructor(private mode: SubstackMode = 'articles') {}
+
   canHandle(url: string): boolean {
     try { return new URL(url).hostname.endsWith('.substack.com') } catch { return false }
   }
@@ -24,74 +40,104 @@ export class SubstackProvider implements ConversationProvider {
   async fetch(sourceUrl: string): Promise<NormalizedItem[]> {
     const { hostname, origin } = new URL(sourceUrl)
 
-    // Tier 1: Substack API
-    const apiPosts = await fetchSubstackApiList(origin)
-    if (apiPosts.length > 0) {
-      return apiPosts
-        .filter(p => p.audience !== 'only_paid')
-        .slice(0, 15)
-        .map(p => {
-          const canonical = p.canonical_url ?? `${origin}/p/${p.slug}`
-          const pub = getBylinePublication(p)
-          const author = (p.publishedBylines ?? [])
-            .map(b => b.name)
-            .filter(Boolean)
-            .join(', ') || null
-          const publication = pub?.name ?? hostname.replace(/\.substack\.com$/, '')
-          const rawBody = p.body_html ? toMarkdown(p.body_html) : null
-          const bodyMarkdown = rawBody ? rawBody.slice(0, MAX_BODY_CHARS) : null
-          const reactionCount = p.reaction_count ?? 0
-          const commentCount = p.comment_count ?? 0
+    // Tier 1: Substack API — articles only; skip entirely in notes mode
+    if (this.mode === 'articles') {
+      const apiPosts = await fetchSubstackApiList(origin)
+      if (apiPosts.length > 0) {
+        return apiPosts
+          .filter(p => p.audience !== 'only_paid')
+          .slice(0, 15)
+          .map(p => {
+            const canonical = p.canonical_url ?? `${origin}/p/${p.slug}`
+            const pub = getBylinePublication(p)
+            const author = (p.publishedBylines ?? [])
+              .map(b => b.name)
+              .filter(Boolean)
+              .join(', ') || null
+            const publication = pub?.name ?? hostname.replace(/\.substack\.com$/, '')
+            const rawBody = p.body_html ? toMarkdown(p.body_html) : null
+            const bodyMarkdown = rawBody ? rawBody.slice(0, MAX_BODY_CHARS) : null
+            const reactionCount = p.reaction_count ?? 0
+            const commentCount = p.comment_count ?? 0
 
-          return {
-            externalId: p.slug ?? String(p.id),
-            contentHash: contentHash(canonical),
-            canonicalUrl: canonical,
-            contentType: 'article' as const,
-            title: p.title ?? null,
-            author,
-            authorUrl: null,
-            publication,
-            sourceUrl: canonical,
-            excerpt: p.description ?? p.subtitle ?? p.truncated_body_text?.slice(0, 300) ?? null,
-            bodyMarkdown,
-            heroImage: p.cover_image ?? null,
-            publishedAt: p.post_date ?? null,
-            metadata: {
-              hostname,
-              apiV1: true,
-              reactionCount,
-              commentCount,
-              engagementScore: reactionCount + commentCount * 3,
-              publicationName: pub?.name ?? null,
-              publicationLogo: pub?.logo_url ?? null,
-            },
-          } satisfies NormalizedItem
-        })
+            return {
+              externalId: p.slug ?? String(p.id),
+              contentHash: contentHash(canonical),
+              canonicalUrl: canonical,
+              contentType: 'article' as const,
+              title: p.title ?? null,
+              author,
+              authorUrl: null,
+              publication,
+              sourceUrl: canonical,
+              excerpt: p.description ?? p.subtitle ?? p.truncated_body_text?.slice(0, 300) ?? null,
+              bodyMarkdown,
+              heroImage: p.cover_image ?? null,
+              publishedAt: p.post_date ?? null,
+              metadata: {
+                hostname,
+                apiV1: true,
+                reactionCount,
+                commentCount,
+                engagementScore: reactionCount + commentCount * 3,
+                publicationName: pub?.name ?? null,
+                publicationLogo: pub?.logo_url ?? null,
+              },
+            } satisfies NormalizedItem
+          })
+      }
     }
 
-    // Tier 2: RSS fallback
+    // Tier 2: RSS — used in both modes, filtered by mode
     const rssUrl = `${origin}/feed`
-    const rssPosts = await scrapeBlog(hostname, rssUrl, { maxPosts: 15 }).catch(() => [])
+    const rssPosts = await scrapeBlog(hostname, rssUrl, { maxPosts: 30 }).catch(() => [])
+
+    if (this.mode === 'notes') {
+      const notesPosts = rssPosts.filter(p => isSubstackNoteUrl(p.url))
+      console.info('[SubstackProvider notes]', {
+        sourceUrl,
+        rssTotal:     rssPosts.length,
+        rssNotes:     notesPosts.length,
+        rssFiltered:  rssPosts.length - notesPosts.length,
+      })
+      return notesPosts.map(p => ({
+        externalId:   p.external_id,
+        contentHash:  contentHash(p.url),
+        canonicalUrl: p.url,
+        contentType:  'note' as const,
+        title:        p.title ?? null,
+        author:       null,
+        authorUrl:    null,
+        publication:  hostname.replace(/\.substack\.com$/, ''),
+        sourceUrl:    p.url,
+        excerpt:      p.content.slice(0, 300) || null,
+        bodyMarkdown: p.content.slice(0, MAX_BODY_CHARS) || null,
+        heroImage:    null,
+        publishedAt:  p.published_at,
+        metadata:     { hostname, rssFallback: true, notesSource: true },
+      } satisfies NormalizedItem))
+    }
+
+    // Articles mode RSS fallback (API failed)
     if (rssPosts.length > 0) {
       return rssPosts.map(p => {
         const canonical = p.url
-        const isNote = canonical.includes('/note/') || canonical.includes('/notes/')
+        const isNote = isSubstackNoteUrl(canonical)
         return {
-          externalId: p.external_id,
-          contentHash: contentHash(canonical),
+          externalId:   p.external_id,
+          contentHash:  contentHash(canonical),
           canonicalUrl: canonical,
-          contentType: isNote ? ('note' as const) : ('article' as const),
-          title: p.title ?? null,
-          author: null,
-          authorUrl: null,
-          publication: hostname.replace(/\.substack\.com$/, ''),
-          sourceUrl: canonical,
-          excerpt: p.content.slice(0, 300) || null,
+          contentType:  isNote ? ('note' as const) : ('article' as const),
+          title:        p.title ?? null,
+          author:       null,
+          authorUrl:    null,
+          publication:  hostname.replace(/\.substack\.com$/, ''),
+          sourceUrl:    canonical,
+          excerpt:      p.content.slice(0, 300) || null,
           bodyMarkdown: p.content.slice(0, MAX_BODY_CHARS) || null,
-          heroImage: null,
-          publishedAt: p.published_at,
-          metadata: { hostname, rssFallback: true },
+          heroImage:    null,
+          publishedAt:  p.published_at,
+          metadata:     { hostname, rssFallback: true },
         } satisfies NormalizedItem
       })
     }

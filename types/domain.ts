@@ -440,7 +440,7 @@ export interface AssistantSession {
 
 // ─── Conversations ────────────────────────────────────────────────────────────
 
-export type ConversationSourceType = 'substack' | 'rss' | 'generic'
+export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic'
 export type ConversationContentType = 'article' | 'note' | 'post'
 export type ConversationThemeStatus = 'active' | 'cooling' | 'archived'
 export type ConversationOpportunityType =

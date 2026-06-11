@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AddSourceModal } from './AddSourceModal'
 import { ConversationPreferences } from './ConversationPreferences'
-import type { ConversationSource } from '@/types/domain'
+import type { ConversationSource, ConversationSourceType } from '@/types/domain'
+
+const TYPE_BADGE: Record<ConversationSourceType, { label: string; cls: string }> = {
+  substack:       { label: 'Substack', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+  substack_notes: { label: 'Notes',    cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+  rss:            { label: 'RSS',      cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  generic:        { label: 'Web',      cls: 'bg-zinc-50 text-zinc-600 border-zinc-200' },
+}
 
 function fetchStatusMessage(status: string | null): string | null {
   switch (status) {
@@ -69,7 +76,9 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium truncate">{source.title ?? source.sourceUrl}</span>
-                  <Badge variant="outline" className="text-xs capitalize">{source.sourceType}</Badge>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${TYPE_BADGE[source.sourceType]?.cls ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
+                    {TYPE_BADGE[source.sourceType]?.label ?? source.sourceType}
+                  </span>
                   {!source.active && <Badge variant="outline" className="text-xs text-muted-foreground">Paused</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">

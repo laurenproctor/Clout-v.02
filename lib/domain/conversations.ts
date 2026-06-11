@@ -43,14 +43,27 @@ export async function listActiveConversationSources(workspaceId?: string): Promi
 export async function insertConversationSource(params: {
   workspaceId: string; sourceType: ConversationSourceType; sourceUrl: string
   title?: string | null; author?: string | null
-}): Promise<DomainResult<ConversationSource>> {
+}): Promise<DomainResult<ConversationSource> & { duplicate?: boolean }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const { data, error } = await supabase
     .from('conversation_sources')
     .insert({ workspace_id: params.workspaceId, source_type: params.sourceType, source_url: params.sourceUrl, title: params.title ?? null, author: params.author ?? null, fetch_status: 'pending' })
     .select().single()
-  if (error) return { ok: false, error: error.message }
+  if (error) {
+    // Unique constraint violation — return existing row rather than failing
+    if (error.code === '23505') {
+      const { data: existing } = await supabase
+        .from('conversation_sources')
+        .select()
+        .eq('workspace_id', params.workspaceId)
+        .eq('source_url', params.sourceUrl)
+        .eq('source_type', params.sourceType)
+        .single()
+      if (existing) return { ok: true, data: toSource(existing), duplicate: true }
+    }
+    return { ok: false, error: error.message }
+  }
   return { ok: true, data: toSource(data) }
 }
 

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import type { ConversationOpportunity, ConversationOpportunityType } from '@/types/domain'
+import { NotePublishPanel } from './NotePublishPanel'
 
 const TYPE_LABELS: Record<ConversationOpportunityType, string> = {
   comment: 'Comment', note: 'Note', post: 'Post', framework: 'Framework',
@@ -132,24 +133,33 @@ export function OpportunityCard({ opportunity: opp, onRemove }: Props) {
 
       {panelOpen && (
         <div className="border-t bg-muted/30 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Draft {TYPE_LABELS[opp.opportunityType]}
-            </span>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={generate} disabled={generating}>Regenerate</Button>
-              <Button size="sm" variant="outline" onClick={copy}>{copied ? 'Copied!' : 'Copy'}</Button>
-            </div>
-          </div>
           {generating ? (
             <div className="h-24 rounded bg-muted animate-pulse" />
+          ) : opp.opportunityType === 'note' && draft ? (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={generate} disabled={generating}>Regenerate</Button>
+              </div>
+              <NotePublishPanel draft={draft} onChange={setDraft} />
+            </div>
           ) : (
-            <Textarea
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              className="min-h-[120px] bg-background text-sm resize-y"
-              placeholder="Draft will appear here…"
-            />
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Draft {TYPE_LABELS[opp.opportunityType]}
+                </span>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={generate} disabled={generating}>Regenerate</Button>
+                  <Button size="sm" variant="outline" onClick={copy}>{copied ? 'Copied!' : 'Copy'}</Button>
+                </div>
+              </div>
+              <Textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                className="min-h-[120px] bg-background text-sm resize-y"
+                placeholder="Draft will appear here…"
+              />
+            </>
           )}
         </div>
       )}

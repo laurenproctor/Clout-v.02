@@ -59,21 +59,35 @@ export function computeOverallScore(
 }
 
 export async function analyzeConversationItem(
-  item: { title: string | null; excerpt: string | null; bodyMarkdown: string | null; sourceUrl: string; publishedAt: string | null },
+  item: { title: string | null; excerpt: string | null; bodyMarkdown: string | null; sourceUrl: string; publishedAt: string | null; contentType?: string },
   context: WorkspaceContext
 ): Promise<AnalysisResult> {
+  const isNote = item.contentType === 'note'
   const content = (item.bodyMarkdown ?? item.excerpt ?? '').slice(0, 800)
+  const contentLabel = isNote ? '[Short-form Note — 50-200 words]\n' : ''
 
   const result = await callClaude({
     systemPrompt: buildAnalysisSystemPrompt(context),
     userMessage: `Article URL: ${item.sourceUrl}
 Title: ${item.title ?? 'Untitled'}
-Content: ${content}`,
+Content: ${contentLabel}${content}`,
     model: 'claude-sonnet-4-6',
     maxTokens: 1024,
   })
 
-  return parseAnalysisResult(result.content)
+  const parsed = parseAnalysisResult(result.content)
+
+  // Bias opportunity types toward note/comment for short-form source content
+  if (isNote) {
+    parsed.opportunities = parsed.opportunities.map(opp => {
+      let score = opp.opportunityScore
+      if (opp.opportunityType === 'note' || opp.opportunityType === 'comment') score += 15
+      if (opp.opportunityType === 'framework' || opp.opportunityType === 'post') score -= 10
+      return { ...opp, opportunityScore: clamp(score) }
+    })
+  }
+
+  return parsed
 }
 
 function buildAnalysisSystemPrompt(ctx: WorkspaceContext): string {
