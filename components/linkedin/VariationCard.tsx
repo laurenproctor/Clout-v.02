@@ -9,6 +9,7 @@ import { HashtagChips } from './HashtagChips'
 import { MentionTags } from './MentionTags'
 import { CTASuggestions } from './CTASuggestions'
 import { VisualGenerator } from '@/components/visual/VisualGenerator'
+import { snapToNearestSlot } from '@/lib/calendar/slots'
 
 interface VariationCardProps {
   variation: LinkedInVariation
@@ -99,7 +100,7 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scheduled_at: new Date(scheduleDate).toISOString(),
+          scheduled_at: snapToNearestSlot(new Date(scheduleDate)).toISOString(),
           status: 'queued',
         }),
       })

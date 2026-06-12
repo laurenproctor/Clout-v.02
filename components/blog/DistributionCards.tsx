@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { GeneratedBlogPackage } from '@/lib/blog/types'
+import { snapToNearestSlot } from '@/lib/calendar/slots'
 
 interface DistributionCardsProps {
   distribution: GeneratedBlogPackage['distribution']
@@ -76,7 +77,7 @@ function ChannelActions({ content, channel }: { content: string; channel: Channe
     setErrorMsg('')
     try {
       const id = await saveOutput(content, channel)
-      await scheduleOutput(id, new Date(scheduleValue))
+      await scheduleOutput(id, snapToNearestSlot(new Date(scheduleValue)))
       setActionState('scheduled')
       setShowSchedule(false)
       setScheduleValue('')

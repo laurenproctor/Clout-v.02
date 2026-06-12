@@ -3,14 +3,7 @@
 import { DayHeader } from './DayHeader'
 import { ConceptCard } from './ConceptCard'
 import type { CalendarConcept } from '@/types/calendar'
-
-const TIME_SLOTS = [
-  { label: '7am', hour: 7 },
-  { label: '9am', hour: 9 },
-  { label: '12pm', hour: 12 },
-  { label: '2pm', hour: 14 },
-  { label: '5pm', hour: 17 },
-]
+import { TIME_SLOTS, nearestSlotHour } from '@/lib/calendar/slots'
 
 interface GridViewProps {
   concepts: CalendarConcept[]
@@ -48,7 +41,7 @@ export function GridView({
   function getConceptsForSlot(day: Date, hour: number): CalendarConcept[] {
     return concepts.filter((c) => {
       const d = new Date(c.scheduledAt)
-      return isSameDay(d, day) && d.getHours() === hour
+      return isSameDay(d, day) && nearestSlotHour(d.getHours()) === hour
     })
   }
 

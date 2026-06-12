@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Check } from 'lucide-react'
 import { validateThreadsPost } from '@/lib/syndication/validation/threads'
 import type { ThreadsVariation } from '@/lib/threads/types'
+import { snapToNearestSlot } from '@/lib/calendar/slots'
 
 const MAX_LENGTH = 500
 const WARN_LENGTH = 400
@@ -120,7 +121,7 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scheduled_at: new Date(scheduleDate).toISOString(),
+          scheduled_at: snapToNearestSlot(new Date(scheduleDate)).toISOString(),
           status: 'queued',
         }),
       })
