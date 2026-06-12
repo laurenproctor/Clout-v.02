@@ -15,6 +15,17 @@ const TYPE_BADGE: Record<ConversationSourceType, { label: string; cls: string }>
   generic:        { label: 'Web',      cls: 'bg-zinc-50 text-zinc-600 border-zinc-200' },
   reddit:         { label: 'Reddit',   cls: 'bg-red-50 text-red-700 border-red-200' },
   linkedin:       { label: 'LinkedIn', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  keyword:        { label: 'Monitor',  cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+}
+
+function sourceSubText(source: ConversationSource): string {
+  const lastChecked = source.lastFetchedAt
+    ? `Last checked ${new Date(source.lastFetchedAt).toLocaleDateString()}`
+    : 'Not yet fetched'
+  if (source.sourceType === 'keyword' && source.provider) {
+    return `${source.provider} · ${lastChecked}`
+  }
+  return source.title ? `${source.sourceUrl} · ${lastChecked}` : lastChecked
 }
 
 function fetchStatusMessage(status: string | null): string | null {
@@ -90,7 +101,7 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
 
       {sources.length === 0 ? (
         <div className="border rounded-lg p-8 text-center">
-          <p className="text-sm text-muted-foreground">No sources yet.</p>
+          <p className="text-sm text-muted-foreground">No sources or monitors yet.</p>
           <Button size="sm" className="mt-3" onClick={() => setShowModal(true)}>Add your first source</Button>
         </div>
       ) : (
@@ -99,15 +110,18 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
             <div key={source.id} className="flex items-center gap-3 px-4 py-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium truncate">{source.title ?? source.sourceUrl}</span>
+                  <span className="text-sm font-medium truncate">
+                    {source.sourceType === 'keyword' && source.keywordQuery
+                      ? `"${source.keywordQuery}"`
+                      : (source.title ?? source.sourceUrl)}
+                  </span>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${TYPE_BADGE[source.sourceType]?.cls ?? 'bg-zinc-50 text-zinc-600 border-zinc-200'}`}>
                     {TYPE_BADGE[source.sourceType]?.label ?? source.sourceType}
                   </span>
                   {!source.active && <Badge variant="outline" className="text-xs text-muted-foreground">Paused</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  {source.title ? source.sourceUrl : ''}
-                  {source.lastFetchedAt ? ` · Last checked ${new Date(source.lastFetchedAt).toLocaleDateString()}` : ' · Not yet fetched'}
+                  {sourceSubText(source)}
                 </p>
                 {fetchStatusMessage(source.fetchStatus) && (
                   <p className="text-xs text-muted-foreground mt-0.5">{fetchStatusMessage(source.fetchStatus)}</p>

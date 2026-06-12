@@ -440,7 +440,8 @@ export interface AssistantSession {
 
 // ─── Conversations ────────────────────────────────────────────────────────────
 
-export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic' | 'reddit' | 'linkedin'
+export type ConversationSourceType = 'substack' | 'substack_notes' | 'rss' | 'generic' | 'reddit' | 'linkedin' | 'keyword'
+export type KeywordProvider = 'reddit' | 'linkedin' | 'substack' | 'news'
 export type ConversationContentType = 'article' | 'note' | 'post' | 'comment'
 export type ConversationThemeStatus = 'active' | 'cooling' | 'archived'
 export type ConversationOpportunityType =
@@ -466,6 +467,10 @@ export interface ConversationSource {
   fetchStatus: string | null
   fetchItemCount: number | null
   createdAt: string
+  provider: KeywordProvider | null
+  keywordQuery: string | null
+  normalizedKeyword: string | null
+  config: Record<string, unknown> | null
 }
 
 export interface ConversationFollowedAuthor {

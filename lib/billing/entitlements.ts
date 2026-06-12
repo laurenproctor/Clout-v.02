@@ -40,8 +40,18 @@ export const PLAN_LIMITS = {
 export const FUTURE_LIMITS = {
   ai_generations_per_month: { free: 20,  pro: 200,  business: 1000,  enterprise: 99999 },
   signal_sources:           { free: 3,   pro: 25,   business: 100,   enterprise: 99999 },
+  keyword_monitors:         { free: 5,   pro: 25,   business: 100,   enterprise: 99999 },
   analytics_retention_days: { free: 30,  pro: 180,  business: 365,   enterprise: 99999 },
 } as const
+
+// Returns the limit for a given future entitlement key.
+// Until billing is active, returns the pro-tier value for all workspaces.
+export async function getWorkspaceLimit(
+  _workspaceId: string,
+  key: keyof typeof FUTURE_LIMITS,
+): Promise<number> {
+  return FUTURE_LIMITS[key].pro
+}
 
 export type EntitlementResult =
   | { allowed: true }

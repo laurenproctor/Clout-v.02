@@ -39,7 +39,7 @@ async function ingestSource(source: ConversationSource): Promise<{
   skipped: number
   errors: number
 }> {
-  const provider = getProvider(source.sourceUrl, source.sourceType)
+  const provider = getProvider(source.sourceUrl, source.sourceType, source.provider)
   let normalized: NormalizedItem[]
 
   try {

@@ -41,14 +41,37 @@ export async function listActiveConversationSources(workspaceId?: string): Promi
 }
 
 export async function insertConversationSource(params: {
-  workspaceId: string; sourceType: ConversationSourceType; sourceUrl: string
-  title?: string | null; author?: string | null
+  workspaceId: string
+  sourceType: ConversationSourceType
+  sourceUrl: string
+  title?: string | null
+  author?: string | null
+  provider?: string | null
+  keywordQuery?: string | null
+  normalizedKeyword?: string | null
+  config?: Record<string, unknown> | null
 }): Promise<DomainResult<ConversationSource> & { duplicate?: boolean }> {
+  if (params.sourceType === 'keyword') {
+    if (!params.provider || !params.keywordQuery || !params.normalizedKeyword) {
+      return { ok: false, error: 'Keyword sources require provider, keywordQuery, and normalizedKeyword' }
+    }
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
   const { data, error } = await supabase
     .from('conversation_sources')
-    .insert({ workspace_id: params.workspaceId, source_type: params.sourceType, source_url: params.sourceUrl, title: params.title ?? null, author: params.author ?? null, fetch_status: 'pending' })
+    .insert({
+      workspace_id: params.workspaceId,
+      source_type: params.sourceType,
+      source_url: params.sourceUrl,
+      title: params.title ?? null,
+      author: params.author ?? null,
+      fetch_status: 'pending',
+      provider: params.provider ?? null,
+      keyword_query: params.keywordQuery ?? null,
+      normalized_keyword: params.normalizedKeyword ?? null,
+      config: params.config ?? null,
+    })
     .select().single()
   if (error) {
     // Unique constraint violation — return existing row rather than failing
@@ -65,6 +88,18 @@ export async function insertConversationSource(params: {
     return { ok: false, error: error.message }
   }
   return { ok: true, data: toSource(data) }
+}
+
+export async function countKeywordMonitors(workspaceId: string): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any
+  const { count } = await supabase
+    .from('conversation_sources')
+    .select('*', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId)
+    .eq('source_type', 'keyword')
+    .eq('active', true)
+  return count ?? 0
 }
 
 export async function updateConversationSource(
@@ -566,6 +601,10 @@ function toSource(r: any): ConversationSource {
     lastErrorAt: r.last_error_at ?? null, consecutiveFailures: r.consecutive_failures ?? 0,
     fetchStatus: r.fetch_status ?? null, fetchItemCount: r.fetch_item_count ?? null,
     createdAt: r.created_at,
+    provider: r.provider ?? null,
+    keywordQuery: r.keyword_query ?? null,
+    normalizedKeyword: r.normalized_keyword ?? null,
+    config: r.config ?? null,
   }
 }
 

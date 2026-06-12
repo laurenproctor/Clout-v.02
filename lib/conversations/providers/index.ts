@@ -13,7 +13,13 @@ const providers: ConversationProvider[] = [
   new GenericArticleProvider(), // always matches — keep last
 ]
 
-export function getProvider(url: string, sourceType?: string): ConversationProvider {
+export function getProvider(url: string, sourceType?: string, provider?: string | null): ConversationProvider {
+  if (sourceType === 'keyword') {
+    switch (provider) {
+      case 'reddit': return new RedditProvider()
+      default:       throw new Error(`Unsupported keyword provider: ${provider}`)
+    }
+  }
   if (sourceType === 'substack')       return new SubstackProvider('articles')
   if (sourceType === 'substack_notes') return new SubstackProvider('notes')
   if (sourceType === 'reddit')         return new RedditProvider()
