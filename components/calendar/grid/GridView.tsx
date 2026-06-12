@@ -48,7 +48,7 @@ export function GridView({
   function getConceptsForSlot(day: Date, hour: number): CalendarConcept[] {
     return concepts.filter((c) => {
       const d = new Date(c.scheduledAt)
-      return isSameDay(d, day) && d.getUTCHours() === hour
+      return isSameDay(d, day) && d.getHours() === hour
     })
   }
 
