@@ -81,11 +81,9 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {sources.length > 0 && (
-            <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
-              {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Refresh now'}
-            </Button>
-          )}
+          <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Refresh now'}
+          </Button>
           <Button size="sm" onClick={() => setShowModal(true)}>Add Source</Button>
         </div>
       </div>
