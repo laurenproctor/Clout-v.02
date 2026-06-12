@@ -6,6 +6,7 @@ import { scrapeUrl } from '@/lib/scraper'
 import { getBrandContext } from '@/lib/brand/getBrandContext'
 import { saveCustomAudience } from '@/lib/audiences'
 import type { ThreadsGenerationRequest } from '@/lib/threads/types'
+import { getCampaignContext } from '@/lib/domain/campaign'
 
 export const maxDuration = 120
 
@@ -72,7 +73,16 @@ export async function POST(req: NextRequest) {
     saveCustomAudience(session.workspaceId, request.customAudience).catch(() => {})
   }
 
-  const stream = runThreadsGeneration({ request, lenses: resolvedLenses, brandContext })
+  const campaignId = (body as { campaignId?: string }).campaignId ?? null
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (campaignId) {
+    campaignContext = await getCampaignContext(campaignId, session.workspaceId)
+    if (!campaignContext) {
+      return new Response(JSON.stringify({ error: 'Campaign not found' }), { status: 404 })
+    }
+  }
+
+  const stream = runThreadsGeneration({ request, lenses: resolvedLenses, brandContext, campaignContext })
 
   return new Response(stream, {
     headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },

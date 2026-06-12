@@ -30,6 +30,7 @@ import {
   Newspaper,
   Users,
   MessageCircle,
+  Target,
 } from 'lucide-react'
 import { SupportModal } from '@/components/shell/support-modal'
 import { X } from 'lucide-react'
@@ -44,6 +45,7 @@ const navItems = (slug: string) => [
   { label: 'Calendar', href: `/${slug}/calendar`, icon: CalendarDays },
   { label: 'Capture', href: `/${slug}/capture`, icon: Zap },
   { label: 'Create', href: `/${slug}/create`, icon: Sparkles },
+  { label: 'Campaigns', href: `/${slug}/campaigns`, icon: Target },
   { label: 'Private', href: `/${slug}/private`, icon: Lock },
   { label: 'Content Analyzer', href: `/${slug}/analyze`, icon: Network },
   { label: 'Syndicate', href: `/${slug}/syndicate`, icon: Share2 },

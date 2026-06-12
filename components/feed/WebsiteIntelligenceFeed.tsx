@@ -12,30 +12,89 @@ import { WebsiteFilters } from './WebsiteFilters'
 
 const CHIP_TO_SOURCE: Record<string, string> = {
   Homepage:          'Homepage',
-  Services:          'Service Page',
   'Case Studies':    'Case Study',
   Testimonials:      'Testimonials',
   Reports:           'Research Report',
   'Blog Posts':      'Blog Post',
   Resources:         'Resource',
-  'Founder Stories': 'Founder Story',
+  Team:              'Team',
+}
+
+// The "Team" chip is broader than a single source_type: it surfaces anything
+// founder- or team-related (about pages, founder bios, leadership, culture),
+// since the LLM labels this content inconsistently.
+const TEAM_KEYWORDS = [
+  'team', 'founder', 'co-founder', 'about', 'leadership', 'leader',
+  'people', 'staff', 'bio', 'culture', 'mission', 'who we are', 'our story',
+]
+
+function isTeamRelated(item: WebsiteOpportunity): boolean {
+  const haystack = [item.source_type, item.title, ...item.tags]
+    .join(' ')
+    .toLowerCase()
+  return TEAM_KEYWORDS.some(k => haystack.includes(k))
+}
+
+// The "Offering" chip surfaces what the company actually sells — both products
+// and services. It spans more than one source_type (Service Page, Product Page,
+// pricing/solutions pages), so we can't key off a single value. We match the
+// source_type ONLY — not the title or tags — so a tangential blog or marketing
+// item that merely mentions a product doesn't get pulled in. The analysis prompt
+// labels these pages "Service Page" / "Product Page" (see lib/website-intelligence/analyze.ts).
+const OFFERING_SOURCE_KEYWORDS = [
+  'service', 'product', 'offering', 'solution', 'pricing',
+]
+
+function isOfferingRelated(item: WebsiteOpportunity): boolean {
+  const sourceType = (item.source_type ?? '').toLowerCase()
+  return OFFERING_SOURCE_KEYWORDS.some(k => sourceType.includes(k))
 }
 
 const FILTER_HINTS: Record<string, { message: string; hint: string; placeholder: string }> = {
   Homepage:        { message: 'No homepage content found yet.',     hint: "Paste your homepage URL and we'll scan it for content opportunities.",               placeholder: 'https://yoursite.com' },
-  Services:        { message: 'No service pages found yet.',        hint: 'Have a dedicated services or solutions page? Paste the URL below.',                 placeholder: 'https://yoursite.com/services' },
+  Offering:        { message: 'No products or services found yet.', hint: 'Have a products, services, or pricing page? Paste the URL below and we’ll pull out what you offer.', placeholder: 'https://yoursite.com/services' },
   'Case Studies':  { message: 'No case studies found yet.',         hint: 'Have a case studies page or a case study document? Add it below.',                  placeholder: 'https://yoursite.com/case-studies' },
   Testimonials:    { message: 'No testimonials found yet.',         hint: 'Have a testimonials page or a doc with customer quotes? Add it below.',             placeholder: 'https://yoursite.com/testimonials' },
   Reports:         { message: 'No research reports found yet.',     hint: 'Have a reports or whitepapers page? Paste the URL or upload a PDF.',                placeholder: 'https://yoursite.com/reports' },
   'Blog Posts':    { message: 'No blog posts found yet.',           hint: "Have a blog? Paste the blog URL and we'll identify your best content opportunities.", placeholder: 'https://yoursite.com/blog' },
   Resources:       { message: 'No resources found yet.',            hint: 'Have a resources or downloads page? Paste the URL or upload a file.',               placeholder: 'https://yoursite.com/resources' },
-  'Founder Stories': { message: 'No founder stories found yet.',   hint: 'Have an about page, founder bio, or origin story? Add it below.',                  placeholder: 'https://yoursite.com/about' },
+  Team:            { message: 'No team content found yet.',         hint: 'Have an about, team, or leadership page? Add it below.',                            placeholder: 'https://yoursite.com/team' },
 }
 
 interface AnalyzeResult {
   items: WebsiteOpportunity[]
   gaps: WebsiteContentGap[]
   websiteUrl: string
+}
+
+interface AnalyzeResponse {
+  error?: string
+  items?: WebsiteOpportunity[]
+  gaps?: WebsiteContentGap[]
+  website_url?: string
+}
+
+// Read a JSON analysis response, turning non-JSON error bodies into a readable
+// message. The analysis endpoints can run for minutes; when they exceed the
+// serverless time limit the platform returns a plain-text error page, not JSON.
+// Calling res.json() on that throws `Unexpected token 'A'...`, hiding the real
+// cause — so parse the text ourselves and map timeouts to a useful message.
+async function readAnalyzeResponse(res: Response): Promise<AnalyzeResponse> {
+  const text = await res.text()
+  let data: AnalyzeResponse
+  try {
+    data = text ? (JSON.parse(text) as AnalyzeResponse) : {}
+  } catch {
+    throw new Error(
+      res.status === 504 || res.status === 502
+        ? 'That site has a lot of content and took too long to analyze. Try a more specific page URL (e.g. a single article or section).'
+        : `Analysis failed (HTTP ${res.status}). Please try again.`,
+    )
+  }
+  if (!res.ok || data.error) {
+    throw new Error(data.error ?? `Analysis failed (HTTP ${res.status}).`)
+  }
+  return data
 }
 
 interface WebsiteIntelligenceFeedProps {
@@ -81,7 +140,13 @@ export function WebsiteIntelligenceFeed({
 
   const filteredItems = items.filter(item => {
     if (showOnlyGaps) return false
-    if (sourceFilter && item.source_type !== sourceFilter) return false
+    if (activeFilter === 'Team') {
+      if (!isTeamRelated(item)) return false
+    } else if (activeFilter === 'Offering') {
+      if (!isOfferingRelated(item)) return false
+    } else if (sourceFilter && item.source_type !== sourceFilter) {
+      return false
+    }
     if (search) {
       const q = search.toLowerCase()
       return item.title.toLowerCase().includes(q) || item.tags.some(t => t.toLowerCase().includes(q))
@@ -90,7 +155,7 @@ export function WebsiteIntelligenceFeed({
   })
 
   const filteredGaps = gaps.filter(gap => {
-    if (!showOnlyGaps && activeFilter !== 'All' && sourceFilter) return false
+    if (!showOnlyGaps && activeFilter !== 'All' && (sourceFilter || activeFilter === 'Offering')) return false
     if (search) {
       const q = search.toLowerCase()
       return gap.headline.toLowerCase().includes(q) || gap.tags.some(t => t.toLowerCase().includes(q))
@@ -118,8 +183,7 @@ export function WebsiteIntelligenceFeed({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ website_url: url }),
       })
-      const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error ?? 'Analysis failed')
+      const data = await readAnalyzeResponse(res)
 
       setShowUrlForm(false)
       onUrlSaved(url, { items: data.items ?? [], gaps: data.gaps ?? [], websiteUrl: url })
@@ -147,8 +211,7 @@ export function WebsiteIntelligenceFeed({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
-      const data = await res.json()
-      if (!res.ok || data.error) throw new Error(data.error ?? 'Analysis failed')
+      const data = await readAnalyzeResponse(res)
 
       setAddSourceUrl('')
       onUrlSaved(data.website_url ?? websiteUrl ?? url, {
@@ -248,14 +311,22 @@ export function WebsiteIntelligenceFeed({
           <>
             <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Analyzing your website…</p>
             <p style={{ fontSize: '13px', color: '#6b7280', maxWidth: '360px', margin: '0 auto', lineHeight: '1.6' }}>
-              We&apos;re crawling your site and identifying content opportunities. This takes about 15–30 seconds.
+              We&apos;re crawling your site and identifying content opportunities from your posts. This can take a minute or two.
             </p>
           </>
-        ) : showUrlForm ? (
+        ) : !websiteUrl ? (
           <>
             <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Connect your website</p>
             <p style={{ fontSize: '13px', color: '#6b7280', maxWidth: '360px', margin: '0 auto 20px', lineHeight: '1.6' }}>
-              Enter your website URL and we&apos;ll analyze your existing content to surface high-impact opportunities.
+              Set your website URL in feed settings. We&apos;ll automatically analyze your content here and surface high-impact opportunities from your own posts.
+            </p>
+            <a href={`/${workspaceSlug}/settings/feed`} style={{ ...btnPrimary(), textDecoration: 'none', display: 'inline-block' }}>Go to feed settings</a>
+          </>
+        ) : showUrlForm ? (
+          <>
+            <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Re-analyze your website</p>
+            <p style={{ fontSize: '13px', color: '#6b7280', maxWidth: '360px', margin: '0 auto 20px', lineHeight: '1.6' }}>
+              We&apos;ll re-crawl your site and refresh your content opportunities.
             </p>
             <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', maxWidth: '420px', margin: '0 auto' }}>
               <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
@@ -270,9 +341,9 @@ export function WebsiteIntelligenceFeed({
           <>
             <p style={{ fontSize: '15px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>No opportunities found yet.</p>
             <p style={{ fontSize: '13px', color: '#6b7280', maxWidth: '380px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-              Connect your website URL and we&apos;ll analyze your existing assets to surface high-impact content opportunities.
+              We analyzed <strong>{websiteUrl}</strong> but didn&apos;t surface opportunities. Re-analyze, or update your website in feed settings.
             </p>
-            <button onClick={() => { setShowUrlForm(true); setUrlInput(websiteUrl ?? '') }} style={btnPrimary()}>Analyze Website</button>
+            <button onClick={() => { setShowUrlForm(true); setUrlInput(websiteUrl ?? '') }} style={btnPrimary()}>Re-analyze Website</button>
           </>
         )}
       </div>

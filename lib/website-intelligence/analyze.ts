@@ -43,7 +43,7 @@ Given the scraped content of a website homepage or page, return a JSON object wi
       "category": "promotion" | "repurpose" | "gap" | "trend_match" | "thought_leadership",
       "tags": ["string"],
       "matched_service": "string",
-      "source_type": "string (e.g. 'Homepage', 'Service Page', 'Blog Post')",
+      "source_type": "string (e.g. 'Homepage', 'Service Page', 'Product Page', 'Blog Post', 'Team')",
       "why_this_matters": "string (1-2 sentences explaining the business opportunity)",
       "reasons": [
         {
@@ -74,6 +74,8 @@ Rules:
 - Score based on: proof points (stats, testimonials), promotional potential, freshness
 - level "high" = score 80+, "medium" = 60-79, "emerging" = below 60
 - Be specific and actionable — base everything on actual content found on the page
+- Use source_type "Team" for any founder-, team-, about-, leadership-, or company-culture content (about pages, founder bios, origin stories, leadership profiles)
+- Capture what the company actually sells — both products and services. For any page describing a service the company offers, use asset type "service" and source_type "Service Page"; for a specific product, SaaS tool, or platform, use asset type "product" and source_type "Product Page". Also use "Product Page" for pricing, plans, packages, features, and solutions pages. List each distinct offering by name in the asset's "services" array.
 - If the page has very little content, still try to identify at least 1-2 opportunities
 - Output ONLY valid JSON. No markdown, no explanation.`
 
@@ -128,10 +130,31 @@ ${scraped.markdownContent.slice(0, 6000)}`
   }
 }
 
-/** Cap on how many blog posts a single index URL will fan out to. */
-const MAX_BLOG_POSTS = 25
-/** How many post analyses to run at once. */
-const BLOG_CONCURRENCY = 5
+/**
+ * Cap on how many blog posts a single index URL will fan out to.
+ * Each post is a separate scrape + Claude analysis, so this is the dominant
+ * driver of total request time. 25 posts measured at ~310s — over the 300s
+ * serverless ceiling, so the whole request was being killed mid-flight and
+ * returning a non-JSON body. The most-recent ~12 posts give equivalent signal
+ * (the merged result is capped at MAX_MERGED_ITEMS anyway) in roughly half the
+ * time. See BLOG_TIME_BUDGET_MS for the hard safety net.
+ */
+const MAX_BLOG_POSTS = 12
+/** How many post analyses to run at once. Higher = fewer sequential waves. */
+const BLOG_CONCURRENCY = 8
+/**
+ * Per-post output cap. A single blog post's analysis (one asset + a few
+ * opportunities) never needs the full 8192; halving it meaningfully cuts the
+ * slowest-post latency that bounds each concurrency wave.
+ */
+const BLOG_POST_MAX_TOKENS = 4096
+/**
+ * Wall-clock budget for the whole fan-out. Once exceeded, remaining posts are
+ * skipped and we return whatever analyses already succeeded, rather than
+ * letting an unlucky run push the function past its 300s limit. Kept well under
+ * the route's `maxDuration = 300` to leave headroom for cache read/write.
+ */
+const BLOG_TIME_BUDGET_MS = 200_000
 /** Bounds on the merged result so the cache/UI don't get flooded. */
 const MAX_MERGED_ITEMS = 60
 const MAX_MERGED_GAPS = 8
@@ -215,7 +238,11 @@ export async function analyzeBlogIndexForOpportunities(
 
   console.info(`[website-intelligence/analyze] discovered ${posts.length} blog posts from ${url}`)
 
+  const deadline = start + BLOG_TIME_BUDGET_MS
   const results = await mapWithConcurrency(posts, BLOG_CONCURRENCY, async post => {
+    // Past the wall-clock budget — skip remaining posts so the request returns
+    // partial results instead of being killed by the serverless timeout.
+    if (Date.now() > deadline) return null
     try {
       const scraped = await scrapeUrl(post.url)
       const analysis = await analyzeScrapedContent(
@@ -269,7 +296,7 @@ ${markdown.slice(0, 6000)}`
     systemPrompt: SYSTEM_PROMPT,
     userMessage,
     model: 'claude-sonnet-4-6',
-    maxTokens: 8192,
+    maxTokens: BLOG_POST_MAX_TOKENS,
   })
   return parseAnalysisResponse(result.content)
 }

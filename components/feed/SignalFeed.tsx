@@ -71,6 +71,30 @@ export function SignalFeed({
   const [error, setError] = useState<string | null>(null)
   const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
 
+  // Run the blog-aware analysis on the URL configured in /feed settings and
+  // return data in the shape WebsiteIntelligenceFeed expects. Throws on failure
+  // so the caller surfaces the error + Retry like any other tab load.
+  const analyzeConfiguredWebsite = useCallback(async (websiteUrl: string): Promise<WebsiteData> => {
+    const res = await fetch('/api/website-intelligence/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ website_url: websiteUrl }),
+    })
+    const text = await res.text()
+    let data: { error?: string; items?: WebsiteOpportunity[]; gaps?: WebsiteContentGap[]; website_url?: string }
+    try {
+      data = text ? JSON.parse(text) : {}
+    } catch {
+      throw new Error(
+        res.status === 504 || res.status === 502
+          ? 'Your site has a lot of content and took too long to analyze. Try a more specific page in feed settings.'
+          : `Analysis failed (HTTP ${res.status}).`,
+      )
+    }
+    if (!res.ok || data.error) throw new Error(data.error ?? `Analysis failed (HTTP ${res.status}).`)
+    return { items: data.items ?? [], gaps: data.gaps ?? [], websiteUrl: data.website_url ?? websiteUrl }
+  }, [])
+
   const fetchTab = useCallback(async (tab: FeedTab) => {
     setLoading(true)
     setError(null)
@@ -84,7 +108,15 @@ export function SignalFeed({
         const res = await fetch('/api/website-intelligence')
         if (!res.ok) throw new Error('Failed to load website intelligence')
         const data = await res.json()
-        setWebsiteData({ items: data.items ?? [], gaps: data.gaps ?? [], websiteUrl: data.website_url ?? null })
+        // First visit: the website is configured in /feed settings but has never
+        // been analyzed. Auto-analyze that configured URL so the user sees posts
+        // from their own site without having to paste a URL here.
+        if (data.configured && data.website_url && !data.last_analyzed_at) {
+          const analyzed = await analyzeConfiguredWebsite(data.website_url)
+          setWebsiteData(analyzed)
+        } else {
+          setWebsiteData({ items: data.items ?? [], gaps: data.gaps ?? [], websiteUrl: data.website_url ?? null })
+        }
       } else if (tab === 'knowledge') {
         const res = await fetch('/api/knowledge-signals')
         if (!res.ok) throw new Error('Failed to load knowledge signals')
@@ -101,7 +133,7 @@ export function SignalFeed({
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [analyzeConfiguredWebsite])
 
   // Load initial tab and stats when entering feed phase
   useEffect(() => {

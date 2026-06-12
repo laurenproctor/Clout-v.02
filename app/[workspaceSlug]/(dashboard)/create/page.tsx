@@ -4,10 +4,13 @@ import { CreateCard } from '@/components/create/CreateCard'
 
 export default async function CreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ campaign?: string }>
 }) {
   const { workspaceSlug } = await params
+  const { campaign } = await searchParams
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 md:px-8">
@@ -30,7 +33,7 @@ export default async function CreatePage({
           </p>
           <div className="flex flex-col gap-3">
             {activeTypes.map((type) => (
-              <CreateCard key={type.id} type={type} slug={workspaceSlug} variant="featured" />
+              <CreateCard key={type.id} type={type} slug={workspaceSlug} variant="featured" campaign={campaign} />
             ))}
           </div>
         </section>

@@ -6,6 +6,7 @@ import { scrapeUrl } from '@/lib/scraper'
 import { getBrandContext } from '@/lib/brand/getBrandContext'
 import { saveCustomAudience } from '@/lib/audiences'
 import type { InstagramGenerationRequest } from '@/lib/instagram/types'
+import { getCampaignContext } from '@/lib/domain/campaign'
 
 export const maxDuration = 120
 
@@ -65,8 +66,17 @@ export async function POST(req: NextRequest) {
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map((l) => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
+  const campaignId = (body as { campaignId?: string }).campaignId ?? null
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (campaignId) {
+    campaignContext = await getCampaignContext(campaignId, session.workspaceId)
+    if (!campaignContext) {
+      return new Response(JSON.stringify({ error: 'Campaign not found' }), { status: 404 })
+    }
+  }
+
   const brandContext = await getBrandContext()
-  const ctx = { request, lenses: resolvedLenses, brandContext }
+  const ctx = { request, lenses: resolvedLenses, brandContext, campaignContext }
   const stream = runInstagramGeneration(ctx)
 
   if (request.audience === 'custom' && request.customAudience?.trim()) {

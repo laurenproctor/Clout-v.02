@@ -1,5 +1,5 @@
 // lib/threads/runGeneration.ts
-import { callClaudeStream } from '@/lib/ai/generate'
+import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import { THREADS_PLATFORM_MODEL } from '@/lib/syndication/platforms/threads'
 import type { BrandContext } from '@/lib/brand/getBrandContext'
@@ -12,6 +12,7 @@ export interface ThreadsPromptContext {
   request: ThreadsGenerationRequest
   lenses: Array<{ id: string; name: string; systemPrompt: string }>
   brandContext: BrandContext
+  campaignContext?: { goal: string; purpose: string | null } | null
 }
 
 interface ClaudeVariation {
@@ -75,6 +76,11 @@ function buildSystemPrompt(ctx: ThreadsPromptContext): string {
       lines.push(lens.systemPrompt)
       lines.push(``)
     }
+  }
+
+  const campaignLines = campaignPromptLines(ctx.campaignContext)
+  if (campaignLines.length > 0) {
+    lines.push(...campaignLines, ``)
   }
 
   lines.push(`## Output Format`)

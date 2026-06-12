@@ -1,8 +1,8 @@
 'use client'
 
 const FILTERS = [
-  'All', 'Homepage', 'Services', 'Case Studies', 'Testimonials',
-  'Reports', 'Blog Posts', 'Resources', 'Founder Stories', 'Content Gaps',
+  'All', 'Homepage', 'Offering', 'Case Studies', 'Testimonials',
+  'Reports', 'Blog Posts', 'Resources', 'Team', 'Content Gaps',
 ]
 
 interface WebsiteFiltersProps {

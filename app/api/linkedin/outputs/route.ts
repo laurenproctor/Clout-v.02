@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import { resolveCampaignStamp } from '@/lib/campaigns/saveStamp'
 import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -13,8 +14,9 @@ const bodySchema = z.object({
     voiceRegister:        z.string().nullable().optional(),
     lensName:             z.string().nullable().optional(),
   }),
-  title:     z.string().optional(),
-  channelId: z.string().uuid().nullable().optional(),
+  title:      z.string().optional(),
+  channelId:  z.string().uuid().nullable().optional(),
+  campaignId: z.string().uuid().nullable().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -36,7 +38,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { variation, title, channelId } = parsed.data
+  const { variation, title, channelId, campaignId } = parsed.data
+
+  // Stamp campaign_id (+ default goal) when this variation was created for a
+  // campaign. Validates the campaign belongs to this workspace.
+  const stamp = await resolveCampaignStamp({ campaignId, workspaceId: session.workspaceId })
+  if (!stamp.ok) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -57,6 +65,7 @@ export async function POST(req: NextRequest) {
         lensName:             variation.lensName ?? null,
       },
       channel_id:    channelId ?? null,
+      ...stamp.fields,
       created_at:    now,
       updated_at:    now,
     })

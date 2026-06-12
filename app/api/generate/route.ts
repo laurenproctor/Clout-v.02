@@ -4,6 +4,8 @@ import { checkGenerationLimit } from '@/lib/auth/entitlements'
 import { getCapture } from '@/lib/domain/capture'
 import { getLensById } from '@/lib/domain/lens'
 import { callClaude, buildGenerationSystemPrompt } from '@/lib/ai/generate'
+import { getCampaignContext } from '@/lib/domain/campaign'
+import { isNarrativeGoal } from '@/lib/content/goals'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
@@ -17,6 +19,8 @@ export async function POST(req: NextRequest) {
   const channelId = body.channel_id ?? null
   const angleId: string | null = body.angle_id ?? null
   const generationGroupId: string | null = body.generation_group_id ?? null
+  const campaignId: string | null = body.campaign_id ?? body.campaignId ?? null
+  const explicitGoal: string | null = isNarrativeGoal(body.goal) ? body.goal : null
   const t0 = Date.now()
   console.log('[api/generate] start', { capture_id, lens_id })
 
@@ -94,10 +98,25 @@ export async function POST(req: NextRequest) {
     channelConfig,
   }
 
+  // Load campaign context if generating for a campaign. Validate ownership: a
+  // client-provided campaign_id must resolve to a non-archived campaign in this
+  // workspace before we inject it or stamp it onto the output.
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (campaignId) {
+    campaignContext = await getCampaignContext(campaignId, session.workspaceId)
+    if (!campaignContext) {
+      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
+  }
+
+  // Goal precedence: explicit output goal > campaign goal > none.
+  const resolvedGoal = explicitGoal ?? campaignContext?.goal ?? null
+
   // Build prompt
   const systemPrompt = buildGenerationSystemPrompt({
     lensSystemPrompt: lens.systemPrompt,
     profileContext,
+    campaignContext,
   })
   let userMessage = capture.transcript ?? capture.rawContent ?? ''
 
@@ -205,6 +224,8 @@ export async function POST(req: NextRequest) {
       title: typeof content.hook === 'string' ? content.hook.slice(0, 120) : null,
       content: content as import('@/types/db').Json,
       ...(generationGroupId && { generation_group_id: generationGroupId }),
+      ...(campaignId && { campaign_id: campaignId }),
+      ...(resolvedGoal && { goal: resolvedGoal }),
     })
     .select()
     .single()

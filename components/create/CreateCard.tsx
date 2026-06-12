@@ -8,9 +8,11 @@ interface CreateCardProps {
   slug: string
   /** 'featured' = full-width active layout; 'grid' = compact coming-soon layout */
   variant: 'featured' | 'grid'
+  /** When creating for a campaign, forwarded into the per-type route as ?campaign=. */
+  campaign?: string
 }
 
-export function CreateCard({ type, slug, variant }: CreateCardProps) {
+export function CreateCard({ type, slug, variant, campaign }: CreateCardProps) {
   const Icon = type.icon
   const isActive = type.status === 'active'
 
@@ -75,7 +77,10 @@ export function CreateCard({ type, slug, variant }: CreateCardProps) {
   )
 
   if (isActive && type.route) {
-    return <Link href={`/${slug}${type.route}`}>{cardContent}</Link>
+    const href = campaign
+      ? `/${slug}${type.route}?campaign=${campaign}`
+      : `/${slug}${type.route}`
+    return <Link href={href}>{cardContent}</Link>
   }
 
   return cardContent

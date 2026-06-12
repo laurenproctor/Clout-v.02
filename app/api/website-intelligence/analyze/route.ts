@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
-import { analyzeWebsiteForOpportunities } from '@/lib/website-intelligence/analyze'
+import { analyzeUrlForOpportunities } from '@/lib/website-intelligence/analyze'
 import type { WebsiteAnalysisResult } from '@/lib/website-intelligence/analyze'
 import { writeCache, resultToCache } from '../_cache'
+
+// Blog-index discovery can fan out to many post analyses; allow headroom.
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -33,9 +36,12 @@ export async function POST(req: NextRequest) {
       { onConflict: 'workspace_id' }
     )
 
+  // Blog-aware: discovers and analyzes individual posts when the URL is a blog
+  // index (or a site with a discoverable blog), falling back to single-page
+  // analysis otherwise. This is what surfaces the user's own posts.
   let result: WebsiteAnalysisResult
   try {
-    result = await analyzeWebsiteForOpportunities(website_url)
+    result = await analyzeUrlForOpportunities(website_url)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[website-intelligence/analyze] crawl/analysis failed:', msg)

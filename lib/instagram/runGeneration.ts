@@ -1,4 +1,4 @@
-import { callClaudeStream } from '@/lib/ai/generate'
+import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import { resolveTemplateId, resolveAspectRatio } from './templates'
 import type { BrandContext } from '@/lib/brand/getBrandContext'
@@ -14,6 +14,7 @@ export interface InstagramPromptContext {
   request: InstagramGenerationRequest
   lenses: Array<{ id: string; name: string; systemPrompt: string }>
   brandContext?: BrandContext
+  campaignContext?: { goal: string; purpose: string | null } | null
 }
 
 interface ClaudeSlide {
@@ -138,6 +139,11 @@ function buildSystemPrompt(ctx: InstagramPromptContext): string {
       captionStrategy: 'Opens with a reframe, delivers the punchline in slide 2, closes with a directional question to drive comments.',
       visualNarrative: 'Monochromatic editorial palette — high contrast, tight typography, no decorative elements. Authority without polish.',
     },
+  }
+
+  const campaignLines = campaignPromptLines(ctx.campaignContext)
+  if (campaignLines.length > 0) {
+    lines.push(...campaignLines, '')
   }
 
   lines.push('## Output Format')

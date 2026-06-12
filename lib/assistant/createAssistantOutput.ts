@@ -1,7 +1,8 @@
 import { inferIntent } from './inferIntent'
 import { normalizeGoal } from './normalizeGoal'
 import { OUTPUT_REGISTRY } from './outputRegistry'
-import { callClaudeStream } from '@/lib/ai/generate'
+import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
+import { getCampaignContext } from '@/lib/domain/campaign'
 import { createClient } from '@/lib/supabase/server'
 import type { InferredIntent, NormalizedGoal } from '@/types/domain'
 
@@ -11,6 +12,7 @@ export interface AssistantCreateParams {
   userId: string
   profileName?: string | null
   lensId?: string | null
+  campaignId?: string | null
   overrides?: Partial<Pick<InferredIntent, 'isPrivate' | 'outputFormat' | 'intentClass' | 'suggestedChannel' | 'tone'>>
 }
 
@@ -62,6 +64,15 @@ export async function createAssistantOutput(
   const lensPrompt = (lensResult.data as { system_prompt?: string } | null)?.system_prompt ?? ''
   const profile = profileResult.data
 
+  // Load campaign context if creating for a campaign. Validate ownership: a
+  // client-provided campaignId must resolve to a non-archived campaign in this
+  // workspace before we inject it or stamp it onto the output.
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (params.campaignId) {
+    campaignContext = await getCampaignContext(params.campaignId, params.workspaceId)
+    if (!campaignContext) throw new Error('Campaign not found')
+  }
+
   // 4. Create capture
   const { data: capture } = await supabase
     .from('captures')
@@ -79,12 +90,14 @@ export async function createAssistantOutput(
   if (!capture) throw new Error('Failed to save capture')
 
   // 5. Create legacy generation record (required FK for outputs table)
+  const campaignBlock = campaignPromptLines(campaignContext)
   const systemPromptParts = [
     lensPrompt,
     `\nYou are assisting ${params.profileName ?? 'a thought leader'}.`,
     goal.generationHint,
     config.systemSuffix,
     `Tone: ${goal.tone}.`,
+    ...(campaignBlock.length > 0 ? ['', ...campaignBlock] : []),
   ].filter(Boolean)
   const systemPrompt = systemPromptParts.join('\n')
 
@@ -112,6 +125,9 @@ export async function createAssistantOutput(
       generation_id: legacyGen.id,
       status: 'draft',
       content: {},
+      // Goal precedence: no explicit output goal here, so default from campaign.
+      ...(params.campaignId && { campaign_id: params.campaignId }),
+      ...(campaignContext?.goal && { goal: campaignContext.goal }),
     })
     .select('id')
     .single()

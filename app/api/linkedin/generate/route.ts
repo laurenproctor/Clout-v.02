@@ -5,6 +5,7 @@ import { runLinkedInGeneration } from '@/lib/linkedin/runGeneration'
 import { scrapeUrl } from '@/lib/scraper'
 import type { LinkedInGenerationRequest } from '@/lib/linkedin/types'
 import { saveCustomAudience } from '@/lib/audiences'
+import { getCampaignContext } from '@/lib/domain/campaign'
 
 export const maxDuration = 120
 
@@ -68,7 +69,18 @@ export async function POST(req: NextRequest) {
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map((l) => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
-  const ctx = { request, lenses: resolvedLenses }
+  // If generating for a campaign, validate ownership and load its goal/purpose
+  // so the streamed variations are written toward the campaign objective.
+  const campaignId = (body as { campaignId?: string }).campaignId ?? null
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (campaignId) {
+    campaignContext = await getCampaignContext(campaignId, session.workspaceId)
+    if (!campaignContext) {
+      return new Response(JSON.stringify({ error: 'Campaign not found' }), { status: 404 })
+    }
+  }
+
+  const ctx = { request, lenses: resolvedLenses, campaignContext }
   const stream = runLinkedInGeneration(ctx)
 
   if (request.audience === 'custom' && request.customAudience?.trim()) {

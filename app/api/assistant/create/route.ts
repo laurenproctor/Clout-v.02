@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const text: string = body.text ?? ''
   const lensId: string | null = body.lensId ?? null
+  const campaignId: string | null = body.campaignId ?? null
   const profileName: string | null = body.profileName ?? null
   const overrides: Partial<Pick<InferredIntent, 'isPrivate' | 'outputFormat' | 'intentClass' | 'suggestedChannel' | 'tone'>> =
     body.overrides ?? {}
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
       userId: session.userId,
       profileName,
       lensId,
+      campaignId,
       overrides,
     })
   } catch (err) {

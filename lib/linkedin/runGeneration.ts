@@ -1,5 +1,5 @@
 // lib/linkedin/runGeneration.ts
-import { callClaudeStream } from '@/lib/ai/generate'
+import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import type {
   LinkedInGenerationRequest,
@@ -12,6 +12,7 @@ import type {
 export interface LinkedInPromptContext {
   request: LinkedInGenerationRequest
   lenses: Array<{ id: string; name: string; systemPrompt: string }>
+  campaignContext?: { goal: string; purpose: string | null } | null
 }
 
 export type { LinkedInPromptContext as _LinkedInPromptContextExport }
@@ -63,6 +64,11 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
       lines.push(lens.systemPrompt)
       lines.push('')
     }
+  }
+
+  const campaignLines = campaignPromptLines(ctx.campaignContext)
+  if (campaignLines.length > 0) {
+    lines.push(...campaignLines, '')
   }
 
   lines.push('## Output Format')

@@ -2,6 +2,8 @@
 // Used across lib/domain/ and components
 
 import type { NarrativeRole, NarrativeGoal, FunnelStage, ResonancePrediction } from './calendar'
+// Re-export so domain consumers can import NarrativeGoal from '@/types/domain'.
+export type { NarrativeGoal } from './calendar'
 
 // ─── Enums / Literals ────────────────────────────────────────────────────────
 
@@ -221,6 +223,7 @@ export interface Output {
   workspaceId: string
   generationId: string | null
   channelId: string | null
+  campaignId: string | null
   status: OutputStatus
   title: string | null
   content: OutputContent
@@ -372,6 +375,40 @@ export interface UpdateLensInput {
 export interface PublishOutputInput {
   outputId: string
   channelId?: string
+}
+
+// ─── Campaigns ────────────────────────────────────────────────────────────────
+// A campaign is a strategic objective: a required goal (strategic category,
+// reusing the 8 NarrativeGoal values) plus a required free-text purpose.
+
+export type CampaignStatus = 'active' | 'paused' | 'archived'
+
+export interface Campaign {
+  id: string
+  workspaceId: string
+  name: string
+  goal: NarrativeGoal
+  purpose: string
+  status: CampaignStatus
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
+export interface CreateCampaignInput {
+  workspaceId: string
+  name: string
+  goal: NarrativeGoal
+  purpose: string
+  createdBy?: string | null
+}
+
+export interface UpdateCampaignInput {
+  name?: string
+  goal?: NarrativeGoal
+  purpose?: string
+  status?: CampaignStatus
 }
 
 // ─── Result Wrapper ───────────────────────────────────────────────────────────

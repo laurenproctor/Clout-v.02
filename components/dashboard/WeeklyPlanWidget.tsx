@@ -29,6 +29,7 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
       workspaceId:         o.workspaceId as string,
       generationId:        o.generationId as string,
       channelId:           o.channelId as string | null,
+      campaignId:          (o.campaignId as string | null) ?? null,
       status:              o.status as Output['status'],
       title:               o.title as string | null,
       content:             o.content as OutputContent,

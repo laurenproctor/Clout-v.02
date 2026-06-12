@@ -8,6 +8,7 @@ function toOutput(row: Record<string, unknown>): Output {
     workspaceId: row.workspace_id as string,
     generationId: (row.generation_id as string | null) ?? null,
     channelId: row.channel_id as string | null,
+    campaignId: (row.campaign_id as string | null) ?? null,
     status: row.status as OutputStatus,
     title: row.title as string | null,
     content: row.content as OutputContent,
@@ -73,19 +74,21 @@ export async function getOutput(outputId: string): Promise<DomainResult<Output>>
 export async function listOutputs(params: {
   workspaceId: string
   status?: OutputStatus
+  campaignId?: string
   limit?: number
   offset?: number
 }): Promise<DomainResult<Output[]>> {
   const supabase = await createClient()
   let query = supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, scheduled_at, created_at, updated_at, channels(platform, label)')
+    .select('id, workspace_id, generation_id, campaign_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, published_at, scheduled_at, created_at, updated_at, channels(platform, label)')
     .eq('workspace_id', params.workspaceId)
     .is('deleted_at', null)
     .order('updated_at', { ascending: false })
     .limit(params.limit ?? 50)
 
   if (params.status) query = query.eq('status', params.status)
+  if (params.campaignId) query = query.eq('campaign_id', params.campaignId)
   if (params.offset) {
     query = query.range(params.offset, params.offset + (params.limit ?? 50) - 1)
   }

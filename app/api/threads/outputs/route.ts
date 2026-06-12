@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import { resolveCampaignStamp } from '@/lib/campaigns/saveStamp'
 import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -11,8 +12,9 @@ const bodySchema = z.object({
     openingLine:  z.string().nullable().optional(),
     campaignName: z.string().nullable().optional(),
   }),
-  title:     z.string().optional(),
-  channelId: z.string().uuid().nullable().optional(),
+  title:      z.string().optional(),
+  channelId:  z.string().uuid().nullable().optional(),
+  campaignId: z.string().uuid().nullable().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -34,7 +36,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { variation, title, channelId } = parsed.data
+  const { variation, title, channelId, campaignId } = parsed.data
+
+  const stamp = await resolveCampaignStamp({ campaignId, workspaceId: session.workspaceId })
+  if (!stamp.ok) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -53,6 +59,7 @@ export async function POST(req: NextRequest) {
         campaignName: variation.campaignName ?? null,
       },
       channel_id:    channelId ?? null,
+      ...stamp.fields,
       created_at:    now,
       updated_at:    now,
     })

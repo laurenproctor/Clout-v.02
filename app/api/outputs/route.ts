@@ -40,9 +40,11 @@ export async function GET(req: NextRequest) {
   }
 
   const status = searchParams.get('status') as OutputStatus | null
+  const campaignId = searchParams.get('campaign_id')
   const result = await listOutputs({
     workspaceId: session.workspaceId,
     ...(status && { status }),
+    ...(campaignId && { campaignId }),
     limit: Number(searchParams.get('limit') ?? 50),
   })
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 500 })

@@ -723,6 +723,60 @@ export type Database = {
           },
         ]
       }
+      campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          goal: string
+          id: string
+          name: string
+          purpose: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          goal: string
+          id?: string
+          name: string
+          purpose: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          goal?: string
+          id?: string
+          name?: string
+          purpose?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       captures: {
         Row: {
           audio_path: string | null
@@ -2249,6 +2303,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           approved_for_week: boolean
+          campaign_id: string | null
           channel_id: string | null
           concept_id: string | null
           content: Json
@@ -2280,6 +2335,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           approved_for_week?: boolean
+          campaign_id?: string | null
           channel_id?: string | null
           concept_id?: string | null
           content?: Json
@@ -2311,6 +2367,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           approved_for_week?: boolean
+          campaign_id?: string | null
           channel_id?: string | null
           concept_id?: string | null
           content?: Json
@@ -2344,6 +2401,13 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outputs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
           {

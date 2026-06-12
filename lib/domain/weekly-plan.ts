@@ -73,6 +73,7 @@ function mapOutputRow(row: Record<string, unknown>): Output {
     workspaceId:         row.workspace_id as string,
     generationId:        row.generation_id as string,
     channelId:           row.channel_id as string | null,
+    campaignId:          (row.campaign_id as string | null) ?? null,
     status:              row.status as OutputStatus,
     title:               row.title as string | null,
     content:             row.content as OutputContent,

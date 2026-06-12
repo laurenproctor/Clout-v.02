@@ -52,7 +52,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, generation_group_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, provider_post_url, published_at, scheduled_at, last_publish_error, created_at, updated_at')
+    .select('id, workspace_id, generation_id, generation_group_id, campaign_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, provider_post_url, published_at, scheduled_at, last_publish_error, created_at, updated_at')
     .eq('status', 'queued')
     .lte('scheduled_at', new Date().toISOString())
     .is('deleted_at', null)
@@ -66,6 +66,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     workspaceId:      row.workspace_id,
     generationId:     row.generation_id,
     channelId:        row.channel_id,
+    campaignId:       (row.campaign_id as string | null) ?? null,
     status:           row.status as OutputStatus,
     title:            row.title,
     content:          row.content as OutputContent,
