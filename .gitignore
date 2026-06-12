@@ -52,3 +52,6 @@ next-env.d.ts
 /.clerk/
 .worktrees/
 .claude/
+
+# Supabase CLI local state
+supabase/.temp/
