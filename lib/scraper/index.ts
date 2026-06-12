@@ -12,8 +12,13 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
   try {
     html = await fetchHtml(url)
   } catch (err) {
-    // Bot-blocked or 403 — fall back to Jina Reader before giving up
-    if (err instanceof Error && err.message.startsWith('FETCH_BLOCKED')) {
+    // Origin returned a bad status or blocked us — try Jina Reader before giving up.
+    // Covers 403 (FETCH_BLOCKED) plus 405/451/503/521 and other Cloudflare-style
+    // bot challenges that surface as FETCH_FAILED from datacenter IPs.
+    if (err instanceof Error && (
+      err.message.startsWith('FETCH_BLOCKED') ||
+      err.message.startsWith('FETCH_FAILED')
+    )) {
       return fetchWithJina(url)
     }
     throw err

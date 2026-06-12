@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       userMessage = 'That site is blocking automated access. Try a specific page URL instead of the homepage.'
     } else if (msg.includes('FETCH_TIMEOUT') || msg.includes('JINA_TIMEOUT')) {
       userMessage = 'The site took too long to respond. Try again or use a different page URL.'
-    } else if (msg.includes('JINA_FAILED')) {
+    } else if (msg.includes('JINA_FAILED') || msg.includes('FETCH_FAILED')) {
       userMessage = 'Could not retrieve that page. Make sure the URL is correct and publicly accessible.'
     } else if (msg.includes('ANALYSIS_PARSE_FAILED')) {
       userMessage = 'Analysis completed but the result was unreadable. Please try again.'
