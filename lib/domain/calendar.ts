@@ -31,6 +31,30 @@ function getWeekEnd(weekStart: string): string {
 type OutputRow = Record<string, unknown>
 type ChannelRow = { platform?: string; label?: string; account_id?: string } | null
 
+const PLATFORM_DISPLAY: Record<string, string> = {
+  linkedin: 'LinkedIn',
+  x: 'X',
+  twitter: 'X',
+  threads: 'Threads',
+  substack: 'Substack',
+  bluesky: 'Bluesky',
+  mastodon: 'Mastodon',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  wordpress: 'WordPress',
+  medium: 'Medium',
+  google_business_profile: 'Google Business',
+  apple_business_connect: 'Apple Business',
+}
+
+function humanizePlatform(platform: string): string {
+  return (
+    PLATFORM_DISPLAY[platform] ??
+    platform.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  )
+}
+
 export async function getCalendarWeek(
   workspaceId: string,
   weekStart: string
@@ -88,10 +112,11 @@ export async function getCalendarWeek(
       lensNames: [],
       posts: posts.map((p) => {
         const ch = p.channels as ChannelRow
+        const platform = ((ch?.platform ?? 'linkedin') as ChannelPlatform)
         return {
           id: p.id as string,
-          platform: ((ch?.platform ?? 'linkedin') as ChannelPlatform),
-          accountName: ch?.label ?? ch?.account_id ?? 'Unknown',
+          platform,
+          accountName: ch?.label ?? ch?.account_id ?? humanizePlatform(platform),
           handle: null,
           status: p.status as OutputStatus,
           scheduledAt: p.scheduled_at as string | null,
