@@ -1,4 +1,5 @@
 import { scrapeUrl } from '@/lib/scraper'
+import { discoverBlogPosts } from '@/lib/scraper/blogDiscovery'
 import { callClaude } from '@/lib/ai/generate'
 import type { WebsiteOpportunity, WebsiteContentGap, WebsiteAsset } from '@/types/feed'
 
@@ -125,6 +126,152 @@ ${scraped.markdownContent.slice(0, 6000)}`
       version: 1,
     },
   }
+}
+
+/** Cap on how many blog posts a single index URL will fan out to. */
+const MAX_BLOG_POSTS = 25
+/** How many post analyses to run at once. */
+const BLOG_CONCURRENCY = 5
+/** Bounds on the merged result so the cache/UI don't get flooded. */
+const MAX_MERGED_ITEMS = 60
+const MAX_MERGED_GAPS = 8
+
+/** Run an async mapper over items with a fixed concurrency ceiling. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let cursor = 0
+  async function worker() {
+    while (cursor < items.length) {
+      const i = cursor++
+      results[i] = await fn(items[i]!, i)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker))
+  return results
+}
+
+/**
+ * Merge per-post analyses into one result. Each post's analysis independently
+ * emits `asset-1`/`opp-1`/`gap-1`, so we namespace every id by post index and
+ * rewrite the `asset_id` references that link opportunities to their asset.
+ */
+function mergeBlogResults(
+  results: Array<ParsedAnalysis | null>,
+  meta: WebsiteAnalysisResult['meta'],
+): WebsiteAnalysisResult {
+  const assets: WebsiteAsset[] = []
+  const items: WebsiteOpportunity[] = []
+  const gaps: WebsiteContentGap[] = []
+
+  results.forEach((res, i) => {
+    if (!res) return
+    const prefix = `p${i}-`
+    for (const asset of res.assets) {
+      assets.push({ ...asset, id: `${prefix}${asset.id}` })
+    }
+    for (const item of res.items) {
+      items.push({
+        ...item,
+        id: `${prefix}${item.id}`,
+        asset_id: item.asset_id ? `${prefix}${item.asset_id}` : item.asset_id,
+      })
+    }
+    for (const gap of res.gaps) {
+      gaps.push({ ...gap, id: `${prefix}${gap.id}` })
+    }
+  })
+
+  const topItems = [...items]
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, MAX_MERGED_ITEMS)
+
+  const seenGap = new Set<string>()
+  const dedupedGaps = gaps.filter(g => {
+    const key = (g.headline ?? '').toLowerCase().trim()
+    if (!key || seenGap.has(key)) return false
+    seenGap.add(key)
+    return true
+  }).slice(0, MAX_MERGED_GAPS)
+
+  return { assets, items: topItems, gaps: dedupedGaps, meta }
+}
+
+/**
+ * Analyze a blog index URL by discovering its individual posts and analyzing
+ * each one. Returns `null` when the URL is not a blog index (no posts found),
+ * so callers can fall back to single-page analysis.
+ */
+export async function analyzeBlogIndexForOpportunities(
+  url: string,
+  limit = MAX_BLOG_POSTS,
+): Promise<WebsiteAnalysisResult | null> {
+  const start = Date.now()
+  const posts = await discoverBlogPosts(url, limit)
+  if (!posts || posts.length === 0) return null
+
+  console.info(`[website-intelligence/analyze] discovered ${posts.length} blog posts from ${url}`)
+
+  const results = await mapWithConcurrency(posts, BLOG_CONCURRENCY, async post => {
+    try {
+      const scraped = await scrapeUrl(post.url)
+      const analysis = await analyzeScrapedContent(
+        scraped.markdownContent,
+        post.url,
+        scraped.title ?? post.title ?? post.url,
+        scraped.siteName,
+      )
+      return analysis
+    } catch (err) {
+      console.warn(`[website-intelligence/analyze] skipped post ${post.url}:`, err instanceof Error ? err.message : err)
+      return null
+    }
+  })
+
+  const succeeded = results.filter((r): r is ParsedAnalysis => r !== null)
+  if (succeeded.length === 0) return null
+
+  return mergeBlogResults(results, {
+    extractionMethod: 'readability',
+    durationMs: Date.now() - start,
+    version: 1,
+  })
+}
+
+/**
+ * Analyze any URL for content opportunities. Tries blog-index discovery first
+ * (fans out to individual posts); falls back to single-page analysis otherwise.
+ */
+export async function analyzeUrlForOpportunities(url: string): Promise<WebsiteAnalysisResult> {
+  const blog = await analyzeBlogIndexForOpportunities(url)
+  if (blog) return blog
+  return analyzeWebsiteForOpportunities(url)
+}
+
+/** Run the opportunity-analysis prompt over already-scraped markdown content. */
+async function analyzeScrapedContent(
+  markdown: string,
+  url: string,
+  title: string,
+  siteName?: string,
+): Promise<ParsedAnalysis> {
+  const userMessage = `Website URL: ${url}
+Page title: ${title}
+Site name: ${siteName ?? 'Unknown'}
+
+## Page content (up to 6000 chars):
+${markdown.slice(0, 6000)}`
+
+  const result = await callClaude({
+    systemPrompt: SYSTEM_PROMPT,
+    userMessage,
+    model: 'claude-sonnet-4-6',
+    maxTokens: 8192,
+  })
+  return parseAnalysisResponse(result.content)
 }
 
 export async function analyzeContentForOpportunities(

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
-import { analyzeWebsiteForOpportunities } from '@/lib/website-intelligence/analyze'
+import { analyzeUrlForOpportunities } from '@/lib/website-intelligence/analyze'
 import { mergeIntoCache, readCache, writeCache } from '../_cache'
+
+// Blog-index discovery can fan out to many post analyses; allow headroom.
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
@@ -22,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   let newResult
   try {
-    newResult = await analyzeWebsiteForOpportunities(url)
+    newResult = await analyzeUrlForOpportunities(url)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[add-url] analysis failed:', msg)
