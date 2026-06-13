@@ -1,7 +1,7 @@
 import { schedules, logger } from '@trigger.dev/sdk/v3'
 import { createServiceClient } from '@/lib/supabase/service'
 import { analyzeWebsiteForOpportunities } from '@/lib/website-intelligence/analyze'
-import { writeCache, resultToCache } from '@/app/api/website-intelligence/_cache'
+import { readCache, mergeIntoCache, writeCache } from '@/app/api/website-intelligence/_cache'
 
 const PER_SITE_TIMEOUT_MS = 60_000
 const SKIP_IF_ANALYZED_WITHIN_DAYS = 6
@@ -63,8 +63,14 @@ export const websiteIntelligenceWeeklyJob = schedules.task({
           ),
         ])
 
+        // Merge, don't overwrite. This homepage refresh never re-discovers blog
+        // posts (it analyzes a single page), so overwriting would wipe every
+        // previously-discovered post each week. `preferNew` refreshes the
+        // homepage opportunities in place while preserving everything else.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await writeCache(supabase as any, workspace_id, resultToCache(result))
+        const existing = await readCache(supabase as any, workspace_id)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await writeCache(supabase as any, workspace_id, mergeIntoCache(existing, result, { preferNew: true }))
         succeeded++
         await logger.info('Refreshed website intelligence', {
           workspace_id,

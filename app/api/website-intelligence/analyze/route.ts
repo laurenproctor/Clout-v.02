@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeUrlForOpportunities } from '@/lib/website-intelligence/analyze'
 import type { WebsiteAnalysisResult } from '@/lib/website-intelligence/analyze'
-import { writeCache, resultToCache } from '../_cache'
+import { readCache, mergeIntoCache, writeCache } from '../_cache'
 
 // Blog-index discovery can fan out to many post analyses; allow headroom.
 export const maxDuration = 300
@@ -60,13 +60,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: userMessage }, { status: 422 })
   }
 
-  await writeCache(supabase, session.workspaceId, resultToCache(result))
+  // Merge (don't overwrite): blog discovery is intentionally partial — capped
+  // post count, a wall-clock budget that skips remaining posts, per-post
+  // failures, and a single-page fallback when discovery finds nothing — so a
+  // re-analysis often returns fewer posts than a prior run. Overwriting would
+  // wipe previously-discovered blog posts. `preferNew` refreshes the pages this
+  // run did re-crawl while preserving everything it didn't. Stable per-post ids
+  // (see analyze.ts) keep this idempotent rather than duplicating posts.
+  const existing = await readCache(supabase, session.workspaceId)
+  const merged = mergeIntoCache(existing, result, { preferNew: true })
+  await writeCache(supabase, session.workspaceId, merged)
 
   return NextResponse.json({
     configured: true,
     website_url,
-    items: result.items,
-    gaps: result.gaps,
-    assets: result.assets,
+    items: merged.items,
+    gaps: merged.gaps,
+    assets: merged.assets,
   })
 }

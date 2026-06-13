@@ -11,17 +11,6 @@ export interface CacheShape {
   version?: number
 }
 
-export function resultToCache(result: WebsiteAnalysisResult): CacheShape {
-  return {
-    items: result.items,
-    gaps: result.gaps,
-    assets: result.assets,
-    extraction_method: result.meta.extractionMethod,
-    duration_ms: result.meta.durationMs,
-    version: result.meta.version,
-  }
-}
-
 export async function readCache(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: SupabaseClient<any>,
@@ -53,22 +42,40 @@ export async function writeCache(
     .eq('workspace_id', workspaceId)
 }
 
+/**
+ * Merge a fresh analysis into the cached one, keyed by id.
+ *
+ * Both modes PRESERVE existing entries that the new result doesn't mention — so a
+ * partial or failed re-analysis can never wipe previously-discovered content
+ * (e.g. blog posts that this run didn't re-crawl). They differ only on id
+ * collisions:
+ *  - default (append-only): the existing entry wins — used by `add-url`/`upload`
+ *    where each call contributes a distinct new source.
+ *  - `preferNew`: the new entry wins — used by the full re-analyze path so
+ *    re-crawled pages get refreshed in place rather than frozen at first analysis.
+ */
 export function mergeIntoCache(
   existing: CacheShape,
   newResult: WebsiteAnalysisResult,
+  opts: { preferNew?: boolean } = {},
 ): CacheShape {
-  const existingItemIds = new Set((existing.items as Array<{ id?: string }>).map(i => i.id).filter(Boolean))
-  const existingGapIds = new Set((existing.gaps as Array<{ id?: string }>).map(g => g.id).filter(Boolean))
-  const existingAssetIds = new Set((existing.assets as Array<{ id?: string }>).map(a => a.id).filter(Boolean))
-
-  const newItems = (newResult.items as Array<{ id?: string }>).filter(i => !existingItemIds.has(i.id))
-  const newGaps = (newResult.gaps as Array<{ id?: string }>).filter(g => !existingGapIds.has(g.id))
-  const newAssets = (newResult.assets as Array<{ id?: string }>).filter(a => !existingAssetIds.has(a.id))
+  const mergeList = (existingList: object[], newList: object[]): object[] => {
+    const ex = existingList as Array<{ id?: string }>
+    const nw = newList as Array<{ id?: string }>
+    if (opts.preferNew) {
+      const newIds = new Set(nw.map(i => i.id).filter(Boolean))
+      const preserved = ex.filter(i => !newIds.has(i.id))
+      return [...preserved, ...nw]
+    }
+    const existingIds = new Set(ex.map(i => i.id).filter(Boolean))
+    const added = nw.filter(i => !existingIds.has(i.id))
+    return [...ex, ...added]
+  }
 
   return {
-    items: [...existing.items, ...newItems],
-    gaps: [...existing.gaps, ...newGaps],
-    assets: [...existing.assets, ...newAssets],
+    items: mergeList(existing.items, newResult.items),
+    gaps: mergeList(existing.gaps, newResult.gaps),
+    assets: mergeList(existing.assets, newResult.assets),
     extraction_method: newResult.meta.extractionMethod,
     duration_ms: newResult.meta.durationMs,
     version: newResult.meta.version,

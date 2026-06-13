@@ -46,15 +46,41 @@ describe('analyzeBlogIndexForOpportunities', () => {
     const result = await analyzeBlogIndexForOpportunities('https://x.com/blog')
     expect(result).not.toBeNull()
 
-    // One asset per post, namespaced — no id collisions.
-    expect(result!.assets.map(a => a.id).sort()).toEqual(['p0-asset-1', 'p1-asset-1'])
-    // Items reference their post's namespaced asset id.
-    const item0 = result!.items.find(i => i.id === 'p0-opp-1')!
-    expect(item0.asset_id).toBe('p0-asset-1')
+    // One asset per post — namespaced per-post so there are no id collisions.
+    expect(new Set(result!.assets.map(a => a.id)).size).toBe(2)
+    // Every item references an asset id that shares its own post prefix.
+    for (const item of result!.items) {
+      const prefix = item.id.replace(/opp-\d+$/, '')
+      expect(item.asset_id).toBe(`${prefix}asset-1`)
+    }
     // Items sorted by score desc.
     expect(result!.items.map(i => i.score)).toEqual([90, 70])
     // Duplicate gap headline collapses to one.
     expect(result!.gaps).toHaveLength(1)
+  })
+
+  it('derives stable ids from the post url, independent of discovery order', async () => {
+    // Re-analysis must not give a post a different id just because discovery
+    // returned it in a different position — the id is keyed to the post url.
+    // Embed the analyzed url in the item title so we can map item -> post url.
+    mockClaude.mockImplementation(async ({ userMessage }) => {
+      const url = userMessage.match(/Website URL: (\S+)/)![1]
+      return { content: analysisJson(url, 80) } as never
+    })
+    const idForUrl = (r: Awaited<ReturnType<typeof analyzeBlogIndexForOpportunities>>, url: string) =>
+      r!.items.find(i => i.title === `Opp for ${url}`)!.id
+
+    mockDiscover.mockResolvedValue([{ url: 'https://x.com/a' }, { url: 'https://x.com/b' }])
+    const first = await analyzeBlogIndexForOpportunities('https://x.com/blog')
+
+    mockDiscover.mockResolvedValue([{ url: 'https://x.com/b' }, { url: 'https://x.com/a' }])
+    const second = await analyzeBlogIndexForOpportunities('https://x.com/blog')
+
+    // The post at /a keeps the same id even though it moved from index 0 to 1.
+    expect(idForUrl(first, 'https://x.com/a')).toBe(idForUrl(second, 'https://x.com/a'))
+    expect(idForUrl(first, 'https://x.com/b')).toBe(idForUrl(second, 'https://x.com/b'))
+    // And the two posts still get distinct ids.
+    expect(idForUrl(first, 'https://x.com/a')).not.toBe(idForUrl(first, 'https://x.com/b'))
   })
 
   it('skips posts that fail to scrape but keeps the rest', async () => {

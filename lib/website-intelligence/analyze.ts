@@ -178,12 +178,30 @@ async function mapWithConcurrency<T, R>(
 }
 
 /**
+ * Stable, dependency-free namespace key for a post url (FNV-1a, base36). Keying
+ * the id to the url — rather than the discovery index — means a post keeps the
+ * same id across re-analyses even when discovery returns posts in a different
+ * order or count. That's what lets the cache merge refresh posts in place
+ * instead of duplicating or losing them.
+ */
+function postKey(url: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < url.length; i++) {
+    h ^= url.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return (h >>> 0).toString(36)
+}
+
+/**
  * Merge per-post analyses into one result. Each post's analysis independently
- * emits `asset-1`/`opp-1`/`gap-1`, so we namespace every id by post index and
- * rewrite the `asset_id` references that link opportunities to their asset.
+ * emits `asset-1`/`opp-1`/`gap-1`, so we namespace every id by a stable per-post
+ * key (derived from the post url) and rewrite the `asset_id` references that link
+ * opportunities to their asset. `results` and `posts` are index-aligned.
  */
 function mergeBlogResults(
   results: Array<ParsedAnalysis | null>,
+  posts: Array<{ url: string }>,
   meta: WebsiteAnalysisResult['meta'],
 ): WebsiteAnalysisResult {
   const assets: WebsiteAsset[] = []
@@ -192,7 +210,7 @@ function mergeBlogResults(
 
   results.forEach((res, i) => {
     if (!res) return
-    const prefix = `p${i}-`
+    const prefix = `${postKey(posts[i]!.url)}-`
     for (const asset of res.assets) {
       assets.push({ ...asset, id: `${prefix}${asset.id}` })
     }
@@ -261,7 +279,7 @@ export async function analyzeBlogIndexForOpportunities(
   const succeeded = results.filter((r): r is ParsedAnalysis => r !== null)
   if (succeeded.length === 0) return null
 
-  return mergeBlogResults(results, {
+  return mergeBlogResults(results, posts, {
     extractionMethod: 'readability',
     durationMs: Date.now() - start,
     version: 1,
