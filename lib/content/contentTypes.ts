@@ -91,12 +91,13 @@ export const CONTENT_TYPES: ContentType[] = [
     icon: Zap,
   },
   {
-    id: 'newsletter',
-    title: 'Newsletter',
+    id: 'substack-email',
+    title: 'Substack Email',
     description:
-      'Build editorial newsletters with recurring formats, curated sections, and audience-first structure.',
-    statusLabel: 'Coming Soon',
-    status: 'coming_soon',
+      'Draft a long-form Substack email, then refine, schedule, and publish it through Studio.',
+    ctaLabel: 'Write a Substack email',
+    route: '/create/substack-email',
+    status: 'active',
     icon: Mail,
   },
 ]

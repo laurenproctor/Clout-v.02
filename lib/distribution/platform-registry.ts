@@ -46,6 +46,7 @@ export const DISTRIBUTION_PLATFORMS: Record<string, PlatformEntry> = {
   shopify:                 { label: 'Shopify',                 defaultUTM: { source: 'shopify',         medium: 'ecommerce'  } },
   substack:                { label: 'Substack',                defaultUTM: { source: 'substack',        medium: 'email'      } },
   google_business_profile: { label: 'Google Business Profile', defaultUTM: { source: 'google_business', medium: 'local'      } },
+  pinterest:               { label: 'Pinterest',               defaultUTM: { source: 'pinterest',       medium: 'social'     } },
 } as const
 
 export function getPlatformDefault(platform: string): UTMConfig {

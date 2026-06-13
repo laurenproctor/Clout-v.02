@@ -11,6 +11,13 @@ import { LinkedInPreview } from './renderers/LinkedInPreview'
 import { XPreview } from './renderers/XPreview'
 import { InstagramPreview } from './renderers/InstagramPreview'
 import { ThreadsPreview } from './renderers/ThreadsPreview'
+import { FacebookPreview } from './renderers/FacebookPreview'
+import { BlueskyPreview } from './renderers/BlueskyPreview'
+import { MastodonPreview } from './renderers/MastodonPreview'
+import { GoogleBusinessPreview } from './renderers/GoogleBusinessPreview'
+import { TikTokPreview } from './renderers/TikTokPreview'
+import { SubstackPreview } from './renderers/SubstackPreview'
+import { ArticlePreview } from './renderers/ArticlePreview'
 import { FallbackPreview } from './renderers/FallbackPreview'
 
 /**
@@ -30,14 +37,13 @@ const RENDERERS: Record<PreviewPlatform, (props: RendererProps) => React.ReactNo
   x: XPreview,
   instagram: InstagramPreview,
   threads: ThreadsPreview,
-  // Batch 2/3 platforms fall back until their renderers land.
-  facebook: FallbackPreview,
-  bluesky: FallbackPreview,
-  mastodon: FallbackPreview,
-  google_business: FallbackPreview,
-  tiktok: FallbackPreview,
-  substack: FallbackPreview,
-  article: FallbackPreview,
+  facebook: FacebookPreview,
+  bluesky: BlueskyPreview,
+  mastodon: MastodonPreview,
+  google_business: GoogleBusinessPreview,
+  tiktok: TikTokPreview,
+  substack: SubstackPreview,
+  article: ArticlePreview,
   fallback: FallbackPreview,
 }
 

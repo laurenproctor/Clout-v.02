@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Sparkles, ChevronDown, MoreHorizontal } from 'lucide-react'
@@ -18,7 +18,14 @@ import { VariantsRail } from '@/components/studio/variants-rail'
 import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
 import { InlineSuggestion } from '@/components/studio/inline-suggestion'
 import { PlatformTabs } from '@/components/studio/PlatformTabs'
-import { PlatformPreview } from '@/components/studio/PlatformPreview'
+import {
+  SocialPreview,
+  SocialPreviewModal,
+  previewFromStudioState,
+  usePreviewAssets,
+  toPreviewPlatform,
+  type PreviewPlatformTab,
+} from '@/components/social-preview'
 import { StudioSubstackBar } from '@/components/studio/StudioSubstackBar'
 import { VisualsTab } from '@/components/studio/visuals-tab'
 import { useAutosave } from '@/hooks/use-autosave'
@@ -105,6 +112,7 @@ export default function StudioEditorPage() {
   const [deleting,          setDeleting]          = useState(false)
   const [renderedPreviewBody, setRenderedPreviewBody] = useState<string | null>(null)
   const [previewHasUTMs,      setPreviewHasUTMs]      = useState(false)
+  const [previewModalOpen,    setPreviewModalOpen]    = useState(false)
 
   // Platform tabs state — tracks the "active tab" for concept siblings
   const [activeTabId, setActiveTabId] = useState<string>(id)
@@ -483,8 +491,52 @@ export default function StudioEditorPage() {
 
   const previewPlatform: ChannelPlatform = activePreviewChannel?.platform ?? assignedChannel?.platform ?? 'linkedin'
   const previewAccountName = activePreviewChannel ? channelDisplayName(activePreviewChannel) : (assignedChannel ? channelDisplayName(assignedChannel) : '')
-  const previewHandle = previewAccountName.toLowerCase().replace(/\s+/g, '')
   const visualsPlatform: string = assignedChannel?.platform ?? previewPlatform ?? 'linkedin'
+
+  // The output id whose media we want to preview. `activeTabId` is a real
+  // output id in this view (it's either `id` or a concept-sibling's id), but we
+  // resolve it explicitly rather than assuming — and fall back to the loaded
+  // output so we never fetch with an invalid id.
+  const previewOutputId = activeTabId === id ? (output?.id ?? id) : activeTabId
+  const normalizedPreviewPlatform = toPreviewPlatform(previewPlatform)
+  const { media: previewMedia, carousel: previewCarousel } = usePreviewAssets(
+    previewOutputId,
+    normalizedPreviewPlatform,
+  )
+
+  // The channel backing the active preview (for real avatar + handle).
+  const previewChannel = activePreviewChannel ?? assignedChannel ?? null
+
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: previewPlatform,
+        channel: previewChannel,
+        accountName: previewAccountName,
+        body: previewOutput.body,
+        title: previewOutput.title || undefined,
+        hashtags,
+        media: previewMedia,
+        carousel: previewCarousel,
+      }),
+    [
+      previewPlatform,
+      previewChannel,
+      previewAccountName,
+      previewOutput.body,
+      previewOutput.title,
+      hashtags,
+      previewMedia,
+      previewCarousel,
+    ],
+  )
+
+  // Platform tabs for the full-size modal (concept siblings).
+  const modalTabs: PreviewPlatformTab[] = platformTabs.map((t) => ({
+    id: t.postId,
+    platform: t.platform,
+    label: t.accountName,
+  }))
 
   if (loading) {
     return (
@@ -731,12 +783,11 @@ export default function StudioEditorPage() {
                     </span>
                   )}
                 </div>
-                <PlatformPreview
-                  platform={previewPlatform}
-                  accountName={previewAccountName}
-                  handle={previewHandle}
-                  body={previewOutput.body}
-                  subject={previewOutput.title || undefined}
+                <SocialPreview
+                  data={previewData}
+                  mode="compact"
+                  theme="light"
+                  onExpand={() => setPreviewModalOpen(true)}
                 />
                 {platformTabs.length > 1 && (
                   <PlatformTabs
@@ -1007,6 +1058,23 @@ export default function StudioEditorPage() {
           )}
         </div>
       </div>
+
+      {/* Full-size, true-to-scale preview */}
+      <SocialPreviewModal
+        open={previewModalOpen}
+        onOpenChange={setPreviewModalOpen}
+        data={previewData}
+        tabs={modalTabs}
+        activeTabId={activeTabId}
+        onSelectTab={(postId) => {
+          if (postId === id) {
+            setActiveTabId(id)
+          } else {
+            setActiveTabId(postId)
+            router.push(`/${slug}/studio/${postId}`)
+          }
+        }}
+      />
 
     </div>
   )

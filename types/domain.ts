@@ -31,7 +31,7 @@ export interface Angle {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'substack' | 'google_business_profile' | 'apple_business_connect' | 'bluesky' | 'mastodon'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'substack' | 'google_business_profile' | 'apple_business_connect' | 'bluesky' | 'mastodon' | 'pinterest'
 export type LensScope = 'system' | 'workspace'
 export type EmailType = 'welcome' | 'output_ready' | 'payment_failed'
 export type EmailStatus = 'pending' | 'sent' | 'failed'
@@ -189,6 +189,16 @@ export interface OutputContent {
   hook?: string
   hashtags?: string[]
   wordCount?: number
+  // ─── Pinterest (Phase 1) ─────────────────────────────────────────────────────
+  // All destination URLs are stored CLEAN (no UTM params). UTMs are appended only
+  // at render/publish time. Resolution priority: platforms.pinterest.destinationUrl
+  // → destinationUrl → campaign.destinationUrl.
+  destinationUrl?: string
+  platforms?: { pinterest?: { destinationUrl?: string } }
+  // Per-output board override. Stores the Pinterest API board_id (NOT the DB UUID).
+  pinterestBoardId?: string
+  // Visual asset attached to this draft (also used by Instagram/LinkedIn).
+  selectedVisualAssetId?: string
   [key: string]: unknown
 }
 

@@ -16,6 +16,10 @@ export interface SubstackGeneratedArticle {
   title:     string
   subtitle?: string
   article:   CanonicalArticle
+  // Raw parsed markdown body. Additive: the Substack Email creator stores this as the
+  // editable content.body (Studio + the publishing bridge expect markdown, not canonical
+  // JSON). The existing /create/substack article creator ignores it and uses `article`.
+  markdown:  string
   wordCount: number
 }
 

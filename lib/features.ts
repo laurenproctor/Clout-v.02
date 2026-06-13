@@ -7,6 +7,28 @@ export const FEATURES = {
   // Master switch for the LinkedIn beta connector (Unipile). When false, no Unipile
   // route or client method may run, regardless of per-workspace beta settings.
   linkedinUnipileEnabled: process.env.LINKEDIN_UNIPILE_ENABLED === 'true',
+  // Master switch for the Pinterest publishing connector. When false, the Pinterest
+  // settings card is hidden, OAuth routes reject, and publishing fails closed.
+  pinterestPublishing: process.env.PINTEREST_PUBLISHING_ENABLED === 'true',
+  // Routes the Pinterest provider client at the sandbox API host instead of production.
+  // Used during trial access before standard API approval.
+  pinterestSandboxMode: process.env.PINTEREST_SANDBOX_MODE === 'true',
+}
+
+// Per-capability gates for Pinterest, mirroring the Substack pattern. A constant may
+// only flip to `true` once verified against the live (sandbox or production) API.
+export const PINTEREST_CAPABILITIES = {
+  boardSync: true,  // verified: GET /v5/boards lists boards
+  imagePin:  true,  // verified: POST /v5/pins with image_url media source
+  videoPin:  false, // out of scope for Phase 1 — architecture is video-ready, unbuilt
+} as const
+
+export type PinterestCapability = keyof typeof PINTEREST_CAPABILITIES
+
+// Single source of truth for "may this Pinterest action call a live endpoint right now?"
+// Every action requires the master publishing flag AND its capability flag.
+export function isPinterestActionEnabled(capability: PinterestCapability): boolean {
+  return FEATURES.pinterestPublishing && PINTEREST_CAPABILITIES[capability]
 }
 
 // Per-capability gates for Substack's undocumented internal endpoints. A constant

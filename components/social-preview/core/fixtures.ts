@@ -75,6 +75,48 @@ export const FIXTURES: Record<string, PreviewData> = {
     author: { name: 'lauren.builds', handle: 'lauren.builds', avatarUrl: AVATAR },
     body: 'realistic previews are the kind of feature nobody asks for and everybody wants once it exists.',
   },
+  'facebook-image': {
+    platform: 'facebook',
+    author: { name: 'Lauren Proctor', avatarUrl: AVATAR },
+    body: 'A preview is a trust layer, not decoration. Here is how it looks on Facebook.',
+    media: [{ url: PHOTO_WIDE, aspectRatio: 1.91 }],
+  },
+  'bluesky-text': {
+    platform: 'bluesky',
+    author: { name: 'Lauren Proctor', handle: 'lauren.bsky.social', avatarUrl: AVATAR },
+    body: 'realistic previews on bluesky too. 300 chars, no fake counts.',
+  },
+  'mastodon-text': {
+    platform: 'mastodon',
+    author: { name: 'Lauren Proctor', handle: 'lauren@hachyderm.io', avatarUrl: AVATAR },
+    body: 'Federated, conservative, and now previewable. #fediverse',
+  },
+  'google-business': {
+    platform: 'google_business',
+    author: { name: 'Clout HQ', avatarUrl: AVATAR },
+    body: 'New office hours this week. Stop by to see realistic post previews in action.',
+    media: [{ url: PHOTO_WIDE, aspectRatio: 4 / 3 }],
+  },
+  'tiktok-video': {
+    platform: 'tiktok',
+    author: { name: 'lauren.builds', handle: 'lauren.builds', avatarUrl: AVATAR, verified: true },
+    body: 'POV: you can finally see your post before it ships 🎬 #buildinpublic #saas',
+    media: [{ url: 'https://picsum.photos/seed/clout-vertical/720/1280', aspectRatio: 9 / 16 }],
+  },
+  'substack-article': {
+    platform: 'substack',
+    author: { name: 'Lauren Proctor', avatarUrl: AVATAR },
+    title: 'The preview is the product',
+    body: LONG_BODY,
+    media: [{ url: PHOTO_WIDE, aspectRatio: 2 }],
+  },
+  'article-blog': {
+    platform: 'article',
+    author: { name: 'Lauren Proctor', avatarUrl: AVATAR },
+    title: 'Why realistic previews matter for publishing',
+    body: LONG_BODY,
+    media: [{ url: PHOTO_WIDE, aspectRatio: 2 }],
+  },
   'fallback': {
     platform: 'fallback',
     author: { name: 'Clout', handle: 'clout' },

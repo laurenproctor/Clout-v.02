@@ -22,6 +22,12 @@ import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
 import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/types'
 import { GBPApiError } from '@/lib/channels/google-business-profile/types'
 import { renderOutputForPlatform } from '@/lib/domain/output-utm'
+import { createPin, pinterestPinUrl } from '@/lib/pinterest/client'
+import { getValidPinterestToken } from '@/lib/pinterest/credential'
+import { resolveBoardForOutput } from '@/lib/pinterest/boards'
+import { resolvePinterestImage } from '@/lib/pinterest/image'
+import { resolvePinterestDestinationUrl, tagPinterestDestination } from '@/lib/pinterest/destination'
+import { assertPinterestReadiness } from '@/lib/pinterest/readiness'
 import { publishSubstackOutput, SubstackManualFallbackError } from '@/lib/domain/substack-publish'
 import { buildSubstackFallback } from '@/lib/publishing/providers/substack/fallback'
 
@@ -640,6 +646,10 @@ export async function publishOutput(
     case 'mastodon': {
       const { postId, postUrl } = await publishMastodonOutput(outputToPublish, opts)
       return { postUrn: postId, postUrl }
+    }
+    case 'pinterest': {
+      const { pinId } = await publishPinterestOutput(outputToPublish, opts)
+      return { postUrn: pinId, postUrl: pinterestPinUrl(pinId) }
     }
     case 'tiktok':
       throw Object.assign(
@@ -1517,4 +1527,91 @@ export async function publishMastodonOutput(
   })
 
   return { postId: mastodonStatus.id, postUrl: mastodonStatus.url }
+}
+
+// ─── Pinterest ────────────────────────────────────────────────────────────────
+// Pinterest image Pins require a board, a durable public image, and a destination link.
+// This publisher owns its createPublishLog calls (success + failure); the caller (post
+// route / scheduled worker) owns acquirePublishLock + markPublished/markFailed + lock
+// release. publishPinterestOutput itself is lock-free.
+
+export async function publishPinterestOutput(
+  output: Output,
+  opts?: { wasRetry?: boolean }
+): Promise<{ pinId: string }> {
+  if (!output.channelId) {
+    throw Object.assign(
+      new Error('No channel assigned to this post. Edit the draft and assign a Pinterest account.'),
+      { code: 'no_channel', retryable: false }
+    )
+  }
+
+  // Idempotency: already published
+  if (output.providerPostId) {
+    return { pinId: output.providerPostId }
+  }
+
+  // Authoritative readiness — re-runs even if the UI already validated. Throws a
+  // PinterestApiError carrying a readiness code (mapped to user copy by the caller).
+  await assertPinterestReadiness(output)
+
+  const accessToken = await getValidPinterestToken(output.channelId, output.workspaceId)
+  const boardId = await resolveBoardForOutput(output)
+
+  const image = await resolvePinterestImage(output)
+  if (!image) {
+    throw Object.assign(
+      new Error('Pinterest Pins require an image.'),
+      { code: 'missing_image', retryable: false }
+    )
+  }
+
+  const canonicalUrl = resolvePinterestDestinationUrl({ output })
+  const link = await tagPinterestDestination({ output, canonicalUrl })
+
+  const content = output.content as OutputContent
+  const description = (content.body ?? '').trim()
+
+  const startedAt = Date.now()
+  let pinId: string
+
+  try {
+    const result = await createPin(accessToken, {
+      boardId,
+      imageUrl:    image.url,
+      title:       output.title ?? '',
+      description,
+      link,
+      altText:     image.altText,
+    })
+    pinId = result.pinId
+  } catch (err) {
+    const durationMs = Date.now() - startedAt
+    await createPublishLog({
+      workspaceId:  output.workspaceId,
+      outputId:     output.id,
+      channelId:    output.channelId,
+      platform:     'pinterest',
+      status:       'failed',
+      errorCode:    (err as { code?: string }).code ?? 'publish_error',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      wasRetry:     opts?.wasRetry ?? false,
+      durationMs,
+    })
+    throw err
+  }
+
+  const durationMs = Date.now() - startedAt
+  await createPublishLog({
+    workspaceId:    output.workspaceId,
+    outputId:       output.id,
+    channelId:      output.channelId,
+    platform:       'pinterest',
+    status:         'success',
+    providerPostId: pinId,
+    wasRetry:       opts?.wasRetry ?? false,
+    durationMs,
+  })
+
+  return { pinId }
 }

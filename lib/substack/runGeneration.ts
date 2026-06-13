@@ -164,6 +164,7 @@ export function runSubstackGeneration(ctx: SubstackPromptContext): ReadableStrea
           title:     parsed.title,
           subtitle:  parsed.subtitle,
           article,
+          markdown:  parsed.body,
           wordCount,
         }
 
