@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ImageIcon, RefreshCw, Loader2, Check, Paperclip } from 'lucide-react'
+import { ImageIcon, RefreshCw, Check, Paperclip } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { VisualPreview } from './VisualPreview'
@@ -122,11 +124,11 @@ export function VisualGenerator({
     return (
       <div className={cn('rounded-lg border border-zinc-200 bg-white p-5', className)}>
         <div className="flex items-center gap-2 mb-3">
-          <Loader2 className="h-4 w-4 text-zinc-400 animate-spin" />
+          <Spinner size="md" />
           <span className="text-sm font-medium text-zinc-700">Generating visual...</span>
         </div>
-        <div className={cn(
-          'rounded-md bg-zinc-100 animate-pulse w-full',
+        <Skeleton className={cn(
+          'w-full',
           aspectRatio === 'square'    ? 'aspect-square'   : '',
           aspectRatio === 'landscape' ? 'aspect-video'     : '',
           aspectRatio === 'portrait'  ? 'aspect-[9/16]'   : '',

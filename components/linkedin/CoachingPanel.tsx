@@ -1,6 +1,7 @@
 'use client'
 
 import type { PostCoaching } from '@/lib/linkedin/types'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface CoachingPanelProps {
   coaching: PostCoaching | null
@@ -38,11 +39,11 @@ function BulletList({ items, italic }: { items: string[]; italic?: boolean }) {
 export function CoachingPanel({ coaching }: CoachingPanelProps) {
   if (!coaching) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-3 bg-zinc-100 rounded w-24" />
+      <div className="space-y-4">
+        <Skeleton className="h-3 w-24" />
         <div className="space-y-2">
-          <div className="h-2 bg-zinc-100 rounded" />
-          <div className="h-2 bg-zinc-100 rounded w-5/6" />
+          <Skeleton className="h-2" />
+          <Skeleton className="h-2 w-5/6" />
         </div>
       </div>
     )

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
-import { X, Paperclip, Loader2, ArrowUpRight } from 'lucide-react'
+import { X, Paperclip, ArrowUpRight } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -257,7 +258,7 @@ export function SupportModal({ open, onClose, initialCategory }: SupportModalPro
                     >
                       {submitting ? (
                         <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <Spinner size="sm" />
                           Sending…
                         </>
                       ) : (

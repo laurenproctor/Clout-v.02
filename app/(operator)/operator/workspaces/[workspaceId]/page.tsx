@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Skeleton, SkeletonList } from '@/components/ui/skeleton'
 
 interface WorkspaceDetail {
   workspace: { id: string; name: string; slug: string; plan: string }
@@ -47,10 +48,8 @@ export default function OperatorWorkspaceDetailPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-6 w-48 rounded bg-zinc-200 animate-pulse" />
-        <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <div key={i} className="h-24 rounded-lg border border-zinc-200 bg-white animate-pulse" />)}
-        </div>
+        <Skeleton className="h-6 w-48" />
+        <SkeletonList count={3} rowClassName="h-24" className="grid grid-cols-3 gap-4 space-y-0" />
       </div>
     )
   }

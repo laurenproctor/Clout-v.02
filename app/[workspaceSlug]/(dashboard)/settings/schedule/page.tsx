@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { Loader2, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
@@ -133,7 +134,7 @@ export default function SchedulePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-zinc-300" />
+        <Spinner size="lg" label="Loading scheduling settings" />
       </div>
     )
   }
@@ -171,7 +172,7 @@ export default function SchedulePage() {
               )}
             >
               {status === 'saved' && <Check className="h-3 w-3" />}
-              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saving' && <Spinner size="xs" />}
               {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
             </button>
           </div>

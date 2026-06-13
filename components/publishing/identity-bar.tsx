@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import * as Popover from '@radix-ui/react-popover'
 import { ChevronDown, Check } from 'lucide-react'
 import Link from 'next/link'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -107,7 +108,7 @@ export function IdentityBar({ outputId }: { outputId?: string }) {
 
       {/* Publishing accounts */}
       {loading ? (
-        <div className="h-4 w-48 animate-pulse rounded bg-zinc-100" />
+        <Skeleton className="h-4 w-48" />
       ) : accounts.length === 0 ? (
         <Link
           href={`/${workspace.slug}/settings/publishing`}

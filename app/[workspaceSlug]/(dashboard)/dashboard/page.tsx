@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Circle, Loader2, RotateCcw, X } from 'lucide-react'
+import { Check, Circle, RotateCcw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import type { Capture, Output } from '@/types/domain'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { PublishingEngine } from '@/components/dashboard/PublishingEngine'
@@ -351,7 +352,7 @@ export default function DashboardPage() {
                       : 'bg-zinc-900 text-white hover:bg-zinc-700'
                   )}
                 >
-                  {savingToStudio && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {savingToStudio && <Spinner size="sm" />}
                   {savingToStudio ? 'Extracting signal...' : 'Open in Studio →'}
                 </button>
                 <button

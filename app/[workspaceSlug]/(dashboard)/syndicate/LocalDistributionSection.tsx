@@ -3,6 +3,7 @@
 import type { CardState } from './PlatformGrid'
 import type { PublishState } from './SyndicationClient'
 import GoogleBusinessProfileCard from './GoogleBusinessProfileCard'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface GBPChannel {
   id: string
@@ -93,7 +94,7 @@ export default function LocalDistributionSection({
           </div>
           <div className="space-y-2">
             {[100, 85, 70, 55].map((w, i) => (
-              <div key={i} className="h-3 rounded bg-zinc-100 animate-pulse" style={{ width: `${w}%` }} />
+              <Skeleton key={i} className="h-3" style={{ width: `${w}%` }} />
             ))}
           </div>
         </div>

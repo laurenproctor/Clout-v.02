@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { useCanInviteMember } from '@/hooks/use-entitlements'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Member = {
   userId: string
@@ -88,7 +89,7 @@ export default function TeamPage() {
   }
 
   if (loading) {
-    return <div className="h-48 rounded-lg border border-zinc-200 bg-zinc-50 animate-pulse" />
+    return <Skeleton className="h-48 w-full rounded-lg" />
   }
 
   return (

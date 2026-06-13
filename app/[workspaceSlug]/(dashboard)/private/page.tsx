@@ -6,6 +6,7 @@ import { Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, PrivateEnrichment } from '@/types/domain'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 type Tab = 'raw' | 'enriched'
 
@@ -113,11 +114,7 @@ export default function PrivatePage() {
 
       {/* Content */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-24 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={2} rowClassName="h-24" />
       ) : activeTab === 'raw' ? (
         captures.length === 0 ? (
           <EmptyState />

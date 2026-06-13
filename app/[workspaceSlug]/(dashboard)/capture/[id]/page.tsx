@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Capture, Lens } from '@/types/domain'
 import { UpgradePrompt } from '@/components/shared/upgrade-prompt'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function CaptureDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -126,8 +127,8 @@ export default function CaptureDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <div className="h-6 w-48 rounded bg-zinc-200 animate-pulse" />
-        <div className="h-40 w-full rounded-lg bg-zinc-200 animate-pulse" />
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-40 w-full rounded-lg" />
       </div>
     )
   }

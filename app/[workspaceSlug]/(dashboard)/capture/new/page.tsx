@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { CaptureComposer } from '@/components/capture/capture-composer'
+import { PageSkeleton } from '@/components/loading/page-skeleton'
 
 const HEADLINES: { heading: string; subheading: string }[] = [
   {
@@ -64,7 +65,7 @@ function RotatingTagline() {
 
 export default function NewCapturePage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageSkeleton />}>
       <NewCaptureInner />
     </Suspense>
   )

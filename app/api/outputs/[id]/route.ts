@@ -117,12 +117,32 @@ export async function DELETE(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // A post that is actively publishing must not be deleted out from under the
+  // worker. Reject if it's publishing at read time...
+  if (existing.data.status === 'publishing') {
+    return NextResponse.json(
+      { error: 'This post is currently publishing and cannot be deleted.' },
+      { status: 409 }
+    )
+  }
+
   const supabase = await createClient()
-  const { error } = await supabase
+  // ...and guard the update against the queued → publishing race. Inspect the
+  // result: if no row came back, the row flipped to publishing between the read
+  // and the update — report 409, not a false success.
+  const { data, error } = await supabase
     .from('outputs')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
+    .neq('status', 'publishing')
+    .select('id')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data || data.length === 0) {
+    return NextResponse.json(
+      { error: 'This post is currently publishing and cannot be deleted.' },
+      { status: 409 }
+    )
+  }
   return NextResponse.json({ ok: true })
 }

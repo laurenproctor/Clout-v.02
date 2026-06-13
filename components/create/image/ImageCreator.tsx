@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { ImageIcon, Loader2, Sun, Moon, Upload, X } from 'lucide-react'
+import { ImageIcon, Sun, Moon, Upload, X } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { VisualPreview } from '@/components/visual/VisualPreview'
 import type { AspectRatio, VisualIntent } from '@/lib/visual/types/visual'
@@ -435,7 +436,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                         </button>
                         {isUploading && (
                           <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-                            <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                            <Spinner size="lg" label="Uploading image" />
                           </div>
                         )}
                       </div>
@@ -542,7 +543,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                         </button>
                         {isUploading && (
                           <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-                            <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                            <Spinner size="lg" label="Uploading image" />
                           </div>
                         )}
                       </div>
@@ -730,7 +731,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                 : 'cursor-not-allowed bg-zinc-100 text-zinc-400'
             )}
           >
-            {genState === 'generating' && <Loader2 className="h-4 w-4 animate-spin" />}
+            {genState === 'generating' && <Spinner size="md" />}
             {genState === 'generating'
               ? 'Generating…'
               : result
@@ -754,7 +755,7 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
 
           {genState === 'generating' && (
             <div className="flex w-full flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 py-16 text-center">
-              <Loader2 className="mb-3 h-8 w-8 animate-spin text-zinc-400" />
+              <Spinner size="xl" className="mb-3" />
               <p className="text-sm text-zinc-400">Generating…</p>
             </div>
           )}

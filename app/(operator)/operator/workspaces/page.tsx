@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Building2 } from 'lucide-react'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 interface Workspace {
   id: string
@@ -46,11 +47,7 @@ export default function OperatorWorkspacesPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={3} rowClassName="h-16" />
       ) : workspaces.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white">
           <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ColorPicker } from '@/components/brand/color-picker'
 import { FontSelector } from '@/components/brand/font-selector'
 import { ToneSelector } from '@/components/brand/tone-selector'
@@ -342,9 +344,9 @@ export default function BrandSettingsPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 rounded bg-zinc-100" />
-          <div className="h-64 rounded-lg bg-zinc-100" />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       </div>
     )
@@ -388,7 +390,7 @@ export default function BrandSettingsPage() {
               )}
             >
               {status === 'saved' && <Check className="h-3 w-3" />}
-              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saving' && <Spinner size="xs" />}
               {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
             </button>
           </div>

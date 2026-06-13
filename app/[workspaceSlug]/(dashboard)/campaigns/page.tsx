@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { GOAL_BADGE, GOAL_LABELS } from '@/lib/content/goals'
 import type { Campaign, CampaignStatus } from '@/types/domain'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 type FilterStatus = 'all' | CampaignStatus
 
@@ -19,7 +20,6 @@ export default function CampaignsPage() {
   const [filter, setFilter] = useState<FilterStatus>('all')
 
   useEffect(() => {
-    setLoading(true)
     fetch('/api/campaigns')
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => { setCampaigns(data); setLoading(false) })
@@ -61,11 +61,7 @@ export default function CampaignsPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={3} rowClassName="h-20" />
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white">
           <div className="flex flex-col items-center justify-center py-20 text-center">

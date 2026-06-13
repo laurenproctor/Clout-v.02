@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Entitlements {
   captures_per_month: number
@@ -77,9 +78,9 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-6 w-32 rounded bg-zinc-200 animate-pulse" />
-        <div className="h-40 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-        <div className="h-32 rounded-lg border border-zinc-200 bg-white animate-pulse" />
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-40 w-full rounded-lg" />
+        <Skeleton className="h-32 w-full rounded-lg" />
       </div>
     )
   }

@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, ExternalLink, Check } from 'lucide-react'
+import { ExternalLink, Check } from 'lucide-react'
 import Link from 'next/link'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { blogPackageToCanonical } from '@/lib/publishing/canonical/from-blog'
 import { generateSlug } from '@/lib/publishing/canonical/normalizer'
@@ -166,7 +168,7 @@ export function PublishToCmsDrawer({
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-400">Destination</label>
             {loadingConnections ? (
-              <div className="h-9 animate-pulse rounded-md bg-zinc-100" />
+              <Skeleton className="h-9" />
             ) : connections.length === 0 ? (
               <p className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-500">
                 No publishing destinations.{' '}
@@ -186,7 +188,7 @@ export function PublishToCmsDrawer({
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-400">Target Blog</label>
               {loadingBlogs ? (
-                <div className="h-9 animate-pulse rounded-md bg-zinc-100" />
+                <Skeleton className="h-9" />
               ) : blogs.length === 0 ? (
                 <p className="rounded-md border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
                   No blogs found in this store. Create a blog in Shopify admin first.
@@ -246,7 +248,7 @@ export function PublishToCmsDrawer({
             disabled={status === 'publishing' || connections.length === 0 || status === 'success'}
             className="flex w-full items-center justify-center gap-2 rounded-md bg-zinc-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
           >
-            {status === 'publishing' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {status === 'publishing' && <Spinner size="sm" />}
             {status === 'publishing'
               ? 'Publishing…'
               : status === 'success'

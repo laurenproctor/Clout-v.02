@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import { VisualControls, type VisualControlsValue } from './visual-controls'
 import { VisualContext } from './visual-context'
 import type { VisualIntent } from '@/lib/visual/types/visual'
@@ -225,7 +226,7 @@ export function VisualsTab({ outputId, content, platform }: VisualsTabProps) {
             />
             {loading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/60">
-                <div className="h-5 w-5 rounded-full border-2 border-zinc-600 border-t-zinc-300 animate-spin mb-2" />
+                <Spinner size="lg" className="mb-2 text-zinc-300" />
                 <p className="text-[11px] text-zinc-400">Building visual direction…</p>
               </div>
             )}
@@ -234,7 +235,7 @@ export function VisualsTab({ outputId, content, platform }: VisualsTabProps) {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-900">
             {loading ? (
               <>
-                <div className="h-5 w-5 rounded-full border-2 border-zinc-700 border-t-zinc-400 animate-spin" />
+                <Spinner size="lg" className="text-zinc-400" />
                 <p className="text-[11px] text-zinc-500">Building visual direction…</p>
               </>
             ) : (

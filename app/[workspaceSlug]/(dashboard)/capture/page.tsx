@@ -6,6 +6,7 @@ import { Lock, Zap, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Capture } from '@/types/domain'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 type StatusFilter = 'all' | 'pending' | 'ready' | 'failed'
 
@@ -113,11 +114,7 @@ export default function CapturePage() {
       )}
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={3} rowClassName="h-20" />
       ) : filtered.length === 0 ? (
         captures.length === 0 ? (
           <div className="rounded-lg border border-zinc-200 bg-white">

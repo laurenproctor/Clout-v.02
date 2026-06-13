@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { DateTime } from 'luxon'
 import { cn } from '@/lib/utils'
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { Spinner } from '@/components/ui/spinner'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { CreateWorkspaceModal } from '@/components/shell/create-workspace-modal'
 import { useCanCreateWorkspace } from '@/hooks/use-entitlements'
 
@@ -162,11 +164,7 @@ export default function WorkspaceSettingsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-40 rounded-lg border border-zinc-200 bg-zinc-50 animate-pulse" />
-        ))}
-      </div>
+      <SkeletonList count={3} rowClassName="h-40" className="space-y-4" />
     )
   }
 
@@ -201,7 +199,7 @@ export default function WorkspaceSettingsPage() {
                 )}
               >
                 {identityStatus === 'saved' && <Check className="h-3 w-3" />}
-                {identityStatus === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                {identityStatus === 'saving' && <Spinner size="xs" />}
                 {identityStatus === 'saved' ? 'Saved' : identityStatus === 'saving' ? 'Saving…' : 'Save'}
               </button>
             )}

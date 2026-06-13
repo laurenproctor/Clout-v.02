@@ -14,6 +14,8 @@ import { GoogleSearchConsoleCard } from '@/components/publishing/GoogleSearchCon
 import { BingWebmasterCard } from '@/components/publishing/BingWebmasterCard'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import { useCanConnectAccount } from '@/hooks/use-entitlements'
+import { Skeleton } from '@/components/ui/skeleton'
+import { SettingsPageSkeleton } from '@/components/loading/settings-page-skeleton'
 
 const SUBSTACK_ENABLED = process.env.NEXT_PUBLIC_SUBSTACK_PUBLISHING_ENABLED === 'true'
 
@@ -1104,14 +1106,14 @@ function PublishingInfrastructureContent() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl animate-pulse space-y-10 pb-16">
+      <div className="mx-auto max-w-5xl space-y-10 pb-16">
         <div className="space-y-2">
-          <div className="h-9 w-72 rounded-lg bg-zinc-100" />
-          <div className="h-4 w-96 rounded bg-zinc-100" />
+          <Skeleton className="h-9 w-72" />
+          <Skeleton className="h-4 w-96" />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 rounded-2xl bg-zinc-100" />
+            <Skeleton key={i} className="h-48 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -1270,7 +1272,7 @@ function PublishingInfrastructureContent() {
         <div className="mb-4">
           <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">Analytics</h2>
         </div>
-        <Suspense>
+        <Suspense fallback={<Skeleton className="h-48 w-full rounded-2xl" />}>
           <EditorialIntelligenceCard />
         </Suspense>
       </section>
@@ -1281,10 +1283,10 @@ function PublishingInfrastructureContent() {
           <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">Search Performance</h2>
         </div>
         <div className="space-y-4">
-          <Suspense>
+          <Suspense fallback={<Skeleton className="h-32 w-full rounded-2xl" />}>
             <GoogleSearchConsoleCard />
           </Suspense>
-          <Suspense>
+          <Suspense fallback={<Skeleton className="h-32 w-full rounded-2xl" />}>
             <BingWebmasterCard />
           </Suspense>
         </div>
@@ -1571,5 +1573,5 @@ function PublishingInfrastructureContent() {
 }
 
 export default function PublishingInfrastructurePage() {
-  return <Suspense><PublishingInfrastructureContent /></Suspense>
+  return <Suspense fallback={<SettingsPageSkeleton />}><PublishingInfrastructureContent /></Suspense>
 }

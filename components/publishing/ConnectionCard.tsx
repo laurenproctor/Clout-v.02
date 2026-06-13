@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react'
+import { Trash2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 
 interface ConnectionCardProps {
@@ -84,7 +85,7 @@ export function ConnectionCard({ connection, onDelete }: ConnectionCardProps) {
             disabled={testStatus === 'testing'}
             className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-700 disabled:opacity-50"
           >
-            {testStatus === 'testing' ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Test'}
+            {testStatus === 'testing' ? <Spinner size="xs" label="Testing connection" /> : 'Test'}
           </button>
           <button
             type="button"
@@ -93,7 +94,7 @@ export function ConnectionCard({ connection, onDelete }: ConnectionCardProps) {
             className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
             aria-label="Remove connection"
           >
-            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            {deleting ? <Spinner size="sm" label="Removing connection" /> : <Trash2 className="h-3.5 w-3.5" />}
           </button>
         </div>
       </div>

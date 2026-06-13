@@ -1,7 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { RefreshCw, Unlink, Plus, Loader2 } from 'lucide-react'
+import { RefreshCw, Unlink, Plus } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { useState } from 'react'
 
 function AccountAvatar({ profileImageUrl, label }: { profileImageUrl?: string | null; label: string }) {
@@ -220,7 +221,7 @@ export function PlatformCard({
                       title="Disconnect"
                     >
                       {disconnecting === account.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Spinner size="sm" label="Disconnecting" />
                       ) : (
                         <Unlink className="h-3.5 w-3.5" />
                       )}

@@ -9,6 +9,7 @@ import { useWorkspace } from '@/components/providers/workspace-provider'
 import { GOAL_BADGE, GOAL_LABELS } from '@/lib/content/goals'
 import { CampaignEditForm } from '@/components/campaigns/CampaignEditForm'
 import type { Campaign, Output, OutputContent } from '@/types/domain'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, {
@@ -30,7 +31,6 @@ export default function CampaignCommandCenterPage() {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
     Promise.all([
       fetch(`/api/campaigns/${id}`).then((r) => (r.ok ? r.json() : null)),
       fetch(`/api/outputs?campaign_id=${id}`).then((r) => (r.ok ? r.json() : [])),
@@ -58,9 +58,9 @@ export default function CampaignCommandCenterPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="h-6 w-48 rounded bg-zinc-200 animate-pulse" />
-        <div className="h-24 w-full rounded-lg bg-zinc-200 animate-pulse" />
-        <div className="h-40 w-full rounded-lg bg-zinc-200 animate-pulse" />
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-24 w-full rounded-lg" />
+        <Skeleton className="h-40 w-full rounded-lg" />
       </div>
     )
   }

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2, ShoppingBag } from 'lucide-react'
+import { X, ShoppingBag } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 interface ConnectShopifyModalProps {
   onClose: () => void
@@ -82,7 +83,7 @@ export function ConnectShopifyModal({ onClose }: ConnectShopifyModalProps) {
             </button>
             <button type="submit" disabled={submitting}
               className="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#96BF48] py-2 text-sm font-medium text-white transition-colors hover:bg-[#85ab3e] disabled:opacity-50">
-              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingBag className="h-3.5 w-3.5" />}
+              {submitting ? <Spinner size="sm" /> : <ShoppingBag className="h-3.5 w-3.5" />}
               {submitting ? 'Redirecting…' : 'Connect with Shopify'}
             </button>
           </div>

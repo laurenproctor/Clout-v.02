@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Output, OutputContent } from '@/types/domain'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 type QueueTab = 'queued' | 'published' | 'failed'
 
@@ -89,11 +90,7 @@ export default function QueuePage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-20 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={3} rowClassName="h-20" />
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white">
           <div className="flex flex-col items-center justify-center py-16 text-center">

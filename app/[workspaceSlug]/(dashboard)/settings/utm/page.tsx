@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { Loader2, Check, RotateCcw } from 'lucide-react'
+import { Check, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import {
   DISTRIBUTION_PLATFORMS,
   PLATFORM_KEYS,
@@ -239,7 +240,7 @@ export default function UTMSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-zinc-300" />
+        <Spinner size="lg" label="Loading attribution settings" />
       </div>
     )
   }
@@ -279,7 +280,7 @@ export default function UTMSettingsPage() {
               )}
             >
               {status === 'saved' && <Check className="h-3 w-3" />}
-              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saving' && <Spinner size="xs" />}
               {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
             </button>
           </div>

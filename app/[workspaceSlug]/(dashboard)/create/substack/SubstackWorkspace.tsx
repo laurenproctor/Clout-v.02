@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Loader2, ExternalLink, ChevronDown } from 'lucide-react'
+import { ExternalLink, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import type { SubstackGenerationRequest, SubstackGeneratedArticle, SubstackGenerationEvent } from '@/lib/substack/types'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import type { CanonicalArticle } from '@/lib/publishing/canonical/types'
@@ -240,7 +241,7 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
           >
             {state === 'generating' ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="md" />
                 {progressLabel || 'Generating…'}
               </>
             ) : 'Generate Article'}
@@ -334,7 +335,7 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
                 >
                   {savingDraft ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Spinner size="sm" />
                       Saving draft…
                     </>
                   ) : 'Save Draft & Open in Substack'}

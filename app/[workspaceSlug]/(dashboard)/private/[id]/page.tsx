@@ -7,6 +7,7 @@ import { ArrowLeft, Lock, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Capture, PrivateEnrichment, Lens } from '@/types/domain'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function PrivateCaptureDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -75,8 +76,8 @@ export default function PrivateCaptureDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="h-6 w-40 rounded bg-zinc-200 animate-pulse" />
-        <div className="h-48 rounded-lg border border-zinc-200 bg-white animate-pulse" />
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-48 w-full rounded-lg" />
       </div>
     )
   }

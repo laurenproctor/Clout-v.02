@@ -180,6 +180,37 @@ export async function markQueuedAgain(outputId: string): Promise<void> {
     .eq('id', outputId)
 }
 
+export async function unscheduleOutput(outputId: string): Promise<boolean> {
+  // Move a queued post back to 'approved' (unschedule). Atomic against the
+  // publish cron — returns false if the row already left 'queued' (now
+  // publishing/published) or was soft-deleted, so callers can reject (409).
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('outputs')
+    .update({ status: 'approved', scheduled_at: null, updated_at: new Date().toISOString() })
+    .eq('id', outputId)
+    .eq('status', 'queued')       // atomic guard — same pattern as markPublishing
+    .is('deleted_at', null)       // never revive a soft-deleted row
+    .select('id')
+    .maybeSingle()
+  return !!data
+}
+
+export async function rescheduleOutput(outputId: string, scheduledAt: string): Promise<boolean> {
+  // Reschedule a queued post to a new time. Same atomic guard — a post that has
+  // just moved into 'publishing' must not be rescheduled. Returns false → 409.
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('outputs')
+    .update({ scheduled_at: scheduledAt, updated_at: new Date().toISOString() })
+    .eq('id', outputId)
+    .eq('status', 'queued')       // stays queued; only the time changes
+    .is('deleted_at', null)
+    .select('id')
+    .maybeSingle()
+  return !!data
+}
+
 // ─── Error classification ─────────────────────────────────────────────────────
 
 export function shouldRetry(err: unknown): boolean {

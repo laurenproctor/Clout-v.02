@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 type Tab = 'overview' | 'content' | 'lenses' | 'attribution' | 'search'
 type Preset = '30d' | '3mo' | '6mo' | '1yr'
@@ -128,13 +129,7 @@ function ConnectPrompt() {
 }
 
 function LoadingSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-      ))}
-    </div>
-  )
+  return <SkeletonList count={3} rowClassName="h-24" className="space-y-4" />
 }
 
 export default function AnalyticsDashboard() {

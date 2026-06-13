@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Plus, X, Trash2, ChevronDown, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 export default function LensesPage() {
   const [lenses, setLenses] = useState<Lens[]>([])
@@ -270,11 +271,7 @@ export default function LensesPage() {
 
       {/* Lens lists */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-16 rounded-sm border border-zinc-100 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={2} rowClassName="h-16" />
       ) : (
         <div className="space-y-10">
           {/* Workspace lenses */}

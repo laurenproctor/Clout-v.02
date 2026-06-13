@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2, ExternalLink, AlertTriangle } from 'lucide-react'
+import { X, ExternalLink, AlertTriangle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 
 interface ConnectSubstackModalProps {
@@ -155,7 +156,7 @@ export function ConnectSubstackModal({ onClose, onConnected }: ConnectSubstackMo
             </button>
             <button type="submit" disabled={submitting}
               className="flex flex-1 items-center justify-center gap-2 rounded-md bg-zinc-900 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50">
-              {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {submitting && <Spinner size="sm" />}
               {submitting ? 'Connecting…' : 'Connect Substack'}
             </button>
           </div>

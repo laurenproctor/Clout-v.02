@@ -3,8 +3,10 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
+import { SettingsPageSkeleton } from '@/components/loading/settings-page-skeleton'
 import { TopicSelector } from '@/components/feed/TopicSelector'
 import { FocusAreaSelector } from '@/components/feed/FocusAreaSelector'
 import { CompetitorInput } from '@/components/feed/CompetitorInput'
@@ -231,7 +233,7 @@ function SignalFeedSettingsContent() {
                 )}
               >
                 {status === 'saved' && <Check className="h-3 w-3" />}
-                {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                {status === 'saving' && <Spinner size="xs" />}
                 {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -367,7 +369,7 @@ function SignalFeedSettingsContent() {
 
 export default function SignalFeedSettingsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<SettingsPageSkeleton />}>
       <SignalFeedSettingsContent />
     </Suspense>
   )

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Users } from 'lucide-react'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 interface User {
   id: string
@@ -52,9 +53,7 @@ export default function OperatorUsersPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-12 rounded-lg border border-zinc-200 bg-white animate-pulse" />)}
-        </div>
+        <SkeletonList count={4} rowClassName="h-12" />
       ) : users.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white">
           <div className="flex flex-col items-center justify-center py-20 text-center">

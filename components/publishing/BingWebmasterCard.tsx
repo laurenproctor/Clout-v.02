@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { TrendingUp, Search, MousePointerClick, Eye, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface BingSite { siteUrl: string; verified: boolean }
 
@@ -84,12 +85,12 @@ export function BingWebmasterCard() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 animate-pulse">
+      <div className="rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 shrink-0 rounded-xl bg-zinc-100" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
           <div className="space-y-1.5">
-            <div className="h-4 w-44 rounded bg-zinc-100" />
-            <div className="h-3 w-64 rounded bg-zinc-100" />
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-3 w-64" />
           </div>
         </div>
       </div>

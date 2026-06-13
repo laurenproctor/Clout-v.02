@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Layers, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 interface Lens {
   id: string
@@ -190,9 +191,7 @@ export default function OperatorLensesPage() {
 
       {/* Lens list */}
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => <div key={i} className="h-14 rounded-lg border border-zinc-200 bg-white animate-pulse" />)}
-        </div>
+        <SkeletonList count={3} rowClassName="h-14" />
       ) : lenses.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white">
           <div className="flex flex-col items-center justify-center py-20 text-center">

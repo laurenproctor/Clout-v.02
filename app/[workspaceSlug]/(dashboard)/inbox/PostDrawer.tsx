@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react'
 import { DateTime } from 'luxon'
-import { ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { WeeklyPlanItem } from '@/types/domain'
+import { Spinner } from '@/components/ui/spinner'
 
 interface PostDrawerProps {
   items: WeeklyPlanItem[]
@@ -168,7 +169,7 @@ export function PostDrawer({
           disabled={isActing}
           className="h-[34px] px-3.5 rounded-lg bg-zinc-900 text-[13px] font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40 flex items-center gap-1.5"
         >
-          {isActing && <Loader2 className="h-3 w-3 animate-spin" />}
+          {isActing && <Spinner size="xs" />}
           Approve &amp; Queue
         </button>
       </div>

@@ -2,6 +2,7 @@
 
 import type { Platform, SyndicationIntelligence } from '@/lib/syndication/types/intelligence'
 import { PLATFORM_LABELS, PLATFORM_DESCRIPTORS } from '@/lib/syndication/types/intelligence'
+import { SkeletonText } from '@/components/ui/skeleton'
 import XCard from './XCard'
 import LinkedInCard from './LinkedInCard'
 import SubstackCard from './SubstackCard'
@@ -90,15 +91,7 @@ export default function PlatformGrid({
                   </div>
                   <span className="text-sm text-zinc-400 animate-pulse">Generating new version…</span>
                 </div>
-                <div className="space-y-2">
-                  {Array.from({ length: n }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-3 rounded bg-zinc-100 animate-pulse"
-                      style={{ width: i === n - 1 ? '60%' : i % 3 === 1 ? '85%' : '100%' }}
-                    />
-                  ))}
-                </div>
+                <SkeletonText lines={n} />
               </div>
             </div>
           )

@@ -1,6 +1,7 @@
 'use client'
 
 import type { InstagramVisualFormat } from '@/lib/instagram/types'
+import { Spinner } from '@/components/ui/spinner'
 
 const FORMAT_LABELS: Record<Exclude<InstagramVisualFormat, 'let_clout_decide'>, string> = {
   educational_carousel: 'Educational Carousel',
@@ -28,7 +29,7 @@ export function StrategyPreviewPanel({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-zinc-400">
-        <div className="w-5 h-5 border-2 border-zinc-200 border-t-zinc-500 rounded-full animate-spin" />
+        <Spinner size="lg" />
         <p className="text-sm">Analyzing your content...</p>
       </div>
     )

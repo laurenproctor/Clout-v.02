@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { SkeletonList } from '@/components/ui/skeleton'
 
 type InboxItem = {
   id: string
@@ -44,11 +45,7 @@ export default function InboxPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-20 rounded-lg border border-zinc-200 bg-white animate-pulse" />
-          ))}
-        </div>
+        <SkeletonList count={3} rowClassName="h-20" />
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white">
           <div className="flex flex-col items-center justify-center py-20 text-center">

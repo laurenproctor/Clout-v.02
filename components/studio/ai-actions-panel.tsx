@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Sparkles, Copy, Check, Loader2 } from 'lucide-react'
+import { X, Sparkles, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import type { AiActionId } from '@/app/api/ai-actions/route'
 import type { MajorResult } from '@/hooks/use-ai-actions'
 
@@ -96,7 +97,7 @@ export function AiActionsPanel({ open, onClose, running, majorResult, onAction }
                       )}
                     >
                       <span>{action.label}</span>
-                      {isRunning && <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-500" />}
+                      {isRunning && <Spinner size="sm" />}
                     </button>
                   )
                 })}

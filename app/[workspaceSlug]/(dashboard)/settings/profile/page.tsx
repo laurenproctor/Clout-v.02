@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { Lock, Plus, Trash2, Check, Loader2 } from 'lucide-react'
+import { Lock, Plus, Trash2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
@@ -228,8 +230,8 @@ export default function ProfileSettingsPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <div className="h-6 w-40 rounded bg-zinc-200 animate-pulse" />
-        <div className="h-64 rounded-lg border border-zinc-200 bg-white animate-pulse" />
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     )
   }
@@ -267,7 +269,7 @@ export default function ProfileSettingsPage() {
               )}
             >
               {status === 'saved' && <Check className="h-3 w-3" />}
-              {status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {status === 'saving' && <Spinner size="xs" />}
               {status === 'saved' ? 'Saved' : status === 'saving' ? 'Saving…' : 'Save'}
             </button>
           </div>

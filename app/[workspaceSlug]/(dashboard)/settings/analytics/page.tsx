@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { EditorialIntelligenceCard } from '@/components/analytics/EditorialIntelligenceCard'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function AnalyticsSettingsPage() {
   return (
@@ -11,7 +12,7 @@ export default function AnalyticsSettingsPage() {
         </p>
       </div>
 
-      <Suspense>
+      <Suspense fallback={<Skeleton className="h-48 w-full rounded-lg" />}>
         <EditorialIntelligenceCard />
       </Suspense>
 
