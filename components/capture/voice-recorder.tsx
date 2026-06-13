@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Mic, Square, Loader2 } from 'lucide-react'
+import { Mic, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import { createClient } from '@/lib/supabase/client'
 
 interface VoiceRecorderProps {
@@ -89,7 +90,7 @@ export function VoiceRecorder({ workspaceId, onRecorded, onError }: VoiceRecorde
     <div className="flex flex-col items-center justify-center min-h-[200px] rounded-lg border border-zinc-200 bg-white gap-4">
       {state === 'uploading' ? (
         <>
-          <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
+          <Spinner size="xl" />
           <p className="text-sm text-zinc-500">Uploading recording...</p>
         </>
       ) : state === 'recording' ? (

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Upload, X, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 
 interface ImageryUploaderProps {
   images: string[]
@@ -65,7 +66,7 @@ export function ImageryUploader({ images, onUpload, onDelete, className }: Image
         )}
       >
         {uploading ? (
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+          <Spinner size="lg" />
         ) : (
           <Upload className="h-5 w-5 text-zinc-400" />
         )}
@@ -108,7 +109,7 @@ export function ImageryUploader({ images, onUpload, onDelete, className }: Image
                 aria-label="Remove image"
               >
                 {deletingUrl === url ? (
-                  <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent" />
+                  <Spinner size="xs" className="text-white" label="Removing image" />
                 ) : (
                   <X className="h-3.5 w-3.5" />
                 )}

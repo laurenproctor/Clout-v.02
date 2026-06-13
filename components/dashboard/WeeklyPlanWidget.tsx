@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { DateTime } from 'luxon'
-import { CheckCircle2, ArrowRight, Loader2, CalendarClock } from 'lucide-react'
+import { CheckCircle2, ArrowRight, CalendarClock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { Output, OutputContent, WeeklyPlanItem } from '@/types/domain'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 
@@ -136,9 +138,9 @@ export function WeeklyPlanWidget() {
       {loading ? (
         <div className="px-5 pb-5 space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="space-y-1.5 animate-pulse">
-              <div className="h-3 rounded bg-zinc-100 w-3/4" />
-              <div className="h-3 rounded bg-zinc-100 w-1/2" />
+            <div key={i} className="space-y-1.5">
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
             </div>
           ))}
         </div>
@@ -196,7 +198,7 @@ export function WeeklyPlanWidget() {
                   {isApproved ? (
                     <><CheckCircle2 className="h-3.5 w-3.5" /> Queued</>
                   ) : isApproving ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Spinner size="sm" label="Queueing" />
                   ) : (
                     '→ Queue'
                   )}

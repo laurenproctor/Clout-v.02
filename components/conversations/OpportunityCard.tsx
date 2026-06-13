@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { ConversationOpportunity, ConversationOpportunityType } from '@/types/domain'
 import { NotePublishPanel } from './NotePublishPanel'
 
@@ -136,7 +137,7 @@ export function OpportunityCard({ opportunity: opp, onRemove }: Props) {
       {panelOpen && (
         <div className="border-t bg-muted/30 p-4">
           {generating ? (
-            <div className="h-24 rounded bg-muted animate-pulse" />
+            <Skeleton className="h-24 rounded" />
           ) : opp.opportunityType === 'note' && draft ? (
             <div className="space-y-3">
               <div className="flex justify-end">

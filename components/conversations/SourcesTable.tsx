@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { AddSourceModal } from './AddSourceModal'
 import { ConversationPreferences } from './ConversationPreferences'
 import type { ConversationSource, ConversationSourceType } from '@/types/domain'
@@ -93,7 +93,7 @@ export function SourcesTable({ sources, onSourcesChange, onPreferencesChange, on
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
-            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Refresh now'}
+            {refreshing ? <Spinner size="sm" label="Refreshing" /> : 'Refresh now'}
           </Button>
           <Button size="sm" onClick={() => setShowModal(true)}>Add Source</Button>
         </div>

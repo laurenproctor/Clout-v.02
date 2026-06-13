@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import type { InferredIntent, Lens, OutputFormat } from '@/types/domain'
 import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
 
@@ -239,7 +239,7 @@ export function AssistantCaptureFlow({
             </span>
           )}
           {flowState === 'inferring' && (
-            <Loader2 className="h-3 w-3 animate-spin text-zinc-400" />
+            <Spinner size="xs" label="Inferring intent" />
           )}
         </div>
       )}
@@ -288,7 +288,7 @@ export function AssistantCaptureFlow({
 
       {isStreaming && (
         <div className="flex items-center gap-2 text-sm text-zinc-500">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <Spinner size="sm" />
           Writing…
         </div>
       )}
