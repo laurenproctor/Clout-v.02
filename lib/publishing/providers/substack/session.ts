@@ -60,3 +60,10 @@ export async function getActiveSession(connection: ProviderConnection): Promise<
 
   return renewSession(connection)
 }
+
+// Force a single re-authentication regardless of staleness. Used by the provider when a
+// live call returns an auth failure on a session we believed was fresh — attempt renewal
+// exactly once before failing closed. Throws SubstackAuthError if renewal is impossible.
+export async function forceRenewSession(connection: ProviderConnection): Promise<string> {
+  return renewSession(connection)
+}

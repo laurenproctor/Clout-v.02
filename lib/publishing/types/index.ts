@@ -111,6 +111,43 @@ export interface PublishOptions {
   categories?: string[]
   tags?: string[]
   featuredImageUrl?: string
+  // Substack-specific: the user's explicit, never-reinterpreted action. Drives both
+  // capability gating and the action-specific idempotency key. Mirrors the canonical
+  // values in outputs.publish_intent (types/domain.ts PublishIntent).
+  substackIntendedAction?: SubstackIntendedAction
+}
+
+// ─── Substack intents + manual fallback contract ──────────────────────────────
+
+// Canonical Substack actions. Must match types/domain.ts PublishIntent exactly.
+export type SubstackIntendedAction =
+  | 'substack_newsletter_draft'
+  | 'substack_note_publish'
+  | 'substack_newsletter_publish_web'
+  | 'substack_newsletter_send_email'
+
+// Why a Substack output landed in the manual-fallback (copy/open) product state.
+// Never an error dead-end — every reason maps to a useful, friendly UI state.
+export type ManualFallbackReason =
+  | 'missing_connection'
+  | 'capability_unverified'
+  | 'direct_publish_disabled'
+  | 'auth_failed'
+  | 'missing_provider_url'
+  | 'unexpected_response_shape'
+
+export type ManualFallbackAction = 'copy_content' | 'open_substack' | 'reconnect'
+
+// Concrete return shape so the fallback is never an ad-hoc collection of UI states.
+export interface ManualFallbackResult {
+  ok: false
+  status: 'manual_fallback_required'
+  reason: ManualFallbackReason
+  fallback: {
+    title: string
+    message: string
+    actions: ManualFallbackAction[]
+  }
 }
 
 // ─── Results ─────────────────────────────────────────────────────────────────

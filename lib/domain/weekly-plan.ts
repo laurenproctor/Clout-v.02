@@ -82,6 +82,8 @@ function mapOutputRow(row: Record<string, unknown>): Output {
     providerPostId:      row.provider_post_id  as string | null,
     providerPostUrl:     row.provider_post_url as string | null,
     publishedAt:         row.published_at as string | null,
+    publishingConnectionId: (row.publishing_connection_id as string | null) ?? null,
+    publishIntent:       (row.publish_intent as import('@/types/domain').PublishIntent | null) ?? null,
     scheduledAt:         row.scheduled_at as string | null,
     lastPublishError:    row.last_publish_error as string | null,
     generationGroupId:   null,

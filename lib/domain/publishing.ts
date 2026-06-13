@@ -22,6 +22,15 @@ import { refreshGBPToken } from '@/lib/channels/google-business-profile/auth'
 import type { GBPPostTopicType } from '@/lib/channels/google-business-profile/types'
 import { GBPApiError } from '@/lib/channels/google-business-profile/types'
 import { renderOutputForPlatform } from '@/lib/domain/output-utm'
+import { publishSubstackOutput, SubstackManualFallbackError } from '@/lib/domain/substack-publish'
+import { buildSubstackFallback } from '@/lib/publishing/providers/substack/fallback'
+
+// Content types that target Substack. Such an output may only publish when it has a
+// selected publishing connection — content type alone never implies a destination.
+const SUBSTACK_CONTENT_TYPES = new Set(['substack-note', 'substack-newsletter'])
+function isSubstackContentType(contentType: string | null | undefined): boolean {
+  return contentType != null && SUBSTACK_CONTENT_TYPES.has(contentType)
+}
 
 async function getChannelAccountType(channelId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -32,7 +41,7 @@ async function getChannelAccountType(channelId: string): Promise<string> {
     .single()
   return (data?.account_type as string | null) ?? 'personal'
 }
-import type { Output, OutputContent, OutputStatus } from '@/types/domain'
+import type { Output, OutputContent, OutputStatus, PublishIntent } from '@/types/domain'
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
@@ -52,7 +61,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('outputs')
-    .select('id, workspace_id, generation_id, generation_group_id, campaign_id, title, status, channel_id, content, approved_by, approved_at, provider_post_id, provider_post_url, published_at, scheduled_at, last_publish_error, created_at, updated_at')
+    .select('id, workspace_id, generation_id, generation_group_id, campaign_id, content_type, title, status, channel_id, publishing_connection_id, publish_intent, content, approved_by, approved_at, provider_post_id, provider_post_url, published_at, scheduled_at, last_publish_error, created_at, updated_at')
     .eq('status', 'queued')
     .lte('scheduled_at', new Date().toISOString())
     .is('deleted_at', null)
@@ -68,6 +77,7 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     channelId:        row.channel_id,
     campaignId:       (row.campaign_id as string | null) ?? null,
     status:           row.status as OutputStatus,
+    contentType:      (row.content_type as string | null) ?? null,
     title:            row.title,
     content:          row.content as OutputContent,
     approvedBy:       row.approved_by,
@@ -75,6 +85,8 @@ export async function getDueQueuedPosts(): Promise<Output[]> {
     providerPostId:   row.provider_post_id,
     providerPostUrl:  row.provider_post_url,
     publishedAt:      row.published_at,
+    publishingConnectionId: (row.publishing_connection_id as string | null) ?? null,
+    publishIntent:    (row.publish_intent as PublishIntent | null) ?? null,
     scheduledAt:      row.scheduled_at,
     lastPublishError:    row.last_publish_error,
     generationGroupId:   row.generation_group_id ?? null,
@@ -535,6 +547,18 @@ export async function publishOutput(
   if (output.providerPostId) {
     const postUrl = output.providerPostUrl ?? output.providerPostId
     return { postUrn: output.providerPostId, postUrl }
+  }
+
+  // Publishing-layer routing (Substack etc.): the PRESENCE of a publishing connection —
+  // not the content type — routes an output through the publishing-layer executor.
+  if (output.publishingConnectionId) {
+    return publishSubstackOutput(output, opts)
+  }
+
+  // Substack-shaped content with NO selected publication must never enter a publish flow.
+  // Surface the destination-required manual fallback instead of guessing a destination.
+  if (isSubstackContentType(output.contentType)) {
+    throw new SubstackManualFallbackError(buildSubstackFallback('missing_connection'))
   }
 
   if (!output.channelId) {

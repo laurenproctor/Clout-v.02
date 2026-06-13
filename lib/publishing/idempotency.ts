@@ -13,8 +13,14 @@ export function generateIdempotencyKey(params: {
   canonicalContentId: string
   provider: PublishingProviderId
   connectionId: string
+  // Optional action discriminator. Kept optional + appended only when present so existing
+  // single-action providers (WordPress/Medium/Shopify) keep byte-identical keys. For
+  // Substack it MUST be supplied so a draft, web publish, and subscriber email never
+  // collapse into the same dedupe key.
+  intendedAction?: string
 }): string {
-  const data = `${params.workspaceId}:${params.canonicalContentId}:${params.provider}:${params.connectionId}`
+  const base = `${params.workspaceId}:${params.canonicalContentId}:${params.provider}:${params.connectionId}`
+  const data = params.intendedAction ? `${base}:${params.intendedAction}` : base
   return createHash('sha256').update(data).digest('hex').slice(0, 32)
 }
 

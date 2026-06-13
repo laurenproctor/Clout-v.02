@@ -19,6 +19,7 @@ import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
 import { InlineSuggestion } from '@/components/studio/inline-suggestion'
 import { PlatformTabs } from '@/components/studio/PlatformTabs'
 import { PlatformPreview } from '@/components/studio/PlatformPreview'
+import { StudioSubstackBar } from '@/components/studio/StudioSubstackBar'
 import { VisualsTab } from '@/components/studio/visuals-tab'
 import { useAutosave } from '@/hooks/use-autosave'
 import { useAiActions, type SuggestionBlock } from '@/hooks/use-ai-actions'
@@ -442,6 +443,7 @@ export default function StudioEditorPage() {
   const assignedChannel    = channelId ? channels.find(ch => ch.id === channelId) : null
   const isLinkedInAssigned = assignedChannel?.platform === 'linkedin'
   const isXAssigned        = assignedChannel?.platform === 'x'
+  const isSubstackOutput   = output?.contentType === 'substack-note' || output?.contentType === 'substack-newsletter'
 
   const caps      = assignedChannel ? findProviderCapabilities(assignedChannel.platform) : null
   const charLimit = caps?.charLimit ?? 3000
@@ -834,7 +836,16 @@ export default function StudioEditorPage() {
               In review
             </span>
           )}
-          {output.status === 'approved' && !linkedInPosted && !xPosted && (
+          {output.status === 'approved' && isSubstackOutput && (
+            <StudioSubstackBar
+              outputId={id}
+              contentType={output.contentType ?? 'substack-newsletter'}
+              bodyText={body}
+              initialConnectionId={output.publishingConnectionId ?? null}
+              onPublished={() => { void fetch(`/api/outputs/${id}`).then(r => r.ok && r.json()).then(d => d && setOutput(d)) }}
+            />
+          )}
+          {output.status === 'approved' && !isSubstackOutput && !linkedInPosted && !xPosted && (
             <div className="flex items-center gap-2">
               {publishError && (
                 <span className="max-w-[220px] text-right text-xs leading-tight text-red-400">

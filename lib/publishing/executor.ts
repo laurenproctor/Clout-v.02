@@ -26,7 +26,7 @@ export interface ProcessPublishParams {
 
 export async function processPublishAttempt(
   params: ProcessPublishParams,
-): Promise<{ ok: boolean; providerUrl?: string; providerContentId?: string; error?: string; publishAttemptId: string }> {
+): Promise<{ ok: boolean; providerUrl?: string; providerContentId?: string; error?: string; code?: string; publishAttemptId: string }> {
   const { workspaceId, publishedContentId, connectionId, article, opts, idempotencyKey } = params
 
   // Generate a correlation ID for this attempt — thread through all logs and events
@@ -165,7 +165,9 @@ export async function processPublishAttempt(
     // TODO: publishing_events — record permanent failure + error code
   }
 
-  return { ok: false, error: result.error, publishAttemptId: attemptId }
+  // Pass through the provider's fail-closed code (e.g. ManualFallbackReason) so callers
+  // like the Substack bridge can distinguish "show manual fallback" from a hard failure.
+  return { ok: false, error: result.error, code: result.code, publishAttemptId: attemptId }
 }
 
 // Called by Trigger.dev worker for async/scheduled jobs.

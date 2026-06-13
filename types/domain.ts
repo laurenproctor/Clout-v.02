@@ -31,7 +31,7 @@ export interface Angle {
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'failed'
 export type GenerationStatus = 'pending' | 'generating' | 'complete' | 'failed'
 export type OutputStatus = 'draft' | 'review' | 'approved' | 'queued' | 'publishing' | 'published' | 'failed' | 'archived'
-export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'google_business_profile' | 'apple_business_connect' | 'bluesky' | 'mastodon'
+export type ChannelPlatform = 'linkedin' | 'newsletter' | 'x' | 'twitter' | 'threads' | 'facebook' | 'instagram' | 'tiktok' | 'wordpress' | 'shopify' | 'substack' | 'google_business_profile' | 'apple_business_connect' | 'bluesky' | 'mastodon'
 export type LensScope = 'system' | 'workspace'
 export type EmailType = 'welcome' | 'output_ready' | 'payment_failed'
 export type EmailStatus = 'pending' | 'sent' | 'failed'
@@ -218,12 +218,21 @@ export interface OutputChannel {
   label: string | null
 }
 
+// Canonical Substack publish intents. These are the only values allowed in
+// outputs.publish_intent and are the action component of the idempotency key.
+export type PublishIntent =
+  | 'substack_newsletter_draft'
+  | 'substack_note_publish'
+  | 'substack_newsletter_publish_web'
+  | 'substack_newsletter_send_email'
+
 export interface Output {
   id: string
   workspaceId: string
   generationId: string | null
   channelId: string | null
   campaignId: string | null
+  contentType?: string | null
   status: OutputStatus
   title: string | null
   content: OutputContent
@@ -232,6 +241,12 @@ export interface Output {
   providerPostId:  string | null   // idempotency key
   providerPostUrl: string | null   // human-readable link to the published post
   publishedAt:     string | null   // wall-clock publish time
+  // Publishing-layer destination (publishing_connections). Its presence — not the
+  // content type — routes the output through the publishing-layer executor (Substack etc.).
+  publishingConnectionId: string | null
+  // Explicit Substack publish intent, set before scheduling. The scheduler never
+  // reinterprets one intent as another (draft ≠ publish ≠ email).
+  publishIntent: PublishIntent | null
   scheduledAt: string | null      // assigned queue slot
   lastPublishError: string | null  // set on failed publish attempt
   generationGroupId:    string | null

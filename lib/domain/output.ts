@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Output, OutputVersion, OutputContent, OutputStatus, ChannelPlatform, PerformanceSnapshot, DomainResult } from '@/types/domain'
+import type { Output, OutputVersion, OutputContent, OutputStatus, ChannelPlatform, PerformanceSnapshot, PublishIntent, DomainResult } from '@/types/domain'
 import type { Json } from '@/types/db'
 
 function toOutput(row: Record<string, unknown>): Output {
@@ -9,6 +9,7 @@ function toOutput(row: Record<string, unknown>): Output {
     generationId: (row.generation_id as string | null) ?? null,
     channelId: row.channel_id as string | null,
     campaignId: (row.campaign_id as string | null) ?? null,
+    contentType: (row.content_type as string | null) ?? null,
     status: row.status as OutputStatus,
     title: row.title as string | null,
     content: row.content as OutputContent,
@@ -17,6 +18,8 @@ function toOutput(row: Record<string, unknown>): Output {
     providerPostId:  (row.provider_post_id  as string | null) ?? null,
     providerPostUrl: (row.provider_post_url as string | null) ?? null,
     publishedAt: (row.published_at as string | null) ?? null,
+    publishingConnectionId: (row.publishing_connection_id as string | null) ?? null,
+    publishIntent: (row.publish_intent as PublishIntent | null) ?? null,
     scheduledAt: (row.scheduled_at as string | null) ?? null,
     lastPublishError:    (row.last_publish_error as string | null) ?? null,
     generationGroupId:   (row.generation_group_id as string | null) ?? null,
@@ -159,6 +162,8 @@ export async function updateOutput(params: {
   status?: OutputStatus
   approvedBy?: string
   channelId?: string | null
+  publishingConnectionId?: string | null
+  publishIntent?: PublishIntent | null
   providerPostId?: string | null
   publishedAt?: string | null
   scheduledAt?: string | null
@@ -176,6 +181,8 @@ export async function updateOutput(params: {
         approved_at: new Date().toISOString(),
       }),
       ...(params.channelId !== undefined && { channel_id: params.channelId }),
+      ...(params.publishingConnectionId !== undefined && { publishing_connection_id: params.publishingConnectionId }),
+      ...(params.publishIntent !== undefined && { publish_intent: params.publishIntent }),
       ...(params.providerPostId !== undefined && { provider_post_id: params.providerPostId }),
       ...(params.publishedAt !== undefined && { published_at: params.publishedAt }),
       ...(params.scheduledAt !== undefined && { scheduled_at: params.scheduledAt }),

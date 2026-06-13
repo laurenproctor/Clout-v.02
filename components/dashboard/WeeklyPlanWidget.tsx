@@ -40,6 +40,8 @@ function mapItem(raw: Record<string, unknown>): WeeklyPlanItem {
       providerPostId:      o.providerPostId as string | null,
       providerPostUrl:     o.providerPostUrl as string | null,
       publishedAt:         o.publishedAt as string | null,
+      publishingConnectionId: (o.publishingConnectionId as string | null) ?? null,
+      publishIntent:       (o.publishIntent as import('@/types/domain').PublishIntent | null) ?? null,
       scheduledAt:         o.scheduledAt as string | null,
       lastPublishError:    o.lastPublishError as string | null,
       generationGroupId:   null,

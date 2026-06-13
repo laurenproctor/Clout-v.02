@@ -2322,7 +2322,9 @@ export type Database = {
           performance_snapshot: Json | null
           provider_post_id: string | null
           provider_post_url: string | null
+          publish_intent: string | null
           published_at: string | null
+          publishing_connection_id: string | null
           resonance_prediction: string | null
           scheduled_at: string | null
           status: Database["public"]["Enums"]["output_status"]
@@ -2354,7 +2356,9 @@ export type Database = {
           performance_snapshot?: Json | null
           provider_post_id?: string | null
           provider_post_url?: string | null
+          publish_intent?: string | null
           published_at?: string | null
+          publishing_connection_id?: string | null
           resonance_prediction?: string | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["output_status"]
@@ -2386,7 +2390,9 @@ export type Database = {
           performance_snapshot?: Json | null
           provider_post_id?: string | null
           provider_post_url?: string | null
+          publish_intent?: string | null
           published_at?: string | null
+          publishing_connection_id?: string | null
           resonance_prediction?: string | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["output_status"]

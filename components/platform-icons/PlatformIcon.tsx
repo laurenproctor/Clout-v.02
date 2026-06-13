@@ -21,6 +21,7 @@ const PLATFORM_STYLES: Record<
   newsletter:            { bg: '#FF6314', label: '✉',  textClass: 'text-[10px]' },
   wordpress:             { bg: '#21759B', label: 'W',  textClass: 'font-black text-[10px]' },
   shopify:               { bg: '#96BF48', label: 'S',  textClass: 'font-black text-[9px]' },
+  substack:              { bg: '#FF6719', label: 'S',  textClass: 'font-black text-[10px]' },
   google_business_profile: { bg: '#4285F4', label: 'G', textClass: 'font-black text-[9px]' },
 }
 

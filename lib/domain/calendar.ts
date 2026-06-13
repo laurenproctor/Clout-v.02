@@ -65,7 +65,7 @@ export async function getCalendarWeek(
     .from('outputs')
     .select(`
       id, concept_id, generation_group_id, title, content,
-      status, scheduled_at, channel_id,
+      status, scheduled_at, channel_id, publishing_connection_id, content_type,
       goal, narrative_role, narrative_arc_id, narrative_arc_name,
       funnel_stage, resonance_prediction,
       channels (id, platform, label, account_id)
@@ -79,6 +79,31 @@ export async function getCalendarWeek(
   if (error) throw new Error(`getCalendarWeek: ${error.message}`)
 
   const outputs = (data ?? []) as OutputRow[]
+
+  // Resolve Substack (publishing-layer) destinations to their publication labels. Done as
+  // a separate lookup rather than an embedded join so it doesn't depend on the FK being
+  // present in generated Supabase types.
+  const connectionIds = [
+    ...new Set(
+      outputs
+        .map((o) => o.publishing_connection_id as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ]
+  const publicationById = new Map<string, string>()
+  if (connectionIds.length > 0) {
+    const { data: connRows } = await supabase
+      .from('publishing_connections')
+      .select('id, label, metadata')
+      .in('id', connectionIds)
+    for (const row of connRows ?? []) {
+      const meta = (row.metadata as Record<string, unknown> | null) ?? {}
+      publicationById.set(
+        row.id as string,
+        (meta['publication_name'] as string | undefined) ?? (row.label as string | null) ?? 'Substack',
+      )
+    }
+  }
 
   const groups = new Map<string, OutputRow[]>()
   for (const output of outputs) {
@@ -112,6 +137,25 @@ export async function getCalendarWeek(
       lensNames: [],
       posts: posts.map((p) => {
         const ch = p.channels as ChannelRow
+        const connectionId = p.publishing_connection_id as string | null
+        const contentType = p.content_type as string | null
+        const isSubstack = Boolean(connectionId) || contentType === 'substack-note' || contentType === 'substack-newsletter'
+
+        if (isSubstack) {
+          // Substack routes by publishing connection, not channel. Surface the publication
+          // label so the calendar shows the real destination, not a default platform.
+          const publicationName = connectionId ? publicationById.get(connectionId) : undefined
+          return {
+            id: p.id as string,
+            platform: 'substack' as ChannelPlatform,
+            accountName: publicationName ?? humanizePlatform('substack'),
+            handle: null,
+            status: p.status as OutputStatus,
+            scheduledAt: p.scheduled_at as string | null,
+            channelId: '',
+          }
+        }
+
         const platform = ((ch?.platform ?? 'linkedin') as ChannelPlatform)
         return {
           id: p.id as string,
