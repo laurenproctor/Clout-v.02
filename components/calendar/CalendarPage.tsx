@@ -108,7 +108,7 @@ export function CalendarPage() {
         </div>
 
         <div className="w-[296px] border-l border-zinc-200 bg-white flex-shrink-0 overflow-y-auto">
-          <DetailPanel concept={selectedConcept} />
+          <DetailPanel concept={selectedConcept} onChanged={() => fetchWeek(weekStart)} />
         </div>
       </div>
     </div>

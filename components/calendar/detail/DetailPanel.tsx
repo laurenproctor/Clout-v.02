@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 
 interface DetailPanelProps {
   concept: CalendarConcept | null
+  onChanged?: () => void
 }
 
 const GOAL_TEXT_CLASS: Record<NarrativeGoal, string> = {
@@ -36,7 +37,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function DetailPanel({ concept }: DetailPanelProps) {
+export function DetailPanel({ concept, onChanged }: DetailPanelProps) {
   if (!concept) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-6">
@@ -98,7 +99,7 @@ export function DetailPanel({ concept }: DetailPanelProps) {
         </SectionLabel>
         <div className="flex flex-col gap-1.5">
           {concept.posts.map((post) => (
-            <PlatformPostRow key={post.id} post={post} />
+            <PlatformPostRow key={post.id} post={post} onChanged={onChanged} />
           ))}
         </div>
       </div>

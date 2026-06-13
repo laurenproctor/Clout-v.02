@@ -3,9 +3,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Sparkles, ChevronDown } from 'lucide-react'
+import { ArrowLeft, FileText, Sparkles, ChevronDown, MoreHorizontal } from 'lucide-react'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { RescheduleControl } from '@/components/publishing/RescheduleControl'
 import { VariantsRail } from '@/components/studio/variants-rail'
 import { AiActionsPanel } from '@/components/studio/ai-actions-panel'
 import { InlineSuggestion } from '@/components/studio/inline-suggestion'
@@ -89,6 +97,11 @@ export default function StudioEditorPage() {
   const [xPosted,           setXPosted]           = useState(false)
   const [xPostUrl,          setXPostUrl]          = useState<string | null>(null)
   const [publishError,      setPublishError]      = useState<string | null>(null)
+  const [unscheduling,      setUnscheduling]      = useState(false)
+  const [scheduleMsg,       setScheduleMsg]       = useState<string | null>(null)
+  const [rescheduleOpen,    setRescheduleOpen]    = useState(false)
+  const [deleteOpen,        setDeleteOpen]        = useState(false)
+  const [deleting,          setDeleting]          = useState(false)
   const [renderedPreviewBody, setRenderedPreviewBody] = useState<string | null>(null)
   const [previewHasUTMs,      setPreviewHasUTMs]      = useState(false)
 
@@ -273,6 +286,36 @@ export default function StudioEditorPage() {
       setPublishError(d.error ?? 'Could not publish. Please try again.')
     }
     setPublishing(false)
+  }
+
+  async function handleUnschedule() {
+    setUnscheduling(true)
+    setPublishError(null)
+    setScheduleMsg(null)
+    const res = await fetch(`/api/outputs/${id}/unschedule`, { method: 'POST' })
+    if (res.ok && output) {
+      setOutput({ ...output, status: 'approved', scheduledAt: null })
+      setScheduleMsg('Post removed from schedule and returned to Ready.')
+      setTimeout(() => setScheduleMsg(null), 4000)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setPublishError(d.error ?? 'Could not unschedule. Please try again.')
+    }
+    setUnscheduling(false)
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    setPublishError(null)
+    const res = await fetch(`/api/outputs/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      router.push(`/${slug}/studio`)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setPublishError(d.error ?? 'Could not delete. Please try again.')
+      setDeleting(false)
+      setDeleteOpen(false)
+    }
   }
 
   async function handlePostToLinkedIn() {
@@ -828,6 +871,9 @@ export default function StudioEditorPage() {
 
           {output.status === 'queued' && (
             <div className="flex items-center gap-3">
+              {scheduleMsg && (
+                <span className="text-xs text-emerald-400">{scheduleMsg}</span>
+              )}
               <span className="rounded-md border border-violet-800/50 bg-violet-950/50 px-3 py-1.5 text-xs text-violet-400">
                 {output.scheduledAt
                   ? `Queued · ${formatScheduledDate(output.scheduledAt)}`
@@ -841,6 +887,58 @@ export default function StudioEditorPage() {
                   View in calendar →
                 </Link>
               )}
+              <button
+                onClick={() => void handleUnschedule()}
+                disabled={unscheduling}
+                className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
+              >
+                {unscheduling ? 'Working…' : 'Move to Ready'}
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="rounded-md border border-zinc-700 px-2 py-1.5 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[140px]">
+                  <DropdownMenuItem
+                    className="text-[13px] cursor-pointer"
+                    onSelect={() => setRescheduleOpen(true)}
+                  >
+                    Reschedule
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-[13px] cursor-pointer text-red-600 focus:text-red-600"
+                    onSelect={() => setDeleteOpen(true)}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <RescheduleControl
+                open={rescheduleOpen}
+                onOpenChange={setRescheduleOpen}
+                outputId={id}
+                initialScheduledAt={output.scheduledAt}
+                onRescheduled={(scheduledAt) => {
+                  setOutput({ ...output, scheduledAt })
+                  setScheduleMsg('Post rescheduled.')
+                  setTimeout(() => setScheduleMsg(null), 4000)
+                }}
+              />
+              <ConfirmDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                title="Delete scheduled post?"
+                body="This action cannot be undone."
+                confirmLabel="Delete"
+                loading={deleting}
+                onConfirm={() => void handleDelete()}
+              />
             </div>
           )}
 
