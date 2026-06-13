@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { WebsiteOpportunity, WebsiteContentGap } from '@/types/feed'
 import { WebsiteFeaturedCard } from './WebsiteFeaturedCard'
 import { WebsiteOpportunityCard } from './WebsiteOpportunityCard'
@@ -126,6 +126,14 @@ export function WebsiteIntelligenceFeed({
   const [urlInput, setUrlInput] = useState(websiteUrl ?? '')
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+
+  // The configured website URL may load in after mount. Pre-fill the input with
+  // it (until the user starts editing) so the error/retry state targets the
+  // right site instead of a blank field.
+  const [urlTouched, setUrlTouched] = useState(false)
+  useEffect(() => {
+    if (!urlTouched && websiteUrl) setUrlInput(websiteUrl)
+  }, [websiteUrl, urlTouched])
 
   // Filter-specific add-source form
   const [addSourceUrl, setAddSourceUrl] = useState('')
@@ -282,8 +290,23 @@ export function WebsiteIntelligenceFeed({
   if (error) {
     return (
       <div style={{ padding: '40px 0', textAlign: 'center' }}>
-        <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '12px' }}>{error}</p>
-        <button onClick={onRetry} style={btnPrimary()}>Retry</button>
+        <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>{error}</p>
+        <form onSubmit={handleAnalyze} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', maxWidth: '420px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <input
+              type="text"
+              value={urlInput}
+              onChange={e => { setUrlTouched(true); setUrlInput(e.target.value) }}
+              placeholder="https://yourwebsite.com"
+              autoFocus
+              style={inputStyle}
+            />
+            <button type="submit" disabled={!urlInput.trim() || analyzing} style={btnPrimary(!urlInput.trim() || analyzing)}>
+              {analyzing ? 'Analyzing…' : 'Retry'}
+            </button>
+          </div>
+          {analyzeError && <p style={{ fontSize: '12px', color: '#dc2626', margin: 0 }}>{analyzeError}</p>}
+        </form>
       </div>
     )
   }

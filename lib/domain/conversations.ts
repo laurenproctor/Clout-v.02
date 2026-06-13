@@ -502,6 +502,40 @@ export async function listConversationResponses(
   return { ok: true, data: data.map(toResponse) }
 }
 
+// Marks a drafted response as published — used by the copy-only "mark as posted manually"
+// flow (Phase 4A). NO provider/outbound action occurs here; this only records that the
+// user posted the comment themselves. Merges generation_metadata.postedVia='manual'
+// without clobbering the existing snapshot.
+export async function publishConversationResponse(params: {
+  id: string; workspaceId: string; content?: string | null
+  publishedChannel: string; publishedUrl?: string | null
+}): Promise<DomainResult<ConversationResponse>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any
+  const { data: existing } = await supabase
+    .from('conversation_responses')
+    .select('generation_metadata')
+    .eq('id', params.id).eq('workspace_id', params.workspaceId).maybeSingle()
+
+  const generationMetadata = { ...(existing?.generation_metadata ?? {}), postedVia: 'manual' }
+  const update: Record<string, unknown> = {
+    status: 'published',
+    published_channel: params.publishedChannel,
+    published_url: params.publishedUrl ?? null,
+    published_at: new Date().toISOString(),
+    generation_metadata: generationMetadata,
+  }
+  if (params.content != null) update.content = params.content
+
+  const { data, error } = await supabase
+    .from('conversation_responses')
+    .update(update)
+    .eq('id', params.id).eq('workspace_id', params.workspaceId)
+    .select().single()
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, data: toResponse(data) }
+}
+
 // ─── Followed context (for pipeline authority boosts) ────────────────────────
 
 export async function loadFollowedContext(workspaceId: string): Promise<{
@@ -628,6 +662,7 @@ function toItem(r: any): ConversationItem {
     title: r.title, author: r.author, authorUrl: r.author_url, publication: r.publication,
     sourceUrl: r.source_url, excerpt: r.excerpt, bodyMarkdown: r.body_markdown, summary: r.summary,
     heroImage: r.hero_image, publishedAt: r.published_at, metadata: r.metadata ?? {}, createdAt: r.created_at,
+    provider: r.provider ?? null, providerUrl: r.provider_url ?? null, providerSocialId: r.provider_social_id ?? null,
   }
 }
 

@@ -575,6 +575,10 @@ export interface ConversationItem {
   publishedAt: string | null
   metadata: Record<string, unknown>
   createdAt: string
+  // Provider-native identifiers (connector-backed providers like LinkedIn-via-Unipile).
+  provider: string | null
+  providerUrl: string | null
+  providerSocialId: string | null
 }
 
 export interface ConversationTheme {

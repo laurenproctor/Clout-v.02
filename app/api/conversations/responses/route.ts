@@ -36,14 +36,18 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient() as any
   const { data: opp, error: oppErr } = await supabase
     .from('conversation_opportunities')
-    .select('*, item:conversation_items(title, excerpt, body_markdown, source_url, author)')
+    .select('*, item:conversation_items(title, excerpt, body_markdown, source_url, author, provider, provider_url, provider_social_id)')
     .eq('id', body.opportunityId)
     .eq('workspace_id', session.workspaceId)
     .single()
   if (oppErr || !opp) return NextResponse.json({ error: 'Opportunity not found' }, { status: 404 })
 
   const context = await loadConversationWorkspaceContext(session.workspaceId)
-  const typeGuide = RESPONSE_GUIDE[body.responseType] ?? 'Write an appropriate response.'
+  // LinkedIn comments get a public-reply guide; everything else uses the generic guide.
+  const isLinkedInComment = opp.item?.provider === 'linkedin' && body.responseType === 'comment'
+  const typeGuide = isLinkedInComment
+    ? 'Write a concise, substantive LinkedIn comment (2-4 sentences) as a public professional reply. Add one specific, relevant perspective or example that moves the conversation forward. No "great post" / "well said" filler, no hashtags. Sound like a thoughtful peer, not a fan.'
+    : (RESPONSE_GUIDE[body.responseType] ?? 'Write an appropriate response.')
   const content = (opp.item?.body_markdown ?? opp.item?.excerpt ?? '').slice(0, 600)
 
   const aiResult = await callClaude({
@@ -57,9 +61,9 @@ ${typeGuide}
 Write in first person as ${context.displayName}. Avoid generic openers like "Great point" or "I completely agree". No AI-sounding language. Return only the response text, ready to use.`,
     userMessage: `Opportunity: ${opp.title}
 Why to participate: ${opp.explanation}
-Article: ${opp.item?.title ?? 'Untitled'}
+${isLinkedInComment ? 'LinkedIn post' : 'Article'}: ${opp.item?.title ?? 'Untitled'}
 Content: ${content}
-Author: ${opp.item?.author ?? 'Unknown'}`,
+Author: ${opp.item?.author ?? 'Unknown'}${isLinkedInComment && opp.item?.source_url ? `\nPost URL: ${opp.item.source_url}` : ''}`,
     model: 'claude-sonnet-4-6',
     maxTokens: 1024,
   })

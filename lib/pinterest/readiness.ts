@@ -60,7 +60,8 @@ export async function validatePinterestReadiness(
     .select('platform')
     .eq('id', output.channelId)
     .maybeSingle()
-  if (!channel || channel.platform !== 'pinterest') {
+  // 'pinterest' post-dates the generated channel_platform enum type — compare as string.
+  if (!channel || (channel.platform as string) !== 'pinterest') {
     add('missing_channel', 'No Pinterest account is connected for this post.')
     return { ok: false, errors }
   }

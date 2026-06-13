@@ -17,11 +17,16 @@ export async function GET() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceClient() as any
-  const [{ data: optin }, connection] = await Promise.all([
+  const [{ data: optin }, { data: settings }, connection] = await Promise.all([
     supabase
       .from('linkedin_connector_optins')
       .select('disclosure_version')
       .eq('user_id', session.userId)
+      .eq('workspace_id', session.workspaceId)
+      .maybeSingle(),
+    supabase
+      .from('workspace_feed_settings')
+      .select('linkedin_beta')
       .eq('workspace_id', session.workspaceId)
       .maybeSingle(),
     getUnipileConnection(session.workspaceId),
@@ -30,6 +35,8 @@ export async function GET() {
   return NextResponse.json({
     enabled: true,
     optedIn: optin?.disclosure_version === DISCLOSURE_VERSION,
+    monitoringBeta: settings?.linkedin_beta?.monitoring === true,
+    assistedEngagementBeta: settings?.linkedin_beta?.assistedEngagement === true,
     connection,
     disclosureVersion: DISCLOSURE_VERSION,
   })

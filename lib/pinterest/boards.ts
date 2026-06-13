@@ -9,6 +9,14 @@ import { getValidPinterestToken } from './credential'
 import { PinterestApiError } from './types'
 import type { Output } from '@/types/domain'
 
+// pinterest_boards / pinterest_campaign_boards post-date the generated Supabase types
+// (regenerated after migrations apply). Cast as the codebase does for channels.ts /
+// conversations.ts until types/db.ts is regenerated.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sb(): any {
+  return createServiceClient()
+}
+
 export interface PinterestBoardRow {
   id: string
   boardId: string
@@ -32,7 +40,7 @@ function mapBoardRow(row: Record<string, unknown>): PinterestBoardRow {
 }
 
 async function getChannelWorkspace(channelId: string): Promise<string> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const { data } = await supabase
     .from('channels')
     .select('workspace_id')
@@ -49,7 +57,7 @@ async function getChannelWorkspace(channelId: string): Promise<string> {
  * debuggable. Also caches a compact list on channels.config.boards for fast UI reads.
  */
 export async function syncBoards(channelId: string): Promise<PinterestBoardRow[]> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const workspaceId = await getChannelWorkspace(channelId)
   const accessToken = await getValidPinterestToken(channelId, workspaceId)
 
@@ -107,13 +115,13 @@ export async function syncBoards(channelId: string): Promise<PinterestBoardRow[]
 }
 
 export async function getBoardsForChannel(channelId: string): Promise<PinterestBoardRow[]> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const { data } = await supabase
     .from('pinterest_boards')
     .select('id, board_id, name, privacy, url, is_default, is_available')
     .eq('channel_id', channelId)
     .order('name', { ascending: true })
-  return (data ?? []).map((r) => mapBoardRow(r as Record<string, unknown>))
+  return (data ?? []).map((r: Record<string, unknown>) => mapBoardRow(r))
 }
 
 /**
@@ -125,7 +133,7 @@ export async function assertBoardOwnership(params: {
   channelId: string
   boardId: string
 }): Promise<void> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const { data } = await supabase
     .from('pinterest_boards')
     .select('is_available')
@@ -143,7 +151,7 @@ export async function assertBoardOwnership(params: {
 }
 
 export async function setAccountDefaultBoard(channelId: string, boardId: string): Promise<void> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const workspaceId = await getChannelWorkspace(channelId)
   await assertBoardOwnership({ workspaceId, channelId, boardId })
 
@@ -161,7 +169,7 @@ export async function setCampaignDefaultBoard(
   channelId: string,
   boardId: string,
 ): Promise<void> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const workspaceId = await getChannelWorkspace(channelId)
   await assertBoardOwnership({ workspaceId, channelId, boardId })
 
@@ -174,7 +182,7 @@ export async function setCampaignDefaultBoard(
 }
 
 async function getCampaignDefaultBoard(campaignId: string, channelId: string): Promise<string | null> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const { data } = await supabase
     .from('pinterest_campaign_boards')
     .select('board_id')
@@ -185,7 +193,7 @@ async function getCampaignDefaultBoard(campaignId: string, channelId: string): P
 }
 
 async function getAccountDefaultBoard(channelId: string): Promise<string | null> {
-  const supabase = createServiceClient()
+  const supabase = sb()
   const { data } = await supabase
     .from('pinterest_boards')
     .select('board_id')

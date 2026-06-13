@@ -90,6 +90,11 @@ export default function StudioEditorPage() {
   const [hashtagInput, setHashtagInput] = useState('')
   const [channelId,    setChannelId]    = useState<string | null>(null)
 
+  // Pinterest-specific draft state (only used when a Pinterest channel is assigned)
+  const [pinterestDestUrl,  setPinterestDestUrl]  = useState('')
+  const [pinterestBoardId,  setPinterestBoardId]  = useState<string>('')
+  const [pinterestBoards,   setPinterestBoards]   = useState<{ boardId: string; name: string; isDefault: boolean; isAvailable: boolean }[]>([])
+
   const [rightTab, setRightTab] = useState<'preview' | 'visuals'>('preview')
 
   const [aiPanelOpen,   setAiPanelOpen]   = useState(false)
@@ -104,6 +109,9 @@ export default function StudioEditorPage() {
   const [postingToX,        setPostingToX]        = useState(false)
   const [xPosted,           setXPosted]           = useState(false)
   const [xPostUrl,          setXPostUrl]          = useState<string | null>(null)
+  const [postingToPinterest, setPostingToPinterest] = useState(false)
+  const [pinterestPosted,    setPinterestPosted]    = useState(false)
+  const [pinterestPinUrl,    setPinterestPinUrl]    = useState<string | null>(null)
   const [publishError,      setPublishError]      = useState<string | null>(null)
   const [unscheduling,      setUnscheduling]      = useState(false)
   const [scheduleMsg,       setScheduleMsg]       = useState<string | null>(null)
@@ -157,6 +165,8 @@ export default function StudioEditorPage() {
       setTitle(data.title ?? '')
       setChannelId(data.channelId ?? null)
       setHashtags(((content.hashtags as string[] | undefined) ?? []).map(h => h.replace(/^#/, '')))
+      setPinterestDestUrl(content.platforms?.pinterest?.destinationUrl ?? content.destinationUrl ?? '')
+      setPinterestBoardId(content.pinterestBoardId ?? '')
       setActiveTabId(id)
 
       if (data.providerPostId) {
@@ -233,6 +243,46 @@ export default function StudioEditorPage() {
     return () => clearTimeout(timer)
   }, [id, body, channelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pinterest: load this account's boards so the user can pick a per-post board override.
+  // (assignedChannel is computed later in render, so resolve the platform inline here.)
+  const assignedPlatform = channels.find(c => c.id === channelId)?.platform
+  useEffect(() => {
+    if (assignedPlatform !== 'pinterest' || !channelId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/channels/pinterest/boards?channelId=${encodeURIComponent(channelId)}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled) setPinterestBoards(data.boards ?? [])
+      } catch { /* non-fatal */ }
+    })()
+    return () => { cancelled = true }
+  }, [channelId, assignedPlatform])
+
+  // Pinterest: lightweight client-side readiness hints (image, board, destination), derived
+  // from current state. The authoritative strict check still runs server-side at publish.
+  const pinterestErrors = useMemo<{ code: string; message: string }[]>(() => {
+    if (assignedPlatform !== 'pinterest') return []
+    const errs: { code: string; message: string }[] = []
+    const hasImage = !!(output?.content as OutputContent | undefined)?.selectedVisualAssetId
+    if (!hasImage) errs.push({ code: 'missing_image', message: 'Attach an image — Pinterest Pins require one.' })
+    const defaultBoard = pinterestBoards.find(b => b.isDefault)
+    if (!pinterestBoardId && !defaultBoard) errs.push({ code: 'missing_board', message: 'Choose a Pinterest board.' })
+    const url = pinterestDestUrl.trim()
+    if (!url) {
+      errs.push({ code: 'missing_destination_url', message: 'Add a destination link.' })
+    } else {
+      try {
+        const p = new URL(url)
+        if (p.protocol !== 'http:' && p.protocol !== 'https:') throw new Error()
+      } catch {
+        errs.push({ code: 'invalid_destination_url', message: 'Enter a valid http(s) URL.' })
+      }
+    }
+    return errs
+  }, [assignedPlatform, output, pinterestBoards, pinterestBoardId, pinterestDestUrl])
+
   // Keyboard shortcuts — no dep array so handlers always capture fresh state
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -249,6 +299,15 @@ export default function StudioEditorPage() {
     setSaving(true)
     setPublishError(null)
     const content: OutputContent = { ...(output.content as OutputContent), body, hashtags }
+    // Persist Pinterest fields only when a Pinterest channel is assigned. Destination URL
+    // is stored CLEAN under platforms.pinterest — UTMs are appended at publish time.
+    const savingChannel = channelId ? channels.find(c => c.id === channelId) : null
+    if (savingChannel?.platform === 'pinterest') {
+      const clean = pinterestDestUrl.trim()
+      content.platforms = { ...(content.platforms ?? {}), pinterest: { destinationUrl: clean || undefined } }
+      content.destinationUrl = clean || undefined
+      content.pinterestBoardId = pinterestBoardId || undefined
+    }
     const res = await fetch(`/api/outputs/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -367,6 +426,26 @@ export default function StudioEditorPage() {
     setPostingToX(false)
   }
 
+  async function handlePostToPinterest() {
+    setPostingToPinterest(true)
+    setPublishError(null)
+    const res = await fetch('/api/channels/pinterest/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outputId: id }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setPinterestPosted(true)
+      setPinterestPinUrl(data.pinUrl ?? null)
+      const refreshed = await fetch(`/api/outputs/${id}`)
+      if (refreshed.ok) setOutput(await refreshed.json())
+    } else {
+      setPublishError(data.error ?? 'Something went wrong. Please try again.')
+    }
+    setPostingToPinterest(false)
+  }
+
   async function handleCopy(format: 'plain' | 'markdown' | 'linkedin' | 'x') {
     const tags = hashtags.map(h => `#${h}`).join(' ')
     let bodyForCopy = body
@@ -451,6 +530,8 @@ export default function StudioEditorPage() {
   const assignedChannel    = channelId ? channels.find(ch => ch.id === channelId) : null
   const isLinkedInAssigned = assignedChannel?.platform === 'linkedin'
   const isXAssigned        = assignedChannel?.platform === 'x'
+  const isPinterestAssigned = assignedChannel?.platform === 'pinterest'
+  const pinterestNotReady   = isPinterestAssigned && pinterestErrors.length > 0
   const isSubstackOutput   = output?.contentType === 'substack-note' || output?.contentType === 'substack-newsletter'
 
   const caps      = assignedChannel ? findProviderCapabilities(assignedChannel.platform) : null
@@ -725,6 +806,55 @@ export default function StudioEditorPage() {
                   )}
                 </div>
 
+                {assignedChannel?.platform === 'pinterest' && (
+                  <div className="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4">
+                    <p className="text-[11px] font-medium uppercase tracking-widest text-zinc-500">Pinterest</p>
+
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Destination link</label>
+                      <input
+                        type="url"
+                        value={pinterestDestUrl}
+                        onChange={e => setPinterestDestUrl(e.target.value)}
+                        disabled={!isEditable}
+                        placeholder="https://your-site.com/page"
+                        className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-700 outline-none focus:border-zinc-600 disabled:cursor-default"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Board</label>
+                      <select
+                        value={pinterestBoardId}
+                        onChange={e => setPinterestBoardId(e.target.value)}
+                        disabled={!isEditable}
+                        className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-zinc-600 disabled:cursor-default"
+                      >
+                        <option value="">
+                          {pinterestBoards.find(b => b.isDefault)
+                            ? `Default board (${pinterestBoards.find(b => b.isDefault)?.name})`
+                            : 'Use default board'}
+                        </option>
+                        {pinterestBoards.filter(b => b.isAvailable).map(b => (
+                          <option key={b.boardId} value={b.boardId}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-600">Pins require an image — attach one from the Visuals tab.</p>
+
+                    {pinterestErrors.length > 0 && (
+                      <ul className="space-y-1 border-t border-zinc-800/60 pt-2">
+                        {pinterestErrors.map(err => (
+                          <li key={err.code} className="flex items-start gap-1.5 text-[11px] text-amber-500/90">
+                            <span aria-hidden>•</span>{err.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
               </div>
             </div>
 
@@ -875,7 +1005,8 @@ export default function StudioEditorPage() {
               </button>
               <button
                 onClick={() => void handleSendForReview()}
-                disabled={sendingReview || !body}
+                disabled={sendingReview || !body || pinterestNotReady}
+                title={pinterestNotReady ? 'Complete the Pinterest fields before sending for review' : undefined}
                 className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
               >
                 {sendingReview ? 'Sending…' : 'Send for review →'}
@@ -896,7 +1027,7 @@ export default function StudioEditorPage() {
               onPublished={() => { void fetch(`/api/outputs/${id}`).then(r => r.ok && r.json()).then(d => d && setOutput(d)) }}
             />
           )}
-          {output.status === 'approved' && !isSubstackOutput && !linkedInPosted && !xPosted && (
+          {output.status === 'approved' && !isSubstackOutput && !linkedInPosted && !xPosted && !pinterestPosted && (
             <div className="flex items-center gap-2">
               {publishError && (
                 <span className="max-w-[220px] text-right text-xs leading-tight text-red-400">
@@ -918,6 +1049,15 @@ export default function StudioEditorPage() {
                   className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
                 >
                   {postingToX ? 'Posting…' : 'Post to X →'}
+                </button>
+              ) : isPinterestAssigned ? (
+                <button
+                  onClick={() => void handlePostToPinterest()}
+                  disabled={postingToPinterest || pinterestNotReady}
+                  title={pinterestNotReady ? 'Complete the Pinterest fields before publishing' : undefined}
+                  className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
+                >
+                  {postingToPinterest ? 'Pinning…' : 'Pin to Pinterest →'}
                 </button>
               ) : (
                 <button
@@ -1004,7 +1144,7 @@ export default function StudioEditorPage() {
             </div>
           )}
 
-          {output.status === 'published' && !linkedInPosted && (
+          {output.status === 'published' && !linkedInPosted && !xPosted && !pinterestPosted && (
             <span className="rounded-md border border-blue-800/50 bg-blue-950/50 px-3 py-1.5 text-xs text-blue-400">
               Published ✓
             </span>
@@ -1046,6 +1186,29 @@ export default function StudioEditorPage() {
                   className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
                 >
                   View on X ↗
+                </a>
+              )}
+              <Link
+                href={`/${slug}/channels`}
+                className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
+                Back to Publishing
+              </Link>
+            </div>
+          )}
+          {pinterestPosted && (
+            <div className="flex items-center gap-2">
+              <span className="rounded-md border border-emerald-800/50 bg-emerald-950/50 px-3 py-1.5 text-xs text-emerald-400">
+                Pinned to Pinterest ✓
+              </span>
+              {pinterestPinUrl && (
+                <a
+                  href={pinterestPinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors"
+                >
+                  View on Pinterest ↗
                 </a>
               )}
               <Link

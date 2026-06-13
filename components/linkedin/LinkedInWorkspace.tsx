@@ -14,6 +14,7 @@ import { StrategyPanel } from './StrategyPanel'
 import { GenerationProgress } from './GenerationProgress'
 import { VariationCard } from './VariationCard'
 import { CoachingPanel } from './CoachingPanel'
+import type { ChannelLike } from '@/components/social-preview'
 
 interface LinkedInWorkspaceProps {
   lenses: Lens[]
@@ -36,16 +37,18 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
   const [progressLabel, setProgressLabel] = useState<string>('Generating...')
   const [error, setError] = useState<string | null>(null)
   const [linkedInChannelId, setLinkedInChannelId] = useState<string | null>(null)
+  const [linkedInChannel,   setLinkedInChannel]   = useState<ChannelLike | null>(null)
   const linkedInChannelIdRef = useRef<string | null>(null)
 
-  // Fetch the workspace's connected LinkedIn channel so we can associate outputs with it
+  // Fetch the workspace's connected LinkedIn channel for output association + preview author
   useEffect(() => {
     fetch('/api/channels')
       .then(r => r.ok ? r.json() : [])
-      .then((channels: Array<{ id: string; platform: string }>) => {
+      .then((channels: Array<ChannelLike & { id: string }>) => {
         const li = channels.find(c => c.platform === 'linkedin')
         if (li) {
           setLinkedInChannelId(li.id)
+          setLinkedInChannel(li)
           linkedInChannelIdRef.current = li.id
         }
       })
@@ -226,6 +229,7 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
             onChange={updated => handleVariationChange(index, updated)}
             initialOutputId={savedVariationIds[index] ?? null}
             linkedInChannelId={linkedInChannelId}
+            channel={linkedInChannel}
           />
         ))}
       </div>

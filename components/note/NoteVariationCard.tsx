@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import type { NoteVariation, NoteRegister } from '@/lib/note/types'
+import { SocialPreviewInline, previewFromStudioState } from '@/components/social-preview'
 
 const WORD_TARGET_MIN = 50
 const WORD_TARGET_MAX = 200
@@ -23,7 +24,13 @@ const PLATFORM_LABELS: Record<string, string> = {
   mastodon: 'Mastodon',
 }
 
-type ConnectedChannel = { id: string; platform: string }
+type ConnectedChannel = {
+  id: string
+  platform: string
+  label?: string | null
+  profile_image_url?: string | null
+  config?: Record<string, unknown> | null
+}
 
 interface Props {
   variation: NoteVariation
@@ -68,6 +75,17 @@ export function NoteVariationCard({ variation, onChange, initialOutputId, channe
 
   const wordCount = countWords(variation.body)
   const wordWarning = wordCount < WORD_TARGET_MIN || wordCount > WORD_TARGET_MAX
+
+  const substackChannel = channels.find(c => c.platform === 'substack') ?? null
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: 'substack',
+        channel: substackChannel,
+        body: variation.body,
+      }),
+    [substackChannel, variation.body],
+  )
 
   async function handleSaveDraft() {
     setSaveState('saving')
@@ -131,6 +149,9 @@ export function NoteVariationCard({ variation, onChange, initialOutputId, channe
 
   return (
     <div className="border border-zinc-200 rounded-xl p-5 space-y-4 bg-white">
+      {/* Live preview */}
+      <SocialPreviewInline data={previewData} outputId={savedOutputId ?? null} label="Preview" />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 bg-zinc-50 border border-zinc-100 rounded-full px-2.5 py-0.5">

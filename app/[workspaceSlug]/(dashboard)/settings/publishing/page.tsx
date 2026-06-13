@@ -10,6 +10,7 @@ import { ConnectShopifyModal } from '@/components/publishing/ConnectShopifyModal
 import { ConnectWordPressModal } from '@/components/publishing/ConnectWordPressModal'
 import { ConnectSubstackModal } from '@/components/publishing/ConnectSubstackModal'
 import { PlatformCard, type ConnectedAccount } from '@/components/publishing/PlatformCard'
+import { PinterestCard } from '@/components/publishing/PinterestCard'
 import { GoogleSearchConsoleCard } from '@/components/publishing/GoogleSearchConsoleCard'
 import { BingWebmasterCard } from '@/components/publishing/BingWebmasterCard'
 import { UnipileBetaCard } from '@/components/settings/UnipileBetaCard'
@@ -19,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SettingsPageSkeleton } from '@/components/loading/settings-page-skeleton'
 
 const SUBSTACK_ENABLED = process.env.NEXT_PUBLIC_SUBSTACK_PUBLISHING_ENABLED === 'true'
+const PINTEREST_ENABLED = process.env.NEXT_PUBLIC_PINTEREST_PUBLISHING_ENABLED === 'true'
 
 // ─── Platform icons ───────────────────────────────────────────────────────────
 
@@ -886,6 +888,9 @@ function PublishingInfrastructureContent() {
     else if (connected === 'bing') flash('Bing Webmaster Tools connected.', true)
     else if (connected === 'bluesky')              flash('BlueSky connected.', true)
     else if (connected === 'mastodon')             flash('Mastodon connected.', true)
+    else if (connected === 'pinterest')            flash('Pinterest connected. Pick a default board.', true)
+    else if (error === 'pinterest_denied')         flash('Pinterest connection cancelled.', false)
+    else if (error === 'pinterest_disabled')       flash('Pinterest publishing is not enabled.', false)
     else if (error === 'mastodon_denied')          flash('Mastodon connection cancelled.', false)
     else if (error === 'mastodon_registration_failed') flash('Mastodon app registration failed. Check the instance URL and try again.', false)
     else if (error === 'mastodon_app_not_found')   flash('Mastodon app registration not found. Try connecting again.', false)
@@ -1082,6 +1087,7 @@ function PublishingInfrastructureContent() {
   const substackConnections = connections.filter(c => c.provider === 'substack')
   const gbpChannels        = socialChannels.filter(c => c.platform === 'google_business_profile' && c.is_active)
   const abcChannels        = socialChannels.filter(c => c.platform === 'apple_business_connect' && c.is_active)
+  const pinterestChannels  = socialChannels.filter(c => c.platform === 'pinterest' && c.is_active)
 
   const [feedUrl, setFeedUrl]     = useState<string | null>(null)
   const [feedCopied, setFeedCopied] = useState(false)
@@ -1352,6 +1358,35 @@ function PublishingInfrastructureContent() {
           })}
         </div>
       </section>
+
+      {/* Visual Distribution — Pinterest (gated; image Pins to a chosen board) */}
+      {PINTEREST_ENABLED && (
+        <section className="mb-12">
+          <div className="mb-4 flex items-baseline gap-3">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">
+              Visual Distribution
+            </h2>
+            {pinterestChannels.length > 0 && (
+              <span className="text-[11px] text-zinc-400">
+                {pinterestChannels.length} connected
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <PinterestCard
+              channels={pinterestChannels.map(c => ({
+                id:               c.id,
+                label:            c.label,
+                account_type:     c.account_type,
+                token_expires_at: c.token_expires_at,
+                profile_image_url: c.profile_image_url ?? undefined,
+              }))}
+              connectHref="/api/channels/pinterest/connect"
+              onDisconnect={handleDisconnectChannel}
+            />
+          </div>
+        </section>
+      )}
 
       {/* LinkedIn Intelligence (Beta) — opt-in Unipile connector; renders only when enabled */}
       <UnipileBetaCard />

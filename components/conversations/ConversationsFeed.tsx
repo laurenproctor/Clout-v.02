@@ -27,6 +27,8 @@ export function ConversationsFeed() {
   const [responses, setResponses] = useState<ConversationResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [pollingState, setPollingState] = useState<PollingState | null>(null)
+  // LinkedIn Assisted Engagement Beta — drives the copy-only assist controls on cards.
+  const [assistEnabled, setAssistEnabled] = useState(false)
 
   // Refs so the polling closure never captures stale state
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -38,6 +40,17 @@ export function ConversationsFeed() {
 
   // Cleanup on unmount
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
+
+  // Resolve whether the LinkedIn Assisted Engagement Beta is enabled for this workspace.
+  useEffect(() => {
+    async function loadAssist() {
+      const res = await fetch('/api/channels/linkedin/unipile/status')
+      if (!res.ok) return
+      const data = await res.json()
+      setAssistEnabled(Boolean(data.enabled && data.assistedEngagementBeta))
+    }
+    loadAssist()
+  }, [])
 
   const loadNarratives = useCallback(async () => {
     setNarrativesLoading(true)
@@ -222,7 +235,7 @@ export function ConversationsFeed() {
           ) : (
             <div className="space-y-3 max-w-2xl">
               {opportunities.map(opp => (
-                <OpportunityCard key={opp.id} opportunity={opp} onRemove={removeOpportunity} />
+                <OpportunityCard key={opp.id} opportunity={opp} onRemove={removeOpportunity} assistEnabled={assistEnabled} />
               ))}
             </div>
           )}

@@ -26,6 +26,35 @@ const NON_POST_PREFIXES = [
   '/wp-includes', '/xmlrpc', '/cdn-cgi/',
 ]
 
+/**
+ * Same-site check used to keep discovered posts on the user's own domain.
+ * Feeds, WordPress APIs, and sitemaps can surface off-domain URLs — syndicated
+ * items, aggregator feeds, third-party widgets — which must not be presented as
+ * the user's own content. Matches on hostname, treating `www.` and subdomains
+ * (e.g. blog.example.com ↔ example.com) as the same site, while rejecting
+ * unrelated hosts (medium.com, feeds.feedburner.com) and suffix look-alikes
+ * (notexample.com). Comparing against the full base hostname — rather than a
+ * guessed registrable domain — keeps multi-part TLDs (example.co.uk) correct
+ * without a public-suffix list.
+ */
+export function isSameSite(candidateUrl: string, baseUrl: string): boolean {
+  let c: string
+  let b: string
+  try {
+    c = new URL(candidateUrl).hostname.toLowerCase().replace(/^www\./, '')
+    b = new URL(baseUrl).hostname.toLowerCase().replace(/^www\./, '')
+  } catch {
+    return false
+  }
+  if (!c || !b) return false
+  return c === b || c.endsWith(`.${b}`) || b.endsWith(`.${c}`)
+}
+
+/** Drop any discovered posts whose url is not on the same site as `baseUrl`. */
+function filterToSite(posts: DiscoveredPost[], baseUrl: string): DiscoveredPost[] {
+  return posts.filter(p => isSameSite(p.url, baseUrl))
+}
+
 /** Decode the handful of HTML entities that show up in WP/RSS titles. */
 function decodeEntities(s: string): string {
   return s
@@ -207,7 +236,7 @@ export function extractPostLinks(html: string, baseUrl: string, limit: number): 
     } catch {
       return
     }
-    if (u.hostname !== base.hostname) return
+    if (!isSameSite(u.href, baseUrl)) return
     if (!looksLikePost(u.pathname, indexPath)) return
 
     const normalized = `${u.origin}${u.pathname.replace(/\/+$/, '')}`
@@ -274,7 +303,7 @@ export async function discoverBlogPosts(
     'application/json',
   )
   if (wp && wp.status === 200) {
-    const posts = parseWpPosts(wp.text, limit)
+    const posts = filterToSite(parseWpPosts(wp.text, limit), url)
     if (posts.length > 0) return posts
   }
 
@@ -297,7 +326,7 @@ export async function discoverBlogPosts(
   for (const feedUrl of dedupe(feedCandidates)) {
     const feed = await fetchTextSafe(feedUrl, 'application/rss+xml,application/atom+xml,application/xml')
     if (feed && feed.status === 200) {
-      const posts = parseFeed(feed.text, limit)
+      const posts = filterToSite(parseFeed(feed.text, limit), url)
       if (posts.length > 0) return posts
     }
   }
@@ -306,7 +335,7 @@ export async function discoverBlogPosts(
   for (const sitemapUrl of [`${origin}/post-sitemap.xml`, `${origin}/sitemap.xml`]) {
     const sm = await fetchTextSafe(sitemapUrl, 'application/xml,text/xml')
     if (sm && sm.status === 200) {
-      const posts = parseSitemap(sm.text, limit)
+      const posts = filterToSite(parseSitemap(sm.text, limit), url)
       if (posts.length > 0) return posts
     }
   }

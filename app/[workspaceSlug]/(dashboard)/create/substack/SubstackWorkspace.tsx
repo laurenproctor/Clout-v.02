@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { ExternalLink, ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
+import { SocialPreviewInline, previewFromStudioState } from '@/components/social-preview'
 import type { SubstackGenerationRequest, SubstackGeneratedArticle, SubstackGenerationEvent } from '@/lib/substack/types'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import type { CanonicalArticle } from '@/lib/publishing/canonical/types'
@@ -41,6 +41,20 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
   const [draftError,         setDraftError]         = useState<string | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
+
+  // Live network preview (Substack). Built at top level so hook order is stable
+  // across the setup/generating/result branches.
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: 'substack',
+        channel: null,
+        accountName: substackConnections.find(c => c.id === selectedConnection)?.label,
+        title: generated?.title,
+        body: generated ? articlePlainText(generated) : '',
+      }),
+    [generated, selectedConnection, substackConnections],
+  )
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
@@ -259,6 +273,9 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
     <div className="flex h-full min-h-0 gap-0">
       {/* Article preview */}
       <div className="flex-1 overflow-y-auto px-10 py-8">
+        <div className="mx-auto max-w-2xl mb-8">
+          <SocialPreviewInline data={previewData} label="Preview" />
+        </div>
         <article className="mx-auto max-w-2xl space-y-6">
           <div className="space-y-1.5">
             <h1 className="font-[Signifier,_Georgia,_serif] text-2xl font-semibold leading-snug text-zinc-900">
@@ -371,6 +388,23 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
       </div>
     </div>
   )
+}
+
+// Plain-text rendering of the article body for the network preview card.
+function articlePlainText(article: SubstackGeneratedArticle): string {
+  return article.article.body
+    .map(node => {
+      switch (node.type) {
+        case 'heading':    return node.text
+        case 'paragraph':  return node.html.replace(/<[^>]+>/g, '')
+        case 'blockquote': return node.html.replace(/<[^>]+>/g, '')
+        case 'list':       return node.items.map(i => `• ${i.replace(/<[^>]+>/g, '')}`).join('\n')
+        case 'code':       return node.code
+        default:           return ''
+      }
+    })
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 // Convert CanonicalArticle body to preview HTML (re-uses the canonical serializer)

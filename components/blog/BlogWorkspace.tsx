@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { Lens } from '@/types/domain'
+import { SocialPreviewInline, previewFromStudioState } from '@/components/social-preview'
 import type { BlogGenerationRequest, NarrativeStrategy, HookExploration, GeneratedBlogPackage } from '@/lib/blog/types'
 import { StepProgressHeader } from './StepProgressHeader'
 import { StrategicSetupPanel } from './StrategicSetupPanel'
@@ -412,6 +413,19 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
 
   const isGenerating = state === 'generating:phase1-3' || state === 'generating:phase4-10'
 
+  // Live network preview (Article). Built at top level so hook order stays stable
+  // across the many workspace states.
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: 'article',
+        channel: null,
+        title: blogPackage?.article.title,
+        body: blogPackage ? stripMarkdown(blogPackage.article.markdown) : '',
+      }),
+    [blogPackage],
+  )
+
   // Step 1: setup
   if (state === 'setup') {
     return (
@@ -650,6 +664,9 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
         <StepProgressHeader currentStep={4} clickableSteps={[1, 2, 3]} onStepClick={handleStepClick} />
         <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 lg:px-8 lg:py-6 min-w-0">
+            <div className="mb-6">
+              <SocialPreviewInline data={previewData} label="Preview" />
+            </div>
             <BlogArticleEditor
               blogPackage={blogPackage}
               onRegenerateSection={handleRegenerateSection}
@@ -683,4 +700,16 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
       )}
     </>
   )
+}
+
+// Lightweight markdown → plain text for the network preview card.
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/`{1,3}/g, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+    .trim()
 }

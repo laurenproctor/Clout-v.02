@@ -15,7 +15,8 @@ export async function resolvePinterestImage(output: Output): Promise<PinterestIm
   const assetId = (output.content as OutputContent).selectedVisualAssetId
   if (!assetId) return null
 
-  const supabase = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceClient() as any
   const { data: asset } = await supabase
     .from('visual_assets')
     .select('storage_path, original_url, description, name')

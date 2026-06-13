@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   parseWpPosts,
   parseFeed,
   parseSitemap,
   discoverFeedUrl,
   extractPostLinks,
+  isSameSite,
+  discoverBlogPosts,
 } from '@/lib/scraper/blogDiscovery'
 
 describe('parseWpPosts', () => {
@@ -118,5 +120,84 @@ describe('extractPostLinks', () => {
     </body>`
     const posts = extractPostLinks(html, 'https://x.com/blog', 25)
     expect(posts).toHaveLength(1)
+  })
+})
+
+describe('isSameSite', () => {
+  it('matches the same host', () => {
+    expect(isSameSite('https://example.com/post', 'https://example.com/blog')).toBe(true)
+  })
+
+  it('treats www and the apex as the same site', () => {
+    expect(isSameSite('https://example.com/post', 'https://www.example.com/blog')).toBe(true)
+    expect(isSameSite('https://www.example.com/post', 'https://example.com/blog')).toBe(true)
+  })
+
+  it('treats subdomains of the same site as same-site (both directions)', () => {
+    expect(isSameSite('https://blog.example.com/post', 'https://example.com')).toBe(true)
+    expect(isSameSite('https://example.com/post', 'https://blog.example.com')).toBe(true)
+    expect(isSameSite('https://blog.example.co.uk/post', 'https://example.co.uk')).toBe(true)
+  })
+
+  it('rejects unrelated domains', () => {
+    expect(isSameSite('https://medium.com/@x/post', 'https://example.com')).toBe(false)
+    expect(isSameSite('https://feeds.feedburner.com/x', 'https://example.com')).toBe(false)
+    expect(isSameSite('https://other.co.uk/post', 'https://example.co.uk')).toBe(false)
+  })
+
+  it('is not fooled by suffix look-alikes', () => {
+    expect(isSameSite('https://notexample.com/post', 'https://example.com')).toBe(false)
+    expect(isSameSite('https://evil-example.com/post', 'https://example.com')).toBe(false)
+  })
+
+  it('returns false on unparseable input', () => {
+    expect(isSameSite('not a url', 'https://example.com')).toBe(false)
+    expect(isSameSite('https://example.com', 'garbage')).toBe(false)
+  })
+})
+
+describe('discoverBlogPosts (same-site filtering)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('keeps only same-site posts when a feed mixes in off-domain links', async () => {
+    // The site's feed is an aggregator: some items link back to the user's own
+    // domain, others to third-party sites. Only the user's own posts should
+    // survive discovery.
+    const mixedRss = `<?xml version="1.0"?><rss version="2.0"><channel>
+      <item><title>Our Post</title><link>https://example.com/our-post</link></item>
+      <item><title>Their Post</title><link>https://external-blog.com/their-post</link></item>
+      <item><title>Aggregated</title><link>https://medium.com/@someone/x</link></item>
+    </channel></rss>`
+
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const u = String(input)
+      if (u.includes('/wp-json')) return { status: 404, text: async () => 'not found' }
+      if (u.includes('/feed')) return { status: 200, text: async () => mixedRss }
+      if (u === 'https://example.com/blog') return { status: 200, text: async () => '<html><head></head><body></body></html>' }
+      return { status: 404, text: async () => '' }
+    }))
+
+    const posts = await discoverBlogPosts('https://example.com/blog', 25)
+    expect(posts).not.toBeNull()
+    expect(posts!.map(p => p.url)).toEqual(['https://example.com/our-post'])
+  })
+
+  it('returns null when every discovered post is off-domain', async () => {
+    const offSiteRss = `<?xml version="1.0"?><rss version="2.0"><channel>
+      <item><title>Their Post</title><link>https://external-blog.com/their-post</link></item>
+      <item><title>Aggregated</title><link>https://medium.com/@someone/x</link></item>
+    </channel></rss>`
+
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const u = String(input)
+      if (u.includes('/wp-json')) return { status: 404, text: async () => 'not found' }
+      if (u.includes('/feed')) return { status: 200, text: async () => offSiteRss }
+      if (u.includes('sitemap')) return { status: 404, text: async () => '' }
+      if (u === 'https://example.com/blog') return { status: 200, text: async () => '<html><head></head><body></body></html>' }
+      return { status: 404, text: async () => '' }
+    }))
+
+    const posts = await discoverBlogPosts('https://example.com/blog', 25)
+    expect(posts).toBeNull()
   })
 })

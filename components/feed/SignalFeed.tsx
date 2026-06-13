@@ -112,6 +112,9 @@ export function SignalFeed({
         // been analyzed. Auto-analyze that configured URL so the user sees posts
         // from their own site without having to paste a URL here.
         if (data.configured && data.website_url && !data.last_analyzed_at) {
+          // Surface the configured URL up front so that if the auto-analyze
+          // fails, the error state can pre-fill it in the retry input.
+          setWebsiteData({ items: [], gaps: [], websiteUrl: data.website_url })
           const analyzed = await analyzeConfiguredWebsite(data.website_url)
           setWebsiteData(analyzed)
         } else {
@@ -308,6 +311,7 @@ export function SignalFeed({
             websiteUrl={websiteData?.websiteUrl ?? null}
             onRetry={() => fetchTab('website')}
             onUrlSaved={(url, result) => {
+              setError(null)
               setWebsiteData({ items: result.items, gaps: result.gaps, websiteUrl: url })
             }}
           />

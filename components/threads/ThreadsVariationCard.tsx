@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Check } from 'lucide-react'
 import { validateThreadsPost } from '@/lib/syndication/validation/threads'
 import type { ThreadsVariation } from '@/lib/threads/types'
 import { snapToNearestSlot } from '@/lib/calendar/slots'
+import {
+  SocialPreviewInline,
+  previewFromStudioState,
+  type ChannelLike,
+} from '@/components/social-preview'
 
 const MAX_LENGTH = 500
 const WARN_LENGTH = 400
@@ -14,6 +19,7 @@ interface Props {
   onChange: (updated: ThreadsVariation) => void
   initialOutputId?: string | null
   threadsChannelId?: string | null
+  channel?: ChannelLike | null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
@@ -21,7 +27,7 @@ type PublishState = 'idle' | 'publishing' | 'published' | 'error'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
-export function ThreadsVariationCard({ variation, onChange, initialOutputId, threadsChannelId }: Props) {
+export function ThreadsVariationCard({ variation, onChange, initialOutputId, threadsChannelId, channel }: Props) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
   const [scheduling, setScheduling] = useState(false)
@@ -53,6 +59,17 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
   const charCount = renderedText.length
   const validation = validateThreadsPost(renderedText)
   const isActioned = saveState === 'queued' || saveState === 'scheduled'
+
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: 'threads',
+        channel,
+        body: variation.primaryText,
+        hashtags: variation.hashtag ? [variation.hashtag] : [],
+      }),
+    [channel, variation.primaryText, variation.hashtag],
+  )
 
   async function handleSaveDraft() {
     setSaveState('saving')
@@ -156,6 +173,9 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
 
   return (
     <div className="border border-zinc-200 rounded-xl p-5 space-y-4 bg-white">
+      {/* Live preview */}
+      <SocialPreviewInline data={previewData} outputId={savedOutputId ?? null} label="Preview" />
+
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">

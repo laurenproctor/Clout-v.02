@@ -14,6 +14,7 @@ import { StrategyPreviewPanel } from './StrategyPreviewPanel'
 import { InstagramVariationCard } from './InstagramVariationCard'
 import { GenerationProgress } from '@/components/linkedin/GenerationProgress'
 import { SourceInputPanel } from '@/components/linkedin/SourceInputPanel'
+import type { ChannelLike } from '@/components/social-preview'
 
 interface InstagramWorkspaceProps {
   lenses: Lens[]
@@ -35,6 +36,7 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
   const [progressLabel, setProgressLabel]         = useState<string>('Generating...')
   const [error, setError]                         = useState<string | null>(null)
   const [instagramChannelId, setInstagramChannelId] = useState<string | null>(null)
+  const [instagramChannel,   setInstagramChannel]   = useState<ChannelLike | null>(null)
   const instagramChannelIdRef = useRef<string | null>(null)
 
   // Strategy preview state
@@ -47,10 +49,11 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
   useEffect(() => {
     fetch('/api/channels')
       .then(r => r.ok ? r.json() : [])
-      .then((channels: Array<{ id: string; platform: string }>) => {
+      .then((channels: Array<ChannelLike & { id: string }>) => {
         const ig = channels.find(c => c.platform === 'instagram')
         if (ig) {
           setInstagramChannelId(ig.id)
+          setInstagramChannel(ig)
           instagramChannelIdRef.current = ig.id
         }
       })
@@ -308,6 +311,7 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
             onChange={updated => handleVariationChange(index, updated)}
             initialOutputId={savedVariationIds[index] ?? null}
             instagramChannelId={instagramChannelId}
+            channel={instagramChannel}
             logoUrl={logoUrl}
           />
         ))}

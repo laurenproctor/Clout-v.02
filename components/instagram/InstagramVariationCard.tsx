@@ -1,18 +1,24 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { InstagramVariation } from '@/lib/instagram/types'
 import { HashtagChips } from '@/components/linkedin/HashtagChips'
 import { CarouselPreview } from './CarouselPreview'
+import {
+  SocialPreviewInline,
+  previewFromStudioState,
+  type ChannelLike,
+} from '@/components/social-preview'
 
 interface InstagramVariationCardProps {
   variation: InstagramVariation
   onChange: (updated: InstagramVariation) => void
   initialOutputId: string | null
   instagramChannelId: string | null
+  channel?: ChannelLike | null
   logoUrl: string | null
 }
 
@@ -31,6 +37,7 @@ export function InstagramVariationCard({
   onChange,
   initialOutputId,
   instagramChannelId,
+  channel,
   logoUrl,
 }: InstagramVariationCardProps) {
   const [outputId, setOutputId] = useState<string | null>(initialOutputId)
@@ -48,6 +55,18 @@ export function InstagramVariationCard({
 
   const captionLength = variation.caption.length
   const captionOver = captionLength > MAX_CAPTION
+
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: 'instagram',
+        channel,
+        body: variation.caption,
+        hashtags: variation.hashtags,
+        carousel: { kind: 'text-slides', slides: variation.slides ?? [] },
+      }),
+    [channel, variation.caption, variation.hashtags, variation.slides],
+  )
 
   const handleLogoToggle = useCallback(async (next: boolean) => {
     setIncludeLogo(next)
@@ -135,6 +154,9 @@ export function InstagramVariationCard({
       </div>
 
       <div className="px-5 py-4 space-y-5">
+        {/* Live preview */}
+        <SocialPreviewInline data={previewData} outputId={outputId ?? null} label="Preview" />
+
         {/* Carousel Preview */}
         <CarouselPreview
           slides={variation.slides}

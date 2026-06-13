@@ -10,6 +10,7 @@
 
 export { SocialPreview } from './SocialPreview'
 export type { SocialPreviewProps } from './SocialPreview'
+export { SocialPreviewInline } from './SocialPreviewInline'
 export { SocialPreviewModal } from './SocialPreviewModal'
 export type { PreviewPlatformTab } from './SocialPreviewModal'
 export { PreviewFrame } from './PreviewFrame'

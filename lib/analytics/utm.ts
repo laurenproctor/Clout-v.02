@@ -109,7 +109,7 @@ export function appendUTMToUrl(baseUrl: string, utmParams: UTMParams): string {
 const SKIP_UTM_HOSTNAMES = new Set([
   'linkedin.com', 'twitter.com', 'x.com', 'threads.net', 'facebook.com',
   'instagram.com', 'tiktok.com', 'youtube.com', 'youtu.be', 't.co',
-  'medium.com', 'substack.com', 'wordpress.com', 'shopify.com',
+  'medium.com', 'substack.com', 'wordpress.com', 'shopify.com', 'pinterest.com',
 ])
 
 function shouldTagUrl(rawUrl: string): boolean {

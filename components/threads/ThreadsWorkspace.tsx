@@ -7,6 +7,7 @@ import type {
   ThreadsVariation,
   ThreadsWorkspaceState,
 } from '@/lib/threads/types'
+import type { ChannelLike } from '@/components/social-preview'
 import { ThreadsStrategyPanel } from './ThreadsStrategyPanel'
 import { ThreadsVariationCard } from './ThreadsVariationCard'
 import { GenerationProgress } from '@/components/linkedin/GenerationProgress'
@@ -29,16 +30,18 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
   const [progressLabel, setProgressLabel]         = useState<string>('Generating...')
   const [error, setError]                         = useState<string | null>(null)
   const [threadsChannelId, setThreadsChannelId]   = useState<string | null>(null)
+  const [threadsChannel,   setThreadsChannel]     = useState<ChannelLike | null>(null)
   const threadsChannelIdRef                       = useRef<string | null>(null)
 
-  // Fetch Threads channel for output association
+  // Fetch Threads channel for output association + preview author data
   useEffect(() => {
     fetch('/api/channels')
       .then(r => r.ok ? r.json() : [])
-      .then((channels: Array<{ id: string; platform: string }>) => {
+      .then((channels: Array<ChannelLike & { id: string }>) => {
         const ch = channels.find(c => c.platform === 'threads')
         if (ch) {
           setThreadsChannelId(ch.id)
+          setThreadsChannel(ch)
           threadsChannelIdRef.current = ch.id
         }
       })
@@ -212,6 +215,7 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
             onChange={updated => handleVariationChange(index, updated)}
             initialOutputId={savedVariationIds[index] ?? null}
             threadsChannelId={threadsChannelId}
+            channel={threadsChannel}
           />
         ))}
       </div>

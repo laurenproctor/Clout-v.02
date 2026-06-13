@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ImageIcon, Check } from 'lucide-react'
 import type { LinkedInVariation } from '@/lib/linkedin/types'
 import { PostEditor } from './PostEditor'
@@ -10,23 +10,40 @@ import { MentionTags } from './MentionTags'
 import { CTASuggestions } from './CTASuggestions'
 import { VisualGenerator } from '@/components/visual/VisualGenerator'
 import { snapToNearestSlot } from '@/lib/calendar/slots'
+import {
+  SocialPreviewInline,
+  previewFromStudioState,
+  type ChannelLike,
+} from '@/components/social-preview'
 
 interface VariationCardProps {
   variation: LinkedInVariation
   onChange: (updated: LinkedInVariation) => void
   initialOutputId?: string | null
   linkedInChannelId?: string | null
+  channel?: ChannelLike | null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
-export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId }: VariationCardProps) {
+export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId, channel }: VariationCardProps) {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
   const [scheduling, setScheduling] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
+
+  const previewData = useMemo(
+    () =>
+      previewFromStudioState({
+        platform: 'linkedin',
+        channel,
+        body: variation.body ?? '',
+        hashtags: variation.hashtags ?? [],
+      }),
+    [channel, variation.body, variation.hashtags],
+  )
 
   // Sync when async auto-save completes and parent passes back the ID
   useEffect(() => {
@@ -138,6 +155,9 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
 
   return (
     <div className="border border-zinc-200 rounded-xl p-5 space-y-5 bg-white">
+      {/* Live preview */}
+      <SocialPreviewInline data={previewData} outputId={savedOutputId ?? null} label="Preview" />
+
       {/* A. Header row */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
