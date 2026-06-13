@@ -45,7 +45,7 @@ All changes are in `lib/linkedin/runGeneration.ts`. No other files change. Downs
 Add a pure helper, applied to each variation's `hashtags` in the `parsed.variations.map`
 step (currently `runGeneration.ts:221-231`):
 
-```
+```text
 normalizeHashtags(raw: string[]): string[]
   - strip leading '#', trim whitespace
   - drop blanks
@@ -63,6 +63,27 @@ starting count, so ≥7 tags is sufficient.
 
 This backfill is a rare safety net — with the prompt asking for exactly 5, the model
 almost always returns 5 and the pool is never touched.
+
+### 3. Copy button includes hashtags
+
+In the Studio editor (`app/[workspaceSlug]/(dashboard)/studio/[id]/page.tsx`),
+`handleCopy` builds clipboard text per format. The `markdown`, `linkedin`, and `x`
+formats already append the `#`-prefixed `tags`, but the default **`plain`** format (the
+text behind the main "Copy" button) does not:
+
+```js
+// current
+text = [title, bodyForCopy].filter(Boolean).join('\n\n')
+```
+
+Change the `plain` branch to append the hashtags, consistent with the other formats:
+
+```js
+text = [title, bodyForCopy, tags].filter(Boolean).join('\n\n')
+```
+
+`tags` is already computed at the top of `handleCopy`, so no other change is needed.
+With the generation change above, copied posts will carry their 5 hashtags by default.
 
 ## Out of scope
 
