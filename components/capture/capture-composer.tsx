@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWorkspace } from '@/components/providers/workspace-provider'
-import { Loader2, Lock, Zap } from 'lucide-react'
+import { Lock, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import type { CaptureSource, Lens } from '@/types/domain'
 import { VoiceCaptureFlow } from '@/components/capture/voice-capture-flow'
 import { LinkCaptureFlow } from '@/components/capture/link-capture-flow'
@@ -445,7 +446,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
       <div className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
         {transcribing ? (
           <div className="flex flex-col items-center justify-center py-6 gap-3">
-            <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+            <Spinner className="h-6 w-6" />
             <p className="text-sm font-medium text-zinc-900">Transcribing your recording…</p>
             <p className="text-xs text-zinc-400">This usually takes 5–15 seconds.</p>
           </div>
@@ -760,7 +761,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Spinner size="sm" />
                     Extracting signal...
                   </>
                 ) : (

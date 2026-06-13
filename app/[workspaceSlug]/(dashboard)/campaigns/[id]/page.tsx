@@ -49,6 +49,7 @@ export default function CampaignCommandCenterPage() {
   // Lightweight orientation counts (not full analytics).
   const total = outputs.length
   const draftCount = outputs.filter((o) => o.status === 'draft').length
+  const queuedCount = outputs.filter((o) => o.status === 'queued').length
   const publishedCount = outputs.filter((o) => o.status === 'published').length
   const latest = outputs.reduce<string | null>((acc, o) => {
     const d = o.publishedAt ?? o.createdAt
@@ -124,10 +125,11 @@ export default function CampaignCommandCenterPage() {
           <p className="max-w-2xl text-sm leading-relaxed text-zinc-600">{campaign.purpose}</p>
 
           {/* Orientation counts */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-5 gap-3">
             {[
               { label: 'Total', value: String(total) },
               { label: 'Drafts', value: String(draftCount) },
+              { label: 'Scheduled', value: String(queuedCount) },
               { label: 'Published', value: String(publishedCount) },
               { label: 'Latest', value: latest ? formatDate(latest) : '—' },
             ].map((stat) => (

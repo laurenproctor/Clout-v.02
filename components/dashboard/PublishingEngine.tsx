@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Zap, AlertCircle, Loader2 } from 'lucide-react'
+import { Zap, AlertCircle } from 'lucide-react'
 import { useWorkspace } from '@/components/providers/workspace-provider'
+import { Spinner } from '@/components/ui/spinner'
 
 interface Stats {
   queued: number
@@ -35,7 +36,7 @@ export function PublishingEngine() {
         <p className="py-4 text-center text-xs text-zinc-400">Could not load stats</p>
       ) : !stats ? (
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-4 w-4 animate-spin text-zinc-300" />
+          <Spinner size="md" label="Loading stats" />
         </div>
       ) : (
         <div className="space-y-2">

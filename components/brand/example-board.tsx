@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { Check, Sparkles, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Legacy static images — fallback when Unsplash API key is not configured
 export const BOARD_IMAGES = [
@@ -198,7 +200,7 @@ export function ExampleBoard({
           <div className="flex items-center gap-2">
             {loading && (
               <span className="flex items-center gap-1 text-xs text-zinc-400">
-                <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-zinc-300 border-t-zinc-600" />
+                <Spinner size="xs" />
                 Finding matches…
               </span>
             )}
@@ -220,7 +222,7 @@ export function ExampleBoard({
         <div className="grid grid-cols-4 gap-2">
           {loading && !dynamicImages
             ? Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="aspect-square rounded-lg bg-zinc-100 animate-pulse" />
+                <Skeleton key={i} className="aspect-square rounded-lg" />
               ))
             : visibleImages.map(img => {
                 const selected = value.includes(img.url)
@@ -293,7 +295,7 @@ export function ExampleBoard({
             >
               {loadingMore ? (
                 <>
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-zinc-300 border-t-zinc-600" />
+                  <Spinner size="xs" />
                   Loading…
                 </>
               ) : (

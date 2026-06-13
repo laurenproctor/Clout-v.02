@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Spinner } from '@/components/ui/spinner'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { OpportunityCard } from './OpportunityCard'
 import { ConversationThemeCard } from './ConversationThemeCard'
 import { NarrativeCard } from './NarrativeCard'
@@ -174,9 +176,7 @@ export function ConversationsFeed() {
 
         <TabsContent value="narratives" className="flex-1 overflow-y-auto p-6 mt-0">
           {narrativesLoading ? (
-            <div className="space-y-3 max-w-2xl">
-              {[1, 2, 3].map(i => <div key={i} className="h-36 rounded-lg bg-muted animate-pulse" />)}
-            </div>
+            <SkeletonList count={3} rowClassName="h-36" className="max-w-2xl" />
           ) : narratives.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <p className="text-muted-foreground font-medium">No cross-source narratives yet</p>
@@ -195,7 +195,7 @@ export function ConversationsFeed() {
         <TabsContent value="opportunities" className="flex-1 overflow-y-auto p-6 mt-0">
           {pollingState?.status === 'polling' && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 max-w-2xl">
-              <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
+              <Spinner size="sm" className="flex-shrink-0" />
               <span>Fetching conversations from {pollingState.label}…</span>
             </div>
           )}
@@ -211,9 +211,7 @@ export function ConversationsFeed() {
             </div>
           )}
           {loading ? (
-            <div className="space-y-3 max-w-2xl">
-              {[1, 2, 3].map(i => <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />)}
-            </div>
+            <SkeletonList count={3} rowClassName="h-40" className="max-w-2xl" />
           ) : opportunities.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <p className="text-muted-foreground font-medium">No opportunities yet</p>
@@ -232,9 +230,7 @@ export function ConversationsFeed() {
 
         <TabsContent value="themes" className="flex-1 overflow-y-auto p-6 mt-0">
           {loading ? (
-            <div className="space-y-3 max-w-2xl">
-              {[1, 2].map(i => <div key={i} className="h-28 rounded-lg bg-muted animate-pulse" />)}
-            </div>
+            <SkeletonList count={2} rowClassName="h-28" className="max-w-2xl" />
           ) : themes.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <p className="text-muted-foreground font-medium">No themes detected yet</p>

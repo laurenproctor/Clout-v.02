@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 import type { Lens, ResearchSource } from '@/types/domain'
 import { GeneratingAsBar } from '@/components/shared/generating-as-bar'
 import { AngleOptions } from '@/components/capture/angle-options'
@@ -368,7 +368,7 @@ export function TopicCaptureFlow({
           </p>
         )}
 
-        <Loader2 className="h-4 w-4 animate-spin text-zinc-400 self-start" />
+        <Spinner size="md" className="self-start" label="Drafting" />
       </div>
     )
   }

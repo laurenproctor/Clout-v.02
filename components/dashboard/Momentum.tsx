@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TrendingUp, Loader2 } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import type { PerformanceSummary } from '@/types/domain'
 
 function formatHour(hour: number): string {
@@ -32,7 +33,7 @@ export function Momentum() {
         <p className="py-4 text-center text-xs text-zinc-400">Could not load stats</p>
       ) : !summary ? (
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-4 w-4 animate-spin text-zinc-300" />
+          <Spinner size="md" label="Loading stats" />
         </div>
       ) : (
         <div className="space-y-3">
