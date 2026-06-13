@@ -26,6 +26,7 @@ import { createPin, pinterestPinUrl } from '@/lib/pinterest/client'
 import { getValidPinterestToken } from '@/lib/pinterest/credential'
 import { resolveBoardForOutput } from '@/lib/pinterest/boards'
 import { resolvePinterestImage } from '@/lib/pinterest/image'
+import { resolveVisualAssetUrl } from '@/lib/visual/storage/resolveVisualAssetUrl'
 import { resolvePinterestDestinationUrl, tagPinterestDestination } from '@/lib/pinterest/destination'
 import { assertPinterestReadiness } from '@/lib/pinterest/readiness'
 import { resolvePinterestText } from '@/lib/pinterest/content'
@@ -342,16 +343,11 @@ export async function publishLinkedInOutput(
   let imageUrn: string | undefined
   const visualAssetId = (output.content as OutputContent & { selectedVisualAssetId?: string }).selectedVisualAssetId
   if (visualAssetId) {
-    const supabase = createServiceClient()
-    const { data: asset } = await supabase
-      .from('visual_assets')
-      .select('original_url')
-      .eq('id', visualAssetId)
-      .single()
+    const resolved = await resolveVisualAssetUrl(visualAssetId)
 
-    if (asset?.original_url) {
+    if (resolved?.url) {
       try {
-        imageUrn = await uploadImageToLinkedIn(cred.accessToken, authorUrn, asset.original_url)
+        imageUrn = await uploadImageToLinkedIn(cred.accessToken, authorUrn, resolved.url)
       } catch (uploadErr) {
         console.error('[publishing/linkedin] image upload failed', {
           error: uploadErr instanceof Error ? uploadErr.message : String(uploadErr),
@@ -1307,14 +1303,9 @@ export async function publishInstagramOutput(
     )
   }
 
-  const supabase = createServiceClient()
-  const { data: asset } = await supabase
-    .from('visual_assets')
-    .select('original_url')
-    .eq('id', visualAssetId)
-    .single()
+  const resolved = await resolveVisualAssetUrl(visualAssetId)
 
-  if (!asset?.original_url) {
+  if (!resolved?.url) {
     throw Object.assign(
       new Error('Visual asset not found or has no URL.'),
       { code: 'media_required', retryable: false }
@@ -1328,7 +1319,7 @@ export async function publishInstagramOutput(
     const { id: creationId } = await createInstagramImageContainer(
       cred.accessToken,
       cred.accountId,
-      asset.original_url,
+      resolved.url,
       caption,
     )
     // Meta recommends a brief pause between container creation and publish

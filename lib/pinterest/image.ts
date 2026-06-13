@@ -2,7 +2,8 @@
 // Resolves the durable, public image URL for a Pin from the output's attached visual
 // asset. Pinterest fetches the image server-side, so we use the public storage URL
 // (visual-assets is a public bucket), NOT the ephemeral provider original_url.
-import { createServiceClient } from '@/lib/supabase/service'
+// Delegates to the shared resolveVisualAssetUrl primitive.
+import { resolveVisualAssetUrl } from '@/lib/visual/storage/resolveVisualAssetUrl'
 import type { Output, OutputContent } from '@/types/domain'
 
 export interface PinterestImage {
@@ -15,27 +16,11 @@ export async function resolvePinterestImage(output: Output): Promise<PinterestIm
   const assetId = (output.content as OutputContent).selectedVisualAssetId
   if (!assetId) return null
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceClient() as any
-  const { data: asset } = await supabase
-    .from('visual_assets')
-    .select('storage_path, original_url, description, name')
-    .eq('id', assetId)
-    .single()
-
-  if (!asset) return null
-
-  let url: string | null = null
-  if (asset.storage_path) {
-    const { data } = supabase.storage.from('visual-assets').getPublicUrl(asset.storage_path as string)
-    url = data?.publicUrl ?? null
-  }
-  // Fall back to the provider URL only if no storage path exists.
-  url = url ?? (asset.original_url as string | null)
-  if (!url) return null
+  const resolved = await resolveVisualAssetUrl(assetId)
+  if (!resolved) return null
 
   return {
-    url,
-    altText: (asset.description as string | null) ?? (asset.name as string | null) ?? undefined,
+    url:     resolved.url,
+    altText: resolved.altText ?? undefined,
   }
 }
