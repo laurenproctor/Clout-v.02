@@ -44,6 +44,8 @@ describe('LinkedInUnipileProvider.canHandle', () => {
   })
   it('rejects ordinary LinkedIn URLs', () => {
     expect(p.canHandle('https://www.linkedin.com/in/janedoe')).toBe(false)
+    expect(p.canHandle('https://www.linkedin.com/posts/example')).toBe(false)
+    expect(p.canHandle('https://www.linkedin.com/feed/update/urn:li:activity:123')).toBe(false)
   })
 })
 
@@ -76,9 +78,23 @@ describe('LinkedInUnipileProvider.fetch mapping', () => {
     expect(it0.authorUrl).toBe('https://www.linkedin.com/in/janedoe')
     expect(it0.publishedAt).toBe('2026-06-10T00:00:00Z')
     expect(it0.title).toBe('Hot take on SaaS pricing')
+    expect(it0.bodyMarkdown).toContain('Hot take on SaaS pricing')
+    expect(it0.excerpt).toContain('Hot take on SaaS pricing')
+    expect(it0.metadata.source).toBe('unipile')
+    expect(it0.metadata.authorHeadline).toBe('Founder @ Acme')
     expect(it0.metadata.reactionCount).toBe(10)
     expect(it0.metadata.commentCount).toBe(4)
     expect(it0.metadata.engagementScore).toBe(10 + 4 * 3)
+  })
+
+  it('falls back to id for externalId when social_id is missing', async () => {
+    connect()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const noSocial: any = { ...samplePost, id: 'only-id', social_id: undefined }
+    mock(searchPosts).mockResolvedValue([noSocial])
+    const items = await new LinkedInUnipileProvider().fetch('linkedin://search?q=saas', { workspaceId: 'ws1' })
+    expect(items[0].externalId).toBe('only-id')
+    expect(items[0].providerItemId).toBe('only-id')
   })
 
   it('filters out posts below the engagement threshold', async () => {
