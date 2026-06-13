@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,16 +30,26 @@ const TYPE_COLORS: Record<ConversationOpportunityType, string> = {
 interface Props {
   opportunity: ConversationOpportunity
   onRemove: (id: string) => void
+  assistEnabled?: boolean
 }
 
-export function OpportunityCard({ opportunity: opp, onRemove }: Props) {
+export function OpportunityCard({ opportunity: opp, onRemove, assistEnabled = false }: Props) {
   const [draft, setDraft] = useState('')
   const [generating, setGenerating] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [responseId, setResponseId] = useState<string | null>(null)
+  const [postedUrl, setPostedUrl] = useState('')
+  const [marking, setMarking] = useState(false)
 
   const item = opp.item
   const source = item?.source
+
+  // Copy-only LinkedIn assist (Phase 4A): only for LinkedIn comment opportunities when
+  // the workspace's assisted-engagement beta is on. Clout drafts; the user posts manually.
+  const isLinkedInAssist = Boolean(
+    assistEnabled && item?.provider === 'linkedin' && opp.opportunityType === 'comment'
+  )
 
   async function generate() {
     setGenerating(true)
@@ -49,9 +60,30 @@ export function OpportunityCard({ opportunity: opp, onRemove }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ opportunityId: opp.id, responseType: opp.opportunityType }),
       })
-      if (res.ok) setDraft((await res.json()).content)
+      if (res.ok) {
+        const data = await res.json()
+        setDraft(data.content)
+        setResponseId(data.id ?? null)
+      }
     } finally {
       setGenerating(false)
+    }
+  }
+
+  // Records the user's manual post — NO outbound call; just marks the response/opportunity
+  // published and removes the card from the active feed.
+  async function markPosted() {
+    setMarking(true)
+    try {
+      const res = await fetch(`/api/conversations/opportunities/${opp.id}/mark-posted`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responseId, content: draft, publishedUrl: postedUrl.trim() || undefined }),
+      })
+      if (res.ok) onRemove(opp.id)
+      else setMarking(false)
+    } catch {
+      setMarking(false)
     }
   }
 
@@ -153,7 +185,9 @@ export function OpportunityCard({ opportunity: opp, onRemove }: Props) {
                 </span>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={generate} disabled={generating}>Regenerate</Button>
-                  <Button size="sm" variant="outline" onClick={copy}>{copied ? 'Copied!' : 'Copy'}</Button>
+                  <Button size="sm" variant="outline" onClick={copy}>
+                    {copied ? 'Copied!' : isLinkedInAssist ? 'Copy for LinkedIn' : 'Copy'}
+                  </Button>
                 </div>
               </div>
               <Textarea
@@ -162,6 +196,35 @@ export function OpportunityCard({ opportunity: opp, onRemove }: Props) {
                 className="min-h-[120px] bg-background text-sm resize-y"
                 placeholder="Draft will appear here…"
               />
+
+              {isLinkedInAssist && draft && (
+                <div className="mt-3 border-t pt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    You post manually — Clout never comments, reacts, or posts for you.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {item?.sourceUrl && (
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-zinc-300 hover:text-foreground"
+                      >
+                        Open LinkedIn post <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                    <input
+                      value={postedUrl}
+                      onChange={e => setPostedUrl(e.target.value)}
+                      placeholder="Paste your comment's URL (optional)"
+                      className="min-w-[180px] flex-1 rounded-md border border-zinc-200 bg-background px-2.5 py-1 text-xs"
+                    />
+                    <Button size="sm" onClick={markPosted} disabled={marking}>
+                      {marking ? 'Saving…' : 'Mark as posted'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
