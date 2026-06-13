@@ -13,27 +13,24 @@ import type {
   NarrativeArc,
   NarrativeHealth,
 } from '@/types/calendar'
+import { zonedWeekStart } from '@/lib/calendar/timezone'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
-function getWeekStart(isoDate: string): string {
-  const d = new Date(isoDate)
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setUTCDate(d.getUTCDate() + diff)
-  return d.toISOString().split('T')[0]
-}
-
+// weekStart is a YYYY-MM-DD Monday (a pure calendar date), so stepping by whole
+// weeks is plain date arithmetic — timezone-independent.
 function addWeeks(weekStart: string, n: number): string {
-  const d = new Date(weekStart)
+  const d = new Date(`${weekStart}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + n * 7)
   return d.toISOString().split('T')[0]
 }
 
 export function CalendarPage() {
+  const { timezone } = useWorkspace()
   const searchParams = useSearchParams()
   const [weekStart, setWeekStart] = useState(() => {
     const param = searchParams.get('week')
     if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) return param
-    return getWeekStart(new Date().toISOString().split('T')[0])
+    return zonedWeekStart(new Date(), timezone)
   })
   const [viewMode, setViewMode] = useState<'grid' | 'narrative'>('grid')
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null)
@@ -94,6 +91,7 @@ export function CalendarPage() {
             <GridView
               concepts={concepts}
               weekStart={weekStart}
+              timezone={timezone}
               selectedConceptId={selectedConceptId}
               onSelectConcept={setSelectedConceptId}
             />

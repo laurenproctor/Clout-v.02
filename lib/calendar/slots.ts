@@ -1,5 +1,9 @@
 // Shared time-slot definitions for the calendar grid.
-// Hours are local-time hours (matches what users see and what datetime-local emits).
+// Slot hours are wall-clock hours in the workspace timezone (the calendar reasons
+// in the workspace tz). The legacy snap helpers below operate in *browser-local*
+// time; prefer the *InZone variants on any path that knows the workspace tz.
+
+import { DateTime } from 'luxon'
 
 export interface TimeSlot {
   label: string
@@ -68,5 +72,45 @@ export function snapAndValidateScheduledTime(iso: string): Date | null {
   if (isNaN(d.getTime())) return null
   const snapped = snapToNextSlot(d)
   if (snapped.getTime() <= Date.now()) return null
+  return snapped
+}
+
+// Snaps an instant FORWARD to the next slot, reading the hour in the WORKSPACE
+// timezone (not browser-local). Returns a UTC ISO string, or null if the input
+// is unparseable. Past the last slot, rolls to the first slot of the next local
+// day. DST-correct via Luxon.
+export function snapToNextSlotInZone(iso: string, zone: string): string | null {
+  const dt = DateTime.fromISO(iso, { setZone: true }).setZone(zone)
+  if (!dt.isValid) return null
+
+  const hour = dt.hour
+  const hasRemainder = dt.minute > 0 || dt.second > 0 || dt.millisecond > 0
+
+  let snapped: DateTime
+  if (!hasRemainder && TIME_SLOT_HOURS.includes(hour)) {
+    snapped = dt.set({ minute: 0, second: 0, millisecond: 0 })
+  } else {
+    const nextHour = TIME_SLOT_HOURS.find((h) => h > hour)
+    if (nextHour !== undefined) {
+      snapped = dt.set({ hour: nextHour, minute: 0, second: 0, millisecond: 0 })
+    } else {
+      snapped = dt
+        .plus({ days: 1 })
+        .set({ hour: TIME_SLOT_HOURS[0], minute: 0, second: 0, millisecond: 0 })
+    }
+  }
+  return snapped.toUTC().toISO()
+}
+
+// Workspace-tz counterpart to snapAndValidateScheduledTime: parse → snap forward
+// in the workspace tz → future-check. `nowMs` is injectable for testing.
+export function snapAndValidateScheduledTimeInZone(
+  iso: string,
+  zone: string,
+  nowMs: number = Date.now()
+): string | null {
+  const snapped = snapToNextSlotInZone(iso, zone)
+  if (!snapped) return null
+  if (new Date(snapped).getTime() <= nowMs) return null
   return snapped
 }

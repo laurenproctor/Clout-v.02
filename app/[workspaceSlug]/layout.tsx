@@ -4,6 +4,7 @@ import type { WorkspaceContextValue } from '@/components/providers/workspace-pro
 import { TrackLastWorkspace } from '@/components/shell/track-last-workspace'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
+import { DEFAULT_TIMEZONE } from '@/lib/calendar/timezone'
 
 type Props = {
   children: React.ReactNode
@@ -51,6 +52,13 @@ export default async function WorkspaceLayout({ children, params }: Props) {
 
   if (!member) notFound()
 
+  // Workspace scheduling timezone — the clock the calendar and pickers reason in.
+  const { data: prefs } = await supabase
+    .from('scheduling_preferences')
+    .select('timezone')
+    .eq('workspace_id', workspace.id)
+    .maybeSingle()
+
   const wsContext: WorkspaceContextValue = {
     id: workspace.id,
     name: workspace.name,
@@ -59,6 +67,7 @@ export default async function WorkspaceLayout({ children, params }: Props) {
     avatarUrl: workspace.avatar_url,
     brandColor: workspace.brand_color,
     userRole: member.role as WorkspaceContextValue['userRole'],
+    timezone: (prefs?.timezone as string | undefined) ?? DEFAULT_TIMEZONE,
   }
 
   return (

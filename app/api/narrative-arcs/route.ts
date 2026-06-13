@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const week =
     new URL(req.url).searchParams.get('week') ??
-    getWeekStart(new Date().toISOString().split('T')[0])
+    (await getWeekStart(session.workspaceId))
 
   const arcs = await getNarrativeArcs(session.workspaceId, week)
   return NextResponse.json({ arcs, weekStart: week })

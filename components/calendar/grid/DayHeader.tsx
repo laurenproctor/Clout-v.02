@@ -11,15 +11,15 @@ const DAY_INTENTS: Record<number, string> = {
 }
 
 interface DayHeaderProps {
-  date: Date
+  weekday: number // 0=Sun .. 6=Sat, in the workspace timezone
+  dayNum: number
   isToday: boolean
 }
 
-export function DayHeader({ date, isToday }: DayHeaderProps) {
+export function DayHeader({ weekday, dayNum, isToday }: DayHeaderProps) {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const dayName = dayNames[date.getUTCDay()]
-  const dayNum = date.getUTCDate()
-  const intent = DAY_INTENTS[date.getUTCDay()]
+  const dayName = dayNames[weekday]
+  const intent = DAY_INTENTS[weekday]
 
   return (
     <div className="text-center pb-1">

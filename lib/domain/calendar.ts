@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getSchedulingPreferences } from '@/lib/domain/scheduling'
+import { zonedWeekStart, zonedWeekWindowUtc, DEFAULT_TIMEZONE } from '@/lib/calendar/timezone'
 import type {
   CalendarConcept,
   NarrativeArc,
@@ -12,20 +14,20 @@ import type {
 } from '@/types/calendar'
 import type { OutputStatus, ChannelPlatform } from '@/types/domain'
 
-// Returns the Monday of the week containing a given ISO date string.
-export function getWeekStart(isoDate: string): string {
-  const d = new Date(isoDate)
-  const day = d.getUTCDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setUTCDate(d.getUTCDate() + diff)
-  return d.toISOString().split('T')[0]
+// Returns the YYYY-MM-DD Monday that starts the workspace-tz week containing
+// `instant` (today by default). The calendar reasons in the workspace timezone,
+// so "this week" is the local week, not the UTC week.
+export async function getWeekStart(
+  workspaceId: string,
+  instant: Date = new Date()
+): Promise<string> {
+  const tz = await getWorkspaceTimezone(workspaceId)
+  return zonedWeekStart(instant, tz)
 }
 
-// Returns the ISO date string 7 days after weekStart.
-function getWeekEnd(weekStart: string): string {
-  const d = new Date(weekStart)
-  d.setUTCDate(d.getUTCDate() + 7)
-  return d.toISOString()
+// The workspace timezone (scheduling_preferences.timezone), or the default.
+async function getWorkspaceTimezone(workspaceId: string): Promise<string> {
+  return (await getSchedulingPreferences(workspaceId))?.timezone ?? DEFAULT_TIMEZONE
 }
 
 type OutputRow = Record<string, unknown>
@@ -60,6 +62,8 @@ export async function getCalendarWeek(
   weekStart: string
 ): Promise<CalendarConcept[]> {
   const supabase = await createClient()
+  const tz = await getWorkspaceTimezone(workspaceId)
+  const { startUtc, endUtc } = zonedWeekWindowUtc(weekStart, tz)
 
   const { data, error } = await supabase
     .from('outputs')
@@ -71,8 +75,8 @@ export async function getCalendarWeek(
       channels (id, platform, label, account_id)
     `)
     .eq('workspace_id', workspaceId)
-    .gte('scheduled_at', new Date(weekStart).toISOString())
-    .lt('scheduled_at', getWeekEnd(weekStart))
+    .gte('scheduled_at', startUtc)
+    .lt('scheduled_at', endUtc)
     .neq('status', 'archived')
     .order('scheduled_at', { ascending: true })
 

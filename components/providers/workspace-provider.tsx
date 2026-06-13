@@ -10,6 +10,7 @@ export type WorkspaceContextValue = {
   avatarUrl: string | null
   brandColor: string | null
   userRole: 'owner' | 'admin' | 'editor' | 'viewer'
+  timezone: string // workspace scheduling timezone (scheduling_preferences.timezone)
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)

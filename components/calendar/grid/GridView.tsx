@@ -4,44 +4,34 @@ import { DayHeader } from './DayHeader'
 import { ConceptCard } from './ConceptCard'
 import type { CalendarConcept } from '@/types/calendar'
 import { TIME_SLOTS, nearestSlotHour } from '@/lib/calendar/slots'
+import { zonedWeekDays, zonedDateKey, zonedHour } from '@/lib/calendar/timezone'
 
 interface GridViewProps {
   concepts: CalendarConcept[]
   weekStart: string
+  timezone: string
   selectedConceptId: string | null
   onSelectConcept: (id: string) => void
-}
-
-function getWeekDates(weekStart: string): Date[] {
-  const start = new Date(weekStart)
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(start)
-    d.setUTCDate(d.getUTCDate() + i)
-    return d
-  })
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getUTCFullYear() === b.getUTCFullYear() &&
-    a.getUTCMonth() === b.getUTCMonth() &&
-    a.getUTCDate() === b.getUTCDate()
-  )
 }
 
 export function GridView({
   concepts,
   weekStart,
+  timezone,
   selectedConceptId,
   onSelectConcept,
 }: GridViewProps) {
-  const days = getWeekDates(weekStart)
-  const today = new Date()
+  const days = zonedWeekDays(weekStart, timezone, 5)
+  const todayKey = zonedDateKey(new Date().toISOString(), timezone)
 
-  function getConceptsForSlot(day: Date, hour: number): CalendarConcept[] {
+  // Match each concept to its day/slot using the workspace timezone, so the day
+  // column and the slot hour are read off the same clock the user scheduled in.
+  function getConceptsForSlot(dateKey: string, hour: number): CalendarConcept[] {
     return concepts.filter((c) => {
-      const d = new Date(c.scheduledAt)
-      return isSameDay(d, day) && nearestSlotHour(d.getHours()) === hour
+      return (
+        zonedDateKey(c.scheduledAt, timezone) === dateKey &&
+        nearestSlotHour(zonedHour(c.scheduledAt, timezone)) === hour
+      )
     })
   }
 
@@ -65,7 +55,12 @@ export function GridView({
       <div className="grid grid-cols-[44px_repeat(5,1fr)] gap-2 mb-2">
         <div />
         {days.map((day, i) => (
-          <DayHeader key={i} date={day} isToday={isSameDay(day, today)} />
+          <DayHeader
+            key={i}
+            weekday={day.weekday}
+            dayNum={day.dayNum}
+            isToday={day.dateKey === todayKey}
+          />
         ))}
       </div>
 
@@ -83,7 +78,7 @@ export function GridView({
 
             {/* Day cells */}
             {days.map((day, dayIdx) => {
-              const slotConcepts = getConceptsForSlot(day, hour)
+              const slotConcepts = getConceptsForSlot(day.dateKey, hour)
 
               if (slotConcepts.length === 0) {
                 return (

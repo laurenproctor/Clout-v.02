@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { DateTime } from 'luxon'
+import { useWorkspace } from '@/components/providers/workspace-provider'
 
 type Props = {
   open: boolean
@@ -13,13 +15,12 @@ type Props = {
   onRescheduled: (scheduledAt: string) => void
 }
 
-// Converts an ISO timestamp to the `YYYY-MM-DDTHH:mm` shape a datetime-local
-// input expects, in the user's local timezone.
-function toLocalInputValue(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+// Converts an ISO instant to the `YYYY-MM-DDTHH:mm` shape a datetime-local input
+// expects, expressed in the WORKSPACE timezone — so the picker shows the same
+// wall-clock the calendar grid uses, not the viewer's browser time.
+function toZonedInputValue(iso: string, zone: string): string {
+  const dt = DateTime.fromISO(iso, { setZone: true }).setZone(zone)
+  return dt.isValid ? dt.toFormat("yyyy-MM-dd'T'HH:mm") : ''
 }
 
 export function RescheduleControl({
@@ -29,8 +30,9 @@ export function RescheduleControl({
   initialScheduledAt,
   onRescheduled,
 }: Props) {
+  const { timezone } = useWorkspace()
   const [value, setValue] = useState(
-    initialScheduledAt ? toLocalInputValue(initialScheduledAt) : ''
+    initialScheduledAt ? toZonedInputValue(initialScheduledAt, timezone) : ''
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,9 +41,9 @@ export function RescheduleControl({
     if (!value) return
     setSaving(true)
     setError(null)
-    // datetime-local has no timezone — convert the local value to an ISO string
-    // so the API never has to infer a timezone.
-    const iso = new Date(value).toISOString()
+    // datetime-local has no timezone — interpret the picked wall-clock in the
+    // workspace timezone, so the instant matches the slot the user sees.
+    const iso = DateTime.fromISO(value, { zone: timezone }).toUTC().toISO() ?? ''
     const res = await fetch(`/api/outputs/${outputId}/reschedule`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
