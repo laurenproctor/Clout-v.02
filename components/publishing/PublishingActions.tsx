@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { snapToNearestSlot } from '@/lib/calendar/slots'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +44,8 @@ export function PublishingActions({
 
   function handleConfirmSchedule() {
     if (!scheduleValue) return
-    onSchedule(snapToNearestSlot(new Date(scheduleValue)))
+    // Server (PATCH /api/outputs/[id]) snaps to the next workspace-tz slot.
+    onSchedule(new Date(scheduleValue))
     setShowSchedule(false)
     setScheduleValue('')
   }

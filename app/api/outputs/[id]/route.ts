@@ -3,6 +3,9 @@ import { getSession } from '@/lib/auth/session'
 import { getOutput, updateOutput, createOutputVersion } from '@/lib/domain/output'
 import type { OutputContent } from '@/types/domain'
 import { createClient } from '@/lib/supabase/server'
+import { getSchedulingPreferences } from '@/lib/domain/scheduling'
+import { DEFAULT_TIMEZONE } from '@/lib/calendar/timezone'
+import { snapToNextSlotInZone } from '@/lib/calendar/slots'
 
 export async function GET(
   _req: NextRequest,
@@ -43,6 +46,16 @@ export async function PATCH(
   const body = await req.json()
   const { content, title, status, approve, channel_id, scheduled_at, last_publish_error, publishing_connection_id, publish_intent } = body
 
+  // The server is the authority on which slot a post lands in: snap any incoming
+  // scheduled_at FORWARD to the next slot in the WORKSPACE timezone, so the stored
+  // instant always matches a calendar slot regardless of the caller's browser tz.
+  let scheduledAtSnapped = scheduled_at
+  if (typeof scheduled_at === 'string') {
+    const tz =
+      (await getSchedulingPreferences(session.workspaceId))?.timezone ?? DEFAULT_TIMEZONE
+    scheduledAtSnapped = snapToNextSlotInZone(scheduled_at, tz) ?? scheduled_at
+  }
+
   if (content) {
     await createOutputVersion({
       outputId: id,
@@ -61,7 +74,7 @@ export async function PATCH(
     ...(channel_id !== undefined && { channelId: channel_id === null ? null : channel_id }),
     ...(publishing_connection_id !== undefined && { publishingConnectionId: publishing_connection_id }),
     ...(publish_intent !== undefined && { publishIntent: publish_intent }),
-    ...(scheduled_at !== undefined && { scheduledAt: scheduled_at }),
+    ...(scheduled_at !== undefined && { scheduledAt: scheduledAtSnapped }),
     ...('last_publish_error' in body && { lastPublishError: last_publish_error }),
   })
 

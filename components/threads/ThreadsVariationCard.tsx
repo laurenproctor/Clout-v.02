@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Check } from 'lucide-react'
 import { validateThreadsPost } from '@/lib/syndication/validation/threads'
 import type { ThreadsVariation } from '@/lib/threads/types'
-import { snapToNearestSlot } from '@/lib/calendar/slots'
 import {
   SocialPreviewInline,
   previewFromStudioState,
@@ -138,7 +137,8 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scheduled_at: snapToNearestSlot(new Date(scheduleDate)).toISOString(),
+          // Server snaps scheduled_at forward to the next workspace-tz slot.
+          scheduled_at: new Date(scheduleDate).toISOString(),
           status: 'queued',
         }),
       })

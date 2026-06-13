@@ -9,7 +9,6 @@ import { HashtagChips } from './HashtagChips'
 import { MentionTags } from './MentionTags'
 import { CTASuggestions } from './CTASuggestions'
 import { VisualGenerator } from '@/components/visual/VisualGenerator'
-import { snapToNearestSlot } from '@/lib/calendar/slots'
 import {
   SocialPreviewInline,
   previewFromStudioState,
@@ -117,7 +116,8 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          scheduled_at: snapToNearestSlot(new Date(scheduleDate)).toISOString(),
+          // Server snaps scheduled_at forward to the next workspace-tz slot.
+          scheduled_at: new Date(scheduleDate).toISOString(),
           status: 'queued',
         }),
       })
