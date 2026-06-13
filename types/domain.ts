@@ -184,6 +184,34 @@ export interface Generation {
   completedAt: string | null
 }
 
+// ─── Pinterest-native SEO content ──────────────────────────────────────────────
+// Pinterest is a search/planning surface, not a caption-syndication endpoint. These
+// fields let a Pin carry its own search-oriented title/description/keywords/alt text
+// rather than reusing generic output.title / content.body. Stored under
+// content.platforms.pinterest. Because outputs.content is JSONB, every field here is
+// UNTRUSTED at runtime regardless of these types — always read it through the cleaners
+// in lib/pinterest/content.ts, never with a raw .trim().
+export type PinterestSeoIntent =
+  | 'inspiration' | 'how_to' | 'shopping' | 'planning' | 'comparison'
+  | 'checklist' | 'recipe' | 'education' | 'local' | 'brand_awareness'
+
+export interface PinterestPlatformContent {
+  // Canonical destination URL (CLEAN — never carries UTMs; tagged only at publish time).
+  destinationUrl?: string
+  title?: string | null
+  description?: string | null
+  // Forward-compat: passed to createPin if present. No board-section sync/UI yet.
+  boardSectionId?: string | null
+  // Internal SEO/analytics metadata — NOT a published Pinterest API field.
+  keywords?: string[]
+  primaryKeyword?: string | null
+  secondaryKeywords?: string[]
+  // For Pin creative / image overlays — not part of the create-Pin payload.
+  visualText?: string | null
+  altText?: string | null
+  seoIntent?: PinterestSeoIntent | null
+}
+
 export interface OutputContent {
   body: string
   hook?: string
@@ -194,7 +222,7 @@ export interface OutputContent {
   // at render/publish time. Resolution priority: platforms.pinterest.destinationUrl
   // → destinationUrl → campaign.destinationUrl.
   destinationUrl?: string
-  platforms?: { pinterest?: { destinationUrl?: string } }
+  platforms?: { pinterest?: PinterestPlatformContent }
   // Per-output board override. Stores the Pinterest API board_id (NOT the DB UUID).
   pinterestBoardId?: string
   // Visual asset attached to this draft (also used by Instagram/LinkedIn).

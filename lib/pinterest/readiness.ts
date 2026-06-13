@@ -15,6 +15,7 @@ import { resolvePinterestDestinationUrl, tagPinterestDestination } from './desti
 import { assertImageFetchable } from './media'
 import { getValidPinterestToken } from './credential'
 import { PinterestApiError } from './types'
+import { resolvePinterestText, cleanPinterestTitle, cleanPinterestDescription } from './content'
 import type { Output, OutputContent } from '@/types/domain'
 
 export type PinterestReadinessCode =
@@ -22,10 +23,18 @@ export type PinterestReadinessCode =
   | 'missing_board' | 'board_unavailable' | 'missing_image'
   | 'media_url_not_fetchable' | 'missing_destination_url'
   | 'invalid_destination_url' | 'utm_render_failed'
+  | 'missing_title' | 'missing_description'
+
+// Advisory only — warnings never affect `ok`. They nudge toward stronger Pinterest SEO
+// (search-oriented title/description, alt text, keywords) without blocking publish.
+export type PinterestWarningCode =
+  | 'generic_title' | 'generic_description' | 'missing_alt_text'
+  | 'missing_keywords' | 'missing_visual_text' | 'visual_text_too_long'
 
 export interface PinterestReadinessResult {
   ok: boolean
   errors: Array<{ code: PinterestReadinessCode; message: string }>
+  warnings: Array<{ code: PinterestWarningCode; message: string }>
 }
 
 type Mode = 'lightweight' | 'strict'
@@ -40,19 +49,21 @@ export async function validatePinterestReadiness(
   opts: { mode: Mode; campaign?: { destinationUrl?: string | null } | null },
 ): Promise<PinterestReadinessResult> {
   const errors: PinterestReadinessResult['errors'] = []
+  const warnings: PinterestReadinessResult['warnings'] = []
   const add = (code: PinterestReadinessCode, message: string) => errors.push({ code, message })
+  const warn = (code: PinterestWarningCode, message: string) => warnings.push({ code, message })
   const strict = opts.mode === 'strict'
 
   // 1. Feature flag
   if (!FEATURES.pinterestPublishing) {
     add('pinterest_disabled', 'Pinterest publishing is not enabled.')
-    return { ok: false, errors }
+    return { ok: false, errors, warnings }
   }
 
   // 2. Channel exists and is a Pinterest channel
   if (!output.channelId) {
     add('missing_channel', 'No Pinterest account is connected for this post.')
-    return { ok: false, errors }
+    return { ok: false, errors, warnings }
   }
   const supabase = createServiceClient()
   const { data: channel } = await supabase
@@ -63,7 +74,7 @@ export async function validatePinterestReadiness(
   // 'pinterest' post-dates the generated channel_platform enum type — compare as string.
   if (!channel || (channel.platform as string) !== 'pinterest') {
     add('missing_channel', 'No Pinterest account is connected for this post.')
-    return { ok: false, errors }
+    return { ok: false, errors, warnings }
   }
 
   // 3. Credentials (strict: verify refreshable)
@@ -116,7 +127,44 @@ export async function validatePinterestReadiness(
     }
   }
 
-  return { ok: errors.length === 0, errors }
+  // 11–12. Title + description resolve non-empty (blockers). The resolver prefers
+  // Pinterest-native content and falls back to generic output.title / content.body.
+  const resolved = resolvePinterestText(output)
+  if (!resolved.title) {
+    add('missing_title', 'Pinterest Pins require a title.')
+  }
+  if (!resolved.description) {
+    add('missing_description', 'Pinterest Pins require a description.')
+  }
+
+  // SEO warnings (advisory — never affect `ok`). All conditions go through the cleaners,
+  // never a raw .trim() on JSONB.
+  const pinterest = output.content?.platforms?.pinterest
+  const hasPlatformTitle = Boolean(cleanPinterestTitle(pinterest?.title))
+  if (!hasPlatformTitle && resolved.title && resolved.title === cleanPinterestTitle(output.title)) {
+    warn('generic_title', 'This Pin uses the generic post title. A search-oriented Pinterest title performs better.')
+  }
+  const hasPlatformDescription = Boolean(cleanPinterestDescription(pinterest?.description))
+  if (
+    !hasPlatformDescription &&
+    resolved.description &&
+    resolved.description === cleanPinterestDescription(output.content?.body)
+  ) {
+    warn('generic_description', 'This Pin uses the generic post body. A search-led Pinterest description performs better.')
+  }
+  if (!resolved.altText) {
+    warn('missing_alt_text', 'Add alt text describing the image for accessibility and discovery.')
+  }
+  if (resolved.keywords.length === 0) {
+    warn('missing_keywords', 'Add keywords to guide the Pin’s title, description, and future analytics.')
+  }
+  if (!resolved.visualText) {
+    warn('missing_visual_text', 'Add short visual text for the Pin image overlay.')
+  } else if (resolved.visualText.split(/\s+/).length > 8) {
+    warn('visual_text_too_long', 'Visual text is long for an image overlay — aim for a few words.')
+  }
+
+  return { ok: errors.length === 0, errors, warnings }
 }
 
 /** Convenience for publish paths: run strict and throw the first error as a PinterestApiError. */

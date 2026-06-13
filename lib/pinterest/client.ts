@@ -40,6 +40,7 @@ export interface CreatePinInput {
   description: string
   link: string
   altText?: string
+  boardSectionId?: string
 }
 
 /**
@@ -55,6 +56,7 @@ export async function createPin(accessToken: string, input: CreatePinInput): Pro
     media_source: { source_type: 'image_url', url: input.imageUrl },
   }
   if (input.altText) body.alt_text = input.altText.slice(0, 500)
+  if (input.boardSectionId) body.board_section_id = input.boardSectionId
 
   const res = await fetch(`${pinterestApiBase()}/pins`, {
     method: 'POST',

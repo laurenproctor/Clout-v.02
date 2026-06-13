@@ -28,6 +28,7 @@ import { resolveBoardForOutput } from '@/lib/pinterest/boards'
 import { resolvePinterestImage } from '@/lib/pinterest/image'
 import { resolvePinterestDestinationUrl, tagPinterestDestination } from '@/lib/pinterest/destination'
 import { assertPinterestReadiness } from '@/lib/pinterest/readiness'
+import { resolvePinterestText } from '@/lib/pinterest/content'
 import { publishSubstackOutput, SubstackManualFallbackError } from '@/lib/domain/substack-publish'
 import { buildSubstackFallback } from '@/lib/publishing/providers/substack/fallback'
 
@@ -1569,8 +1570,9 @@ export async function publishPinterestOutput(
   const canonicalUrl = resolvePinterestDestinationUrl({ output })
   const link = await tagPinterestDestination({ output, canonicalUrl })
 
-  const content = output.content as OutputContent
-  const description = (content.body ?? '').trim()
+  // Pinterest-native fields take priority over generic output.title / content.body.
+  // Readiness (asserted above) already guarantees title + description resolve non-empty.
+  const resolved = resolvePinterestText(output, { altText: image.altText })
 
   const startedAt = Date.now()
   let pinId: string
@@ -1579,10 +1581,11 @@ export async function publishPinterestOutput(
     const result = await createPin(accessToken, {
       boardId,
       imageUrl:    image.url,
-      title:       output.title ?? '',
-      description,
+      title:       resolved.title ?? '',
+      description: resolved.description ?? '',
       link,
-      altText:     image.altText,
+      altText:     resolved.altText ?? undefined,
+      boardSectionId: resolved.boardSectionId ?? undefined,
     })
     pinId = result.pinId
   } catch (err) {
