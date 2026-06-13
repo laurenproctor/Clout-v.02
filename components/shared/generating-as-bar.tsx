@@ -41,14 +41,6 @@ export function GeneratingAsBar({
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      {/* Profile chip */}
-      <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-          Perspective
-        </span>
-        <span className="text-xs font-medium text-zinc-700">{name}</span>
-      </div>
-
       {/* Lens picker */}
       <LensPicker
         lenses={lenses}
