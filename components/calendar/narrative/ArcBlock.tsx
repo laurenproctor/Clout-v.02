@@ -18,7 +18,7 @@ export function ArcBlock({ arc, selectedConceptId, onSelectConcept }: ArcBlockPr
       <div className="bg-white border border-zinc-200 rounded-t-xl px-4 py-3 flex gap-4 items-start shadow-sm">
         <div className="flex-1 min-w-0">
           <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">
-            Strategic Arc
+            {arc.standalone ? 'Unassigned' : 'Strategic Arc'}
           </p>
           <p className="text-[16px] font-black text-zinc-900 tracking-tight leading-tight mb-1">
             {arc.arcName}
@@ -29,17 +29,21 @@ export function ArcBlock({ arc, selectedConceptId, onSelectConcept }: ArcBlockPr
             </p>
           )}
           <div className="flex flex-wrap gap-1.5">
-            <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border bg-green-50 text-green-700 border-green-200">
-              Active
-            </span>
+            {!arc.standalone && (
+              <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border bg-green-50 text-green-700 border-green-200">
+                Active
+              </span>
+            )}
             {arc.resonance && (
               <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200">
                 Resonance: {arc.resonance}
               </span>
             )}
-            <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border bg-zinc-50 text-zinc-500 border-zinc-200">
-              {arc.stage}
-            </span>
+            {arc.stage && (
+              <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border bg-zinc-50 text-zinc-500 border-zinc-200">
+                {arc.stage}
+              </span>
+            )}
             {arc.platforms.length > 0 && (
               <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border bg-zinc-50 text-zinc-500 border-zinc-200">
                 {arc.platforms.slice(0, 3).join(' · ')}
@@ -56,15 +60,17 @@ export function ArcBlock({ arc, selectedConceptId, onSelectConcept }: ArcBlockPr
             <p className="text-[13px] font-black text-zinc-800">{arc.totalPosts}</p>
             <p className="text-[9px] uppercase tracking-wide text-zinc-400">Posts</p>
           </div>
-          <div className="text-center">
-            <p className="text-[13px] font-black text-zinc-800">Wk {arc.weeksRunning}</p>
-            <p className="text-[9px] uppercase tracking-wide text-zinc-400">Running</p>
-          </div>
+          {!arc.standalone && (
+            <div className="text-center">
+              <p className="text-[13px] font-black text-zinc-800">Wk {arc.weeksRunning}</p>
+              <p className="text-[9px] uppercase tracking-wide text-zinc-400">Running</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Funnel progress */}
-      <FunnelProgress steps={arc.funnelSteps} />
+      {arc.funnelSteps.length > 0 && <FunnelProgress steps={arc.funnelSteps} />}
 
       {/* Concept cards */}
       <div className="border border-t-0 border-zinc-200 rounded-b-xl bg-zinc-50 px-4 py-3">
@@ -78,9 +84,11 @@ export function ArcBlock({ arc, selectedConceptId, onSelectConcept }: ArcBlockPr
               />
             </div>
           ))}
-          <div className="flex-shrink-0 w-[140px] min-h-[80px] border border-dashed border-zinc-300 rounded-xl flex items-center justify-center text-[11px] font-semibold text-zinc-400 cursor-pointer hover:border-zinc-400 hover:text-zinc-500 transition-colors">
-            + Add to arc
-          </div>
+          {!arc.standalone && (
+            <div className="flex-shrink-0 w-[140px] min-h-[80px] border border-dashed border-zinc-300 rounded-xl flex items-center justify-center text-[11px] font-semibold text-zinc-400 cursor-pointer hover:border-zinc-400 hover:text-zinc-500 transition-colors">
+              + Add to arc
+            </div>
+          )}
         </div>
       </div>
     </div>

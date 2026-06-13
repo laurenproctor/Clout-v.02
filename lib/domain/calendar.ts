@@ -250,19 +250,46 @@ export async function getIntelligenceSignals(
   return signals
 }
 
-export async function getNarrativeArcs(
-  workspaceId: string,
-  weekStart: string
-): Promise<NarrativeArc[]> {
-  const concepts = await getCalendarWeek(workspaceId, weekStart)
+// Synthetic arc id for scheduled posts that have not been assigned to a
+// narrative arc. Narrative-arc assignment is manual/optional, so most posts
+// are un-arced — they must still appear in the narrative view.
+export const STANDALONE_ARC_ID = '__standalone__'
 
+function buildFunnelSteps(arcConcepts: CalendarConcept[]): ArcFunnelStep[] {
+  const activeRole = arcConcepts[0]?.narrativeRole ?? null
+  const roleMap: Record<string, NarrativeRole> = {
+    Problem: 'tension',
+    Reframe: 'contrarian',
+    Evidence: 'evidence',
+    Framework: 'framework',
+    CTA: 'cta',
+  }
+  return ['Problem', 'Reframe', 'Evidence', 'Framework', 'CTA'].map((label) => {
+    const role = roleMap[label]
+    const hasConcept = arcConcepts.some((c) => c.narrativeRole === role)
+    return {
+      label,
+      state: hasConcept ? 'done' : role === activeRole ? 'active' : 'pending',
+    }
+  })
+}
+
+// Pure grouping of calendar concepts into narrative arcs. Concepts with a
+// narrative_arc_id are grouped by arc; everything else is collected into a
+// single "Standalone posts" group so the narrative view mirrors the grid.
+export function buildNarrativeArcs(
+  concepts: CalendarConcept[]
+): NarrativeArc[] {
   const arcMap = new Map<string, CalendarConcept[]>()
+  const standalone: CalendarConcept[] = []
 
   for (const concept of concepts) {
     if (concept.narrativeArcId) {
       if (!arcMap.has(concept.narrativeArcId))
         arcMap.set(concept.narrativeArcId, [])
       arcMap.get(concept.narrativeArcId)!.push(concept)
+    } else {
+      standalone.push(concept)
     }
   }
 
@@ -270,34 +297,9 @@ export async function getNarrativeArcs(
 
   for (const [arcId, arcConcepts] of arcMap) {
     const first = arcConcepts[0]
-    const allFunnelSteps: ArcFunnelStep[] = [
-      'Problem',
-      'Reframe',
-      'Evidence',
-      'Framework',
-      'CTA',
-    ].map((label) => {
-      const roleMap: Record<string, NarrativeRole> = {
-        Problem: 'tension',
-        Reframe: 'contrarian',
-        Evidence: 'evidence',
-        Framework: 'framework',
-        CTA: 'cta',
-      }
-      const role = roleMap[label]
-      const hasConcept = arcConcepts.some((c) => c.narrativeRole === role)
-      const activeRole = first.narrativeRole
-      return {
-        label,
-        state: hasConcept ? 'done' : role === activeRole ? 'active' : 'pending',
-      }
-    })
-
     const totalPosts = arcConcepts.reduce((sum, c) => sum + c.posts.length, 0)
     const platforms = [
-      ...new Set(
-        arcConcepts.flatMap((c) => c.posts.map((p) => p.platform))
-      ),
+      ...new Set(arcConcepts.flatMap((c) => c.posts.map((p) => p.platform))),
     ]
 
     arcs.push({
@@ -312,10 +314,42 @@ export async function getNarrativeArcs(
       totalConcepts: arcConcepts.length,
       totalPosts,
       weeksRunning: 1,
-      funnelSteps: allFunnelSteps,
+      funnelSteps: buildFunnelSteps(arcConcepts),
       concepts: arcConcepts,
     })
   }
 
+  if (standalone.length > 0) {
+    const totalPosts = standalone.reduce((sum, c) => sum + c.posts.length, 0)
+    const platforms = [
+      ...new Set(standalone.flatMap((c) => c.posts.map((p) => p.platform))),
+    ]
+
+    arcs.push({
+      arcId: STANDALONE_ARC_ID,
+      arcName: 'Standalone posts',
+      arcDescription: 'Scheduled posts not yet grouped into a narrative arc.',
+      goal: null,
+      status: 'active',
+      resonance: null,
+      stage: '',
+      platforms,
+      totalConcepts: standalone.length,
+      totalPosts,
+      weeksRunning: 1,
+      funnelSteps: [],
+      concepts: standalone,
+      standalone: true,
+    })
+  }
+
   return arcs
+}
+
+export async function getNarrativeArcs(
+  workspaceId: string,
+  weekStart: string
+): Promise<NarrativeArc[]> {
+  const concepts = await getCalendarWeek(workspaceId, weekStart)
+  return buildNarrativeArcs(concepts)
 }

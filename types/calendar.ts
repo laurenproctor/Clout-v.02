@@ -85,4 +85,8 @@ export interface NarrativeArc {
   weeksRunning: number
   funnelSteps: ArcFunnelStep[]
   concepts: CalendarConcept[]
+  // True for the synthetic group of scheduled posts not yet assigned to a
+  // narrative arc. These still appear in the narrative view so nothing the
+  // grid shows is silently hidden.
+  standalone?: boolean
 }
