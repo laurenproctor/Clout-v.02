@@ -34,14 +34,15 @@ exports[`EditorialHeroCard > matches snapshot 1`] = `
       bottom: 0;
       left: 0;
       width: 696px;
-      height: 351px;
-      background: linear-gradient(135deg, rgba(26, 26, 26, 0.6) 0%, rgba(0,0,0,0) 100%);
+      height: 439px;
+      background: radial-gradient(ellipse 120% 100% at 0% 100%, rgba(26, 26, 26, 0.6) 0%, rgba(26, 26, 26, 0.6)80 45%, rgba(0,0,0,0) 100%);
+      opacity: 1;
     }
 
     .logo {
       position: absolute;
-      top: 36px;
-      right: 36px;
+      top: 72px;
+      right: 72px;
       width: 165px;
       height: 47px;
       object-fit: contain;
@@ -50,10 +51,10 @@ exports[`EditorialHeroCard > matches snapshot 1`] = `
 
     .text-block {
       position: absolute;
-      bottom: 36px;
-      left: 36px;
-      max-width: 648px;
-      max-height: 279px;
+      bottom: 72px;
+      left: 72px;
+      max-width: 504px;
+      max-height: 295px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -62,28 +63,22 @@ exports[`EditorialHeroCard > matches snapshot 1`] = `
 
     h2 {
       font-family: "Georgia", Georgia, serif;
-      font-size: 51px;
+      font-size: 60px;
       font-weight: 700;
       color: #FFFFFF;
       line-height: 1.05;
       letter-spacing: -0.02em;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      
     }
 
     .subtext {
       font-family: "system-ui", system-ui, sans-serif;
-      font-size: 17px;
+      font-size: 28px;
       font-weight: 400;
       color: #FFFFFF;
       opacity: 0.78;
       line-height: 1.6;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      
     }
 
     .credit {
@@ -135,17 +130,19 @@ exports[`QuoteCard > matches snapshot 1`] = `
     .overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(
-        180deg,
+      background: radial-gradient(
+        ellipse 90% 80% at 50% 50%,
         #1A1A1ACC 0%,
-        #1A1A1AEE 100%
+        #1A1A1A99 60%,
+        rgba(0,0,0,0) 100%
       );
+      opacity: 1;
     }
 
     .logo {
       position: absolute;
-      top: 37px;
-      right: 37px;
+      top: 96px;
+      right: 96px;
       width: 165px;
       height: 47px;
       object-fit: contain;
@@ -158,7 +155,7 @@ exports[`QuoteCard > matches snapshot 1`] = `
       flex-direction: column;
       align-items: center;
       gap: 20px;
-      padding: 74px 37px;
+      padding: 192px 96px;
       max-width: 936px;
       text-align: center;
     }
