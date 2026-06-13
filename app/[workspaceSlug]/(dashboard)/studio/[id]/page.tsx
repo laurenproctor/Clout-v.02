@@ -386,7 +386,7 @@ export default function StudioEditorPage() {
       const full = [title, bodyForCopy, tags].filter(Boolean).join(' ').trim()
       text = full.length <= 280 ? full : full.slice(0, 277) + '…'
     } else {
-      text = [title, bodyForCopy].filter(Boolean).join('\n\n')
+      text = [title, bodyForCopy, tags].filter(Boolean).join('\n\n')
     }
     navigator.clipboard.writeText(text)
     setCopied(true)

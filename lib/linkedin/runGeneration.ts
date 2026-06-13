@@ -17,6 +17,45 @@ export interface LinkedInPromptContext {
 
 export type { LinkedInPromptContext as _LinkedInPromptContextExport }
 
+export const HASHTAG_COUNT = 5
+
+// Common, broadly high-reach professional LinkedIn tags. Only used to top up a
+// variation to HASHTAG_COUNT when the model returns fewer — never the primary source.
+const FALLBACK_TAGS = [
+  'leadership',
+  'strategy',
+  'growth',
+  'business',
+  'innovation',
+  'careers',
+  'marketing',
+]
+
+// Guarantee a variation always carries exactly HASHTAG_COUNT clean, distinct hashtags.
+// Strips '#'/whitespace, drops blanks, de-duplicates case-insensitively, caps at the
+// count, and backfills from FALLBACK_TAGS (skipping any already present) when short.
+export function normalizeHashtags(raw: string[]): string[] {
+  const seen = new Set<string>()
+  const tags: string[] = []
+
+  const add = (value: string) => {
+    const tag = value.replace(/^#+/, '').trim()
+    if (!tag) return
+    const key = tag.toLowerCase()
+    if (seen.has(key) || tags.length >= HASHTAG_COUNT) return
+    seen.add(key)
+    tags.push(tag)
+  }
+
+  for (const value of raw ?? []) add(value)
+  for (const fallback of FALLBACK_TAGS) {
+    if (tags.length >= HASHTAG_COUNT) break
+    add(fallback)
+  }
+
+  return tags
+}
+
 interface ClaudeVariation {
   label: string
   campaignName: string
@@ -42,7 +81,7 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
     '- Dense paragraphs — break every 2–3 lines',
     '- Long intro setup before the core insight — lead with the claim',
     '- Generic motivational language ("Excited to share...", "This is a reminder that...")',
-    '- Hashtag stuffing — 3–5 max, placed at the end only',
+    '- Niche or obscure hashtags — use exactly 5, all common high-reach tags, placed at the end only',
     '- Obvious AI transitions ("In conclusion", "It\'s worth noting", "Furthermore")',
     '- Fake vulnerability framing ("I used to think X, but I was wrong...")',
     '- Repetitive cadence — vary sentence length intentionally',
@@ -86,7 +125,7 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
           { type: 'story', text: '...' },
           { type: 'contrarian', text: '...' },
         ],
-        hashtags: ['leadership', 'strategy', 'operations', 'growth'],
+        hashtags: ['leadership', 'strategy', 'operations', 'growth', 'management'],
         ctaSuggestions: ['What\'s your take?', 'Drop a comment below', 'DM me to discuss'],
         transformationDelta: { changes: ['Elevated authority framing', 'Direct claim opener'] },
       },
@@ -162,7 +201,7 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     `Each variation must include:`,
     `- campaignName: a compelling, specific headline (8–12 words) that describes what this post is about — used as the studio title. Format: "[Core insight or hook] — [Variation angle]". Do not use generic labels like "LinkedIn Post".`,
     `- 4 hook alternatives (one of each type: statistical, tension, story, contrarian)`,
-    `- 3–5 hashtags (no # prefix)`,
+    `- exactly 5 hashtags (no # prefix) — common, widely-followed tags that improve reach, not niche ones`,
     `- 3 CTA suggestions`,
     `- transformationDelta with 2–3 short labels describing what makes this variation distinct`,
     ``,
@@ -224,7 +263,7 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
           campaignName: v.campaignName ?? v.label,
           body: v.body,
           hooks: v.hooks,
-          hashtags: v.hashtags,
+          hashtags: normalizeHashtags(v.hashtags),
           mentions: [],
           ctaSuggestions: v.ctaSuggestions,
           transformationDelta: v.transformationDelta,
