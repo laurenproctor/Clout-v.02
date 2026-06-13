@@ -3,6 +3,7 @@ import { RSSProvider } from './rss'
 import { GenericArticleProvider } from './generic'
 import { RedditProvider } from './reddit'
 import { LinkedInProvider } from './linkedin'
+import { LinkedInUnipileProvider } from './linkedin-unipile'
 import type { ConversationProvider } from './types'
 
 const providers: ConversationProvider[] = [
@@ -16,8 +17,9 @@ const providers: ConversationProvider[] = [
 export function getProvider(url: string, sourceType?: string, provider?: string | null): ConversationProvider {
   if (sourceType === 'keyword') {
     switch (provider) {
-      case 'reddit': return new RedditProvider()
-      default:       throw new Error(`Unsupported keyword provider: ${provider}`)
+      case 'reddit':   return new RedditProvider()
+      case 'linkedin': return new LinkedInUnipileProvider()  // keyword search via Unipile beta (never Jina)
+      default:         throw new Error(`Unsupported keyword provider: ${provider}`)
     }
   }
   if (sourceType === 'substack')       return new SubstackProvider('articles')

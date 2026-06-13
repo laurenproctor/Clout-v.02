@@ -12,6 +12,7 @@ import { ConnectSubstackModal } from '@/components/publishing/ConnectSubstackMod
 import { PlatformCard, type ConnectedAccount } from '@/components/publishing/PlatformCard'
 import { GoogleSearchConsoleCard } from '@/components/publishing/GoogleSearchConsoleCard'
 import { BingWebmasterCard } from '@/components/publishing/BingWebmasterCard'
+import { UnipileBetaCard } from '@/components/settings/UnipileBetaCard'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import { useCanConnectAccount } from '@/hooks/use-entitlements'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -1351,6 +1352,9 @@ function PublishingInfrastructureContent() {
           })}
         </div>
       </section>
+
+      {/* LinkedIn Intelligence (Beta) — opt-in Unipile connector; renders only when enabled */}
+      <UnipileBetaCard />
 
       {/* Local Distribution */}
       <section className="mb-12">

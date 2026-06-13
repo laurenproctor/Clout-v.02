@@ -6,7 +6,8 @@ export function normalizeKeyword(raw: string): string {
 
 export function getDefaultKeywordConfig(provider: KeywordProvider): Record<string, unknown> {
   switch (provider) {
-    case 'reddit': return { sort: 'new' }
-    default:       return {}
+    case 'reddit':   return { sort: 'new' }
+    case 'linkedin': return { datePosted: 'past_week', minReactions: 2 }
+    default:         return {}
   }
 }

@@ -8,6 +8,7 @@ import { listConversationSources, insertConversationSource, countKeywordMonitors
 import { ingestSingleSource } from '@/lib/conversations/pipeline'
 import { getWorkspaceLimit } from '@/lib/billing/entitlements'
 import { normalizeKeyword, getDefaultKeywordConfig } from '@/lib/conversations/keyword'
+import { evaluateUnipileMonitoring } from '@/lib/unipile/gates'
 import type { KeywordProvider } from '@/types/domain'
 
 export async function GET() {
@@ -42,8 +43,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // LinkedIn keyword monitoring runs through the Unipile beta connector — don't let a
+    // user create a monitor that can't run. Gate on master flag + kill switch + workspace
+    // monitoring beta + a live connection before inserting.
+    if (kProvider === 'linkedin') {
+      const gate = await evaluateUnipileMonitoring({ workspaceId: session.workspaceId })
+      if (!gate.allowed) {
+        return NextResponse.json({ error: gate.message, reason: gate.reason }, { status: 403 })
+      }
+    }
+
     const normalizedKw = normalizeKeyword(rawKeyword)
-    const sourceUrl    = `https://www.reddit.com/search?q=${encodeURIComponent(normalizedKw)}&sort=new`
+    const sourceUrl    = kProvider === 'linkedin'
+      ? `linkedin://search?q=${encodeURIComponent(normalizedKw)}`
+      : `https://www.reddit.com/search?q=${encodeURIComponent(normalizedKw)}&sort=new`
     const config       = getDefaultKeywordConfig(kProvider as KeywordProvider)
 
     const result = await insertConversationSource({

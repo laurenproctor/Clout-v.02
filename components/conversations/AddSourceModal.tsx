@@ -38,6 +38,7 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
   // Monitor mode state
   const [keyword, setKeyword] = useState('')
   const [monitorTitle, setMonitorTitle] = useState('')
+  const [monitorProvider, setMonitorProvider] = useState<'reddit' | 'linkedin'>('reddit')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -104,7 +105,7 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceType:   'keyword',
-          provider:     'reddit',
+          provider:     monitorProvider,
           keywordQuery: keyword.trim(),
           title:        monitorTitle.trim() || null,
         }),
@@ -223,17 +224,32 @@ export function AddSourceModal({ onAdded, onSourceCreated, onClose }: Props) {
                 <p className="text-xs font-medium text-muted-foreground mb-2">Monitor on</p>
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked readOnly className="rounded" />
+                    <input type="radio" name="monitor-provider" checked={monitorProvider === 'reddit'}
+                      onChange={() => setMonitorProvider('reddit')} className="rounded" />
                     <span className="text-xs font-medium">Reddit</span>
                   </label>
-                  {(['LinkedIn', 'Substack', 'News'] as const).map(n => (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="monitor-provider" checked={monitorProvider === 'linkedin'}
+                      onChange={() => setMonitorProvider('linkedin')} className="rounded" />
+                    <span className="text-xs font-medium">LinkedIn</span>
+                    <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-700">Beta</span>
+                    <span className="text-[10px] text-muted-foreground">read-only</span>
+                  </label>
+                  {(['Substack', 'News'] as const).map(n => (
                     <label key={n} className="flex items-center gap-2 cursor-not-allowed opacity-50">
-                      <input type="checkbox" disabled className="rounded" />
+                      <input type="radio" disabled className="rounded" />
                       <span className="text-xs">{n}</span>
                       <span className="text-[10px] text-muted-foreground">coming soon</span>
                     </label>
                   ))}
                 </div>
+                {monitorProvider === 'linkedin' && (
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    Monitors LinkedIn conversations through an opt-in beta connector. Read-only —
+                    Clout will not comment, react, or post. Requires connecting the LinkedIn beta
+                    connector in Settings → Publishing.
+                  </p>
+                )}
               </div>
 
               <div>

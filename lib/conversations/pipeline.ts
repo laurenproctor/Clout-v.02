@@ -43,7 +43,7 @@ async function ingestSource(source: ConversationSource): Promise<{
   let normalized: NormalizedItem[]
 
   try {
-    normalized = await provider.fetch(source.sourceUrl)
+    normalized = await provider.fetch(source.sourceUrl, { workspaceId: source.workspaceId })
   } catch (err) {
     console.error(`[conversations] fetch failed for source ${source.id}:`, err)
     await markSourceError(source.id)
@@ -74,6 +74,8 @@ async function ingestSource(source: ConversationSource): Promise<{
       title: n.title, author: n.author, authorUrl: n.authorUrl, publication: n.publication,
       sourceUrl: n.sourceUrl, excerpt: n.excerpt, bodyMarkdown: n.bodyMarkdown,
       heroImage: n.heroImage, publishedAt: n.publishedAt, metadata: n.metadata,
+      provider: n.provider, providerItemId: n.providerItemId, providerSocialId: n.providerSocialId,
+      providerUrl: n.providerUrl, providerMetadata: n.providerMetadata,
     })
     if (!insertResult.ok) { errors++; continue }
     if (!insertResult.data) { skipped++; continue }

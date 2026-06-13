@@ -206,6 +206,9 @@ export async function insertConversationItemIfNew(params: {
   publication: string | null; sourceUrl: string; excerpt: string | null
   bodyMarkdown: string | null; heroImage: string | null; publishedAt: string | null
   metadata: Record<string, unknown>
+  // Provider-native identifiers (connector-backed providers like LinkedIn-via-Unipile).
+  provider?: string | null; providerItemId?: string | null; providerSocialId?: string | null
+  providerUrl?: string | null; providerMetadata?: Record<string, unknown> | null
 }): Promise<DomainResult<ConversationItem | null>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any
@@ -217,10 +220,14 @@ export async function insertConversationItemIfNew(params: {
       title: params.title, author: params.author, author_url: params.authorUrl, publication: params.publication,
       source_url: params.sourceUrl, excerpt: params.excerpt, body_markdown: params.bodyMarkdown,
       hero_image: params.heroImage, published_at: params.publishedAt, metadata: params.metadata,
+      provider: params.provider ?? null, provider_item_id: params.providerItemId ?? null,
+      provider_social_id: params.providerSocialId ?? null, provider_url: params.providerUrl ?? null,
+      provider_metadata: params.providerMetadata ?? null,
     })
     .select().maybeSingle()
   if (error) {
-    // 23505 = unique_violation: covers (source_id, external_id) OR (workspace_id, canonical_url)
+    // 23505 = unique_violation: (source_id, external_id), (workspace_id, canonical_url),
+    // or the provider dedupe indexes (workspace_id, provider, provider_social_id|item_id).
     if (error.code === '23505') return { ok: true, data: null }
     return { ok: false, error: error.message }
   }
