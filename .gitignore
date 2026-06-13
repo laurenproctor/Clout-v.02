@@ -55,3 +55,8 @@ next-env.d.ts
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Playwright E2E generated output
+e2e/.report/
+test-results/
+playwright-report/
