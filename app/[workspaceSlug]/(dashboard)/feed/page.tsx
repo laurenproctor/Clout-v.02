@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -39,10 +40,12 @@ export default async function FeedPage({ params }: { params: Promise<{ workspace
   const onboardingComplete = !!(userProfile?.onboarding_complete || feedSettings)
 
   return (
-    <SignalFeed
-      userId={session.userId}
-      onboardingComplete={onboardingComplete}
-      userDisplayName={(profile as { display_name?: string | null } | null)?.display_name ?? ''}
-    />
+    <Suspense>
+      <SignalFeed
+        userId={session.userId}
+        onboardingComplete={onboardingComplete}
+        userDisplayName={(profile as { display_name?: string | null } | null)?.display_name ?? ''}
+      />
+    </Suspense>
   )
 }

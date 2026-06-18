@@ -25,6 +25,50 @@ interface FeedSettings {
   website_url: string
 }
 
+interface RefreshResultData {
+  newCards: number
+  existingCardsRefreshed: number
+  articlesReturned: number
+  errors?: Array<{ code: string }>
+}
+
+// Map a completed refresh response to user-facing copy. Provider error codes are
+// translated to operational messages — raw codes/internals are never shown.
+function describeRefreshResult(data: RefreshResultData): { text: string; isError: boolean; navigate: boolean } {
+  const { newCards, existingCardsRefreshed, articlesReturned } = data
+  const errors = data.errors ?? []
+  const hasErrors = errors.length > 0
+  const signals = (n: number) => `${n} new signal${n === 1 ? '' : 's'}`
+
+  if (newCards > 0) {
+    return hasErrors
+      ? { text: `Added ${signals(newCards)}. Some topics couldn't be refreshed.`, isError: false, navigate: true }
+      : { text: `Added ${signals(newCards)}. Opening your feed…`, isError: false, navigate: true }
+  }
+
+  if (existingCardsRefreshed > 0) {
+    return hasErrors
+      ? { text: 'No new signals found. Some topics couldn’t be refreshed.', isError: false, navigate: false }
+      : { text: `No new signals found. Refreshed ${existingCardsRefreshed} existing signal${existingCardsRefreshed === 1 ? '' : 's'}.`, isError: false, navigate: false }
+  }
+
+  if (!hasErrors && articlesReturned === 0) {
+    return { text: 'No new articles found for your topics right now.', isError: false, navigate: false }
+  }
+
+  // No cards and provider errors — translate the dominant cause to operational copy.
+  const codes = new Set(errors.map(e => e.code))
+  let text: string
+  if (codes.has('missing_api_key')) {
+    text = 'News refresh isn’t configured correctly.'
+  } else if (codes.has('rate_limited') || codes.has('timeout')) {
+    text = 'The news source is temporarily unavailable. Try again shortly.'
+  } else {
+    text = 'The news source is having trouble right now. Try again shortly.'
+  }
+  return { text, isError: true, navigate: false }
+}
+
 function SignalFeedSettingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -152,17 +196,32 @@ function SignalFeedSettingsContent() {
     try {
       const res = await fetch('/api/feed/refresh', { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Refresh failed')
-      setRefreshMessage({
-        text: `Syncing ${data.topics} topic${data.topics !== 1 ? 's' : ''} — check your feed in about a minute`,
-        isError: false,
-      })
+
+      // Route/system failure (500) or the configuration guard (400).
+      if (!res.ok || data?.ok === false) {
+        setRefreshMessage({
+          text: data?.message ?? data?.error ?? 'Refresh failed. Try again shortly.',
+          isError: true,
+        })
+        setTimeout(() => setRefreshMessage(null), 4000)
+        return
+      }
+
+      const { text, isError, navigate } = describeRefreshResult(data)
+
+      // Navigate only when there are genuinely new cards. Pass the count so the
+      // freshly-mounted feed can confirm the refresh (the settings message would
+      // otherwise be lost in the navigation).
+      if (navigate) {
+        setRefreshMessage({ text, isError: false })
+        router.push(`/${workspaceSlug}/feed?refresh=added&n=${data.newCards}`)
+        return
+      }
+
+      setRefreshMessage({ text, isError })
       setTimeout(() => setRefreshMessage(null), 6000)
-    } catch (err) {
-      setRefreshMessage({
-        text: err instanceof Error ? err.message : 'Refresh failed',
-        isError: true,
-      })
+    } catch {
+      setRefreshMessage({ text: 'Refresh failed. Try again shortly.', isError: true })
       setTimeout(() => setRefreshMessage(null), 4000)
     } finally {
       setRefreshing(false)
@@ -191,9 +250,12 @@ function SignalFeedSettingsContent() {
       setSettings(prev => ({ ...prev, website_url: fullUrl }))
       setWebsiteSaved(true)
       setTimeout(() => setWebsiteSaved(false), 5000)
-    } catch {
-      setWebsiteError('Failed to analyze website')
-      setTimeout(() => setWebsiteError(null), 4000)
+    } catch (err) {
+      // The API returns a curated, operational message (raw scrape/provider
+      // errors are only logged server-side), so it's safe to show directly and
+      // far more useful than a generic fallback.
+      setWebsiteError(err instanceof Error ? err.message : 'Failed to analyze website')
+      setTimeout(() => setWebsiteError(null), 6000)
     } finally {
       setSavingWebsite(false)
     }

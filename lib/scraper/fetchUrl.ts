@@ -29,7 +29,10 @@ async function fetchWithRetry(
         'User-Agent': randomUA(),
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
+        // NOTE: do not set Accept-Encoding manually. undici only transparently
+        // decompresses the response body when it controls this header; supplying
+        // our own would make res.text() return raw gzip/brotli bytes (garbled
+        // HTML → empty extraction). Letting undici negotiate fixes that.
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
         'Sec-Fetch-Dest': 'document',
@@ -67,6 +70,43 @@ async function fetchWithRetry(
   }
 }
 
+/**
+ * Ordered host/scheme variants to try for a URL, so a site that only serves on
+ * `www` (or only the apex, or only one scheme) still resolves. The original URL
+ * is always first; we then toggle www↔apex on the given scheme, then the other
+ * scheme. Deduped and capped so variant retries stay bounded.
+ */
+export function urlVariants(raw: string): string[] {
+  let base: URL
+  try {
+    base = new URL(raw)
+  } catch {
+    return [raw]
+  }
+
+  const hosts = [base.hostname]
+  if (base.hostname.startsWith('www.')) hosts.push(base.hostname.slice(4))
+  else hosts.push(`www.${base.hostname}`)
+
+  // Try the given scheme first, then the other one.
+  const schemes = base.protocol === 'http:' ? ['http:', 'https:'] : ['https:', 'http:']
+
+  const variants: string[] = []
+  const add = (scheme: string, host: string) => {
+    const u = new URL(base.toString())
+    u.protocol = scheme
+    u.hostname = host
+    const s = u.toString()
+    if (!variants.includes(s)) variants.push(s)
+  }
+
+  add(base.protocol, base.hostname) // original always first
+  for (const scheme of schemes) {
+    for (const host of hosts) add(scheme, host)
+  }
+  return variants.slice(0, 4)
+}
+
 export async function fetchHtml(url: string): Promise<string> {
   try {
     new URL(url)
@@ -74,6 +114,28 @@ export async function fetchHtml(url: string): Promise<string> {
     throw new Error(`FETCH_FAILED: Malformed URL — ${url}`)
   }
 
-  const res = await fetchWithRetry(url, 1, 3)
-  return res.text()
+  let lastConnErr: unknown
+  for (const variant of urlVariants(url)) {
+    try {
+      const res = await fetchWithRetry(variant, 1, 3)
+      return res.text()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      // A 403, a non-2xx status, or a timeout are *answers* from a reachable
+      // server — trying other host/scheme variants won't help, and the caller's
+      // Jina fallback (or timeout message) should take over immediately.
+      if (
+        msg.startsWith('FETCH_BLOCKED') ||
+        msg.startsWith('FETCH_FAILED') ||
+        msg.startsWith('FETCH_TIMEOUT')
+      ) {
+        throw err
+      }
+      // Connection-level failure (DNS / refused / TLS / reset): try next variant.
+      lastConnErr = err
+    }
+  }
+
+  const detail = lastConnErr instanceof Error ? lastConnErr.message : String(lastConnErr)
+  throw new Error(`FETCH_UNREACHABLE: Could not connect to ${url} — ${detail}`)
 }

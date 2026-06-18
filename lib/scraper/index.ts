@@ -12,16 +12,28 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
   try {
     html = await fetchHtml(url)
   } catch (err) {
-    // Origin returned a bad status or blocked us — try Jina Reader before giving up.
-    // Covers 403 (FETCH_BLOCKED) plus 405/451/503/521 and other Cloudflare-style
-    // bot challenges that surface as FETCH_FAILED from datacenter IPs.
-    if (err instanceof Error && (
-      err.message.startsWith('FETCH_BLOCKED') ||
-      err.message.startsWith('FETCH_FAILED')
-    )) {
-      return fetchWithJina(url)
+    // Any recoverable fetch failure gets one more chance via Jina Reader, which
+    // uses a different network path and egress IP: 403 bot-blocks (FETCH_BLOCKED),
+    // Cloudflare-style bad statuses (FETCH_FAILED), timeouts (FETCH_TIMEOUT), and
+    // connection-level failures (FETCH_UNREACHABLE) that undici raises as a bare
+    // TypeError from datacenter IPs. Only a malformed URL is truly unrecoverable.
+    if (err instanceof Error && err.message.startsWith('FETCH_FAILED: Malformed URL')) {
+      throw err
     }
-    throw err
+    try {
+      return await fetchWithJina(url)
+    } catch (jinaErr) {
+      // Jina is the last resort; if it also fails, surface the ORIGINAL fetch
+      // failure when it's more specific (unreachable host / timeout) so the user
+      // gets an honest message rather than a generic Jina error.
+      if (err instanceof Error && (
+        err.message.startsWith('FETCH_UNREACHABLE') ||
+        err.message.startsWith('FETCH_TIMEOUT')
+      )) {
+        throw err
+      }
+      throw jinaErr
+    }
   }
 
   const substack = isSubstack(url, html)

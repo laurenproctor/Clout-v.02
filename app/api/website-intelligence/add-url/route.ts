@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
     let userMessage = 'Could not reach that URL — make sure it\'s publicly accessible.'
     if (msg.includes('FETCH_BLOCKED') || msg.includes('403')) {
       userMessage = 'That page is blocking automated access. Try a different URL.'
+    } else if (msg.includes('FETCH_UNREACHABLE')) {
+      userMessage = 'That site\'s server didn\'t respond — it may be down or not serving that address.'
     } else if (msg.includes('FETCH_TIMEOUT') || msg.includes('JINA_TIMEOUT')) {
       userMessage = 'That page took too long to respond. Try again.'
     } else if (msg.includes('JINA_FAILED') || msg.includes('FETCH_FAILED')) {

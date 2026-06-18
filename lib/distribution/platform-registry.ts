@@ -11,14 +11,38 @@ export type UTMDateFormat = 'yyyy-mm-dd' | 'yyyy-mm' | 'yyyymmdd' | 'yyyy' | 'mm
 export const UTM_DATE_FORMATS: UTMDateFormat[] = ['yyyy-mm-dd', 'yyyy-mm', 'yyyymmdd', 'yyyy', 'mmm-yyyy']
 export const DEFAULT_UTM_DATE_FORMAT: UTMDateFormat = 'yyyy-mm'
 
+const MONTH_ABBREVIATIONS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'] as const
+
+// Formats a date into a valid UTM value (lowercase, alphanumeric + hyphens).
+// Used both for the settings preview and for resolving the `date` token at publish time.
+export function formatUTMDate(format: UTMDateFormat, date: Date): string {
+  const yyyy = date.getFullYear().toString()
+  const mm   = String(date.getMonth() + 1).padStart(2, '0')
+  const dd   = String(date.getDate()).padStart(2, '0')
+  const mmm  = MONTH_ABBREVIATIONS[date.getMonth()]
+  switch (format) {
+    case 'yyyy-mm-dd': return `${yyyy}-${mm}-${dd}`
+    case 'yyyy-mm':    return `${yyyy}-${mm}`
+    case 'yyyymmdd':   return `${yyyy}${mm}${dd}`
+    case 'yyyy':       return yyyy
+    case 'mmm-yyyy':   return `${mmm}-${yyyy}`
+  }
+}
+
 export type UTMTemplateCampaignToken = 'auto' | 'campaign_name' | 'date' | 'custom'
 export type UTMTemplateContentToken  = 'auto' | 'cta' | 'date' | 'custom'
 export type UTMTemplateTermToken     = 'none' | 'lens' | 'voice' | 'date' | 'custom'
 
+// How a dynamic token's fallback is produced when resolution comes back empty.
+// 'text' uses the static `fallback` string; 'date' generates a date (a date can
+// always be produced, so the field is never left empty). Defaults to 'text'.
+export type UTMFallbackKind = 'text' | 'date'
+export const UTM_FALLBACK_KINDS: UTMFallbackKind[] = ['text', 'date']
+
 export type UTMTemplateSettings = {
-  campaign: { token: UTMTemplateCampaignToken; fallback: string; dateFormat?: UTMDateFormat }
-  content:  { token: UTMTemplateContentToken;  fallback: string; dateFormat?: UTMDateFormat }
-  term:     { token: UTMTemplateTermToken;      fallback: string; dateFormat?: UTMDateFormat }
+  campaign: { token: UTMTemplateCampaignToken; fallback: string; fallbackKind?: UTMFallbackKind; dateFormat?: UTMDateFormat }
+  content:  { token: UTMTemplateContentToken;  fallback: string; fallbackKind?: UTMFallbackKind; dateFormat?: UTMDateFormat }
+  term:     { token: UTMTemplateTermToken;      fallback: string; fallbackKind?: UTMFallbackKind; dateFormat?: UTMDateFormat }
 }
 
 export const DEFAULT_UTM_TEMPLATES: UTMTemplateSettings = {

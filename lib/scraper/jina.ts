@@ -58,14 +58,20 @@ export async function fetchWithJina(url: string): Promise<ScrapedArticle> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
+  // r.jina.ai is keyless by default but aggressively rate-limited; an optional
+  // JINA_API_KEY lifts the limit and makes this fallback reliable under load.
+  const apiKey = process.env.JINA_API_KEY
+  const headers: Record<string, string> = {
+    Accept: 'text/markdown,text/plain,*/*',
+    'X-Return-Format': 'markdown',
+    'X-No-Cache': 'true',
+  }
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+
   try {
     const res = await fetch(jinaUrl, {
       signal: controller.signal,
-      headers: {
-        Accept: 'text/markdown,text/plain,*/*',
-        'X-Return-Format': 'markdown',
-        'X-No-Cache': 'true',
-      },
+      headers,
     })
 
     if (!res.ok) {

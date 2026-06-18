@@ -171,3 +171,123 @@ describe('buildUTMParams — no templates provided', () => {
     expect(p.utm_term).toBeUndefined()
   })
 })
+
+describe('buildUTMParams — date token', () => {
+  // Fixed local date: 7 June 2026
+  const NOW = new Date(2026, 5, 7)
+
+  it('generates the campaign from the date using its dateFormat', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, campaign: { token: 'date', fallback: '', dateFormat: 'yyyy-mm-dd' } },
+    })
+    expect(p.utm_campaign).toBe('2026-06-07')
+  })
+
+  it('generates the content from the date using its dateFormat', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, content: { token: 'date', fallback: '', dateFormat: 'mmm-yyyy' } },
+    })
+    expect(p.utm_content).toBe('jun-2026')
+  })
+
+  it('generates the term from the date using its dateFormat', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, term: { token: 'date', fallback: '', dateFormat: 'yyyy-mm' } },
+    })
+    expect(p.utm_term).toBe('2026-06')
+  })
+
+  it('defaults to DEFAULT_UTM_DATE_FORMAT (yyyy-mm) when no dateFormat is set', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, campaign: { token: 'date', fallback: '' } },
+    })
+    expect(p.utm_campaign).toBe('2026-06')
+  })
+
+  it('ignores any fallback string when the token is date', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, campaign: { token: 'date', fallback: 'should-be-ignored', dateFormat: 'yyyy' } },
+    })
+    expect(p.utm_campaign).toBe('2026')
+  })
+})
+
+describe('buildUTMParams — date fallback for dynamic tokens', () => {
+  // Fixed local date: 7 June 2026
+  const NOW = new Date(2026, 5, 7)
+
+  it('uses the resolved campaign_name when present, ignoring the date fallback', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      outputContext: { campaignName: 'My Big Launch' },
+      templates: { ...TEMPLATES, campaign: { token: 'campaign_name', fallback: '', fallbackKind: 'date', dateFormat: 'yyyy-mm-dd' } },
+    })
+    expect(p.utm_campaign).toBe('my-big-launch')
+  })
+
+  it('falls back to a generated date when campaign_name is empty', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      outputContext: { campaignName: '' },
+      templates: { ...TEMPLATES, campaign: { token: 'campaign_name', fallback: '', fallbackKind: 'date', dateFormat: 'yyyy-mm-dd' } },
+    })
+    expect(p.utm_campaign).toBe('2026-06-07')
+  })
+
+  it('falls back to a generated date for content (cta) when empty', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, content: { token: 'cta', fallback: '', fallbackKind: 'date', dateFormat: 'mmm-yyyy' } },
+    })
+    expect(p.utm_content).toBe('jun-2026')
+  })
+
+  it('falls back to a generated date for term (lens) when empty', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, term: { token: 'lens', fallback: '', fallbackKind: 'date', dateFormat: 'yyyy-mm' } },
+    })
+    expect(p.utm_term).toBe('2026-06')
+  })
+
+  it('falls back to a generated date for term (voice) when empty', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, term: { token: 'voice', fallback: '', fallbackKind: 'date', dateFormat: 'yyyy' } },
+    })
+    expect(p.utm_term).toBe('2026')
+  })
+
+  it('defaults the date-fallback format to yyyy-mm when none is set', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, campaign: { token: 'campaign_name', fallback: '', fallbackKind: 'date' } },
+    })
+    expect(p.utm_campaign).toBe('2026-06')
+  })
+
+  it('still uses the static fallback string when fallbackKind is text (default)', () => {
+    const p = buildUTMParams({
+      ...BASE,
+      now: NOW,
+      templates: { ...TEMPLATES, campaign: { token: 'campaign_name', fallback: 'clout', fallbackKind: 'text' } },
+    })
+    expect(p.utm_campaign).toBe('clout')
+  })
+})

@@ -100,4 +100,45 @@ describe('scrapeUrl', () => {
     await expect(scrapeUrl('https://example.com')).rejects.toThrow('SOME_OTHER_ERROR')
     expect(mockFetchWithJina).not.toHaveBeenCalled()
   })
+
+  it('falls back to Jina on a bare network TypeError (undici "fetch failed")', async () => {
+    mockFetchHtml.mockRejectedValue(new TypeError('fetch failed'))
+    mockFetchWithJina.mockResolvedValue(jinaResult)
+
+    const result = await scrapeUrl('https://example.com')
+
+    expect(mockFetchWithJina).toHaveBeenCalledWith('https://example.com')
+    expect(result.extractionMethod).toBe('jina')
+  })
+
+  it('falls back to Jina on FETCH_TIMEOUT', async () => {
+    mockFetchHtml.mockRejectedValue(new Error('FETCH_TIMEOUT: Request exceeded 12s'))
+    mockFetchWithJina.mockResolvedValue(jinaResult)
+
+    const result = await scrapeUrl('https://example.com')
+
+    expect(mockFetchWithJina).toHaveBeenCalledWith('https://example.com')
+    expect(result.extractionMethod).toBe('jina')
+  })
+
+  it('does NOT fall back to Jina for a malformed URL', async () => {
+    mockFetchHtml.mockRejectedValue(new Error('FETCH_FAILED: Malformed URL — bad'))
+
+    await expect(scrapeUrl('bad')).rejects.toThrow('Malformed URL')
+    expect(mockFetchWithJina).not.toHaveBeenCalled()
+  })
+
+  it('surfaces the original FETCH_UNREACHABLE when Jina also fails', async () => {
+    mockFetchHtml.mockRejectedValue(new Error('FETCH_UNREACHABLE: Could not connect to https://down.test'))
+    mockFetchWithJina.mockRejectedValue(new Error('JINA_FAILED: HTTP 422'))
+
+    await expect(scrapeUrl('https://down.test')).rejects.toThrow('FETCH_UNREACHABLE')
+  })
+
+  it('surfaces the Jina error for a blocked site when Jina also fails', async () => {
+    mockFetchHtml.mockRejectedValue(new Error('FETCH_BLOCKED: 403 Forbidden'))
+    mockFetchWithJina.mockRejectedValue(new Error('JINA_FAILED: HTTP 429'))
+
+    await expect(scrapeUrl('https://blocked.test')).rejects.toThrow('JINA_FAILED')
+  })
 })

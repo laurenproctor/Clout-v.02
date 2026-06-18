@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { tokens } from '@/lib/feed/tokens'
 import { FeedTabs } from './FeedTabs'
 import { FeedStatusPill } from './FeedStatusPill'
@@ -70,6 +70,31 @@ export function SignalFeed({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
+  // Confirmation when arriving from a successful Settings refresh
+  // (?refresh=added&n=N). Derived from the URL during render (no setState on
+  // mount); auto-dismissed and the params stripped by the effect below.
+  const searchParams = useSearchParams()
+  const justRefreshed = searchParams.get('refresh') === 'added'
+  const refreshedCount = Number(searchParams.get('n') ?? '0')
+  const [noticeDismissed, setNoticeDismissed] = useState(false)
+  const refreshNotice =
+    justRefreshed && !noticeDismissed
+      ? refreshedCount > 0
+        ? `Added ${refreshedCount} new signal${refreshedCount === 1 ? '' : 's'} to your feed.`
+        : 'Your feed was refreshed.'
+      : null
+
+  useEffect(() => {
+    if (!justRefreshed) return
+    const t = setTimeout(() => setNoticeDismissed(true), 6000)
+    // Strip the params so a reload doesn't re-trigger the notice.
+    const sp = new URLSearchParams(window.location.search)
+    sp.delete('refresh')
+    sp.delete('n')
+    const qs = sp.toString()
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''))
+    return () => clearTimeout(t)
+  }, [justRefreshed])
 
   // Run the blog-aware analysis on the URL configured in /feed settings and
   // return data in the shape WebsiteIntelligenceFeed expects. Throws on failure
@@ -126,7 +151,10 @@ export function SignalFeed({
         const data = await res.json()
         setKnowledgeData({ topics: data.topics ?? [] })
       } else {
-        const res = await fetch(`/api/feed?tab=${tab}`)
+        const res = await fetch(`/api/feed?tab=${tab}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        })
         if (!res.ok) throw new Error('Failed to load signals')
         const { cards } = await res.json()
         setCardCache(prev => ({ ...prev, [tab]: cards ?? [] }))
@@ -241,6 +269,20 @@ export function SignalFeed({
           </div>
           <FeedStatusPill status="live" />
         </div>
+
+        {refreshNotice && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '10px 14px',
+            borderRadius: '6px',
+            backgroundColor: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            color: '#065f46',
+            fontSize: '13px',
+          }}>
+            {refreshNotice}
+          </div>
+        )}
 
         <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
 

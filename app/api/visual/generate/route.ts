@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/visual/generation/generateImage'
+import { loadGenerationBrandProfile, type GenerationBrandProfile, type BrandProfileSources } from '@/lib/visual/brand/loadGenerationBrandProfile'
 import type { VisualPlatform, AspectRatio, GenerationMode, VisualObjective, LensType, OverlayParams } from '@/lib/visual/types/visual'
 
 // ── Rate limiting (in-memory, per-workspace) ─────────────────────────────
@@ -208,9 +209,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Load workspace brand profile ──────────────────────────────────────────
+  // Feeds brand imagery settings into the AI brief (generateVisualIntent) and brand
+  // fonts/colors into the hybrid-overlay render. Skipped for prompt-driven or
+  // pure supplied/solid backgrounds (no AI step). This is what gives Instagram (and
+  // every other content-derived caller) its brand — previously always undefined.
+  let brandProfile: GenerationBrandProfile | undefined
+  let brandProfileSources: BrandProfileSources | undefined
+  if (mode !== 'prompt-driven' && resolvedBackgroundMode === 'generated') {
+    const brandClient = await createClient()
+    const loaded = await loadGenerationBrandProfile(session.workspaceId, brandClient)
+    if (loaded) {
+      brandProfile = loaded.profile
+      brandProfileSources = loaded.sources
+    }
+  }
+
   // ── Generate ──────────────────────────────────────────────────────────────
   try {
     const asset = await generateImage({
+      brandProfile,
+      brandProfileSources,
       mode,
       workspaceId:        session.workspaceId,
       outputId:           outputId ?? undefined,

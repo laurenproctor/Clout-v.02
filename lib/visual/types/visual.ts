@@ -171,6 +171,7 @@ export interface GenerateImageInput {
   emotionalTone?: string
   keyIdea?: string
   brandProfile?: BrandSemanticProfile  // normalized brand identity — produced by normalizeBrandIdentity()
+  brandProfileSources?: { identity: boolean; imagery: boolean }  // which DB rows backed brandProfile (QA observability)
   promptOverride?: string       // skips intent generation (prompt-driven mode)
   visualIntent?: VisualIntent   // caller-supplied intent (skips Claude call)
   aspectRatio?: AspectRatio

@@ -38,6 +38,7 @@ export default async function ImageCreatePage({
       <div className="flex-1 min-h-0 overflow-auto">
         <ImageCreator
           workspaceId={workspace.id}
+          workspaceSlug={workspaceSlug}
           logoUrl={brand?.logo_url ?? null}
           brandColors={{
             primary: brand?.primary_color ?? '#000000',

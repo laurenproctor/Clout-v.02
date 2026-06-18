@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { ImageIcon, Sun, Moon, Upload, X } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
@@ -58,6 +59,7 @@ interface GenerationParams {
 
 interface ImageCreatorProps {
   workspaceId: string
+  workspaceSlug: string
   logoUrl: string | null
   brandColors: { primary: string; secondary: string; accent: string }
 }
@@ -80,7 +82,7 @@ const ASPECT_LABELS: Record<AspectRatio, string> = {
   portrait:  'Portrait',
 }
 
-export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreatorProps) {
+export function ImageCreator({ workspaceSlug, logoUrl, brandColors: _brandColors }: ImageCreatorProps) {
   const [imageStyle, setImageStyle] = useState<ImageStyle>('headline-overlay')
   const [quoteText, setQuoteText] = useState('')
   const [attribution, setAttribution] = useState('')
@@ -106,6 +108,12 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
   const [downloadName, setDownloadName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const lastGeneratedParams = useRef<GenerationParams | null>(null)
+
+  // "Save to Studio" — promote the generated asset to a Studio image draft. Explicit
+  // (not auto-saved per iteration, which would flood Studio). Idempotent server-side.
+  const [isSavingToStudio, setIsSavingToStudio]   = useState(false)
+  const [savedStudioDraftId, setSavedStudioDraftId] = useState<string | null>(null)
+  const [studioSaveError, setStudioSaveError]     = useState<string | null>(null)
 
   useEffect(() => {
     setAspectRatio(imageStyle === 'quote-overlay' ? 'square' : 'landscape')
@@ -217,6 +225,9 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
     setResult(null)
     setGenerationContext(null)
     setError(null)
+    // New asset coming → it can be saved as its own draft.
+    setSavedStudioDraftId(null)
+    setStudioSaveError(null)
 
     try {
       const body: Record<string, unknown> = {
@@ -301,6 +312,9 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
     if (!generationContext) return
     setResult(null)
     setGenState('generating')
+    // Restyle produces a new asset → allow saving it as its own draft.
+    setSavedStudioDraftId(null)
+    setStudioSaveError(null)
 
     const effectiveStrength = overrides?.overlayStrength ?? overlayStrength
     const effectiveShadow   = overrides?.textShadow      ?? textShadow
@@ -344,6 +358,26 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
     } catch (err) {
       setGenState('error')
       setError(err instanceof Error ? err.message : 'Style update failed')
+    }
+  }
+
+  async function handleSaveToStudio() {
+    if (!result || isSavingToStudio || savedStudioDraftId) return
+    setIsSavingToStudio(true)
+    setStudioSaveError(null)
+    try {
+      const res = await fetch('/api/create/image/outputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId: result.assetId, title: downloadName || undefined }),
+      })
+      const data = await res.json().catch(() => ({})) as { outputId?: string; error?: string }
+      if (!res.ok || !data.outputId) throw new Error(data.error ?? `HTTP ${res.status}`)
+      setSavedStudioDraftId(data.outputId)
+    } catch (err) {
+      setStudioSaveError(err instanceof Error ? err.message : 'Could not save to Studio')
+    } finally {
+      setIsSavingToStudio(false)
     }
   }
 
@@ -806,6 +840,38 @@ export function ImageCreator({ logoUrl, brandColors: _brandColors }: ImageCreato
                     >
                       Improve Readability
                     </button>
+                  )}
+                </div>
+              )}
+
+              {/* Save to Studio — promote this image to an editable Studio draft */}
+              {genState === 'done' && (
+                <div className="border-t border-zinc-100 pt-3">
+                  {savedStudioDraftId ? (
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-medium text-green-600">Saved to Studio ✓</span>
+                      <Link
+                        href={`/${workspaceSlug}/studio/${savedStudioDraftId}`}
+                        className="text-zinc-500 underline hover:text-zinc-800 transition-colors"
+                      >
+                        Open in Studio →
+                      </Link>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSaveToStudio}
+                      disabled={isSavingToStudio}
+                      className="flex w-full items-center justify-center gap-2 rounded-md bg-zinc-900 py-2 px-3 text-xs font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-40"
+                    >
+                      {isSavingToStudio && <Spinner size="sm" />}
+                      {isSavingToStudio ? 'Saving…' : 'Save to Studio'}
+                    </button>
+                  )}
+                  {studioSaveError && (
+                    <p className="mt-1.5 text-xs text-red-600">
+                      {studioSaveError} · <button type="button" onClick={handleSaveToStudio} className="underline">Retry</button>
+                    </p>
                   )}
                 </div>
               )}

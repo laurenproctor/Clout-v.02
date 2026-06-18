@@ -17,7 +17,14 @@ import {
   UTMDateFormat,
   UTM_DATE_FORMATS,
   DEFAULT_UTM_DATE_FORMAT,
+  formatUTMDate,
+  UTMFallbackKind,
 } from '@/lib/distribution/platform-registry'
+
+// Tokens whose value is resolved dynamically at publish time, so they support a
+// date fallback when resolution comes back empty.
+const DYNAMIC_TOKENS = ['campaign_name', 'cta', 'lens', 'voice']
+const isDynamicToken = (token: string) => DYNAMIC_TOKENS.includes(token)
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 type PlatformUTM = { source: string; medium: string; mediumToken: 'campaign_name' | null }
@@ -40,8 +47,9 @@ function getValidationError(value: string): string | null {
   return null
 }
 
-function getFallbackError(token: string, fallback: string): string | null {
+function getFallbackError(token: string, fallback: string, fallbackKind?: UTMFallbackKind): string | null {
   if (token === 'auto' || token === 'none' || token === 'date') return null
+  if (fallbackKind === 'date') return null
   if (!fallback) return 'Required'
   if (!UTM_VALUE_PATTERN.test(fallback)) return 'Lowercase letters, numbers, hyphens, underscores only'
   return null
@@ -83,17 +91,52 @@ const DATE_FORMAT_LABELS: Record<UTMDateFormat, string> = {
 }
 
 function formatPreviewDate(format: UTMDateFormat): string {
-  const now   = new Date()
-  const yyyy  = now.getFullYear().toString()
-  const mm    = String(now.getMonth() + 1).padStart(2, '0')
-  const dd    = String(now.getDate()).padStart(2, '0')
-  const mmm   = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][now.getMonth()]
-  switch (format) {
-    case 'yyyy-mm-dd': return `${yyyy}-${mm}-${dd}`
-    case 'yyyy-mm':    return `${yyyy}-${mm}`
-    case 'yyyymmdd':   return `${yyyy}${mm}${dd}`
-    case 'yyyy':       return yyyy
-    case 'mmm-yyyy':   return `${mmm}-${yyyy}`
+  return formatUTMDate(format, new Date())
+}
+
+type TemplateEntry = {
+  token:        string
+  fallback:     string
+  fallbackKind?: UTMFallbackKind
+  dateFormat?:  UTMDateFormat
+}
+
+// Returns the entry after switching its token: clears the date fallback when the
+// new token isn't dynamic, and ensures a dateFormat exists when a date is in play.
+function nextEntryForToken<E extends TemplateEntry>(prev: E, token: E['token']): E {
+  const fallbackKind = isDynamicToken(token) ? prev.fallbackKind : undefined
+  const usesDate = token === 'date' || fallbackKind === 'date'
+  return {
+    ...prev,
+    token,
+    fallbackKind,
+    dateFormat: usesDate ? (prev.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined,
+  }
+}
+
+// Returns the entry after switching its fallback kind (text ↔ date).
+function nextEntryForFallbackKind<E extends TemplateEntry>(prev: E, kind: UTMFallbackKind): E {
+  const usesDate = prev.token === 'date' || kind === 'date'
+  return {
+    ...prev,
+    fallbackKind: kind,
+    dateFormat: usesDate ? (prev.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined,
+  }
+}
+
+// Builds the inline preview string for a template field.
+function previewFor(param: string, entry: TemplateEntry, autoExample: string): string {
+  switch (entry.token) {
+    case 'auto':   return `${param}=${autoExample}`
+    case 'none':   return '(omitted)'
+    case 'date':   return `${param}=${formatPreviewDate(entry.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
+    case 'custom': return `${param}=${entry.fallback || '…'}`
+    default: {
+      const fb = entry.fallbackKind === 'date'
+        ? formatPreviewDate(entry.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)
+        : (entry.fallback || '…')
+      return `${param}={${entry.token}} or "${fb}"`
+    }
   }
 }
 
@@ -143,9 +186,9 @@ export default function UTMSettingsPage() {
       getValidationError(platforms[key]?.source ?? '') ||
       getValidationError(platforms[key]?.medium ?? '')
     ) ||
-    getFallbackError(templates.campaign.token, templates.campaign.fallback) !== null ||
-    getFallbackError(templates.content.token,  templates.content.fallback)  !== null ||
-    getFallbackError(templates.term.token,     templates.term.fallback)     !== null
+    getFallbackError(templates.campaign.token, templates.campaign.fallback, templates.campaign.fallbackKind) !== null ||
+    getFallbackError(templates.content.token,  templates.content.fallback,  templates.content.fallbackKind)  !== null ||
+    getFallbackError(templates.term.token,     templates.term.fallback,     templates.term.fallbackKind)     !== null
 
   const handleSave = useCallback(async () => {
     const { platforms: p, templates: t } = saveData.current
@@ -154,9 +197,9 @@ export default function UTMSettingsPage() {
         getValidationError(p[key]?.source ?? '') ||
         getValidationError(p[key]?.medium ?? '')
       ) ||
-      getFallbackError(t.campaign.token, t.campaign.fallback) !== null ||
-      getFallbackError(t.content.token,  t.content.fallback)  !== null ||
-      getFallbackError(t.term.token,     t.term.fallback)     !== null
+      getFallbackError(t.campaign.token, t.campaign.fallback, t.campaign.fallbackKind) !== null ||
+      getFallbackError(t.content.token,  t.content.fallback,  t.content.fallbackKind)  !== null ||
+      getFallbackError(t.term.token,     t.term.fallback,     t.term.fallbackKind)     !== null
 
     if (hasErrors) return
 
@@ -424,19 +467,14 @@ export default function UTMSettingsPage() {
               showFallback={templates.campaign.token !== 'auto' && templates.campaign.token !== 'date'}
               showDateFormat={templates.campaign.token === 'date'}
               dateFormat={templates.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT}
-              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, token: t as UTMTemplateCampaignToken, dateFormat: t === 'date' ? (prev.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined } }))}
+              supportsDateFallback={isDynamicToken(templates.campaign.token)}
+              fallbackKind={templates.campaign.fallbackKind ?? 'text'}
+              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, campaign: nextEntryForToken(prev.campaign, t as UTMTemplateCampaignToken) }))}
               onFallbackChange={(f) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, fallback: f } }))}
+              onFallbackKindChange={(k) => setTemplates((prev) => ({ ...prev, campaign: nextEntryForFallbackKind(prev.campaign, k) }))}
               onDateFormatChange={(fmt) => setTemplates((prev) => ({ ...prev, campaign: { ...prev.campaign, dateFormat: fmt } }))}
-              fallbackError={getFallbackError(templates.campaign.token, templates.campaign.fallback)}
-              preview={
-                templates.campaign.token === 'auto'
-                  ? 'utm_campaign=clout_c_abc123…'
-                  : templates.campaign.token === 'date'
-                  ? `utm_campaign=${formatPreviewDate(templates.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
-                  : templates.campaign.token === 'custom'
-                  ? `utm_campaign=${templates.campaign.fallback || '…'}`
-                  : `utm_campaign={campaign_name} or "${templates.campaign.fallback || '…'}"`
-              }
+              fallbackError={getFallbackError(templates.campaign.token, templates.campaign.fallback, templates.campaign.fallbackKind)}
+              preview={previewFor('utm_campaign', templates.campaign, 'clout_c_abc123…')}
             />
 
             <TemplateRow
@@ -448,19 +486,14 @@ export default function UTMSettingsPage() {
               showFallback={templates.content.token !== 'auto' && templates.content.token !== 'date'}
               showDateFormat={templates.content.token === 'date'}
               dateFormat={templates.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT}
-              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, token: t as UTMTemplateContentToken, dateFormat: t === 'date' ? (prev.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined } }))}
+              supportsDateFallback={isDynamicToken(templates.content.token)}
+              fallbackKind={templates.content.fallbackKind ?? 'text'}
+              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, content: nextEntryForToken(prev.content, t as UTMTemplateContentToken) }))}
               onFallbackChange={(f) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, fallback: f } }))}
+              onFallbackKindChange={(k) => setTemplates((prev) => ({ ...prev, content: nextEntryForFallbackKind(prev.content, k) }))}
               onDateFormatChange={(fmt) => setTemplates((prev) => ({ ...prev, content: { ...prev.content, dateFormat: fmt } }))}
-              fallbackError={getFallbackError(templates.content.token, templates.content.fallback)}
-              preview={
-                templates.content.token === 'auto'
-                  ? 'utm_content=out_def456…'
-                  : templates.content.token === 'date'
-                  ? `utm_content=${formatPreviewDate(templates.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
-                  : templates.content.token === 'custom'
-                  ? `utm_content=${templates.content.fallback || '…'}`
-                  : `utm_content={cta} or "${templates.content.fallback || '…'}"`
-              }
+              fallbackError={getFallbackError(templates.content.token, templates.content.fallback, templates.content.fallbackKind)}
+              preview={previewFor('utm_content', templates.content, 'out_def456…')}
             />
 
             <TemplateRow
@@ -472,19 +505,14 @@ export default function UTMSettingsPage() {
               showFallback={templates.term.token !== 'none' && templates.term.token !== 'date'}
               showDateFormat={templates.term.token === 'date'}
               dateFormat={templates.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT}
-              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, token: t as UTMTemplateTermToken, dateFormat: t === 'date' ? (prev.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT) : undefined } }))}
+              supportsDateFallback={isDynamicToken(templates.term.token)}
+              fallbackKind={templates.term.fallbackKind ?? 'text'}
+              onTokenChange={(t) => setTemplates((prev) => ({ ...prev, term: nextEntryForToken(prev.term, t as UTMTemplateTermToken) }))}
               onFallbackChange={(f) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, fallback: f } }))}
+              onFallbackKindChange={(k) => setTemplates((prev) => ({ ...prev, term: nextEntryForFallbackKind(prev.term, k) }))}
               onDateFormatChange={(fmt) => setTemplates((prev) => ({ ...prev, term: { ...prev.term, dateFormat: fmt } }))}
-              fallbackError={getFallbackError(templates.term.token, templates.term.fallback)}
-              preview={
-                templates.term.token === 'none'
-                  ? '(omitted)'
-                  : templates.term.token === 'date'
-                  ? `utm_term=${formatPreviewDate(templates.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT)}`
-                  : templates.term.token === 'custom'
-                  ? `utm_term=${templates.term.fallback || '…'}`
-                  : `utm_term={${templates.term.token}} or "${templates.term.fallback || '…'}"`
-              }
+              fallbackError={getFallbackError(templates.term.token, templates.term.fallback, templates.term.fallbackKind)}
+              preview={previewFor('utm_term', templates.term, '')}
             />
 
           </div>
@@ -515,8 +543,11 @@ interface TemplateRowProps {
   showFallback:       boolean
   showDateFormat?:    boolean
   dateFormat?:        UTMDateFormat
+  supportsDateFallback?: boolean
+  fallbackKind?:      UTMFallbackKind
   onTokenChange:      (token: string) => void
   onFallbackChange:   (value: string) => void
+  onFallbackKindChange?: (kind: UTMFallbackKind) => void
   onDateFormatChange?: (format: UTMDateFormat) => void
   fallbackError:      string | null
   preview:            string
@@ -524,12 +555,19 @@ interface TemplateRowProps {
 
 function TemplateRow({
   label, tokenOptions, token, fallback, fallbackLabel, showFallback,
-  showDateFormat, dateFormat, onTokenChange, onFallbackChange, onDateFormatChange,
+  showDateFormat, dateFormat, supportsDateFallback, fallbackKind,
+  onTokenChange, onFallbackChange, onFallbackKindChange, onDateFormatChange,
   fallbackError, preview,
 }: TemplateRowProps) {
   function normalizeOnBlur(value: string) {
     return value.trim().toLowerCase()
   }
+
+  // The field is producing a date when the token itself is `date`, or when a
+  // dynamic token's fallback kind is `date`.
+  const dateFallbackActive = !!supportsDateFallback && fallbackKind === 'date'
+  const showFormatSelect = (showDateFormat || dateFallbackActive) && !!dateFormat && !!onDateFormatChange
+  const showTextInput = showFallback && !dateFallbackActive
 
   return (
     <div className="px-4 py-3 space-y-2">
@@ -545,12 +583,26 @@ function TemplateRow({
           ))}
         </select>
 
-        {showDateFormat && dateFormat && onDateFormatChange && (
+        {supportsDateFallback && onFallbackKindChange && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-zinc-400">Fallback:</span>
+            <select
+              value={fallbackKind ?? 'text'}
+              onChange={(e) => onFallbackKindChange(e.target.value as UTMFallbackKind)}
+              className="rounded-md border border-zinc-200 px-2 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-300 bg-white"
+            >
+              <option value="text">Text</option>
+              <option value="date">Date</option>
+            </select>
+          </div>
+        )}
+
+        {showFormatSelect && (
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-zinc-400">Format:</span>
             <select
               value={dateFormat}
-              onChange={(e) => onDateFormatChange(e.target.value as UTMDateFormat)}
+              onChange={(e) => onDateFormatChange!(e.target.value as UTMDateFormat)}
               className="rounded-md border border-zinc-200 px-2 py-1.5 text-xs text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-300 bg-white"
             >
               {UTM_DATE_FORMATS.map((fmt) => (
@@ -560,7 +612,7 @@ function TemplateRow({
           </div>
         )}
 
-        {showFallback && (
+        {showTextInput && (
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-zinc-400">{fallbackLabel}:</span>
             <input

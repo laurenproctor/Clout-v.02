@@ -40,6 +40,12 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
   const [draftResult,        setDraftResult]        = useState<DraftResult | null>(null)
   const [draftError,         setDraftError]         = useState<string | null>(null)
 
+  // Auto-save to Studio (parallel to the optional direct-to-Substack save). Idempotent:
+  // a client ref blocks double-fires and the server dedupes on a generation hash.
+  const [savedStudioDraftId, setSavedStudioDraftId] = useState<string | null>(null)
+  const [studioSaveStatus,   setStudioSaveStatus]   = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const savingStudioDraftRef = useRef(false)
+
   const abortRef = useRef<AbortController | null>(null)
 
   // Live network preview (Substack). Built at top level so hook order is stable
@@ -64,6 +70,10 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
     setGenerated(null)
     setDraftResult(null)
     setDraftError(null)
+    // Reset Studio auto-save guards for the new generation.
+    setSavedStudioDraftId(null)
+    setStudioSaveStatus('idle')
+    savingStudioDraftRef.current = false
     setState('generating')
     setProgressLabel('Preparing…')
 
@@ -109,7 +119,13 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
             const event = JSON.parse(line) as SubstackGenerationEvent
             if (event.type === 'progress') setProgressLabel(event.label)
             if (event.type === 'error')    { setError(event.message); setState('setup'); return }
-            if (event.type === 'complete') { setGenerated(event.data); setState('result') }
+            if (event.type === 'complete') {
+              setGenerated(event.data)
+              setState('result')
+              // Auto-save to Studio from the FINALIZED generation object (not React
+              // state, which can lag a render and yield a truncated article).
+              void saveStudioDraft(event.data)
+            }
           } catch { /* malformed line — skip */ }
         }
       }
@@ -162,6 +178,48 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
       setDraftError('Network error. Please try again.')
     } finally {
       setSavingDraft(false)
+    }
+  }
+
+  // Promote the generated article to a Studio draft (content_type 'substack-newsletter',
+  // tagged as a Substack Article). Non-blocking and idempotent.
+  async function saveStudioDraft(gen: SubstackGeneratedArticle) {
+    if (savingStudioDraftRef.current || savedStudioDraftId) return
+    const markdown = (gen.markdown?.trim() || articlePlainText(gen)).trim()
+    if (!markdown) { setStudioSaveStatus('error'); return }
+
+    savingStudioDraftRef.current = true
+    setStudioSaveStatus('saving')
+    try {
+      const sourceGenerationHash = await sha256Hex(JSON.stringify({
+        sourceCreator: 'create/substack',
+        substackFormat: 'article',
+        title: gen.title,
+        subtitle: gen.subtitle ?? '',
+        markdown,
+      }))
+      const res = await fetch('/api/substack-email/outputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title:          gen.title,
+          subtitle:       gen.subtitle,
+          markdown,
+          wordCount:      gen.wordCount,
+          sourceCreator:  'create/substack',
+          substackFormat: 'article',
+          sourceGenerationHash,
+        }),
+      })
+      const data = await res.json().catch(() => ({})) as { id?: string; error?: string }
+      if (!res.ok || !data.id) throw new Error(data.error ?? `HTTP ${res.status}`)
+      setSavedStudioDraftId(data.id)
+      setStudioSaveStatus('saved')
+    } catch (err) {
+      console.warn('[substack] Studio auto-save failed', err)
+      setStudioSaveStatus('error')
+    } finally {
+      savingStudioDraftRef.current = false
     }
   }
 
@@ -296,6 +354,25 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
 
       {/* Right sidebar — save draft CTA */}
       <div className="w-72 shrink-0 border-l border-zinc-100 bg-zinc-50 p-6 flex flex-col gap-6">
+        {/* Studio auto-save status (non-blocking) */}
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-2">Studio</p>
+          {studioSaveStatus === 'saving' && (
+            <p className="flex items-center gap-2 text-xs text-zinc-500"><Spinner size="sm" /> Saving to Studio…</p>
+          )}
+          {studioSaveStatus === 'saved' && savedStudioDraftId && (
+            <p className="text-xs text-emerald-600">
+              Saved to Studio ·{' '}
+              <a href={`/${workspaceSlug ?? ''}/studio/${savedStudioDraftId}`} className="underline hover:text-emerald-700">Open</a>
+            </p>
+          )}
+          {studioSaveStatus === 'error' && (
+            <p className="text-xs text-amber-600">
+              Couldn’t save to Studio automatically. You can still copy or save to Substack below.
+            </p>
+          )}
+        </div>
+
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-zinc-400 mb-3">Save to Substack</p>
 
@@ -388,6 +465,13 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
       </div>
     </div>
   )
+}
+
+// Stable hex digest of the finalized generation payload — the server-side idempotency
+// key for auto-saved Studio drafts (dedupes stream-retry / remount / multi-tab saves).
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 // Plain-text rendering of the article body for the network preview card.

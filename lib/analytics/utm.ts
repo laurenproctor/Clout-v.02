@@ -2,7 +2,8 @@ import {
   getPlatformDefault,
   UTMConfig,
   UTMTemplateSettings,
-  normalizeUTMValue,
+  formatUTMDate,
+  DEFAULT_UTM_DATE_FORMAT,
 } from '@/lib/distribution/platform-registry'
 
 export type { UTMConfig }
@@ -29,6 +30,19 @@ function normalizeToken(raw: string | undefined): string {
   return raw.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
 }
 
+// Resolves the fallback value for a dynamic token whose resolution came back
+// empty. A 'date' fallback generates the current date (never empty); otherwise
+// the static fallback string is used.
+function resolveFallback(
+  entry: { fallback: string; fallbackKind?: 'text' | 'date'; dateFormat?: UTMTemplateSettings['campaign']['dateFormat'] },
+  now: Date,
+): string {
+  if (entry.fallbackKind === 'date') {
+    return formatUTMDate(entry.dateFormat ?? DEFAULT_UTM_DATE_FORMAT, now)
+  }
+  return entry.fallback
+}
+
 export function buildUTMParams(params: {
   platform:       string
   canonicalId:    string
@@ -36,8 +50,10 @@ export function buildUTMParams(params: {
   customSources?: Record<string, UTMConfig>
   outputContext?: UTMOutputContext
   templates?:     UTMTemplateSettings
+  now?:           Date
 }): UTMParams {
   const { platform, canonicalId, outputId, customSources, outputContext, templates } = params
+  const now = params.now ?? new Date()
   const platformCfg = customSources?.[platform] ?? getPlatformDefault(platform)
 
   // ── utm_source ────────────────────────────────────────────────────────────
@@ -56,7 +72,9 @@ export function buildUTMParams(params: {
     utm_campaign = `clout_c_${canonicalId.replace(/-/g, '').slice(0, 12)}`
   } else if (templates.campaign.token === 'campaign_name') {
     const resolved = normalizeToken(outputContext?.campaignName)
-    utm_campaign = resolved || templates.campaign.fallback
+    utm_campaign = resolved || resolveFallback(templates.campaign, now)
+  } else if (templates.campaign.token === 'date') {
+    utm_campaign = formatUTMDate(templates.campaign.dateFormat ?? DEFAULT_UTM_DATE_FORMAT, now)
   } else {
     // custom
     utm_campaign = templates.campaign.fallback
@@ -68,7 +86,9 @@ export function buildUTMParams(params: {
     utm_content = `out_${outputId.replace(/-/g, '').slice(0, 12)}`
   } else if (templates.content.token === 'cta') {
     const resolved = normalizeToken(outputContext?.cta)
-    utm_content = resolved || templates.content.fallback || undefined
+    utm_content = resolved || resolveFallback(templates.content, now) || undefined
+  } else if (templates.content.token === 'date') {
+    utm_content = formatUTMDate(templates.content.dateFormat ?? DEFAULT_UTM_DATE_FORMAT, now)
   } else {
     // custom
     utm_content = templates.content.fallback || undefined
@@ -79,10 +99,12 @@ export function buildUTMParams(params: {
   if (templates && templates.term.token !== 'none') {
     if (templates.term.token === 'lens') {
       const resolved = normalizeToken(outputContext?.lensName)
-      utm_term = resolved || templates.term.fallback || undefined
+      utm_term = resolved || resolveFallback(templates.term, now) || undefined
     } else if (templates.term.token === 'voice') {
       const resolved = normalizeToken(outputContext?.voice)
-      utm_term = resolved || templates.term.fallback || undefined
+      utm_term = resolved || resolveFallback(templates.term, now) || undefined
+    } else if (templates.term.token === 'date') {
+      utm_term = formatUTMDate(templates.term.dateFormat ?? DEFAULT_UTM_DATE_FORMAT, now)
     } else {
       // custom
       utm_term = templates.term.fallback || undefined

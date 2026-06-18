@@ -114,6 +114,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     emotionalTone,
     keyIdea,
     brandProfile,
+    brandProfileSources,
     promptOverride,
     visualObjective,
     audienceFrame,
@@ -581,6 +582,12 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       colorScheme:       overlayParams?.colorScheme ?? 'light',
       aspectRatio:       aspectRatio,
       readabilityRating: readabilityRating,
+      // Brand observability — answers "why didn't this look branded?" without re-running.
+      brandProfileApplied: !!brandProfile,
+      brandProfileSources: brandProfileSources ?? null,
+      renderMode:          renderMode,
+      // Brand fonts only truly land when text is composited via hybrid-overlay.
+      brandFontsApplied:   !!composedUrl && isHybridOverlay && !!brandProfile,
     } as unknown as Json,
   }
 

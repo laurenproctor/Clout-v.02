@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/db'
 import { z } from 'zod'
 
 // Creates a lifecycle-ready Substack Email output. Mirrors /api/note/outputs. The output
@@ -13,6 +14,12 @@ const bodySchema = z.object({
   subtitle:  z.string().optional(),
   markdown:  z.string().min(1),
   wordCount: z.number().int().optional(),
+  // Optional creator provenance. The Substack Article creator (/create/substack) reuses
+  // this route but tags its drafts so Studio can label them "Substack Article" and so
+  // duplicate auto-saves dedupe. Substack Email omits these (stays the default).
+  sourceCreator:        z.string().optional(),
+  substackFormat:       z.enum(['article', 'newsletter', 'note']).optional(),
+  sourceGenerationHash: z.string().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -34,9 +41,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { title, subtitle, markdown, wordCount } = parsed.data
+  const { title, subtitle, markdown, wordCount, sourceCreator, substackFormat, sourceGenerationHash } = parsed.data
   const supabase = await createClient()
   const now = new Date().toISOString()
+
+  const content: Record<string, unknown> = {
+    body:      markdown,                 // markdown is the editable body (NOT canonical JSON)
+    subtitle:  subtitle ?? null,
+    wordCount: wordCount ?? null,
+  }
+  // Creator provenance / dedupe key — only stored when provided (Substack Article).
+  if (sourceCreator)        content.sourceCreator = sourceCreator
+  if (substackFormat)       content.substackFormat = substackFormat
+  if (sourceGenerationHash) content.sourceGenerationHash = sourceGenerationHash
 
   const { data, error } = await supabase
     .from('outputs')
@@ -45,11 +62,7 @@ export async function POST(req: NextRequest) {
       status:       'draft',
       content_type: 'substack-newsletter',  // internal token — never shown to the user
       title:        title,
-      content: {
-        body:      markdown,                 // markdown is the editable body (NOT canonical JSON)
-        subtitle:  subtitle ?? null,
-        wordCount: wordCount ?? null,
-      },
+      content:      content as unknown as Json,
       channel_id:   null,
       created_at:   now,
       updated_at:   now,
@@ -57,6 +70,20 @@ export async function POST(req: NextRequest) {
     .select('id, status, created_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Idempotency: a duplicate auto-save (stream retry / remount / multi-tab) hits the
+    // partial unique index. Re-query by hash and return the existing draft instead.
+    if (error.code === '23505' && sourceGenerationHash) {
+      const { data: existing } = await supabase
+        .from('outputs')
+        .select('id, status, created_at')
+        .eq('workspace_id', session.workspaceId)
+        .eq('content_type', 'substack-newsletter')
+        .eq('content->>sourceGenerationHash', sourceGenerationHash)
+        .maybeSingle()
+      if (existing) return NextResponse.json({ ...existing, deduped: true }, { status: 200 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }
