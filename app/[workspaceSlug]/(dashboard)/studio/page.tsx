@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/components/providers/workspace-provider'
 import type { Output, OutputContent } from '@/types/domain'
 import { SkeletonList } from '@/components/ui/skeleton'
+import { getArtifactLabel } from '@/lib/content/outputArtifact'
 
 type FilterStatus = 'all' | 'draft' | 'review' | 'approved'
 
@@ -125,6 +126,9 @@ export default function StudioPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
+                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                    {getArtifactLabel(output)}
+                  </span>
                   <span className="text-xs text-zinc-400">{timeAgo(output.createdAt)}</span>
                 </div>
                 <p className="text-sm font-medium text-zinc-900 line-clamp-1">

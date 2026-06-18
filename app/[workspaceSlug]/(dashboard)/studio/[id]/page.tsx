@@ -34,6 +34,7 @@ import type { Output, OutputContent, OutputStatus, ChannelPlatform } from '@/typ
 import type { AiActionId } from '@/app/api/ai-actions/route'
 import { findProviderCapabilities } from '@/lib/providers/registry'
 import { IdentityBar } from '@/components/publishing/identity-bar'
+import { getArtifactLabel, isImageDraft, isImageDraftPublishable } from '@/lib/content/outputArtifact'
 
 interface FullChannel {
   id: string
@@ -211,6 +212,12 @@ export default function StudioEditorPage() {
     }
     load()
   }, [id])
+
+  // Image drafts open image-first: surface the Visuals tab rather than the
+  // text-oriented preview, so the image is the primary object.
+  useEffect(() => {
+    if (output && isImageDraft({ contentType: output.contentType })) setRightTab('visuals')
+  }, [output])
 
   // Auto-grow textarea
   useEffect(() => {
@@ -534,6 +541,13 @@ export default function StudioEditorPage() {
   const pinterestNotReady   = isPinterestAssigned && pinterestErrors.length > 0
   const isSubstackOutput   = output?.contentType === 'substack-note' || output?.contentType === 'substack-newsletter'
 
+  // Image drafts are first-class visual artifacts, not weak empty-body posts. They are
+  // image-first (Visuals surface) and are NOT publishable until they have both a caption
+  // and a target channel — gate the lifecycle controls accordingly.
+  const imageDraft      = output ? isImageDraft({ contentType: output.contentType }) : false
+  const imageDraftReady = !imageDraft || isImageDraftPublishable(body, channelId)
+  const artifactLabel   = output ? getArtifactLabel({ contentType: output.contentType, content: output.content as OutputContent }) : ''
+
   const caps      = assignedChannel ? findProviderCapabilities(assignedChannel.platform) : null
   const charLimit = caps?.charLimit ?? 3000
   const warnAt    = Math.floor(charLimit * 0.93)
@@ -652,7 +666,9 @@ export default function StudioEditorPage() {
   const charCount = body.length
 
   const showPlatformTabs = platformTabs.length > 1
-  const showPreviewPanel = previewAccountName !== '' || assignedChannel !== null
+  // Image drafts always show the right panel (the image lives in the Visuals tab),
+  // even before a channel is assigned.
+  const showPreviewPanel = previewAccountName !== '' || assignedChannel !== null || imageDraft
 
   return (
     <div className="-m-6 flex flex-col bg-zinc-950" style={{ minHeight: 'calc(100dvh - 56px)' }}>
@@ -668,6 +684,11 @@ export default function StudioEditorPage() {
             <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[output.status])} />
             <span className="text-xs text-zinc-500 capitalize">{output.status}</span>
           </div>
+          {artifactLabel && (
+            <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+              {artifactLabel}
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-1">
@@ -745,6 +766,13 @@ export default function StudioEditorPage() {
 
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-2xl mx-auto px-4 py-10 md:px-8 lg:px-12 space-y-6">
+
+                {imageDraft && output.status === 'draft' && (
+                  <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-3 text-xs text-zinc-400">
+                    <span className="font-medium text-zinc-300">Image draft.</span>{' '}
+                    The image is in the Visuals panel. Add a caption and choose a channel to turn it into a post — or reuse the asset elsewhere.
+                  </div>
+                )}
 
                 <input
                   type="text"
@@ -1005,8 +1033,12 @@ export default function StudioEditorPage() {
               </button>
               <button
                 onClick={() => void handleSendForReview()}
-                disabled={sendingReview || !body || pinterestNotReady}
-                title={pinterestNotReady ? 'Complete the Pinterest fields before sending for review' : undefined}
+                disabled={sendingReview || !body || pinterestNotReady || !imageDraftReady}
+                title={
+                  pinterestNotReady ? 'Complete the Pinterest fields before sending for review'
+                  : !imageDraftReady ? 'Add a caption and choose a channel to turn this image into a post'
+                  : undefined
+                }
                 className="rounded-md bg-zinc-100 hover:bg-white px-4 py-1.5 text-xs font-semibold text-zinc-900 transition-colors disabled:opacity-40"
               >
                 {sendingReview ? 'Sending…' : 'Send for review →'}

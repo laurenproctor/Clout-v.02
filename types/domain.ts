@@ -227,6 +227,16 @@ export interface OutputContent {
   pinterestBoardId?: string
   // Visual asset attached to this draft (also used by Instagram/LinkedIn).
   selectedVisualAssetId?: string
+  // ─── Creator provenance (artifact promotion) ─────────────────────────────────
+  // Which /create surface produced this output. Used for Studio labeling and as
+  // part of the server-side idempotency key. e.g. 'create/substack', 'create/image'.
+  sourceCreator?: string
+  // For Substack outputs sharing content_type 'substack-newsletter': distinguishes a
+  // long-form Article from a newsletter Email. Labeling only — content_type is stable.
+  substackFormat?: 'article' | 'newsletter' | 'note'
+  // sha256 of the finalized generation payload — dedupes duplicate auto-saves
+  // (stream retry / remount / multi-tab). Enforced by a partial unique index.
+  sourceGenerationHash?: string
   [key: string]: unknown
 }
 

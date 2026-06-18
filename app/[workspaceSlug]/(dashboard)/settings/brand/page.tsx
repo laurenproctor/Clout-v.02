@@ -171,7 +171,11 @@ export default function BrandSettingsPage() {
     const res = await fetch('/api/brand/imagery/upload', { method: 'POST', body: fd })
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Upload failed') }
     const { url } = await res.json()
-    updateImagery({ uploaded_imagery: [...imagery.uploaded_imagery, url] })
+    // Functional update: when several files upload in sequence, each handler
+    // closes over the `imagery` value from its render, so reading
+    // `imagery.uploaded_imagery` here would append to a stale array and drop
+    // every image but the last. Build from `prev` instead.
+    setImagery(prev => ({ ...prev, uploaded_imagery: [...prev.uploaded_imagery, url] }))
   }
 
   async function handleImageryDelete(url: string): Promise<void> {
@@ -181,7 +185,7 @@ export default function BrandSettingsPage() {
       body: JSON.stringify({ url }),
     })
     if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? 'Delete failed') }
-    updateImagery({ uploaded_imagery: imagery.uploaded_imagery.filter(u => u !== url) })
+    setImagery(prev => ({ ...prev, uploaded_imagery: prev.uploaded_imagery.filter(u => u !== url) }))
   }
 
   async function handleLogoUpload(file: File): Promise<void> {
