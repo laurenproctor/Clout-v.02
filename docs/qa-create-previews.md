@@ -60,7 +60,9 @@ AI tools are changing how marketing teams work, but the real advantage is not sp
       "…see more" truncation + Like/Comment/Repost row.
 - [ ] No-fabrication: since this channel has no photo, confirm it shows initials — **not** a stock
       avatar — and no invented @handle/headline.
-- [ ] ⚠ If **Generate** does nothing on click, capture DevTools (F12) → Console/Network and report.
+- [ ] ⏱ LinkedIn generation is a single large call (~**60s**; 3 variations + coaching). Be patient —
+      wait up to ~2 min. The route caps at `maxDuration = 120s`, so a slow/overloaded run can fail;
+      just retry. (If it *never* completes after a couple of tries, capture DevTools Console/Network.)
 
 ## 4. Instagram — `/<slug>/create/instagram`  (CAROUSEL)
 
@@ -71,7 +73,9 @@ AI tools are changing how marketing teams work, but the real advantage is not sp
       **not replaced** by an older saved/generated image.
 - [ ] A / B / modal-state: caption edit → live update; expand → modal with current content.
 - [ ] D: author = **"Account"**.
-- [ ] ⚠ Same as LinkedIn: if Generate does nothing, capture console/network.
+- [ ] ⏱ Generation takes ~30–60s. The realistic PREVIEW shows a swipeable carousel (slide counter
+      e.g. "1/6", dots, ›/‹ arrows). A separate thumbnail "Carousel Preview · N slides" strip also
+      appears below — that's the older preview, kept intentionally.
 
 ## 5. Note — `/<slug>/create/note`
 
@@ -117,8 +121,17 @@ Generic expectation first; dev-workspace value in parentheses.
 
 ### Automated coverage already done (for reference)
 
-- ✅ Threads `/create`: live update, expand modal, disconnected author — verified via Playwright.
-- ✅ Connected author (here "Lauren Proctor" + "LP"): verified on the Studio preview (same
-  `SocialPreview` + `resolvePreviewAuthor` the `/create` cards use).
-- ⚠ Instagram carousel + LinkedIn/Instagram `/create` generation: **not** verifiable headlessly
-  (generation didn't initiate in a headless browser) — these are the items most worth a manual pass.
+Verified end-to-end on the real `/create` surface via Playwright (authenticated):
+
+- ✅ **Threads** — live update, expand→modal (modal reflects the live edit), disconnected author
+  ("Account", no fake handle).
+- ✅ **LinkedIn** — full flow reached; **connected** author renders in the `/create` card
+  ("Lauren Proctor" + "LP" initials); expand→modal works.
+- ✅ **Instagram** — full flow reached; realistic **carousel renders** in the preview (slide
+  counter "1/6", dots, arrows); expand→modal works; disconnected author ("Account").
+- ℹ️ **LinkedIn generation timing** — root-caused: a single large Sonnet call (3 variations +
+  coaching, `max_tokens: 6000`) that completes in **~62s**. It is not broken; an earlier
+  ">180s" reading was an anomaly under concurrent test load. Just allow time (route cap: 120s).
+- Remaining for a human pass: Note / Substack / Substack Email / Blog (long-form), the
+  mobile-width and Save/Publish-non-regression global checks, and connected-author for a
+  non-LinkedIn channel (requires connecting one).
