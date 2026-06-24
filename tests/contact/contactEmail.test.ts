@@ -57,4 +57,18 @@ describe('sendContactAutoReply', () => {
     expect(arg.from).toContain('clout.so')
     expect(arg.html).toContain('Jane')
   })
+
+  it('throws when RESEND_API_KEY is not set', async () => {
+    delete process.env.RESEND_API_KEY
+    await expect(
+      sendContactAutoReply({ firstName: 'Jane', email: 'jane@example.com' })
+    ).rejects.toThrow()
+  })
+
+  it('throws when Resend returns an error', async () => {
+    send.mockResolvedValue({ data: null, error: { message: 'bad' } })
+    await expect(
+      sendContactAutoReply({ firstName: 'Jane', email: 'jane@example.com' })
+    ).rejects.toThrow('bad')
+  })
 })
