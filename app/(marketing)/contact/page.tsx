@@ -7,6 +7,43 @@ import { MarketingFooter } from '@/components/marketing/MarketingFooter'
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    message: '',
+    company: '', // honeypot — must stay empty for real users
+  })
+
+  function update(field: keyof typeof form) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((f) => ({ ...f, [field]: e.target.value }))
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? 'Something went wrong. Please try again.')
+        return
+      }
+      setSent(true)
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const field: React.CSSProperties = {
     width: '100%',
@@ -81,37 +118,51 @@ export default function ContactPage() {
                 </p>
               </div>
             ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  setSent(true)
-                }}
-                className="flex flex-col gap-4"
-              >
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <label className="flex flex-col gap-1.5 text-sm font-semibold" style={{ color: 'var(--brand-ink)' }}>
                     First name
-                    <input style={field} placeholder="Jane" />
+                    <input style={field} placeholder="Jane" value={form.firstName} onChange={update('firstName')} required />
                   </label>
                   <label className="flex flex-col gap-1.5 text-sm font-semibold" style={{ color: 'var(--brand-ink)' }}>
                     Last name
-                    <input style={field} placeholder="Doe" />
+                    <input style={field} placeholder="Doe" value={form.lastName} onChange={update('lastName')} required />
                   </label>
                 </div>
                 <label className="flex flex-col gap-1.5 text-sm font-semibold" style={{ color: 'var(--brand-ink)' }}>
                   Email
-                  <input type="email" style={field} placeholder="you@company.com" />
+                  <input type="email" style={field} placeholder="you@company.com" value={form.email} onChange={update('email')} required />
                 </label>
                 <label className="flex flex-col gap-1.5 text-sm font-semibold" style={{ color: 'var(--brand-ink)' }}>
                   How can we help?
-                  <textarea rows={4} style={{ ...field, resize: 'vertical' }} placeholder="Please let us know what's on your mind." />
+                  <textarea rows={4} style={{ ...field, resize: 'vertical' }} placeholder="Please let us know what's on your mind." value={form.message} onChange={update('message')} required />
                 </label>
+
+                {/* Honeypot — hidden from real users; bots that fill it are silently dropped. */}
+                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+                  <label>
+                    Company
+                    <input
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={form.company}
+                      onChange={update('company')}
+                    />
+                  </label>
+                </div>
+
+                {error && (
+                  <p className="text-[14px]" style={{ color: '#b3261e' }}>{error}</p>
+                )}
+
                 <button
                   type="submit"
-                  className="mt-1 py-3.5 text-sm font-medium transition-opacity hover:opacity-90"
+                  disabled={submitting}
+                  className="mt-1 py-3.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60"
                   style={{ background: 'var(--brand-olive)', color: 'var(--brand-paper-text)' }}
                 >
-                  Send message
+                  {submitting ? 'Sending…' : 'Send message'}
                 </button>
               </form>
             )}
