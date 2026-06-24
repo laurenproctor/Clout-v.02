@@ -53,6 +53,7 @@ describe('POST /api/contact', () => {
     expect(await res.json()).toEqual({ ok: true })
     expect(mockCreate).not.toHaveBeenCalled()
     expect(mockNotify).not.toHaveBeenCalled()
+    expect(mockAutoReply).not.toHaveBeenCalled()
   })
 
   it('returns 400 on invalid input', async () => {

@@ -153,7 +153,7 @@ export default function ContactPage() {
                 </div>
 
                 {error && (
-                  <p className="text-[14px]" style={{ color: '#b3261e' }}>{error}</p>
+                  <p role="alert" className="text-[14px]" style={{ color: '#b3261e' }}>{error}</p>
                 )}
 
                 <button

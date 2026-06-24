@@ -58,6 +58,25 @@ describe('parseContactInput', () => {
       error: 'Message is required',
     })
   })
+
+  it('rejects a message of length 5001', () => {
+    expect(parseContactInput({ ...valid, message: 'a'.repeat(5001) })).toEqual({
+      ok: false,
+      error: 'Message is too long',
+    })
+  })
+
+  it('rejects a firstName of length 201', () => {
+    expect(parseContactInput({ ...valid, firstName: 'a'.repeat(201) })).toEqual({
+      ok: false,
+      error: 'First name is too long',
+    })
+  })
+
+  it('accepts a message of exactly 5000 chars', () => {
+    const r = parseContactInput({ ...valid, message: 'a'.repeat(5000) })
+    expect(r.ok).toBe(true)
+  })
 })
 
 describe('isHoneypotTripped', () => {

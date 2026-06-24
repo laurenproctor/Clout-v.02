@@ -11,6 +11,10 @@ export type ValidateResult =
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const MAX_NAME = 200
+const MAX_EMAIL = 320
+const MAX_MESSAGE = 5000
+
 function asObject(body: unknown): Record<string, unknown> | null {
   return body && typeof body === 'object' ? (body as Record<string, unknown>) : null
 }
@@ -38,6 +42,11 @@ export function parseContactInput(body: unknown): ValidateResult {
   if (!email) return { ok: false, error: 'Email is required' }
   if (!EMAIL_RE.test(email)) return { ok: false, error: 'A valid email is required' }
   if (!message) return { ok: false, error: 'Message is required' }
+
+  if (firstName.length > MAX_NAME) return { ok: false, error: 'First name is too long' }
+  if (lastName.length > MAX_NAME) return { ok: false, error: 'Last name is too long' }
+  if (email.length > MAX_EMAIL) return { ok: false, error: 'Email is too long' }
+  if (message.length > MAX_MESSAGE) return { ok: false, error: 'Message is too long' }
 
   return { ok: true, value: { firstName, lastName, email, message } }
 }
