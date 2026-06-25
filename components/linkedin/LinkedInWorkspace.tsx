@@ -16,7 +16,8 @@ import { VariationCard } from './VariationCard'
 import { CoachingPanel } from './CoachingPanel'
 import { AlternateAnglesList } from './AlternateAnglesList'
 import { AdaptationCard } from '@/components/create/AdaptationCard'
-import type { AdaptedDraft, AdaptTargetPlatform } from '@/lib/create/types'
+import { useAdaptations } from '@/lib/create/useAdaptations'
+import type { AdaptTargetPlatform } from '@/lib/create/types'
 import type { ChannelLike } from '@/components/social-preview'
 
 // Lightweight product event (matches the local convention in welcome/page.tsx).
@@ -94,9 +95,15 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
   const [alternates, setAlternates] = useState<LinkedInVariation[]>([])
   const [alternatesState, setAlternatesState] = useState<'idle' | 'loading' | 'shown'>('idle')
   const [alternatesError, setAlternatesError] = useState<string | null>(null)
-  const [adaptations, setAdaptations] = useState<AdaptedDraft[]>([])
-  const [adaptingPlatform, setAdaptingPlatform] = useState<AdaptTargetPlatform | null>(null)
-  const [adaptError, setAdaptError] = useState<string | null>(null)
+  // Adaptation orchestration lives in a reusable hook (shared with future platforms).
+  const {
+    adaptations,
+    adaptingPlatform,
+    error: adaptError,
+    adapt,
+    updateAdaptation,
+    reset: resetAdaptations,
+  } = useAdaptations()
 
   // Fetch the workspace's connected LinkedIn channel for output association + preview author
   useEffect(() => {
@@ -132,8 +139,7 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
     setAlternates([])
     setAlternatesState('idle')
     setAlternatesError(null)
-    setAdaptations([])
-    setAdaptError(null)
+    resetAdaptations()
 
     try {
       const response = await fetch('/api/linkedin/generate', {
@@ -259,49 +265,14 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
   }, [])
 
   // "Adapt to other platforms" — derive a native draft from the CURRENT (possibly
-  // edited) anchor body. Failure is isolated to this section; the anchor is untouched.
-  const handleAdapt = useCallback(async (platform: AdaptTargetPlatform) => {
+  // edited) anchor body via the shared hook. Failure stays section-level (adaptError);
+  // the anchor is never touched.
+  const handleAdapt = useCallback((platform: AdaptTargetPlatform) => {
     const anchor = variations[0]
-    if (!anchor || adaptingPlatform) return
-    setAdaptError(null)
-    setAdaptingPlatform(platform)
+    if (!anchor) return
     trackEvent('linkedin_adaptation_requested', { platform })
-    try {
-      const res = await fetch('/api/create/adapt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          anchorBody: anchor.body,
-          anchorHashtags: anchor.hashtags,
-          targetPlatform: platform,
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(data.error ?? 'Adaptation failed.')
-      }
-      const data = await res.json() as { body: string; hashtags: string[]; campaignName: string }
-      setAdaptations(prev => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          platform,
-          sourceAnchorId: anchor.id,
-          body: data.body,
-          hashtags: data.hashtags ?? [],
-          campaignName: data.campaignName,
-        },
-      ])
-    } catch (err) {
-      setAdaptError(err instanceof Error ? err.message : 'Adaptation failed.')
-    } finally {
-      setAdaptingPlatform(null)
-    }
-  }, [variations, adaptingPlatform])
-
-  const handleAdaptationChange = useCallback((index: number, updated: AdaptedDraft) => {
-    setAdaptations(prev => prev.map((d, i) => (i === index ? updated : d)))
-  }, [])
+    void adapt(platform, { id: anchor.id, body: anchor.body, hashtags: anchor.hashtags })
+  }, [variations, adapt])
 
   const patchRequest = useCallback((patch: Partial<LinkedInGenerationRequest>) => {
     setRequest(prev => ({ ...prev, ...patch }))
@@ -435,7 +406,7 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
               <AdaptationCard
                 key={draft.id}
                 draft={draft}
-                onChange={updated => handleAdaptationChange(index, updated)}
+                onChange={updated => updateAdaptation(index, updated)}
               />
             ))}
           </div>
