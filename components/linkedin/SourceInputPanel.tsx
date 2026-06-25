@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 import type { LinkedInSourceType } from '@/lib/linkedin/types'
 
 interface SourceInputPanelProps {
@@ -11,8 +11,15 @@ interface SourceInputPanelProps {
   onSourceContentChange: (content: string) => void
 }
 
+const TABS: { value: LinkedInSourceType; label: string }[] = [
+  { value: 'url', label: 'URL' },
+  { value: 'text', label: 'Text' },
+  { value: 'upload', label: 'Upload' },
+  { value: 'clout_capture', label: 'From Clout' },
+]
+
 const inputBase =
-  'w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-colors'
+  'w-full bg-transparent text-[18px] leading-[1.75] text-zinc-900 placeholder:text-zinc-300 focus:outline-none'
 
 export function SourceInputPanel({
   sourceType,
@@ -24,23 +31,35 @@ export function SourceInputPanel({
 
   const tabValue = sourceType ?? 'text'
 
-  function handleTabChange(value: string) {
-    onSourceTypeChange(value as LinkedInSourceType)
+  function handleTabChange(value: LinkedInSourceType) {
+    onSourceTypeChange(value)
     onSourceContentChange('') // clear stale content from previous tab
   }
 
   return (
-    <div className="mt-6">
-      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Source</p>
-      <Tabs value={tabValue} onValueChange={handleTabChange}>
-        <TabsList className="mb-3">
-          <TabsTrigger value="url">URL</TabsTrigger>
-          <TabsTrigger value="text">Text</TabsTrigger>
-          <TabsTrigger value="upload">Upload</TabsTrigger>
-          <TabsTrigger value="clout_capture">From Clout</TabsTrigger>
-        </TabsList>
+    <div className="mt-6 rounded-[22px] border border-zinc-200 bg-white shadow-md overflow-hidden">
+      {/* Header tab bar — replaces the old uppercase "SOURCE" label */}
+      <div className="flex items-center gap-0 border-b border-zinc-100 px-5 pt-4 pb-0 overflow-x-auto">
+        {TABS.map(t => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => handleTabChange(t.value)}
+            className={cn(
+              'pb-3 px-3 text-sm font-medium transition-colors border-b-2 -mb-px shrink-0',
+              tabValue === t.value
+                ? 'border-zinc-900 text-zinc-900'
+                : 'border-transparent text-zinc-400 hover:text-zinc-700'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="url">
+      {/* Content panel */}
+      <div className="px-6 py-5 min-h-[160px]">
+        {tabValue === 'url' && (
           <input
             type="url"
             placeholder="https://..."
@@ -48,19 +67,18 @@ export function SourceInputPanel({
             onChange={e => onSourceContentChange(e.target.value)}
             className={inputBase}
           />
-        </TabsContent>
+        )}
 
-        <TabsContent value="text">
+        {tabValue === 'text' && (
           <textarea
-            rows={6}
             placeholder="Paste your source content..."
             value={sourceContent ?? ''}
             onChange={e => onSourceContentChange(e.target.value)}
-            className={`resize-none ${inputBase}`}
+            className={`resize-none min-h-[140px] ${inputBase}`}
           />
-        </TabsContent>
+        )}
 
-        <TabsContent value="upload">
+        {tabValue === 'upload' && (
           <label className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-200 p-6 cursor-pointer hover:border-zinc-300 transition-colors bg-white">
             <span className="text-xs text-zinc-500 mb-1">
               {uploadedFileName ? uploadedFileName : 'Drop an image or click to browse'}
@@ -81,14 +99,14 @@ export function SourceInputPanel({
               }}
             />
           </label>
-        </TabsContent>
+        )}
 
-        <TabsContent value="clout_capture">
+        {tabValue === 'clout_capture' && (
           <div className="rounded-lg border border-dashed border-zinc-200 p-6 text-center text-xs text-zinc-400">
             Connect a Clout capture — coming soon
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   )
 }
