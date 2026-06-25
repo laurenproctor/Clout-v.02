@@ -10,9 +10,15 @@ export async function GET(req: NextRequest) {
   if (!outputId) return NextResponse.json({ error: 'outputId is required' }, { status: 400 })
 
   const supabase = await createClient()
+  // NOTE: must use a wildcard select. The table has a column named `mode`, which
+  // PostgREST parses as the SQL ordered-set aggregate mode() in an explicit
+  // column list — Postgres then rejects it with "WITHIN GROUP is required for
+  // ordered-set aggregate mode". Double-quoting the column in the select string
+  // does not reliably disambiguate via supabase-js, so we select '*' (no
+  // per-column parsing) and the client reads the fields it needs.
   const { data, error } = await supabase
     .from('visual_assets')
-    .select('id, output_id, original_url, aspect_ratio, mode, render_mode, visual_intent, prompt, created_at')
+    .select('*')
     .eq('output_id', outputId)
     .eq('workspace_id', session.workspaceId)
     .order('created_at', { ascending: false })
