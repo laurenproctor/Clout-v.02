@@ -150,6 +150,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     quality = 'standard',
     seed,
     overlayParams,
+    overlaySource,
+    purpose,
   } = input
 
   const backgroundMode = input.backgroundMode ?? (input.suppliedBackgroundUrl ? 'uploaded' : 'generated')
@@ -634,6 +636,10 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     description:          assetDescription,
     generation_context:   {
       backgroundMode:    backgroundMode,
+      // Provenance + intent tag — overlaySource explains where the headline came
+      // from; purpose is the server-derived idempotency tag for auto flows.
+      overlaySource:     overlaySource ?? null,
+      purpose:           purpose ?? null,
       preferredTextZone: null,
       overlayStrength:   overlayParams?.overlayStrength ?? null,
       overlayOpacity:    overlayParams?.overlayOpacity ?? null,
@@ -657,12 +663,33 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     } as unknown as Json,
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: row, error } = await supabase
+  let { data: row, error } = await supabase
     .from('visual_assets')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert(insertPayload as any)
     .select()
     .single()
+
+  // Race-safe idempotency for auto flows: a partial unique index on
+  // (workspace_id, output_id, generation_context->>'purpose') means a concurrent
+  // request may have persisted the auto asset first. On unique violation, return
+  // the winner's row instead of a duplicate. (This image's storage upload is
+  // orphaned — an acceptable cost for the rare simultaneous double-submit; the
+  // route's pre-check avoids regenerating in the common reload/sequential case.)
+  if (error && (error as { code?: string }).code === '23505' && purpose && outputId) {
+    console.warn('[visual/generateImage] idempotency conflict — returning existing auto asset', { outputId, purpose })
+    const existing = await supabase
+      .from('visual_assets')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('output_id', outputId)
+      .filter('generation_context->>purpose', 'eq', purpose)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    row = existing.data
+    error = existing.error
+  }
 
   if (error || !row) {
     console.error('[visual/generateImage] DB insert failed', { error: error?.message, assetId })

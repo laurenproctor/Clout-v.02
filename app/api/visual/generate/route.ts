@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/visual/generation/generateImage'
+import { deriveOverlayCopy, fallbackOverlayCopy } from '@/lib/visual/generation/deriveOverlayCopy'
 import { loadGenerationBrandProfile, type GenerationBrandProfile, type BrandProfileSources } from '@/lib/visual/brand/loadGenerationBrandProfile'
 import type { VisualPlatform, AspectRatio, GenerationMode, VisualObjective, LensType, OverlayParams } from '@/lib/visual/types/visual'
 
@@ -23,6 +24,42 @@ function isRateLimited(map: Map<string, RateBucket>, key: string, windowMs: numb
 }
 
 export const maxDuration = 120 // DALL-E HD can take 45–60s; upload adds more
+
+// Reject a promise that takes too long, so a stalled headline derivation can't
+// stall the image job — the caller falls back to deterministic copy.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms)
+    promise.then(
+      v => { clearTimeout(timer); resolve(v) },
+      e => { clearTimeout(timer); reject(e) },
+    )
+  })
+}
+
+// Map a stored visual_assets row to the same response shape the generate path
+// returns, for the idempotency fast-path (existing auto asset → no regeneration).
+function rowToVisualResponse(row: Record<string, unknown>) {
+  const ctx = (row.generation_context ?? {}) as Record<string, unknown>
+  return {
+    assetId:           row.id,
+    name:              (row.name as string | null) ?? null,
+    slug:              (row.slug as string | null) ?? null,
+    description:       (row.description as string | null) ?? null,
+    url:               (row.composed_url as string | null) ?? (row.original_url as string),
+    backgroundUrl:     row.original_url as string,
+    composedUrl:       (row.composed_url as string | null) ?? null,
+    templateId:        (row.template_id as string | null) ?? null,
+    readabilityRating: (ctx.readabilityRating as string | null) ?? null,
+    visualIntent:      row.visual_intent ?? null,
+    prompt:            row.prompt as string,
+    aspectRatio:       row.aspect_ratio as string,
+    mode:              row.generation_mode as string,
+    generationGroupId: row.generation_group_id as string,
+    createdAt:         row.created_at as string,
+    idempotent:        true,
+  }
+}
 
 const VALID_PLATFORMS: VisualPlatform[] = ['linkedin', 'x', 'instagram', 'newsletter', 'blog']
 const VALID_RATIOS: AspectRatio[] = ['square', 'landscape', 'portrait']
@@ -68,6 +105,8 @@ export async function POST(req: NextRequest) {
     colorScheme,
     overlayStrength,
     textShadow,
+    deriveOverlay,
+    autoLinkedInImagePost,
   } = body as {
     outputId?:                string
     content?:                 string
@@ -94,7 +133,13 @@ export async function POST(req: NextRequest) {
     colorScheme?:             'light' | 'dark'
     overlayStrength?:         'subtle' | 'balanced' | 'strong'
     textShadow?:              'none' | 'light' | 'medium' | 'strong'
+    deriveOverlay?:           boolean
+    autoLinkedInImagePost?:   boolean   // constrained flag → server derives `purpose`
   }
+
+  // Purpose is server-derived, never trusted from the client. Only a constrained
+  // flag is accepted; arbitrary client strings never reach generation_context.
+  const purpose: string | undefined = autoLinkedInImagePost ? 'linkedin-image-post-auto' : undefined
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
   if (isRateLimited(standardBuckets, session.workspaceId, 10_000, 1)) {
@@ -153,6 +198,54 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Idempotency fast-path (auto flows) ────────────────────────────────────
+  // Before spending a generation, return any existing completed auto asset for
+  // this output+purpose. Covers reload, sequential duplicates, and slow-fetch
+  // races; the DB unique index (see migration) is the backstop for truly
+  // simultaneous requests.
+  if (purpose && outputId) {
+    const supabase = await createClient()
+    // generation_context / composed_url / template_id are Phase-2 columns the
+    // generated Supabase types don't model — select('*') returns them at runtime;
+    // cast through unknown for the mapper.
+    const { data: existing } = await supabase
+      .from('visual_assets')
+      .select('*')
+      .eq('workspace_id', session.workspaceId)
+      .eq('output_id', outputId)
+      .filter('generation_context->>purpose', 'eq', purpose)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json(rowToVisualResponse(existing as unknown as Record<string, unknown>), { status: 200 })
+    }
+  }
+
+  // ── Derive overlay copy (auto branded-card flow) ──────────────────────────
+  // When deriveOverlay is on and the caller didn't supply explicit text, derive a
+  // short headline (+ subtext) from the content. AI first, deterministic fallback
+  // on failure/timeout — so an auto image always gets branded overlay copy and is
+  // never silently downgraded to a plain content-derived image.
+  let ovHeadline = overlayHeadline
+  let ovSubtext = overlaySubtext
+  let overlaySource: 'manual' | 'ai-derived' | 'fallback' = 'manual'
+
+  if (deriveOverlay && !overlayHeadline && !overlayQuote && content) {
+    try {
+      const d = await withTimeout(deriveOverlayCopy(content), 2_500)
+      ovHeadline = d.headline
+      ovSubtext = d.subtext
+      overlaySource = 'ai-derived'
+    } catch {
+      const f = fallbackOverlayCopy(content)
+      ovHeadline = f.headline
+      ovSubtext = f.subtext
+      overlaySource = 'fallback'
+    }
+  }
+
   // ── Translate overlay strength to numeric opacity ─────────────────────────
   const OVERLAY_OPACITY: Record<string, number> = { subtle: 0.35, balanced: 0.70, strong: 1.00 }
   const overlayOpacity = overlayStrength != null ? OVERLAY_OPACITY[overlayStrength] : undefined
@@ -160,7 +253,7 @@ export async function POST(req: NextRequest) {
   // ── Resolve overlay params (headline-overlay compositing) ────────────────
   let overlayParams: OverlayParams | undefined
 
-  if (overlayHeadline || overlayQuote) {
+  if (ovHeadline || overlayQuote) {
     const supabase = await createClient()
     const { data: brand } = await supabase
       .from('brand_profiles')
@@ -190,8 +283,8 @@ export async function POST(req: NextRequest) {
     }
 
     overlayParams = {
-      headline:       cap(overlayHeadline),
-      subtext:        cap(overlaySubtext),
+      headline:       cap(ovHeadline),
+      subtext:        cap(ovSubtext),
       quote:          cap(overlayQuote),
       attribution:    overlayAttribution,
       logoUrl:        includeLogo ? resolvedLogoUrl : undefined,
@@ -218,7 +311,7 @@ export async function POST(req: NextRequest) {
   // Loading it for a prompt-driven image that ALSO has overlay text is correct and harmless.
   const needsBrandProfile =
     resolvedBackgroundMode === 'generated' ||
-    Boolean(overlayHeadline) ||
+    Boolean(ovHeadline) ||
     Boolean(overlayQuote)
   let brandProfile: GenerationBrandProfile | undefined
   let brandProfileSources: BrandProfileSources | undefined
@@ -256,6 +349,8 @@ export async function POST(req: NextRequest) {
       backgroundMode:          resolvedBackgroundMode,
       suppliedBackgroundUrl:   suppliedBackgroundUrl ?? undefined,
       overlayParams,
+      overlaySource,
+      purpose,
     })
 
     const assetV2 = asset as typeof asset & {

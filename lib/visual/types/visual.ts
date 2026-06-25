@@ -183,6 +183,8 @@ export interface GenerateImageInput {
   backgroundMode?: 'generated' | 'uploaded' | 'solid'  // defaults to 'generated'
   suppliedBackgroundUrl?: string  // required when backgroundMode === 'uploaded'
   overlayParams?: OverlayParams   // when set: forces hybrid-overlay with user's exact text (headline or quote)
+  overlaySource?: 'manual' | 'ai-derived' | 'fallback'  // provenance of overlay copy; stored in generation_context
+  purpose?: string                // server-derived intent tag (e.g. 'linkedin-image-post-auto'); stored in generation_context for idempotency
 }
 
 // ─── Persisted asset ────────────────────────────────────────────────────────

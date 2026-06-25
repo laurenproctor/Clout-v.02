@@ -94,6 +94,15 @@ export function LinkedInPreview({ data, theme, density }: RendererProps) {
           placeholderBg={p.border}
           placeholderText={p.muted}
         />
+      ) : data.mediaPending ? (
+        <PreviewMediaBlock
+          media={{ url: '', aspectRatio: spec.defaultRatio }}
+          pending
+          chrome="flat"
+          borderColor={p.border}
+          placeholderBg={p.border}
+          placeholderText={p.muted}
+        />
       ) : null}
 
       {/* Action bar */}

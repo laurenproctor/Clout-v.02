@@ -19,6 +19,8 @@ interface PreviewMediaBlockProps {
   placeholderBg: string
   placeholderText: string
   radius?: number
+  /** Render a loading skeleton (no image) — used while a visual is generating. */
+  pending?: boolean
 }
 
 export function PreviewMediaBlock({
@@ -28,12 +30,31 @@ export function PreviewMediaBlock({
   placeholderBg,
   placeholderText,
   radius = 12,
+  pending = false,
 }: PreviewMediaBlockProps) {
   const [failed, setFailed] = React.useState(false)
   const [loaded, setLoaded] = React.useState(false)
 
   const borderRadius = chrome === 'flat' ? 0 : radius
   const border = chrome === 'rounded' || chrome === 'card' ? `1px solid ${borderColor}` : 'none'
+
+  // Pending: occupy the exact media slot with a shimmer so the image visibly
+  // "streams in" once generation completes. No `url` is read in this path.
+  if (pending) {
+    return (
+      <div
+        aria-hidden="true"
+        className="animate-pulse"
+        style={{
+          width: '100%',
+          aspectRatio: String(media.aspectRatio),
+          background: placeholderBg,
+          borderRadius,
+          border,
+        }}
+      />
+    )
+  }
 
   return (
     <div
