@@ -1,7 +1,7 @@
 'use client'
 
 import type { RendererProps } from '../core/types'
-import { getSpec } from '../core/spec'
+import { getSpec, parseAspectRatio } from '../core/spec'
 import { PreviewAvatar } from '../shared/PreviewAvatar'
 import { VerifiedBadge } from '../shared/VerifiedBadge'
 import { PreviewText } from '../shared/PreviewText'
@@ -96,8 +96,9 @@ export function LinkedInPreview({ data, theme, density }: RendererProps) {
         />
       ) : data.mediaPending ? (
         <PreviewMediaBlock
-          media={{ url: '', aspectRatio: spec.defaultRatio }}
+          media={{ url: '', aspectRatio: parseAspectRatio('landscape', PLATFORM) }}
           pending
+          pendingLabel="Creating image…"
           chrome="flat"
           borderColor={p.border}
           placeholderBg={p.border}

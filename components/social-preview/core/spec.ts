@@ -30,6 +30,14 @@ export interface PlatformPreviewSpec {
   defaultRatio: number
   /** Aspect ratios the platform supports for feed media. */
   supportedRatios: number[]
+  /**
+   * Exact numeric ratios for the semantic keywords ("landscape"/"portrait")
+   * the visual pipeline emits. "square" is always 1 and is not configured here.
+   * These intentionally mirror the generated canvas sizes in
+   * lib/visual/tokens/sizes.ts — keep them in sync when those canvas sizes change.
+   * When omitted, parseAspectRatio falls back to the widest/tallest supportedRatio.
+   */
+  semanticRatios?: { landscape?: number; portrait?: number }
   /** Chars shown before a "see more" affordance; null = no truncation. */
   seeMoreAfterChars: number | null
   mediaChrome: MediaChrome
@@ -51,6 +59,8 @@ export const PLATFORM_PREVIEW_SPEC: Record<PreviewPlatform, PlatformPreviewSpec>
     avatarShape: 'circle',
     defaultRatio: 1,
     supportedRatios: [1.91, 1, 4 / 5],
+    // Mirrors lib/visual/tokens/sizes.ts linkedin canvas (1200×627, 1080×1350).
+    semanticRatios: { landscape: 1200 / 627, portrait: 1080 / 1350 },
     seeMoreAfterChars: 140,
     mediaChrome: 'flat',
     supportsCarousel: true,
@@ -66,6 +76,8 @@ export const PLATFORM_PREVIEW_SPEC: Record<PreviewPlatform, PlatformPreviewSpec>
     avatarShape: 'circle',
     defaultRatio: 16 / 9,
     supportedRatios: [16 / 9, 1],
+    // Mirrors lib/visual/tokens/sizes.ts x canvas (1600×900, 1080×1350).
+    semanticRatios: { landscape: 1600 / 900, portrait: 1080 / 1350 },
     seeMoreAfterChars: null,
     mediaChrome: 'rounded',
     supportsCarousel: false,
@@ -96,6 +108,8 @@ export const PLATFORM_PREVIEW_SPEC: Record<PreviewPlatform, PlatformPreviewSpec>
     avatarShape: 'circle',
     defaultRatio: 1,
     supportedRatios: [1, 4 / 5, 1.91],
+    // Mirrors lib/visual/tokens/sizes.ts instagram canvas (1080×566, 1080×1350).
+    semanticRatios: { landscape: 1080 / 566, portrait: 1080 / 1350 },
     seeMoreAfterChars: 125,
     mediaChrome: 'flat',
     supportsCarousel: true,
@@ -236,18 +250,35 @@ export function getPalette(platform: PreviewPlatform, theme: PreviewTheme): Prev
 }
 
 /**
- * Parse an aspect-ratio string ("1:1", "4:5", "16:9", "1.91:1") or number into
- * a numeric width/height ratio. Returns the platform default when unparseable.
+ * Parse an aspect-ratio string ("1:1", "4:5", "16:9", "1.91:1"), a semantic
+ * keyword ("square"/"landscape"/"portrait"), or a number into a numeric
+ * width/height ratio. Returns the platform default when unparseable.
  */
 export function parseAspectRatio(
   raw: string | number | null | undefined,
   platform: PreviewPlatform,
 ): number {
-  const fallback = getSpec(platform).defaultRatio
+  const spec = getSpec(platform)
+  const fallback = spec.defaultRatio
   if (raw == null) return fallback
   if (typeof raw === 'number') return raw > 0 ? raw : fallback
 
   const trimmed = raw.trim()
+
+  // Semantic keywords emitted/stored by the visual pipeline. Resolve to the
+  // platform's generated canvas ratio; fall back to the widest/tallest supported
+  // feed ratio when a platform omits an exact value.
+  const keyword = trimmed.toLowerCase()
+  if (keyword === 'square') return 1
+  if (keyword === 'landscape') {
+    const widest = spec.supportedRatios.length ? Math.max(...spec.supportedRatios) : undefined
+    return spec.semanticRatios?.landscape ?? widest ?? fallback
+  }
+  if (keyword === 'portrait') {
+    const tallest = spec.supportedRatios.length ? Math.min(...spec.supportedRatios) : undefined
+    return spec.semanticRatios?.portrait ?? tallest ?? fallback
+  }
+
   // "w:h" form
   if (trimmed.includes(':')) {
     const [w, h] = trimmed.split(':').map(Number)
