@@ -46,8 +46,23 @@ function decryptToken(ciphertext: string): string {
   return decipher.update(Buffer.from(encHex, 'hex')).toString('utf8') + decipher.final('utf8')
 }
 
-export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc' | 'bing_wmt') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Decrypted analytics connection row. The columns below are the ones consumers
+// read (access/refresh tokens are decrypted here); the index signature carries
+// any remaining columns from the `select('*')`.
+export interface AnalyticsConnectionRow {
+  workspace_id: string
+  provider: 'ga4' | 'gsc' | 'bing_wmt'
+  access_token: string
+  refresh_token: string | null
+  expires_at: number | null
+  connected_by: string
+  [key: string]: unknown
+}
+
+export async function getAnalyticsConnection(
+  workspaceId: string,
+  provider: 'ga4' | 'gsc' | 'bing_wmt',
+): Promise<AnalyticsConnectionRow | null> {
   const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_connections table added in migration — not yet in generated types
   const { data } = await supabase
@@ -61,7 +76,7 @@ export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4
     ...data,
     access_token: decryptToken(data.access_token as string),
     refresh_token: data.refresh_token ? decryptToken(data.refresh_token as string) : null,
-  } as Record<string, unknown> & { access_token: string; refresh_token: string | null; expires_at?: number | null }
+  } as unknown as AnalyticsConnectionRow
 }
 
 export async function upsertAnalyticsConnection(row: {
