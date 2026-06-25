@@ -1,18 +1,18 @@
+import { existsSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
-import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright'
 
 // Verifies the multi-image fix on settings/brand → Imagery → Example Imagery:
 //   drop/select 3 images at once → all 3 DISPLAY → reload → all 3 still present (SAVED).
 // Then cleans up the 3 it added so the workspace is left as it was found.
 //
-// Requires (in .env.local, gitignored):
-//   E2E_CLERK_USER_USERNAME   — a Clerk user with a password set
-//   E2E_CLERK_USER_PASSWORD
-//   E2E_WORKSPACE_SLUG        — a workspace that user can access
+// Auth: reuses a real logged-in session captured once via `node e2e/capture-auth.mjs`
+// (Clerk's client-trust gate on this instance can't be bypassed by the Testing Token,
+// so we sign in as a human once and replay the cookies). Requires in .env.local:
+//   E2E_WORKSPACE_SLUG — a workspace the captured user can access
 
-const USERNAME = process.env.E2E_CLERK_USER_USERNAME
-const PASSWORD = process.env.E2E_CLERK_USER_PASSWORD
-const SLUG     = process.env.E2E_WORKSPACE_SLUG
+const SLUG       = process.env.E2E_WORKSPACE_SLUG
+const STORAGE    = 'e2e/.auth/user.json'
+const HAS_SESSION = existsSync(STORAGE)
 
 // Minimal valid 1x1 PNG.
 const PNG_1x1 = Buffer.from(
@@ -22,22 +22,23 @@ const PNG_1x1 = Buffer.from(
 const FILES = [1, 2, 3].map(n => ({ name: `brand-test-${n}.png`, mimeType: 'image/png', buffer: PNG_1x1 }))
 
 test.describe('Brand imagery — multi-image upload', () => {
-  test.skip(!USERNAME || !PASSWORD || !SLUG,
-    'Set E2E_CLERK_USER_USERNAME, E2E_CLERK_USER_PASSWORD, E2E_WORKSPACE_SLUG in .env.local')
+  test.skip(!SLUG, 'Set E2E_WORKSPACE_SLUG in .env.local')
+  test.skip(!HAS_SESSION, 'No saved session — run `node e2e/capture-auth.mjs` to log in once.')
+
+  // Replay the captured logged-in session for every test in this file.
+  test.use({ storageState: STORAGE })
 
   test('upload 3 at once → all display and persist', async ({ page }) => {
     test.setTimeout(120_000)
-    await setupClerkTestingToken({ page })
-
-    await page.goto('/sign-in')
-    await clerk.signIn({
-      page,
-      signInParams: { strategy: 'password', identifier: USERNAME!, password: PASSWORD! },
-    })
 
     // ── settings/brand → Imagery tab ────────────────────────────────────────────
-    await page.goto(`/${SLUG}/settings/brand`)
-    await page.getByRole('button', { name: /^imagery$/i }).click()
+    // Retry the navigation a couple of times in case the session needs a beat to settle.
+    const imageryTab = page.getByRole('button', { name: /^imagery$/i })
+    await expect(async () => {
+      await page.goto(`/${SLUG}/settings/brand`)
+      await expect(imageryTab).toBeVisible({ timeout: 5_000 })
+    }).toPass({ timeout: 30_000 })
+    await imageryTab.click()
 
     // Scope everything to the Example Imagery card (its uploader dropzone text is unique).
     const card = page.locator('div.space-y-3').filter({ hasText: 'Example Imagery' })

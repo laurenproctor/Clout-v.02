@@ -60,3 +60,6 @@ supabase/.temp/
 e2e/.report/
 test-results/
 playwright-report/
+
+# Captured Clerk session for e2e (never commit)
+e2e/.auth/
