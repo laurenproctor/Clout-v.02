@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
+import { getBrandContext } from '@/lib/brand/getBrandContext'
 import { scrapeUrl } from '@/lib/scraper'
 import { runSubstackGeneration } from '@/lib/substack/runGeneration'
 import { FEATURES } from '@/lib/features'
@@ -60,14 +61,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const [lensesResult, brandContext] = await Promise.all([
+    listLenses({ workspaceId: session.workspaceId }),
+    getBrandContext(),
+  ])
   const allLenses    = lensesResult.ok ? lensesResult.data : []
   const resolvedLenses = (request.lensIds ?? [])
     .map(id => allLenses.find(l => l.id === id))
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map(l => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
-  const stream = runSubstackGeneration({ request, lenses: resolvedLenses })
+  const stream = runSubstackGeneration({ request, lenses: resolvedLenses, brandContext })
 
   return new Response(stream, {
     headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },
