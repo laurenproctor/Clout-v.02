@@ -4192,6 +4192,7 @@ export type Database = {
           custom_audiences: string[] | null
           deleted_at: string | null
           id: string
+          linkedin_last_create_settings: Json | null
           name: string
           plan: Database["public"]["Enums"]["subscription_plan"]
           slug: string
@@ -4207,6 +4208,7 @@ export type Database = {
           custom_audiences?: string[] | null
           deleted_at?: string | null
           id?: string
+          linkedin_last_create_settings?: Json | null
           name: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           slug: string
@@ -4222,6 +4224,7 @@ export type Database = {
           custom_audiences?: string[] | null
           deleted_at?: string | null
           id?: string
+          linkedin_last_create_settings?: Json | null
           name?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
           slug?: string

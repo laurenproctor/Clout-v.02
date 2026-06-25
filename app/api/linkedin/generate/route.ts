@@ -6,6 +6,7 @@ import { runLinkedInGeneration } from '@/lib/linkedin/runGeneration'
 import { scrapeUrl } from '@/lib/scraper'
 import type { LinkedInGenerationRequest } from '@/lib/linkedin/types'
 import { saveCustomAudience } from '@/lib/audiences'
+import { saveLinkedInLastSettings } from '@/lib/linkedin/preferences.server'
 import { getCampaignContext } from '@/lib/domain/campaign'
 
 export const maxDuration = 120
@@ -84,12 +85,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Persist preferences before kicking off model work — both writes are independent,
+  // best-effort, and must never fail generation. Awaited here (not fired-and-forgotten
+  // after the streaming response) so a serverless runtime can't drop the work.
+  await Promise.all([
+    request.audience === 'custom' && request.customAudience?.trim()
+      ? saveCustomAudience(session.workspaceId, request.customAudience).catch(() => {})
+      : Promise.resolve(),
+    saveLinkedInLastSettings(session.workspaceId, request).catch(() => {}),
+  ])
+
   const ctx = { request, lenses: resolvedLenses, brandContext, campaignContext }
   const stream = runLinkedInGeneration(ctx)
-
-  if (request.audience === 'custom' && request.customAudience?.trim()) {
-    saveCustomAudience(session.workspaceId, request.customAudience).catch(() => {})
-  }
 
   return new Response(stream, {
     headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },

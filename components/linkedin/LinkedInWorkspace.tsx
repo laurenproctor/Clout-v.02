@@ -19,6 +19,10 @@ import { AdaptationCard } from '@/components/create/AdaptationCard'
 import { useAdaptations } from '@/lib/create/useAdaptations'
 import type { AdaptTargetPlatform } from '@/lib/create/types'
 import type { ChannelLike } from '@/components/social-preview'
+import {
+  DEFAULT_LINKEDIN_CREATE_SETTINGS,
+  type LinkedInLastSettings,
+} from '@/lib/linkedin/create-settings'
 
 // Lightweight product event (matches the local convention in welcome/page.tsx).
 // Not an analytics pipeline — just enough signal to see how the new flow is used.
@@ -66,17 +70,19 @@ async function readVariationStream(response: Response): Promise<LinkedInVariatio
 interface LinkedInWorkspaceProps {
   lenses: Lens[]
   savedAudiences?: string[]
+  /** Brand's last-used create settings, restored into the form (already sanitized). */
+  initialSettings?: Partial<LinkedInLastSettings>
 }
 
-export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorkspaceProps) {
+export function LinkedInWorkspace({
+  lenses,
+  savedAudiences = [],
+  initialSettings = {},
+}: LinkedInWorkspaceProps) {
   const [state, setState] = useState<LinkedInWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<LinkedInGenerationRequest>>({
-    length: 'medium',
-    audience: 'general_audience',
-    lensIds: [],
-    narrativeStyle: 'story',
-    voiceRegister: 'warm',
-    sourceType: 'text',
+    ...DEFAULT_LINKEDIN_CREATE_SETTINGS,
+    ...initialSettings,
   })
   const [variations, setVariations] = useState<LinkedInVariation[]>([])
   const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])

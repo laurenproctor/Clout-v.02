@@ -80,7 +80,9 @@ create table workspaces (
   deleted_at           timestamptz,
   avatar_url           text,
   brand_color          text,
-  slug_changed_at      timestamptz
+  slug_changed_at      timestamptz,
+  custom_audiences     text[] default '{}',
+  linkedin_last_create_settings jsonb
 );
 create unique index workspaces_slug_idx on workspaces(slug) where deleted_at is null;
 create index workspaces_operator_idx on workspaces(assigned_operator_id)

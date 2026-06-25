@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
+import { sanitizeLinkedInLastSettings } from '@/lib/linkedin/create-settings'
 import { LinkedInWorkspace } from '@/components/linkedin/LinkedInWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
@@ -18,7 +19,7 @@ export default async function LinkedInCreatePage({
   const supabase = createServiceClient()
   const { data: workspace } = await supabase
     .from('workspaces')
-    .select('id, custom_audiences')
+    .select('id, custom_audiences, linkedin_last_create_settings')
     .eq('slug', workspaceSlug)
     .is('deleted_at', null)
     .maybeSingle()
@@ -26,6 +27,13 @@ export default async function LinkedInCreatePage({
 
   const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
+
+  // Pre-fill the create flow with the brand's last-used settings (sanitized against the
+  // current lens list so stale/invalid values fall back to defaults).
+  const initialSettings = sanitizeLinkedInLastSettings(
+    workspace.linkedin_last_create_settings,
+    lenses.map((l) => l.id),
+  )
 
   return (
     <div className="flex h-full flex-col">
@@ -39,7 +47,11 @@ export default async function LinkedInCreatePage({
         <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
-        <LinkedInWorkspace lenses={lenses} savedAudiences={workspace.custom_audiences ?? []} />
+        <LinkedInWorkspace
+          lenses={lenses}
+          savedAudiences={workspace.custom_audiences ?? []}
+          initialSettings={initialSettings}
+        />
       </div>
     </div>
   )
