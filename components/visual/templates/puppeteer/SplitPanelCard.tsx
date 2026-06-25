@@ -6,6 +6,7 @@
 import type { BrandTokens } from '@/lib/visual/types/template'
 import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
 import { fitHeadlineSize } from '@/lib/visual/tokens/editorial'
+import { fontFaceRule } from './fontFace'
 
 const TEXT_SHADOW: Record<string, string> = {
   light:  '0 1px 3px rgba(0,0,0,0.20)',
@@ -25,18 +26,6 @@ interface SplitPanelCardProps {
   height: number
   overlayOpacity?: number
   textShadow?: 'none' | 'light' | 'medium' | 'strong'
-}
-
-function fontFaceRule(family: string, url: string | undefined): string {
-  if (!url) return ''
-  return `
-    @font-face {
-      font-family: ${JSON.stringify(family)};
-      src: url(${JSON.stringify(url)}) format('woff2');
-      font-weight: 100 900;
-      font-style: normal;
-    }
-  `
 }
 
 export function SplitPanelCard({
