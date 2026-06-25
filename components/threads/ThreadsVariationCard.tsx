@@ -22,6 +22,7 @@ interface Props {
   initialOutputId?: string | null
   threadsChannelId?: string | null
   channel?: ChannelLike | null
+  campaignId?: string | null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'scheduled'
@@ -32,7 +33,7 @@ const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors p
 // Preview-first Threads result card: the full post is the canonical read view
 // inside the Threads preview. The body/hashtag editors and validation appear
 // only in Edit mode. State lives in `variation` (lifted via onChange).
-export function ThreadsVariationCard({ variation, onChange, initialOutputId, threadsChannelId, channel }: Props) {
+export function ThreadsVariationCard({ variation, onChange, initialOutputId, threadsChannelId, channel, campaignId }: Props) {
   const params = useParams<{ workspaceSlug?: string }>()
   const workspaceSlug = params?.workspaceSlug
   const [editing, setEditing] = useState(false)
@@ -45,8 +46,17 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  const postType = variation.postType ?? 'single'
+  const isMediaPost = postType === 'image' || postType === 'video'
+  // Threads can only publish a TEXT container today (no image/video container),
+  // and scheduling queues for cron auto-publish — so both are blocked for media
+  // posts. The draft can still be saved to Studio; attach the asset later.
+  const mediaPublishBlocked = isMediaPost
+  const mediaIncomplete = isMediaPost && !variation.selectedVisualAssetId
+
   useEffect(() => {
     if (initialOutputId && !savedOutputId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSavedOutputId(initialOutputId)
       if (saveState === 'idle') setSaveState('saved')
     }
@@ -80,6 +90,21 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
     [channel, variation.primaryText, variation.hashtag],
   )
 
+  // Common content payload persisted on save/update.
+  function buildContent() {
+    return {
+      body: variation.primaryText,
+      hashtags: variation.hashtag ? [variation.hashtag] : [],
+      angle: variation.angle,
+      openingLine: variation.openingLine,
+      campaignName: variation.campaignName,
+      postType,
+      cta: variation.cta ?? null,
+      linkUrl: variation.linkUrl ?? null,
+      selectedVisualAssetId: variation.selectedVisualAssetId ?? null,
+    }
+  }
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(
@@ -101,13 +126,7 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: variation.campaignName,
-            content: {
-              body: variation.primaryText,
-              hashtags: variation.hashtag ? [variation.hashtag] : [],
-              angle: variation.angle,
-              openingLine: variation.openingLine,
-              campaignName: variation.campaignName,
-            },
+            content: buildContent(),
             ...(threadsChannelId && { channel_id: threadsChannelId }),
           }),
         })
@@ -123,9 +142,14 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
               angle: variation.angle,
               openingLine: variation.openingLine,
               campaignName: variation.campaignName,
+              postType,
+              cta: variation.cta ?? null,
+              linkUrl: variation.linkUrl ?? null,
+              selectedVisualAssetId: variation.selectedVisualAssetId ?? null,
             },
             title: variation.campaignName,
             channelId: threadsChannelId ?? null,
+            campaignId: campaignId ?? null,
           }),
         })
         if (!res.ok) {
@@ -245,9 +269,10 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
           </button>
           <button
             type="button"
-            className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => { if (savedOutputId && !isActioned) setScheduling(v => !v) }}
-            disabled={!savedOutputId || isActioned}
+            className={`${actionBtn} ${!savedOutputId || isActioned || mediaPublishBlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => { if (savedOutputId && !isActioned && !mediaPublishBlocked) setScheduling(v => !v) }}
+            disabled={!savedOutputId || isActioned || mediaPublishBlocked}
+            title={mediaPublishBlocked ? 'Image/video scheduling to Threads is coming soon' : undefined}
           >
             Schedule
           </button>
@@ -322,40 +347,57 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
               className="flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none"
             />
           </div>
+
+          {/* Image/video posts: the caption is generated and saved to Studio;
+              media attachment + publishing land with the visual pipeline. */}
+          {mediaIncomplete && (
+            <p className="text-[11px] text-amber-600">
+              Visual needed before publishing. You can save this draft now and attach media in Studio later.
+            </p>
+          )}
         </div>
       )}
 
-      {/* E. Publish — Threads-native capability, available once saved */}
+      {/* E. Publish — Threads-native capability, available once saved.
+          Image/video posts can't publish yet (no media container) — save to Studio. */}
       <div className="pt-2 border-t border-zinc-100">
-        {publishState === 'published' && publishedPostId && (
-          <div className="flex items-center gap-1.5 text-[11px] text-green-600">
-            <Check className="h-3.5 w-3.5" />
-            Published to Threads
-          </div>
-        )}
-        {publishState === 'error' && (
-          <p className="text-[11px] text-red-500">Publish failed. Please try again.</p>
-        )}
-        {publishState !== 'published' && (
-          <div className="flex items-center gap-3">
-            {threadsChannelId ? (
-              <button
-                type="button"
-                onClick={handlePublish}
-                disabled={!savedOutputId || !validation.publishable || publishState === 'publishing'}
-                className="text-xs font-medium text-zinc-700 border border-zinc-200 rounded-md px-3 py-1.5 hover:bg-zinc-50 hover:border-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {publishState === 'publishing' ? 'Publishing...' : 'Publish to Threads'}
-              </button>
-            ) : (
-              <Link
-                href={workspaceSlug ? `/${workspaceSlug}/settings/publishing` : '/settings/publishing'}
-                className="text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
-              >
-                Connect Threads to publish →
-              </Link>
+        {mediaPublishBlocked ? (
+          <p className="text-[11px] text-zinc-400">
+            Image/video publishing to Threads is coming soon — save to Studio for now.
+          </p>
+        ) : (
+          <>
+            {publishState === 'published' && publishedPostId && (
+              <div className="flex items-center gap-1.5 text-[11px] text-green-600">
+                <Check className="h-3.5 w-3.5" />
+                Published to Threads
+              </div>
             )}
-          </div>
+            {publishState === 'error' && (
+              <p className="text-[11px] text-red-500">Publish failed. Please try again.</p>
+            )}
+            {publishState !== 'published' && (
+              <div className="flex items-center gap-3">
+                {threadsChannelId ? (
+                  <button
+                    type="button"
+                    onClick={handlePublish}
+                    disabled={!savedOutputId || !validation.publishable || publishState === 'publishing'}
+                    className="text-xs font-medium text-zinc-700 border border-zinc-200 rounded-md px-3 py-1.5 hover:bg-zinc-50 hover:border-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {publishState === 'publishing' ? 'Publishing...' : 'Publish to Threads'}
+                  </button>
+                ) : (
+                  <Link
+                    href={workspaceSlug ? `/${workspaceSlug}/settings/publishing` : '/settings/publishing'}
+                    className="text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
+                  >
+                    Connect Threads to publish →
+                  </Link>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

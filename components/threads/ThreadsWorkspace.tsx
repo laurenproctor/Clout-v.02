@@ -10,22 +10,24 @@ import type {
 import type { ChannelLike } from '@/components/social-preview'
 import { ThreadsStrategyPanel } from './ThreadsStrategyPanel'
 import { ThreadsVariationCard } from './ThreadsVariationCard'
+import { ThreadsPostTypeSelector } from './ThreadsPostTypeSelector'
 import { GenerationProgress } from '@/components/linkedin/GenerationProgress'
 import { SourceInputPanel } from '@/components/linkedin/SourceInputPanel'
 import { AlternateAnglesList } from '@/components/create/AlternateAnglesList'
 
-interface ThreadsWorkspaceProps {
-  lenses: Lens[]
-  savedAudiences?: string[]
-}
-
-// Lightweight product event (matches the local convention in welcome/page.tsx).
+// Lightweight product event (matches the convention used in the LinkedIn flow).
 function trackEvent(event: string, props: Record<string, unknown>) {
   console.log('[create]', event, props)
 }
 
-// Read an NDJSON variation stream and resolve the variations from `complete`.
-async function readThreadsStream(response: Response): Promise<ThreadsVariation[]> {
+function looksLikeUrl(s: string): boolean {
+  try { return /^https?:\/\//i.test(s.trim()) && Boolean(new URL(s.trim())) }
+  catch { return false }
+}
+
+// Read an NDJSON variation stream and resolve the variations from the `complete`
+// event. Throws on an `error` event or if the stream closes without completing.
+async function readVariationStream(response: Response): Promise<ThreadsVariation[]> {
   if (!response.ok) throw new Error('Request failed')
   const reader = response.body?.getReader()
   if (!reader) throw new Error('No stream')
@@ -55,23 +57,36 @@ async function readThreadsStream(response: Response): Promise<ThreadsVariation[]
   return result
 }
 
+interface ThreadsWorkspaceProps {
+  lenses: Lens[]
+  savedAudiences?: string[]
+}
+
 export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspaceProps) {
   const [state, setState] = useState<ThreadsWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<ThreadsGenerationRequest>>({
-    sourceType: 'text',
-    audience:   'general_audience',
-    lensIds:    [],
+    sourceType:     'text',
+    audience:       'general_audience',
+    lensIds:        [],
+    postType:       'single',
+    narrativeStyle: undefined,
+    cta:            'No CTA',
+    campaignId:     null,
   })
-  const [variations, setVariations]               = useState<ThreadsVariation[]>([])
-  const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])
-  const [progressLabel, setProgressLabel]         = useState<string>('Generating...')
-  const [error, setError]                         = useState<string | null>(null)
-  const [threadsChannelId, setThreadsChannelId]   = useState<string | null>(null)
-  const [threadsChannel,   setThreadsChannel]     = useState<ChannelLike | null>(null)
-  const threadsChannelIdRef                       = useRef<string | null>(null)
-  const [alternates, setAlternates]               = useState<ThreadsVariation[]>([])
-  const [alternatesState, setAlternatesState]     = useState<'idle' | 'loading' | 'shown'>('idle')
-  const [alternatesError, setAlternatesError]     = useState<string | null>(null)
+  // One recommended anchor — never a stack.
+  const [variation, setVariation]         = useState<ThreadsVariation | null>(null)
+  const [savedOutputId, setSavedOutputId] = useState<string | null>(null)
+  const [progressLabel, setProgressLabel] = useState<string>('Generating...')
+  const [error, setError]                 = useState<string | null>(null)
+  const [threadsChannelId, setThreadsChannelId] = useState<string | null>(null)
+  const [threadsChannel,   setThreadsChannel]   = useState<ChannelLike | null>(null)
+  const threadsChannelIdRef               = useRef<string | null>(null)
+
+  // Secondary, on-demand "Show alternate angles". Isolated from the anchor: a
+  // failure here surfaces a section-level error and never mutates the anchor.
+  const [alternates, setAlternates]           = useState<ThreadsVariation[]>([])
+  const [alternatesState, setAlternatesState] = useState<'idle' | 'loading' | 'shown'>('idle')
+  const [alternatesError, setAlternatesError] = useState<string | null>(null)
 
   // Fetch Threads channel for output association + preview author data
   useEffect(() => {
@@ -91,7 +106,9 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
   const canGenerate =
     !!request.sourceContent?.trim() &&
     !!request.audience &&
-    (request.audience !== 'custom' || !!request.customAudience?.trim())
+    !!request.postType &&
+    (request.audience !== 'custom' || !!request.customAudience?.trim()) &&
+    (request.postType !== 'link' || looksLikeUrl(request.linkUrl ?? ''))
 
   const patchRequest = useCallback((patch: Partial<ThreadsGenerationRequest>) => {
     setRequest(prev => ({ ...prev, ...patch }))
@@ -101,7 +118,8 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
     setError(null)
     setState('generating')
     setProgressLabel('Generating...')
-    setSavedVariationIds([])
+    setSavedOutputId(null)
+    // Reset secondary results — they belong to the previous anchor.
     setAlternates([])
     setAlternatesState('idle')
     setAlternatesError(null)
@@ -110,7 +128,9 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
       const response = await fetch('/api/threads/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request }),
+        // campaignId is read at the top level by the route; the new controls
+        // (postType/narrativeStyle/cta/linkUrl) ride inside `request`.
+        body: JSON.stringify({ request, campaignId: request.campaignId ?? null }),
       })
       if (!response.ok) throw new Error('Generation failed')
 
@@ -139,18 +159,26 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
           } else if (event.type === 'complete') {
             receivedComplete = true
             const { variations: generated } = event.data as { variations: ThreadsVariation[] }
-            // Default output is one recommended post. Render only the anchor.
-            const anchor = generated[0]
-            if (!anchor?.primaryText) {
+            // Default output is one recommended post. Render only the anchor
+            // (variations[0]); ignore any extras the model may have returned.
+            const first = generated[0]
+            if (!first?.primaryText) {
               throw new Error('Generation did not produce a usable post — try again.')
             }
-            trackEvent('threads_anchor_generated', { audience: request.audience })
-            setVariations([anchor])
-            setSavedVariationIds([null])
+            // Enrich the anchor with the selected controls so the card persists
+            // them on Save/Update, and label it clearly for the result view.
+            const anchor: ThreadsVariation = {
+              ...first,
+              label:    'Recommended Threads post',
+              postType: request.postType ?? 'single',
+              cta:      request.cta || undefined,
+              linkUrl:  request.postType === 'link' ? request.linkUrl : undefined,
+            }
+            trackEvent('threads_anchor_generated', { postType: request.postType, audience: request.audience })
+            setVariation(anchor)
             setState('result')
 
             const channelId = threadsChannelIdRef.current
-
             // Auto-save only the anchor so exactly one studio draft is created.
             fetch('/api/threads/outputs', {
               method: 'POST',
@@ -162,14 +190,19 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
                   angle:        anchor.angle,
                   openingLine:  anchor.openingLine,
                   campaignName: anchor.campaignName,
+                  postType:     anchor.postType ?? 'single',
+                  cta:          anchor.cta ?? null,
+                  linkUrl:      anchor.linkUrl ?? null,
+                  selectedVisualAssetId: null,
                 },
-                title:     anchor.campaignName,
-                channelId: channelId ?? null,
+                title:      anchor.campaignName,
+                channelId:  channelId ?? null,
+                campaignId: request.campaignId ?? null,
               }),
             })
               .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
               .catch(() => null)
-              .then(result => setSavedVariationIds([result?.id ?? null]))
+              .then(result => setSavedOutputId(result?.id ?? null))
 
           } else if (event.type === 'error') {
             throw new Error(event.message ?? 'Generation failed')
@@ -186,36 +219,28 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
     }
   }, [request])
 
-  const handleVariationChange = useCallback((index: number, updated: ThreadsVariation) => {
-    setVariations(prev => prev.map((v, i) => (i === index ? updated : v)))
-  }, [])
-
   // "Show alternate angles" — explicit second call seeded with the current anchor
   // body so results are genuinely distinct. Not auto-saved; failure is isolated.
   const handleShowAlternates = useCallback(async () => {
-    const anchor = variations[0]
-    if (!anchor) return
+    if (!variation) return
     setAlternatesError(null)
     setAlternatesState('loading')
-    trackEvent('threads_alternates_requested', { audience: request.audience })
+    trackEvent('threads_alternates_requested', { postType: request.postType })
     try {
       const response = await fetch('/api/threads/alternates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request, anchorBody: anchor.primaryText }),
+        body: JSON.stringify({ request, anchorBody: variation.primaryText, campaignId: request.campaignId ?? null }),
       })
-      const generated = await readThreadsStream(response)
-      setAlternates(generated)
+      const generated = await readVariationStream(response)
+      // Carry the anchor's post type onto alternates for a coherent card.
+      setAlternates(generated.map(v => ({ ...v, postType: variation.postType, cta: variation.cta, linkUrl: variation.linkUrl })))
       setAlternatesState('shown')
     } catch (err) {
       setAlternatesError(err instanceof Error ? err.message : 'Could not load alternate angles.')
       setAlternatesState('idle')
     }
-  }, [variations, request])
-
-  const handleAlternateChange = useCallback((index: number, updated: ThreadsVariation) => {
-    setAlternates(prev => prev.map((v, i) => (i === index ? updated : v)))
-  }, [])
+  }, [variation, request])
 
   const sidebar = (
     <div className="w-80 shrink-0 border-l border-zinc-100 overflow-y-auto">
@@ -241,6 +266,12 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
               {error}
             </div>
           )}
+          <ThreadsPostTypeSelector
+            selected={request.postType}
+            onChange={postType => patchRequest({ postType })}
+            linkUrl={request.linkUrl}
+            onLinkUrlChange={linkUrl => patchRequest({ linkUrl })}
+          />
           <SourceInputPanel
             sourceType={request.sourceType as 'url' | 'text' | 'upload' | 'clout_capture'}
             sourceContent={request.sourceContent}
@@ -265,33 +296,33 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
   }
 
   // result state — one recommended anchor; alternates on demand.
-  const anchor = variations[0]
   return (
     <div className="flex h-full min-h-0">
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         <div className="flex items-center justify-end">
           <button
             type="button"
-            onClick={() => { setState('setup'); setVariations([]); setSavedVariationIds([]); setAlternates([]); setAlternatesState('idle') }}
+            onClick={() => { setState('setup'); setVariation(null); setSavedOutputId(null) }}
             className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
           >
             ← Start over
           </button>
         </div>
 
-        {anchor && (
+        {variation && (
           <ThreadsVariationCard
-            key={anchor.id}
-            variation={anchor}
-            onChange={updated => handleVariationChange(0, updated)}
-            initialOutputId={savedVariationIds[0] ?? null}
+            key={variation.id}
+            variation={variation}
+            onChange={setVariation}
+            initialOutputId={savedOutputId}
             threadsChannelId={threadsChannelId}
             channel={threadsChannel}
+            campaignId={request.campaignId ?? null}
           />
         )}
 
         {/* Secondary action — below the anchor, never above it */}
-        {anchor && alternatesState !== 'shown' && (
+        {variation && alternatesState !== 'shown' && (
           <div className="space-y-2">
             <button
               type="button"
@@ -305,17 +336,18 @@ export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspa
           </div>
         )}
 
-        {/* Alternate angles — subordinate, collapsed by default */}
+        {/* Alternate angles — subordinate, collapsed by default, never auto-saved */}
         <AlternateAnglesList
           alternates={alternates}
           getTitle={v => v.campaignName || v.label}
           renderCard={(v, i) => (
             <ThreadsVariationCard
               variation={v}
-              onChange={updated => handleAlternateChange(i, updated)}
+              onChange={updated => setAlternates(prev => prev.map((a, idx) => (idx === i ? updated : a)))}
               initialOutputId={null}
               threadsChannelId={threadsChannelId}
               channel={threadsChannel}
+              campaignId={request.campaignId ?? null}
             />
           )}
         />

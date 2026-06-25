@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
-import type { ThreadsGenerationRequest, ThreadsAudience } from '@/lib/threads/types'
+import type { ThreadsGenerationRequest, ThreadsAudience, ThreadsAngle } from '@/lib/threads/types'
+import { CampaignSelect } from '@/components/create/CampaignSelect'
 
 interface ThreadsStrategyPanelProps {
   values: Partial<ThreadsGenerationRequest>
@@ -56,6 +57,23 @@ const AUDIENCES: { value: ThreadsAudience; label: string }[] = [
   { value: 'engineers',       label: 'Engineers' },
   { value: 'investors',       label: 'Investors' },
   { value: 'general_audience', label: 'General Audience' },
+]
+
+// 'auto' is UI-only — converted to undefined (model picks the strongest angle)
+// before patching the request.
+type NarrativeStyleValue = ThreadsAngle | 'auto'
+
+const NARRATIVE_STYLES: { value: NarrativeStyleValue; label: string }[] = [
+  { value: 'auto',                 label: 'Auto' },
+  { value: 'personal_observation', label: 'Observation' },
+  { value: 'contrarian_take',      label: 'Contrarian' },
+  { value: 'quiet_insight',        label: 'Insight' },
+  { value: 'open_question',        label: 'Question' },
+]
+
+const CTA_OPTIONS = [
+  'No CTA', 'Read more', 'Visit website', 'Book a call', 'Download resource',
+  'Join waitlist', 'Subscribe', 'Learn more', 'Contact us',
 ]
 
 export function ThreadsStrategyPanel({
@@ -138,6 +156,70 @@ export function ThreadsStrategyPanel({
               className="mt-2 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
             />
           )}
+        </div>
+
+        {/* Narrative Style — a single selected angle (Auto lets the model pick) */}
+        <div>
+          <p className={sectionLabel}>Narrative Style</p>
+          <div className="flex flex-wrap gap-2">
+            {NARRATIVE_STYLES.map(item => {
+              const current: NarrativeStyleValue = values.narrativeStyle ?? 'auto'
+              return (
+                <Pill
+                  key={item.value}
+                  selected={current === item.value}
+                  onClick={() => !readOnly && onChange({ narrativeStyle: item.value === 'auto' ? undefined : item.value })}
+                  disabled={readOnly}
+                >
+                  {item.label}
+                </Pill>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* CTA — intent, kept soft for Threads */}
+        <div>
+          <p className={sectionLabel}>Call to Action</p>
+          <div className="flex flex-wrap gap-2">
+            {CTA_OPTIONS.map(opt => (
+              <Pill
+                key={opt}
+                selected={(values.cta ?? 'No CTA') === opt}
+                onClick={() => !readOnly && onChange({ cta: opt })}
+                disabled={readOnly}
+              >
+                {opt}
+              </Pill>
+            ))}
+            <Pill
+              selected={values.cta !== undefined && !CTA_OPTIONS.includes(values.cta)}
+              onClick={() => !readOnly && onChange({ cta: '' })}
+              disabled={readOnly}
+            >
+              Custom…
+            </Pill>
+          </div>
+          {values.cta !== undefined && !CTA_OPTIONS.includes(values.cta) && (
+            <input
+              type="text"
+              value={values.cta}
+              onChange={e => !readOnly && onChange({ cta: e.target.value })}
+              placeholder="e.g. Try the beta"
+              disabled={readOnly}
+              className="mt-2 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
+            />
+          )}
+        </div>
+
+        {/* Campaign — optional attribution */}
+        <div>
+          <p className={sectionLabel}>Campaign</p>
+          <CampaignSelect
+            value={values.campaignId ?? null}
+            onChange={id => !readOnly && onChange({ campaignId: id })}
+            disabled={readOnly}
+          />
         </div>
 
         {/* Advanced toggle — only shows when lenses exist */}

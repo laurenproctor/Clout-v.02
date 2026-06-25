@@ -139,11 +139,56 @@ function buildAlternatesSystemPrompt(ctx: ThreadsPromptContext): string {
   return lines.join('\n')
 }
 
+const ANGLE_DESCRIPTIONS: Record<ThreadsGenerationRequest['narrativeStyle'] & string, string> = {
+  personal_observation: 'a first-person observation. Specific, grounded, quietly confident.',
+  contrarian_take: 'challenges a widely-held belief. Earned, not edgy for shock value.',
+  quiet_insight: 'a slow-burn observation that rewards reading. Understated, precise.',
+  open_question: 'an open question that invites genuine reflection. End on the question.',
+}
+
+// Post-type framing. 'single' keeps the default behavior; image/video write a
+// caption that complements a visual without pretending the media exists; link
+// builds copy around the source URL without fabricating a preview card.
+function postTypeDirective(request: ThreadsGenerationRequest): string[] {
+  switch (request.postType) {
+    case 'image':
+    case 'video':
+      return [
+        `This post accompanies a ${request.postType}. Write a caption-style post that complements a visual the reader will see alongside it.`,
+        `Do not describe the ${request.postType} as if you can see it, and do not narrate "in this image/video".`,
+      ]
+    case 'link':
+      return [
+        `This is a link post. Write copy that frames the linked source and earns the click.`,
+        `Surface the URL naturally inline or at the end — do not fabricate a link-preview card, title, or description.`,
+      ]
+    default:
+      return []
+  }
+}
+
+// CTA is treated as intent, not literal copy: gesture toward it softly, never
+// append the label verbatim, and respect the platform's high CTA resistance.
+function ctaDirective(cta?: string): string[] {
+  if (!cta || cta === 'No CTA') {
+    return [`Do not include any call to action — let the post end on open tension, not a pitch.`]
+  }
+  return [
+    `Soft CTA intent: "${cta}". Treat this as intent, not literal text — do not append "${cta}" verbatim.`,
+    `End with a quiet, Threads-native phrasing that gestures toward this intent. Avoid salesy or direct-response endings; Threads readers resist overt CTAs.`,
+  ]
+}
+
 function buildUserMessage(request: ThreadsGenerationRequest): string {
   const audience =
     request.audience === 'custom' && request.customAudience
       ? request.customAudience
       : request.audience
+
+  // Link posts carry the destination in linkUrl; route it through the same
+  // "source URL" channel the scraper/anchor already understand.
+  const effectiveSourceUrl =
+    request.sourceUrl ?? (request.postType === 'link' ? request.linkUrl : undefined)
 
   const lines = [
     `## Post Brief`,
@@ -156,13 +201,13 @@ function buildUserMessage(request: ThreadsGenerationRequest): string {
     ``,
   ]
 
-  if (request.sourceUrl) {
+  if (effectiveSourceUrl) {
     lines.push(
       `## Source URL`,
       ``,
-      request.sourceUrl,
+      effectiveSourceUrl,
       ``,
-      `Include the source URL at the end of each variation.`,
+      `Include the source URL in the post.`,
       ``,
     )
   }
@@ -172,12 +217,29 @@ function buildUserMessage(request: ThreadsGenerationRequest): string {
     ``,
     `Write ONE recommended Threads post — the single strongest version for this brief. Do not produce multiple variations.`,
     ``,
-    `Choose the angle that will perform best for this source and audience (pick exactly one, whichever is strongest):`,
-    `- **personal_observation** — a first-person observation. Specific, grounded, quietly confident.`,
-    `- **contrarian_take** — challenges a widely-held belief. Earned, not edgy for shock value.`,
-    `- **quiet_insight** — a slow-burn observation that rewards reading. Understated, precise.`,
-    `- **open_question** — an open question that invites genuine reflection. End on the question.`,
-    ``,
+  )
+
+  // Narrative style: honor an explicit selection, otherwise let the model pick.
+  const chosenAngle = request.narrativeStyle
+  if (chosenAngle) {
+    lines.push(
+      `Write the post in this angle specifically — ${chosenAngle}: ${ANGLE_DESCRIPTIONS[chosenAngle]}`,
+      ``,
+    )
+  } else {
+    lines.push(
+      `Choose the angle that will perform best for this source and audience (pick exactly one, whichever is strongest):`,
+      ...(Object.entries(ANGLE_DESCRIPTIONS).map(([k, v]) => `- **${k}** — ${v}`)),
+      ``,
+    )
+  }
+
+  const postType = postTypeDirective(request)
+  if (postType.length > 0) lines.push(...postType, ``)
+
+  lines.push(...ctaDirective(request.cta), ``)
+
+  lines.push(
     `Return it as a one-element "variations" array. The post must include:`,
     `- label: "Recommended"`,
     `- campaignName: a compelling, specific headline (8–12 words) describing the post — used as the studio title. Do not use generic labels.`,

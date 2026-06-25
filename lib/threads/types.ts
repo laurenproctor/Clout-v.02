@@ -10,6 +10,11 @@ export type ThreadsAudience =
   | 'founders' | 'marketers' | 'operators' | 'engineers'
   | 'investors' | 'general_audience' | 'custom'
 
+// Selectable post types. 'thread' is intentionally excluded — it surfaces only as
+// a disabled "Coming Soon" card (see lib/threads/postTypes.ts) until multi-post
+// generation, preview, and publishing support exist.
+export type ThreadsPostType = 'single' | 'image' | 'video' | 'link'
+
 export type ThreadsWorkspaceState = 'setup' | 'generating' | 'result'
 
 export interface ThreadsGenerationRequest {
@@ -19,6 +24,14 @@ export interface ThreadsGenerationRequest {
   audience: ThreadsAudience
   customAudience?: string
   lensIds: string[]
+  postType?: ThreadsPostType
+  // undefined = "Auto" (the model picks the strongest angle). The UI holds
+  // `ThreadsAngle | 'auto'` and converts 'auto' → undefined before calling the API,
+  // so undefined never doubles as "uninitialized".
+  narrativeStyle?: ThreadsAngle
+  cta?: string
+  campaignId?: string | null
+  linkUrl?: string
 }
 
 // Forward-compatible variation shape — only primaryText used today;
@@ -33,4 +46,9 @@ export interface ThreadsVariation {
   angle: ThreadsAngle
   openingLine: string
   hashtag: string | null  // 0 or 1 only
+  // Carried through the draft lifecycle (optional, forward-compatible).
+  postType?: ThreadsPostType
+  cta?: string
+  linkUrl?: string
+  selectedVisualAssetId?: string | null
 }
