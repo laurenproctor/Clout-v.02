@@ -17,7 +17,7 @@ export interface RequestVisualBody {
   deriveOverlay?: boolean
   /** Constrained flag → server derives `purpose` (idempotency). Never send `purpose` directly. */
   autoLinkedInImagePost?: boolean
-  colorScheme?: 'light' | 'dark'
+  colorScheme?: 'light' | 'dark' | 'auto'
   includeLogo?: boolean
   textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }

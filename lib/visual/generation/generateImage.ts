@@ -381,13 +381,16 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     } catch { /* fall through — upload will fetch independently */ }
   }
 
-  // Score readability from buffer before upload (no extra network request)
+  // Score readability from buffer before upload (no extra network request).
+  // We also keep the text-zone brightness to auto-pick the overlay color scheme.
   let readabilityRating: string | null = null
+  let textZoneBrightness: number | null = null
   if (imageBuffer && hasOverlayContent && backgroundMode === 'generated') {
     const activeZone = templateSpec?.compositionZone ?? 'bottom-left'
     try {
       const score = await scoreReadabilityLocal(imageBuffer, activeZone)
       readabilityRating = score.rating
+      textZoneBrightness = score.brightness
     } catch { /* non-fatal — generation succeeds without a score */ }
   }
 
@@ -462,7 +465,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         const overlayBorderRadius = typeof overlayBrandRaw?.styleTrait_borderRadius === 'string'
           ? overlayBrandRaw.styleTrait_borderRadius
           : undefined
-        const isLightScheme = overlayParams.colorScheme === 'light'
+        // Auto color scheme: pick from the background's text-zone luminance so text
+        // always contrasts. Bright zone → light scheme (dark text); dark zone → dark
+        // scheme (light text). Falls back to the requested colorScheme when brightness
+        // is unavailable (e.g. non-generated background).
+        const isLightScheme =
+          overlayParams.autoColorScheme && textZoneBrightness != null
+            ? textZoneBrightness >= 0.5
+            : overlayParams.colorScheme === 'light'
         const brandTokens = buildBrandTokens(
           {
             primaryColor:   isLightScheme ? '#FFFFFF' : (overlayParams.primaryColor ?? '#1A1A1A'),
@@ -491,7 +501,13 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         // the screenshot before the background/logo has loaded. Embedding as data URIs
         // avoids the race for both renderers.
         let renderBackgroundUrl: string | undefined = upload?.publicUrl
-        let renderLogoUrl: string | undefined = overlayParams.logoUrl
+        // Auto scheme picks the matching logo variant: dark text (light scheme) →
+        // dark logo; light text (dark scheme) → light logo. Falls back to logoUrl.
+        let renderLogoUrl: string | undefined = overlayParams.autoColorScheme
+          ? (isLightScheme
+              ? (overlayParams.logoUrlDark ?? overlayParams.logoUrl)
+              : (overlayParams.logoUrlLight ?? overlayParams.logoUrl))
+          : overlayParams.logoUrl
 
         if (upload?.publicUrl) {
           if (generatedProviderUrl?.startsWith('data:')) {

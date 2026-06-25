@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     overlayQuote?:            string
     overlayAttribution?:      string
     includeLogo?:             boolean
-    colorScheme?:             'light' | 'dark'
+    colorScheme?:             'light' | 'dark' | 'auto'
     overlayStrength?:         'subtle' | 'balanced' | 'strong'
     textShadow?:              'none' | 'light' | 'medium' | 'strong'
     deriveOverlay?:           boolean
@@ -268,9 +268,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Dark scheme needs a light logo (readable on dark bg); light scheme needs a dark logo.
-    const resolvedLogoUrl = colorScheme === 'dark'
-      ? preferSvg(brand?.logo_url_light, brand?.logo_url)
-      : preferSvg(brand?.logo_url_dark, brand?.logo_url)
+    const logoUrlLight = preferSvg(brand?.logo_url_light, brand?.logo_url)  // for dark backgrounds
+    const logoUrlDark  = preferSvg(brand?.logo_url_dark,  brand?.logo_url)  // for light backgrounds
+    const resolvedLogoUrl = colorScheme === 'dark' ? logoUrlLight : logoUrlDark
 
     // Apply brand text capitalization to overlay content (not attribution — that's a name/credit line).
     const textCap = (brand?.style_traits as Record<string, string> | null)?.text_capitalization
@@ -288,6 +288,8 @@ export async function POST(req: NextRequest) {
       quote:          cap(overlayQuote),
       attribution:    overlayAttribution,
       logoUrl:        includeLogo ? resolvedLogoUrl : undefined,
+      logoUrlLight:   includeLogo ? logoUrlLight : undefined,
+      logoUrlDark:    includeLogo ? logoUrlDark  : undefined,
       fontHeading:    brand?.font_heading    ?? undefined,
       fontBody:       brand?.font_body       ?? undefined,
       fontHeadingUrl: brand?.font_heading_url ?? undefined,
@@ -295,7 +297,10 @@ export async function POST(req: NextRequest) {
       primaryColor:   brand?.primary_color   ?? undefined,
       secondaryColor: brand?.secondary_color ?? undefined,
       accentColor:    brand?.accent_color    ?? undefined,
-      colorScheme:    colorScheme ?? 'light',
+      // 'auto' → renderer derives scheme from background luminance; keep 'dark' as the
+      // fallback used when brightness can't be measured.
+      autoColorScheme: colorScheme === 'auto',
+      colorScheme:    colorScheme === 'auto' ? 'dark' : (colorScheme ?? 'light'),
       overlayStrength: overlayStrength,
       overlayOpacity:  overlayOpacity,
       textShadow:      textShadow ?? undefined,
