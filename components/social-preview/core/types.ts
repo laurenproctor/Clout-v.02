@@ -11,8 +11,13 @@
 /** Visual scale of the preview. */
 export type PreviewMode = 'full' | 'compact' | 'mini'
 
-/** Content behavior — distinct from visual scale. `mini` strips/clamps chrome. */
-export type PreviewDensity = 'standard' | 'mini'
+/**
+ * Content behavior — distinct from visual scale (`mode`).
+ *  - `standard`: char-based "see more" truncation (compact previews / live edit).
+ *  - `mini`: strips chrome and hard-clamps text to a couple of lines (thumbnails).
+ *  - `expanded`: renders the complete body — no truncation, no "see more" (full mode).
+ */
+export type PreviewDensity = 'standard' | 'mini' | 'expanded'
 
 /** Each platform card uses its own fixed palette, NOT Clout app tokens. */
 export type PreviewTheme = 'light' | 'dark'

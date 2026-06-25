@@ -55,6 +55,8 @@ export interface SocialPreviewProps {
   density?: RendererProps['density']
   /** When provided, renders an expand affordance (compact mode) that calls this. */
   onExpand?: () => void
+  /** Scale the card down to fit its container width (see PreviewFrame). */
+  fit?: boolean
   className?: string
 }
 
@@ -64,6 +66,7 @@ export function SocialPreview({
   theme = 'light',
   density,
   onExpand,
+  fit = false,
   className,
 }: SocialPreviewProps) {
   const spec = getSpec(data.platform)
@@ -74,8 +77,17 @@ export function SocialPreview({
   const showExpand = onExpand && mode !== 'full'
 
   return (
-    <div className={className} style={{ position: 'relative', display: 'inline-block' }}>
-      <PreviewFrame baseWidth={spec.baseWidth} scale={modeCfg.scale}>
+    <div
+      className={className}
+      style={{
+        position: 'relative',
+        // `fit` needs a resolvable width to measure against, so the wrapper must
+        // be block-level (full column width) rather than shrink-to-fit.
+        display: fit ? 'block' : 'inline-block',
+        width: fit ? '100%' : undefined,
+      }}
+    >
+      <PreviewFrame baseWidth={spec.baseWidth} scale={modeCfg.scale} fit={fit}>
         <Renderer data={data} theme={theme} density={resolvedDensity} />
       </PreviewFrame>
 

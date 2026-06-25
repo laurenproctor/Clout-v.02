@@ -32,6 +32,11 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
   const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
   const [scheduling, setScheduling] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
+  // Preview-first card: the full LinkedIn preview is the canonical read view.
+  // The editor controls (body textarea, transforms, visual, hashtags, …) only
+  // appear when editing. State lives in `variation` (lifted via onChange), so
+  // it survives toggling this panel.
+  const [editing, setEditing] = useState(false)
 
   const previewData = useMemo(
     () =>
@@ -155,10 +160,7 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
 
   return (
     <div className="border border-zinc-200 rounded-xl p-5 space-y-5 bg-white">
-      {/* Live preview */}
-      <SocialPreviewInline data={previewData} outputId={savedOutputId ?? null} label="Preview" />
-
-      {/* A. Header row */}
+      {/* A. Header / metadata — title, subtitle, visual chip, top actions */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -171,7 +173,14 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
             )}
           </div>
           <div className="flex items-center gap-0.5">
-            <button type="button" className={actionBtn}>Edit</button>
+            <button
+              type="button"
+              className={`${actionBtn} ${editing ? 'text-zinc-800 bg-zinc-100' : ''}`}
+              aria-pressed={editing}
+              onClick={() => setEditing(v => !v)}
+            >
+              {editing ? 'Done' : 'Edit'}
+            </button>
             <button type="button" className={actionBtn}>Duplicate</button>
             <button type="button" className={actionBtn}>Rewrite</button>
           </div>
@@ -181,6 +190,35 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
             {variation.campaignName}
           </p>
         )}
+      </div>
+
+      {/* B. Adaptations applied (above the preview) */}
+      {variation.transformationDelta.changes.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-zinc-400 mb-2">Adaptations applied</p>
+          <div className="flex flex-wrap gap-1.5">
+            {variation.transformationDelta.changes.map((change, i) => (
+              <span
+                key={i}
+                className="bg-zinc-50 border border-zinc-100 text-zinc-500 text-xs rounded-full px-2.5 py-1"
+              >
+                {change}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* C. Canonical full LinkedIn preview — contains the complete post */}
+      <SocialPreviewInline
+        data={previewData}
+        outputId={savedOutputId ?? null}
+        mode="full"
+        fit
+      />
+
+      {/* D. Action controls */}
+      <div className="space-y-1">
         <div className="flex justify-end gap-0.5 items-center">
           {saveState === 'saved' && savedOutputId && (
             <span className="flex items-center gap-1 text-[10px] text-green-600 mr-1">
@@ -257,57 +295,39 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         )}
       </div>
 
-      {/* B. TransformationDelta strip */}
-      {variation.transformationDelta.changes.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-zinc-400 mb-2">Adaptations applied</p>
-          <div className="flex flex-wrap gap-1.5">
-            {variation.transformationDelta.changes.map((change, i) => (
-              <span
-                key={i}
-                className="bg-zinc-50 border border-zinc-100 text-zinc-500 text-xs rounded-full px-2.5 py-1"
-              >
-                {change}
-              </span>
-            ))}
-          </div>
+      {/* E. Edit panel — only while editing; preview above stays visible & live */}
+      {editing && (
+        <div className="space-y-5 border-t border-zinc-100 pt-5">
+          <PostEditor
+            body={variation.body}
+            onChange={(body) => onChange({ ...variation, body })}
+          />
+
+          <VisualGenerator
+            content={variation.body}
+            platform="linkedin"
+            aspectRatio="landscape"
+            onAttach={handleAttach}
+          />
+
+          <HookSuggestions hooks={variation.hooks} />
+
+          <HashtagChips
+            hashtags={variation.hashtags}
+            onChange={(hashtags) => onChange({ ...variation, hashtags })}
+          />
+
+          <MentionTags
+            mentions={variation.mentions}
+            onChange={(mentions) => onChange({ ...variation, mentions })}
+          />
+
+          <CTASuggestions
+            suggestions={variation.ctaSuggestions}
+            onSelect={(text) => onChange({ ...variation, body: variation.body + '\n\n' + text })}
+          />
         </div>
       )}
-
-      {/* C. PostEditor */}
-      <PostEditor
-        body={variation.body}
-        onChange={(body) => onChange({ ...variation, body })}
-      />
-
-      {/* D. Visual */}
-      <VisualGenerator
-        content={variation.body}
-        platform="linkedin"
-        aspectRatio="landscape"
-        onAttach={handleAttach}
-      />
-
-      {/* E. HookSuggestions */}
-      <HookSuggestions hooks={variation.hooks} />
-
-      {/* F. HashtagChips */}
-      <HashtagChips
-        hashtags={variation.hashtags}
-        onChange={(hashtags) => onChange({ ...variation, hashtags })}
-      />
-
-      {/* G. MentionTags */}
-      <MentionTags
-        mentions={variation.mentions}
-        onChange={(mentions) => onChange({ ...variation, mentions })}
-      />
-
-      {/* H. CTASuggestions */}
-      <CTASuggestions
-        suggestions={variation.ctaSuggestions}
-        onSelect={(text) => onChange({ ...variation, body: variation.body + '\n\n' + text })}
-      />
     </div>
   )
 }

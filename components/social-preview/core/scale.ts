@@ -14,7 +14,8 @@ export interface ModeConfig {
 }
 
 export const PREVIEW_MODE_SCALE: Record<PreviewMode, ModeConfig> = {
-  full:    { scale: 1,    density: 'standard' },
+  // `full` renders the complete post (no truncation) — it is the canonical renderer.
+  full:    { scale: 1,    density: 'expanded' },
   compact: { scale: 0.62, density: 'standard' },
   mini:    { scale: 0.28, density: 'mini' },
 }

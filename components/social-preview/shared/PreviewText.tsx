@@ -103,8 +103,14 @@ export function PreviewText({
     )
   }
 
+  // Char-based "see more" truncation applies to `standard` density only. `mini`
+  // is handled by the early line-clamp branch above; `expanded` renders the full
+  // body (no truncation, no "see more").
   const shouldTruncate =
-    seeMoreAfterChars != null && !expanded && body.length > seeMoreAfterChars
+    density === 'standard' &&
+    seeMoreAfterChars != null &&
+    !expanded &&
+    body.length > seeMoreAfterChars
   const shown = shouldTruncate ? body.slice(0, seeMoreAfterChars).trimEnd() : body
 
   return (

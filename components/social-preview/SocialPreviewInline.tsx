@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import type { PreviewData } from './core/types'
+import type { PreviewData, PreviewMode } from './core/types'
 import { SocialPreview } from './SocialPreview'
 import { SocialPreviewModal } from './SocialPreviewModal'
 import { usePreviewAssets } from './hooks/usePreviewAssets'
@@ -26,6 +26,10 @@ interface SocialPreviewInlineProps {
   data: PreviewData
   outputId?: string | null
   label?: string
+  /** Visual scale of the preview. Defaults to `compact` (existing callers). */
+  mode?: PreviewMode
+  /** Scale the card to fit its container width (used with `mode="full"`). */
+  fit?: boolean
   className?: string
 }
 
@@ -33,9 +37,13 @@ export function SocialPreviewInline({
   data,
   outputId,
   label,
+  mode = 'compact',
+  fit = false,
   className,
 }: SocialPreviewInlineProps) {
   const [open, setOpen] = React.useState(false)
+  // `full` mode already shows everything — no expand-to-modal affordance.
+  const isFull = mode === 'full'
 
   // Optional, non-blocking enrichment. No-ops when outputId is null.
   const fetched = usePreviewAssets(outputId ?? null, data.platform)
@@ -65,16 +73,27 @@ export function SocialPreviewInline({
           {label}
         </span>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+      <div
+        style={{
+          display: 'flex',
+          // Full preview fills the column (left-aligned, like a real feed);
+          // compact/mini thumbnails stay centered as before.
+          justifyContent: isFull ? 'flex-start' : 'center',
+          width: '100%',
+        }}
+      >
         <SocialPreview
           data={mergedPreviewData}
-          mode="compact"
+          mode={mode}
+          fit={fit}
           theme="light"
-          onExpand={() => setOpen(true)}
+          onExpand={isFull ? undefined : () => setOpen(true)}
         />
       </div>
 
-      <SocialPreviewModal data={mergedPreviewData} open={open} onOpenChange={setOpen} />
+      {!isFull && (
+        <SocialPreviewModal data={mergedPreviewData} open={open} onOpenChange={setOpen} />
+      )}
     </div>
   )
 }
