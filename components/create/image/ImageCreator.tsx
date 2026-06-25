@@ -82,7 +82,7 @@ const ASPECT_LABELS: Record<AspectRatio, string> = {
   portrait:  'Portrait',
 }
 
-export function ImageCreator({ workspaceSlug, logoUrl, brandColors: _brandColors }: ImageCreatorProps) {
+export function ImageCreator({ workspaceSlug, logoUrl }: ImageCreatorProps) {
   const [imageStyle, setImageStyle] = useState<ImageStyle>('headline-overlay')
   const [quoteText, setQuoteText] = useState('')
   const [attribution, setAttribution] = useState('')

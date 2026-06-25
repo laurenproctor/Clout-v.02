@@ -40,7 +40,7 @@ export function TastePreviewPanel({ output }: TastePreviewPanelProps) {
       {output.strongestLine && (
         <section className="space-y-2 border-l-2 border-foreground pl-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Strongest Line</p>
-          <p className="text-sm">"{output.strongestLine}"</p>
+          <p className="text-sm">&ldquo;{output.strongestLine}&rdquo;</p>
         </section>
       )}
 
@@ -51,7 +51,7 @@ export function TastePreviewPanel({ output }: TastePreviewPanelProps) {
           <div className="space-y-3">
             {output.tasteAnchors.map((anchor, i) => (
               <div key={i} className="border border-border rounded-sm p-4 space-y-2">
-                <p className="text-sm font-medium">"{anchor.element}"</p>
+                <p className="text-sm font-medium">&ldquo;{anchor.element}&rdquo;</p>
                 <p className="text-sm text-muted-foreground">{anchor.reasonPreserve}</p>
                 <div className="flex items-center gap-2 pt-1">
                   <div className="flex-1 bg-muted rounded-full h-px">
@@ -105,7 +105,7 @@ export function TastePreviewPanel({ output }: TastePreviewPanelProps) {
           <div className="space-y-3">
             {output.culturalPrecision.map((p, i) => (
               <div key={i} className="border border-border rounded-sm p-4 space-y-2">
-                <p className="text-sm font-medium">"{p.signal}"</p>
+                <p className="text-sm font-medium">&ldquo;{p.signal}&rdquo;</p>
                 <p className="text-sm text-muted-foreground">{p.explanation}</p>
                 <div className="flex items-center gap-2 pt-1">
                   <p className="text-xs text-muted-foreground">specificity</p>

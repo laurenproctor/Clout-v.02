@@ -6,6 +6,7 @@ import type { ConversationProvider, NormalizedItem } from './types'
 export class GenericArticleProvider implements ConversationProvider {
   sourceType = 'generic' as const
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- implements ConversationProvider.canHandle signature
   canHandle(_url: string): boolean { return true }
 
   async fetch(sourceUrl: string): Promise<NormalizedItem[]> {

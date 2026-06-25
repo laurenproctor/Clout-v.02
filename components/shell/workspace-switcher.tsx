@@ -34,6 +34,7 @@ function WorkspaceAvatar({ name, brandColor, avatarUrl, size = 24 }: {
 
   if (avatarUrl) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- remote avatar from arbitrary provider domains; not a candidate for next/image optimization
       <img
         src={avatarUrl}
         alt={name}

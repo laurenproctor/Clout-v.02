@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Mic, Square } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
 import { createClient } from '@/lib/supabase/client'
 

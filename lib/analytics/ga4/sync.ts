@@ -3,6 +3,17 @@ import { getAnalyticsProperty } from '@/lib/analytics/connections'
 import { fetchSessionsReport } from './queries'
 import { transformGA4Rows } from './transforms'
 
+// analytics_events is a post-migration table (with normalized _n columns) absent from
+// generated Supabase types, so the typed client cannot resolve `.from()` for it.
+interface UntypedUpsertClient {
+  from(table: string): {
+    upsert(
+      values: Record<string, unknown>[],
+      opts: { onConflict?: string; ignoreDuplicates?: boolean },
+    ): PromiseLike<{ error: { message: string } | null }>
+  }
+}
+
 export async function syncGA4ForWorkspace(workspaceId: string, days = 30): Promise<{ rows: number }> {
   const prop = await getAnalyticsProperty(workspaceId, 'ga4_property')
   if (!prop) return { rows: 0 }
@@ -15,12 +26,12 @@ export async function syncGA4ForWorkspace(workspaceId: string, days = 30): Promi
 
   if (inserts.length === 0) return { rows: 0 }
 
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedUpsertClient
   // Upsert on the normalized generated columns (_n). These columns exist in DB
   // but not in types/db.ts yet — the onConflict string is correct for the schema.
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('analytics_events')
-    .upsert(inserts, {
+    .upsert(inserts as unknown as Record<string, unknown>[], {
       onConflict: 'workspace_id,property_id,utm_source_n,utm_medium_n,utm_campaign_n,utm_content_n,event_date',
       ignoreDuplicates: false,
     })

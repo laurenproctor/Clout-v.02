@@ -608,7 +608,7 @@ export default function OnboardingPage() {
               />
               <div>
                 <label className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-                  What's one belief or perspective you hold strongly?
+                  What&rsquo;s one belief or perspective you hold strongly?
                 </label>
                 <textarea
                   autoFocus

@@ -28,7 +28,6 @@ export function VisualPreview({
   url,
   backgroundUrl,
   composedUrl,
-  templateId,
   aspectRatio,
   prompt,
   visualIntent,

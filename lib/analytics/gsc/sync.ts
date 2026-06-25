@@ -3,6 +3,17 @@ import { getAnalyticsProperty } from '@/lib/analytics/connections'
 import { fetchSearchAnalytics } from './queries'
 import { transformGSCRows } from './transforms'
 
+// search_console_metrics is a post-migration table absent from generated Supabase types,
+// so the typed client cannot resolve `.from()` for it.
+interface UntypedUpsertClient {
+  from(table: string): {
+    upsert(
+      values: Record<string, unknown>[],
+      opts: { ignoreDuplicates?: boolean },
+    ): PromiseLike<{ error: { message: string } | null }>
+  }
+}
+
 export async function syncGSCForWorkspace(workspaceId: string, days = 28): Promise<{ rows: number }> {
   const prop = await getAnalyticsProperty(workspaceId, 'gsc_site')
   if (!prop) return { rows: 0 }
@@ -16,11 +27,11 @@ export async function syncGSCForWorkspace(workspaceId: string, days = 28): Promi
 
   if (inserts.length === 0) return { rows: 0 }
 
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedUpsertClient
   // search_console_metrics table exists in DB but not yet in types/db.ts
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('search_console_metrics')
-    .upsert(inserts, { ignoreDuplicates: true })
+    .upsert(inserts as unknown as Record<string, unknown>[], { ignoreDuplicates: true })
 
   if (error) throw new Error(`GSC sync failed: ${error.message}`)
   return { rows: inserts.length }

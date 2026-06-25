@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import type {
   ConversationSource, ConversationItem, ConversationOpportunity,
   ConversationResponse, ConversationTheme, ConversationFollowedAuthor,
-  ConversationFollowedPublication, ConversationSourceType, ConversationContentType,
+  ConversationSourceType, ConversationContentType,
   ConversationOpportunityType, ConversationOpportunityStatus, ConversationPreferences, DomainResult,
 } from '@/types/domain'
 

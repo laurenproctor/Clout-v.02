@@ -4,6 +4,26 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const ALG = 'aes-256-gcm'
 
+// The analytics_connections / analytics_properties tables were added in a migration
+// and are not yet in the generated Supabase types, so the typed client cannot resolve
+// `.from()` for them. This minimal surface narrows the escape-hatch cast below.
+interface UntypedResult {
+  data: Record<string, unknown> | null
+  error: { message: string } | null
+}
+interface UntypedQuery extends PromiseLike<UntypedResult> {
+  select(columns: string): UntypedQuery
+  insert(values: Record<string, unknown>): UntypedQuery
+  upsert(values: Record<string, unknown>, opts?: { onConflict?: string }): UntypedQuery
+  update(values: Record<string, unknown>): UntypedQuery
+  delete(): UntypedQuery
+  eq(column: string, value: unknown): UntypedQuery
+  single(): UntypedQuery
+}
+interface UntypedClient {
+  from(table: string): UntypedQuery
+}
+
 function getTokenSecret(): Buffer {
   const secret = process.env.ANALYTICS_TOKEN_SECRET
   const buf = secret ? Buffer.from(secret, 'utf8') : Buffer.alloc(0)
@@ -28,9 +48,9 @@ function decryptToken(ciphertext: string): string {
 
 export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc' | 'bing_wmt') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_connections table added in migration — not yet in generated types
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('analytics_connections')
     .select('*')
     .eq('workspace_id', workspaceId)
@@ -39,9 +59,9 @@ export async function getAnalyticsConnection(workspaceId: string, provider: 'ga4
   if (!data) return null
   return {
     ...data,
-    access_token: decryptToken(data.access_token),
-    refresh_token: data.refresh_token ? decryptToken(data.refresh_token) : null,
-  }
+    access_token: decryptToken(data.access_token as string),
+    refresh_token: data.refresh_token ? decryptToken(data.refresh_token as string) : null,
+  } as Record<string, unknown> & { access_token: string; refresh_token: string | null; expires_at?: number | null }
 }
 
 export async function upsertAnalyticsConnection(row: {
@@ -52,9 +72,9 @@ export async function upsertAnalyticsConnection(row: {
   expires_at: number | null
   connected_by: string
 }) {
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_connections table added in migration — not yet in generated types
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('analytics_connections')
     .upsert({
       ...row,
@@ -66,9 +86,9 @@ export async function upsertAnalyticsConnection(row: {
 }
 
 export async function deleteAnalyticsConnection(workspaceId: string, provider: 'ga4' | 'gsc' | 'bing_wmt') {
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_connections table added in migration — not yet in generated types
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('analytics_connections')
     .delete()
     .eq('workspace_id', workspaceId)
@@ -109,9 +129,9 @@ export async function getAccessToken(workspaceId: string, provider: 'ga4' | 'gsc
   }
   const newExpiresAt = now + data.expires_in
 
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_connections table added in migration — not yet in generated types
-  await (supabase as any)
+  await supabase
     .from('analytics_connections')
     .update({
       access_token: encryptToken(data.access_token),
@@ -131,22 +151,34 @@ export async function upsertAnalyticsProperty(row: {
   property_name: string | null
   metadata?: Record<string, unknown>
 }) {
-  const supabase = createServiceClient()
+  const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_properties table added in migration — not yet in generated types
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('analytics_properties')
     .upsert(row, { onConflict: 'workspace_id,property_type' })
   if (error) throw new Error(`Failed to save analytics property: ${error.message}`)
 }
 
-export async function getAnalyticsProperty(workspaceId: string, propertyType: 'ga4_property' | 'gsc_site' | 'bing_wmt_site') {
-  const supabase = createServiceClient()
+interface AnalyticsPropertyRow {
+  workspace_id: string
+  property_type: 'ga4_property' | 'gsc_site' | 'bing_wmt_site'
+  property_id: string
+  property_name: string | null
+  metadata: Record<string, unknown> | null
+  [key: string]: unknown
+}
+
+export async function getAnalyticsProperty(
+  workspaceId: string,
+  propertyType: 'ga4_property' | 'gsc_site' | 'bing_wmt_site',
+): Promise<AnalyticsPropertyRow | null> {
+  const supabase = createServiceClient() as unknown as UntypedClient
   // analytics_properties table added in migration — not yet in generated types
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('analytics_properties')
     .select('*')
     .eq('workspace_id', workspaceId)
     .eq('property_type', propertyType)
     .single()
-  return data
+  return (data as AnalyticsPropertyRow | null) ?? null
 }

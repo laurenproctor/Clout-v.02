@@ -22,10 +22,10 @@ const CarouselThumb = () => (
 
 const QuoteThumb = () => (
   <svg viewBox="0 0 60 44" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    <text x="6" y="18" fontSize="22" fill="currentColor" opacity="0.3" fontFamily="Georgia, serif">"</text>
+    <text x="6" y="18" fontSize="22" fill="currentColor" opacity="0.3" fontFamily="Georgia, serif">&ldquo;</text>
     <rect x="14" y="14" width="32" height="4" rx="1" fill="currentColor" opacity="0.7" />
     <rect x="18" y="21" width="24" height="4" rx="1" fill="currentColor" opacity="0.7" />
-    <text x="42" y="36" fontSize="22" fill="currentColor" opacity="0.3" fontFamily="Georgia, serif">"</text>
+    <text x="42" y="36" fontSize="22" fill="currentColor" opacity="0.3" fontFamily="Georgia, serif">&rdquo;</text>
   </svg>
 )
 

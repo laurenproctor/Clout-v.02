@@ -115,6 +115,7 @@ export const substackProvider: PublishingProvider = {
     }
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- implements PublishProvider.validateContent signature
   validateContent(article: CanonicalArticle, _opts: PublishOptions): ValidationResult {
     const errors: string[]   = []
     const warnings: string[] = []
@@ -130,6 +131,7 @@ export const substackProvider: PublishingProvider = {
     connection: ProviderConnection,
     article: CanonicalArticle,
     opts: PublishOptions,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- implements PublishProvider.publish signature
     _idempotencyKey: string,
   ): Promise<PublishResult> {
     const action = resolveIntendedAction(opts)

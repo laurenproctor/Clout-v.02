@@ -3,7 +3,6 @@
 import type { NarrativeArc } from '@/types/calendar'
 import { FunnelProgress } from './FunnelProgress'
 import { ConceptCard } from '@/components/calendar/grid/ConceptCard'
-import { cn } from '@/lib/utils'
 
 interface ArcBlockProps {
   arc: NarrativeArc

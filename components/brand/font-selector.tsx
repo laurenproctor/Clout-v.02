@@ -165,7 +165,7 @@ export function FontSelector({ label, value, customUrl, role, onChange, onUpload
               onClick={() => { injectGoogleFont(search.trim()); onChange(search.trim(), undefined); setSearch('') }}
               className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-left hover:bg-zinc-100 transition-colors"
             >
-              Use "<span style={{ fontFamily: `"${search.trim()}", sans-serif` }}>{search.trim()}</span>"
+              Use &ldquo;<span style={{ fontFamily: `"${search.trim()}", sans-serif` }}>{search.trim()}</span>&rdquo;
             </button>
           )}
           {value && !customUrl && (

@@ -1,6 +1,19 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { buildUTMParams } from './utm'
 
+// The typed schema has empty Relationships arrays, so the Supabase client cannot infer
+// the join shape on `outputs`; content_attribution is also a post-migration table absent
+// from generated types. This minimal surface narrows the escape-hatch cast below.
+interface UntypedQuery extends PromiseLike<{ data: Record<string, unknown> | null }> {
+  select(columns: string): UntypedQuery
+  upsert(values: Record<string, unknown>, opts?: { onConflict?: string }): UntypedQuery
+  eq(column: string, value: unknown): UntypedQuery
+  single(): UntypedQuery
+}
+interface UntypedClient {
+  from(table: string): UntypedQuery
+}
+
 interface OutputWithJoins {
   id: string
   workspace_id: string
@@ -20,7 +33,7 @@ export async function tagOutputWithAttribution(params: {
   // Look up output + channel platform + generation lens_id in one query.
   // Cast to any first because the typed schema has empty Relationships arrays,
   // so the Supabase client cannot infer the join shape.
-  const { data: output } = await (supabase as any)
+  const { data: output } = await (supabase as unknown as UntypedClient)
     .from('outputs')
     .select('id, workspace_id, generation_id, channel_id, generation_group_id, channels(platform), generations(lens_id, lenses(lens_type))')
     .eq('id', params.outputId)
@@ -41,7 +54,7 @@ export async function tagOutputWithAttribution(params: {
   })
 
   // Upsert to content_attribution (table from the analytics migration)
-  await (supabase as any)
+  await (supabase as unknown as UntypedClient)
     .from('content_attribution')
     .upsert({
       output_id: params.outputId,

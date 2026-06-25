@@ -4,7 +4,7 @@
 // Fallback: Satori path (existing, unchanged).
 
 import 'server-only'
-import { createElement, type ComponentType } from 'react'
+import { createElement, type FunctionComponent } from 'react'
 import type { TemplateSpec, TemplateProps, BrandTokens } from '../types/template'
 import { renderElementToPNG, type SatoriFont } from './satori'
 import { defaultRenderer } from './puppeteer'
@@ -29,19 +29,24 @@ export async function renderTemplate(
   fonts: SatoriFont[]
 ): Promise<Buffer> {
   if (PUPPETEER_ENABLED && spec.renderEngine === 'puppeteer') {
-    let component: ComponentType<any>
+    // Each Puppeteer card has distinct props; the runtime string switch selects the
+    // matching card for the current templateId, but TS can't correlate the union of
+    // disjoint card prop types with the templateId discriminant. We type the variable
+    // as a component receiving the exact props object passed at the call site below.
+    type CardProps = TemplateProps & { brand: BrandTokens; width: number; height: number }
+    let component: FunctionComponent<CardProps>
     switch (props.templateId) {
       case 'editorial-hero':
-        component = EditorialHeroCard
+        component = EditorialHeroCard as FunctionComponent<CardProps>
         break
       case 'quote-monolith':
-        component = QuoteCard
+        component = QuoteCard as FunctionComponent<CardProps>
         break
       case 'split-panel':
-        component = SplitPanelCard
+        component = SplitPanelCard as FunctionComponent<CardProps>
         break
       case 'upper-left':
-        component = UpperLeftCard
+        component = UpperLeftCard as FunctionComponent<CardProps>
         break
       default:
         throw new Error(`No Puppeteer template for templateId: ${(props as TemplateProps).templateId}`)

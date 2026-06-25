@@ -21,7 +21,7 @@ export function RestraintCard({ opportunity }: RestraintCardProps) {
       <span className="text-xs font-medium uppercase tracking-wide">
         {ISSUE_LABELS[opportunity.issue]}
       </span>
-      <p className="text-sm text-muted-foreground italic">"{opportunity.section}"</p>
+      <p className="text-sm text-muted-foreground italic">&ldquo;{opportunity.section}&rdquo;</p>
       <p className="text-sm">{opportunity.recommendation}</p>
     </div>
   )

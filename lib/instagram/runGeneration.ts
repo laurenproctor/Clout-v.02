@@ -6,7 +6,6 @@ import type {
   InstagramGenerationRequest,
   InstagramVariation,
   InstagramSlide,
-  ContentIntelligence,
   VisualPlan,
 } from './types'
 

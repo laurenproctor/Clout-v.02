@@ -41,7 +41,7 @@ function toOutput(row: Record<string, unknown>): Output {
   if (row.channels && typeof row.channels === 'object') {
     const channelRow = row.channels as Record<string, unknown>
     output.channels = {
-      platform: channelRow.platform as any,
+      platform: channelRow.platform as ChannelPlatform,
       label: (channelRow.label as string | null) ?? null,
     }
   }

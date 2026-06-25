@@ -68,6 +68,7 @@ function publishOptionsFor(intent: PublishIntent, output: Output): PublishOption
  */
 export async function publishSubstackOutput(
   output: Output,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- part of public signature, reserved for retry handling
   _opts?: { wasRetry?: boolean },
 ): Promise<{ postUrn: string; postUrl: string }> {
   // Universal idempotency guard — never re-publish an output that already has a provider id.

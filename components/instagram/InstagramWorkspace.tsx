@@ -43,7 +43,7 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
   const [strategyLoading, setStrategyLoading]         = useState(false)
   const [strategyFormat, setStrategyFormat]           = useState<Exclude<InstagramVisualFormat, 'let_clout_decide'> | null>(null)
   const [strategyRationale, setStrategyRationale]     = useState<string | null>(null)
-  const [acceptedFormat, setAcceptedFormat]           = useState<InstagramVisualFormat | null>(null)
+  const [, setAcceptedFormat]                         = useState<InstagramVisualFormat | null>(null)
 
   // Fetch Instagram channel for output association
   useEffect(() => {

@@ -2,7 +2,6 @@ import { createServiceClient } from '@/lib/supabase/service'
 import type {
   Workspace,
   WorkspaceMember,
-  CreateWorkspaceInput,
   UpdateWorkspaceInput,
   DomainResult,
   WorkspaceRole,
@@ -98,7 +97,8 @@ export async function updateProfile(params: {
   return { ok: true, data: undefined }
 }
 
-// Remaining stubs
+// Remaining stubs. Params are part of the public signature; unused until implemented.
+/* eslint-disable @typescript-eslint/no-unused-vars -- stub signatures, params used once implemented */
 export async function getWorkspaceById(id: string): Promise<DomainResult<Workspace>> {
   throw new Error('not implemented')
 }
@@ -117,3 +117,4 @@ export async function addWorkspaceMember(workspaceId: string, userId: string, ro
 export async function removeWorkspaceMember(workspaceId: string, userId: string): Promise<DomainResult<void>> {
   throw new Error('not implemented')
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */

@@ -74,14 +74,6 @@ export default async function KnowledgeTopicPage({ params }: PageProps) {
     {}
   )
 
-  const generateCtx = [
-    `Topic: ${topic.title}`,
-    `\nSummary: ${topic.summary}`,
-    `\nFrameworks: ${topic.frameworks.join(', ')}`,
-    `\nKey Thinkers: ${topic.thinkers.join(', ')}`,
-    `\nContent angles: ${topic.content_angles.join(', ')}`,
-  ].join('\n')
-
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 24px' }}>
 

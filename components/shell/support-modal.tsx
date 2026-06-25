@@ -181,7 +181,7 @@ export function SupportModal({ open, onClose, initialCategory }: SupportModalPro
               /* Book a call — no form */
               <div className="px-6 pb-6 space-y-4">
                 <p className="text-sm text-zinc-500 leading-relaxed">
-                  Pick a time that works for you. We'll talk through whatever you need — no agenda required.
+                  Pick a time that works for you. We&apos;ll talk through whatever you need — no agenda required.
                 </p>
                 <a
                   href={CALENDLY_URL}

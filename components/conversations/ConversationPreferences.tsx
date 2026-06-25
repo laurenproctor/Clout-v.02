@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import type { ConversationPreferences } from '@/types/domain'

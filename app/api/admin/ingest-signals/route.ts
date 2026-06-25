@@ -5,7 +5,6 @@ import {
   articleToSignalInsert,
   signalToCardInsert,
 } from '@/lib/newsdata/mapper'
-import type { FeedTab } from '@/types/feed'
 
 // Queries used for the concepts tab (universal, not user-topic-driven)
 const CONCEPT_QUERIES = [

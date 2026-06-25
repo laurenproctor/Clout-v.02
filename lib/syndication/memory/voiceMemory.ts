@@ -14,7 +14,9 @@ export interface PlatformVoiceMemory {
 }
 
 export async function getVoiceMemory(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stub signature, params used once implemented
   _workspaceId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stub signature, params used once implemented
   _platform: Platform,
 ): Promise<PlatformVoiceMemory | null> {
   return null

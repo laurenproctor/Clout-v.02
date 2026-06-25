@@ -71,7 +71,7 @@ export function CaptureComposer({ initialContent = '', initialMode = 'assistant'
   const [content, setContent] = useState(initialContent)
   const [isPrivate, setIsPrivate] = useState(false)
   const [tags] = useState<string[]>([])
-  const [audioPath, setAudioPath] = useState<string | null>(null)
+  const [audioPath] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [limitError, setLimitError] = useState<{ type: 'capture' | 'generation'; used: number; limit: number } | null>(null)

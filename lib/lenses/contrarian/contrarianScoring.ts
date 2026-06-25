@@ -1,5 +1,4 @@
 import type {
-  ContrarianOutput,
   ContrarianScoreBreakdown,
   HiddenAssumption,
   ReversalMechanism,

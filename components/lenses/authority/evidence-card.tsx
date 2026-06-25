@@ -26,7 +26,7 @@ interface EvidenceCardProps {
   index: number
 }
 
-export function EvidenceCard({ evidence, index }: EvidenceCardProps) {
+export function EvidenceCard({ evidence }: EvidenceCardProps) {
   return (
     <div className="border border-border rounded-sm p-4 space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">

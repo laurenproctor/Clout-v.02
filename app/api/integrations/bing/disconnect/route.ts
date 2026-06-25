@@ -3,6 +3,15 @@ import { getSession } from '@/lib/auth/session'
 import { deleteAnalyticsConnection } from '@/lib/analytics/connections'
 import { createServiceClient } from '@/lib/supabase/service'
 
+// analytics_properties is a post-migration table absent from generated Supabase types.
+interface UntypedQuery extends PromiseLike<{ error: { message: string } | null }> {
+  delete(): UntypedQuery
+  eq(column: string, value: unknown): UntypedQuery
+}
+interface UntypedClient {
+  from(table: string): UntypedQuery
+}
+
 export async function POST() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -10,8 +19,8 @@ export async function POST() {
   try {
     await deleteAnalyticsConnection(session.workspaceId, 'bing_wmt')
 
-    const supabase = createServiceClient()
-    await (supabase as any)
+    const supabase = createServiceClient() as unknown as UntypedClient
+    await supabase
       .from('analytics_properties')
       .delete()
       .eq('workspace_id', session.workspaceId)

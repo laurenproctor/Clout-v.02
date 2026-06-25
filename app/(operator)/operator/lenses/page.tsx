@@ -19,8 +19,6 @@ export default function OperatorLensesPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-
   // Create form
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')

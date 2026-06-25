@@ -22,7 +22,14 @@ export async function GET() {
     .eq('workspace_id', session.workspaceId)
     .order('created_at', { ascending: true })
 
-  const accounts: PublishingAccount[] = (credentials ?? []).map((c: any) => {
+  type CredentialRow = {
+    id: string
+    channel_id: string
+    account_id: string | null
+    account_name: string | null
+    channels: unknown
+  }
+  const accounts: PublishingAccount[] = ((credentials ?? []) as unknown as CredentialRow[]).map((c) => {
     const ch = c.channels as { id: string; platform: string } | null
     return {
       credentialId: c.id,

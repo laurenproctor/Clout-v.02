@@ -52,6 +52,7 @@ export const wordPressProvider: PublishingProvider = {
     }
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- implements PublishProvider.validateContent signature
   validateContent(article: CanonicalArticle, _opts: PublishOptions): ValidationResult {
     // TODO: capability-aware validation — future providers require unsupported node detection,
     // embed compatibility, media validation, scheduling constraints, and provider-specific
@@ -70,6 +71,7 @@ export const wordPressProvider: PublishingProvider = {
     connection: ProviderConnection,
     article: CanonicalArticle,
     opts: PublishOptions,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- implements PublishProvider.publish signature
     _idempotencyKey: string,
   ): Promise<PublishResult> {
     const validation = this.validateContent(article, opts)

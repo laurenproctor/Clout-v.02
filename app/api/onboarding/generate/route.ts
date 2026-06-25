@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import {
   getProfileForGeneration,
@@ -25,7 +25,7 @@ Respond with valid JSON only, no markdown wrapper. Shape:
 
 // POST /api/onboarding/generate
 // Generates positioning, post ideas, and a draft post from the user's onboarding profile.
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

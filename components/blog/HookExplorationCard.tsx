@@ -61,7 +61,7 @@ export function HookExplorationCard({ exploration, selectedHeadline, onSelect, e
           <p className="text-xs font-medium text-zinc-500 mb-2">Opening Hooks</p>
           <div className="space-y-1.5">
             {exploration.openingHooks.map((hook, i) => (
-              <p key={i} className="text-xs text-zinc-600 italic">"{hook}"</p>
+              <p key={i} className="text-xs text-zinc-600 italic">&ldquo;{hook}&rdquo;</p>
             ))}
           </div>
         </div>

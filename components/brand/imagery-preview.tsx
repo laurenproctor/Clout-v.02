@@ -81,7 +81,6 @@ export function ImageryPreview({
   headingFont = 'serif',
   bodyFont = 'sans-serif',
   typographySettings,
-  activeCard = 'hero',
   onCardSelect,
   className,
 }: ImageryPreviewProps) {
@@ -286,7 +285,7 @@ function LogoBadge({ logoUrl, brandName, bodyFont, isDark }: { logoUrl: string |
   return null
 }
 
-function HeroBanner({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
+function HeroBanner({ imagery, primaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
   const overlay  = getOverlayText(imagery.overlay_text_style)
   const isDark   = scheme === 'dark'
   const textColor = isDark ? '#ffffff' : primaryColor
@@ -446,7 +445,7 @@ function StoryCard({ imagery, primaryColor, secondaryColor, accentColor, scheme,
   )
 }
 
-function PostTile({ imagery, primaryColor, secondaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
+function PostTile({ imagery, primaryColor, accentColor, scheme, previewImage, logoUrl, brandName, headingFont, bodyFont, typographySettings }: CardProps) {
   const overlay  = getOverlayText(imagery.overlay_text_style)
   const isDark   = scheme === 'dark'
   const bg       = isDark ? primaryColor : `${accentColor}15`

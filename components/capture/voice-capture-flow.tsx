@@ -42,7 +42,6 @@ interface VoiceCaptureFlowProps {
 }
 
 export function VoiceCaptureFlow({
-  workspaceId,
   lenses,
   selectedLensId,
   onLensChange,
@@ -414,7 +413,7 @@ export function VoiceCaptureFlow({
         <div className="flex flex-col items-center py-8 gap-4 text-center px-6">
           <div>
             <p className="text-[15px] font-semibold text-zinc-900">Record a quick thought</p>
-            <p className="text-[13px] text-zinc-400 mt-1">Talk naturally. We'll structure it.</p>
+            <p className="text-[13px] text-zinc-400 mt-1">Talk naturally. We&apos;ll structure it.</p>
           </div>
           <button
             type="button"
@@ -425,7 +424,7 @@ export function VoiceCaptureFlow({
               <MicIcon />
             </span>
           </button>
-          <p className="text-[13px] text-zinc-400">Speak freely. We'll find the signal.</p>
+          <p className="text-[13px] text-zinc-400">Speak freely. We&apos;ll find the signal.</p>
           <div className="w-full border-t border-zinc-100 pt-4 space-y-2">
             <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide">Post to</p>
             <div className="flex flex-wrap gap-1.5 justify-center">
@@ -562,7 +561,7 @@ export function VoiceCaptureFlow({
             <span>✓</span> Draft ready
           </div>
           <div>
-            <p className="text-[12px] font-semibold text-zinc-400 tracking-wide mb-2">Here's your first draft.</p>
+            <p className="text-[12px] font-semibold text-zinc-400 tracking-wide mb-2">Here&apos;s your first draft.</p>
             {lenses.length > 0 && (
               <GeneratingAsBar
                 profileName={profileName}

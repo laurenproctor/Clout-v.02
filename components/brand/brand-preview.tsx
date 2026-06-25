@@ -214,7 +214,7 @@ function QuoteCard({ bg, text, accent, density, headingFont, bodyFont, brandName
     <div style={{ background: bg, padding: density.padding, fontFamily: bodyFont, color: text, height: '100%', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
       <div style={{ width: 24, height: 3, background: accent, borderRadius: 2 }} />
       <blockquote style={{ ...applyTypo(typography?.h2, headingFont, text), fontSize: 'clamp(1rem, 3vw, 1.5rem)', margin: 0, textTransform: capitalization }}>
-        "The best ideas come from the intersection of discipline and curiosity."
+        &ldquo;The best ideas come from the intersection of discipline and curiosity.&rdquo;
       </blockquote>
       <div style={{ display: 'flex', alignItems: 'center', gap: density.gap }}>
         {logoUrl ? (

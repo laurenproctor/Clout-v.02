@@ -3,6 +3,26 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { encryptWorkspaceSecret, decryptWorkspaceSecret } from '@/lib/security/secrets'
 
+// The workspace_provider_credentials table is not yet in the generated Supabase types,
+// so the typed client cannot resolve `.from()` for it. This minimal query surface
+// narrows the escape-hatch cast used below.
+interface UntypedResult {
+  data: Record<string, unknown> | null
+  error: { message: string } | null
+}
+interface UntypedQuery extends PromiseLike<UntypedResult> {
+  select(columns: string): UntypedQuery
+  upsert(values: Record<string, unknown>, opts?: { onConflict?: string }): UntypedQuery
+  update(values: Record<string, unknown>): UntypedQuery
+  delete(): UntypedQuery
+  eq(column: string, value: unknown): UntypedQuery
+  maybeSingle(): UntypedQuery
+  single(): UntypedQuery
+}
+interface UntypedClient {
+  from(table: string): UntypedQuery
+}
+
 export interface ProviderCredentialRecord<T extends Record<string, unknown>> {
   id:                  string
   workspaceId:         string
@@ -42,10 +62,10 @@ export async function upsertProviderCredential(params: {
   keyVersion?:        number
   connectedBy:        string
 }): Promise<{ id: string }> {
-  const supabase  = createServiceClient()
+  const supabase  = createServiceClient() as unknown as UntypedClient
   const encrypted = encryptWorkspaceSecret(JSON.stringify(params.data))
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('workspace_provider_credentials')
     .upsert(
       {
@@ -64,15 +84,15 @@ export async function upsertProviderCredential(params: {
     .single()
 
   if (error) throw new Error(`Failed to save provider credential: ${error.message}`)
-  return { id: data.id }
+  return { id: (data as { id: string }).id }
 }
 
 export async function getProviderCredential<T extends Record<string, unknown>>(
   workspaceId: string,
   provider:    string,
 ): Promise<ProviderCredentialRecord<T> | null> {
-  const supabase = createServiceClient()
-  const { data, error } = await (supabase as any)
+  const supabase = createServiceClient() as unknown as UntypedClient
+  const { data, error } = await supabase
     .from('workspace_provider_credentials')
     .select('*')
     .eq('workspace_id', workspaceId)
@@ -88,8 +108,8 @@ export async function deleteProviderCredential(
   workspaceId: string,
   provider:    string,
 ): Promise<void> {
-  const supabase = createServiceClient()
-  const { error } = await (supabase as any)
+  const supabase = createServiceClient() as unknown as UntypedClient
+  const { error } = await supabase
     .from('workspace_provider_credentials')
     .delete()
     .eq('workspace_id', workspaceId)
@@ -110,7 +130,7 @@ export async function updateProviderCredentialValidation(
     updated_at:            new Date().toISOString(),
   }
 
-  const { error } = await (supabase as any)
+  const { error } = await (supabase as unknown as UntypedClient)
     .from('workspace_provider_credentials')
     .update(update)
     .eq('workspace_id', workspaceId)

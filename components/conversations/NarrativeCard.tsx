@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import type { ComputedNarrative, ConversationOpportunityType, ConversationSourceType } from '@/types/domain'
+import type { ComputedNarrative, ConversationOpportunityType } from '@/types/domain'
 
 const SOURCE_CLS: Record<string, string> = {
   substack:       'bg-orange-50 text-orange-700 border-orange-200',

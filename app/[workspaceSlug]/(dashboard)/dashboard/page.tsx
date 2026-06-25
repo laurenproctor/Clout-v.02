@@ -38,18 +38,6 @@ interface Stats {
 
 // ─── Cadence lookup ────────────────────────────────────────────────────────────
 
-const CADENCE: Record<string, string> = {
-  LinkedIn: '3× per week',
-  'X/Twitter': 'Daily',
-  Twitter: 'Daily',
-  Newsletter: 'Weekly',
-}
-
-function getCadence(channels: string[]): string {
-  const entries = channels.map((c) => `${c}: ${CADENCE[c] ?? '2× per week'}`)
-  return entries.length > 0 ? entries.join(' · ') : '2× per week'
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -72,7 +60,6 @@ export default function DashboardPage() {
   // Draft card state
   const [draftEditing, setDraftEditing] = useState(false)
   const [draftText, setDraftText] = useState('')
-  const [draftExpanded, setDraftExpanded] = useState(false)
   const [savingToStudio, setSavingToStudio] = useState(false)
   const [studioError, setStudioError] = useState<string | null>(null)
 
@@ -282,7 +269,7 @@ export default function DashboardPage() {
           {positioningFull && (
             <div className="rounded-xl border border-zinc-200 bg-white p-5">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">Your market positioning</p>
-              <p className="text-sm text-zinc-700 leading-relaxed italic">"{positioningFull}"</p>
+              <p className="text-sm text-zinc-700 leading-relaxed italic">&ldquo;{positioningFull}&rdquo;</p>
               <Link href={`/${slug}/settings/profile`} className="mt-3 inline-block text-xs text-zinc-400 hover:text-zinc-700 transition-colors">
                 Edit in Settings →
               </Link>
@@ -391,7 +378,7 @@ export default function DashboardPage() {
                 </summary>
                 <div className="mt-3 text-sm text-zinc-500 leading-relaxed space-y-2">
                   <p>This draft opens with a specific, relatable scenario rather than a broad claim — which earns attention before making a point.</p>
-                  <p>The final paragraph delivers the takeaway your audience will remember and share. It's calibrated to your positioning, so it sounds like you — not a template.</p>
+                  <p>The final paragraph delivers the takeaway your audience will remember and share. It&rsquo;s calibrated to your positioning, so it sounds like you — not a template.</p>
                 </div>
               </details>
             </div>

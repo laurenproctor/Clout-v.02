@@ -229,6 +229,7 @@ export async function GET(req: NextRequest) {
       .map((rawCard: any) => {
         // Flatten signals join → source_url + published_at
         const sig = rawCard.signals as { source_url?: string | null; published_at?: string | null } | null
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip joined `signals` from the spread
         const { signals: _sig, ...card } = rawCard as typeof rawCard & { signals?: unknown }
 
         const tags: string[] = card.tags ?? []
@@ -308,6 +309,7 @@ export async function GET(req: NextRequest) {
         clusterCounts.set(primaryTag, count + 1)
         return true
       })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip internal `_compositeScore` from the response shape
       .map(({ _compositeScore: _s, ...rest }) => rest as SignalCard & {
         source_url: string | null
         published_at: string | null

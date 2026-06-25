@@ -28,7 +28,7 @@ type WorkspaceSwitcherData = {
   brandColor: string | null
 }
 
-export function IdentityBar({ outputId }: { outputId?: string }) {
+export function IdentityBar({}: { outputId?: string }) {
   const workspace = useWorkspace()
   const { accounts, selected, toggle, loading, byPlatform } = usePublishingAccounts(workspace.id)
   const router = useRouter()

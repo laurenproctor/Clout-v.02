@@ -61,6 +61,7 @@ function extractPageMeta(html: string): Pick<ExtractionResult, 'title' | 'author
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- part of public signature, reserved for canonical-URL resolution
 export async function extractWithReadability(html: string, _url: string): Promise<ExtractionResult> {
   const meta = extractPageMeta(html)
   const $ = cheerio.load(html)

@@ -122,6 +122,7 @@ export function LinkCaptureFlow({ url, lensId, onComplete, onError, onReset }: L
   // ── Source strip (reused in preview + processing + error) ──────────────────
   const sourceStrip = (
     <div className="flex items-center gap-2.5">
+      {/* eslint-disable-next-line @next/next/no-img-element -- external favicon service (arbitrary domain) with an onError fallback; not a candidate for next/image optimization */}
       <img
         src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
         alt=""
@@ -240,6 +241,7 @@ export function LinkCaptureFlow({ url, lensId, onComplete, onError, onReset }: L
           {/* ── Source card ── */}
           <div className="flex-shrink-0 px-8 py-3.5 border-b border-zinc-100 bg-zinc-50/70">
             <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element -- external favicon service (arbitrary domain) with an onError fallback; not a candidate for next/image optimization */}
               <img
                 src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
                 alt=""

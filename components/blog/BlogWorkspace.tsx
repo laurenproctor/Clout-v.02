@@ -416,7 +416,6 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
     }
   }, [request, hookExploration, blogPackage, state])
 
-  const isGenerating = state === 'generating:phase1-3' || state === 'generating:phase4-10'
 
   // Live network preview (Article). Built at top level so hook order stays stable
   // across the many workspace states.

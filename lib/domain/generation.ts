@@ -5,6 +5,7 @@ import type {
   DomainResult,
 } from '@/types/domain'
 
+/* eslint-disable @typescript-eslint/no-unused-vars -- stub signatures, params used once implemented */
 export async function createGeneration(
   input: CreateGenerationInput
 ): Promise<DomainResult<Generation>> {
@@ -47,3 +48,4 @@ export async function cancelGeneration(
 ): Promise<DomainResult<Generation>> {
   throw new Error('not implemented')
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */

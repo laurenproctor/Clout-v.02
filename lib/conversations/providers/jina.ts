@@ -5,6 +5,7 @@ import type { ConversationProvider, NormalizedItem } from './types'
 export class JinaProvider implements ConversationProvider {
   sourceType = 'generic' as const
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- implements ConversationProvider.canHandle signature
   canHandle(_url: string): boolean {
     return true // fallback for single-article URLs
   }

@@ -136,6 +136,7 @@ export function QuoteCard({
 
   return (
     <html lang="en">
+      {/* eslint-disable-next-line @next/next/no-head-element -- standalone HTML document rendered to PNG via Puppeteer, not a Next.js page */}
       <head>
         <meta charSet="utf-8" />
         <style dangerouslySetInnerHTML={{ __html: css }} />

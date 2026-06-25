@@ -18,7 +18,7 @@ export function ClicheCard({ pattern }: ClicheCardProps) {
   return (
     <div className="border border-border rounded-sm p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium">"{pattern.phrase}"</p>
+        <p className="text-sm font-medium">&ldquo;{pattern.phrase}&rdquo;</p>
         <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{tier}</span>
       </div>
 

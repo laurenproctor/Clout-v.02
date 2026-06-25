@@ -116,7 +116,7 @@ export function TopicSelector({ selected, onChange }: TopicSelectorProps) {
               color: '#4f46e5',
             }}
           >
-            + Add "{query.trim()}"
+            + Add &ldquo;{query.trim()}&rdquo;
           </button>
         )}
 

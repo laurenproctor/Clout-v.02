@@ -1,5 +1,5 @@
 // app/api/channels/apple-business-connect/connect-stored/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { getProviderCredential } from '@/lib/domain/provider-credentials'
 import { signCookiePayload } from '@/lib/signed-cookie'
@@ -7,7 +7,7 @@ import { listAllLocations } from '@/lib/channels/apple-business-connect/location
 import type { ABCCredentials } from '@/lib/channels/apple-business-connect/types'
 import type { ABCPendingPayload } from '../connect/route'
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

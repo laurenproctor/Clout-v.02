@@ -9,7 +9,7 @@ interface Props {
   inviteEmail: string
 }
 
-export default function AcceptInviteForm({ token, workspaceSlug, inviteEmail }: Props) {
+export default function AcceptInviteForm({ token, inviteEmail }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

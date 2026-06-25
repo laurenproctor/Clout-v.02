@@ -58,13 +58,23 @@ async function fetchInstanceInfo(instanceUrl: string): Promise<{ softwareName: s
     body = await res.json()
   }
 
+  // Shape of the fields we read from the v1/v2 instance response.
+  interface InstanceInfoResponse {
+    source_url?: string
+    software?: { name?: string; version?: string }
+    version?: string
+    configuration?: { statuses?: { max_characters?: number } }
+    max_toot_chars?: number
+  }
+  const info = body! as InstanceInfoResponse
+
   // Software validation — Mastodon only
-  const source = (body!.source_url as string | undefined) ?? ''
-  const softwareName = ((body as any).software?.name as string | undefined)
-    ?? ((body as any).version as string | undefined)?.split(' ')[0]?.toLowerCase()
+  const source = info.source_url ?? ''
+  const softwareName = info.software?.name
+    ?? info.version?.split(' ')[0]?.toLowerCase()
     ?? 'mastodon'
-  const softwareVersion = ((body as any).software?.version as string | undefined)
-    ?? (body as any).version as string | undefined
+  const softwareVersion = info.software?.version
+    ?? info.version
     ?? ''
 
   // Reject known incompatible Fediverse software
@@ -78,8 +88,8 @@ async function fetchInstanceInfo(instanceUrl: string): Promise<{ softwareName: s
 
   // Extract char limit — v2 path vs v1 path vs legacy root field
   const maxCharacters: number =
-    ((body as any).configuration?.statuses?.max_characters as number | undefined) ??
-    ((body as any).max_toot_chars as number | undefined) ??
+    info.configuration?.statuses?.max_characters ??
+    info.max_toot_chars ??
     500
 
   return { softwareName, softwareVersion, maxCharacters }

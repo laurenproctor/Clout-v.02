@@ -432,7 +432,7 @@ export default function BrandSettingsPage() {
                   <Sparkles className="h-4 w-4 text-zinc-400" />
                   <h2 className="text-sm font-medium text-zinc-900">Generate from Website</h2>
                 </div>
-                <p className="text-xs text-zinc-500 mb-3">Enter your website URL and we'll infer your brand colors, fonts, and tone.</p>
+                <p className="text-xs text-zinc-500 mb-3">Enter your website URL and we&rsquo;ll infer your brand colors, fonts, and tone.</p>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Globe className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />

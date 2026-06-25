@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   // No pre-emptive DB reset needed here to avoid race conditions
   try {
     await dispatchEmail.trigger(event.payload as unknown as EmailPayload)
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to dispatch email' }, { status: 500 })
   }
 

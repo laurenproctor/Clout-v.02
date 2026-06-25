@@ -30,18 +30,6 @@ interface GSCState {
   summary: Summary | null
 }
 
-function GoogleSearchConsoleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <path d="M10 4A6 6 0 0 1 16 10H10Z" fill="#4285F4"/>
-      <path d="M16 10A6 6 0 0 1 10 16V10Z" fill="#34A853"/>
-      <path d="M10 16A6 6 0 0 1 4 10H10Z" fill="#FBBC05"/>
-      <path d="M4 10A6 6 0 0 1 10 4V10Z" fill="#EA4335"/>
-      <path d="M14.12 14.12L19.5 19.5" stroke="#5F6368" strokeWidth="2.5" strokeLinecap="round"/>
-    </svg>
-  )
-}
-
 function StatPill({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
   return (
     <div className="flex flex-col gap-0.5 rounded-xl bg-zinc-50 px-3 py-2.5">

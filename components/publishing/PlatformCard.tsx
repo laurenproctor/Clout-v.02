@@ -11,6 +11,7 @@ function AccountAvatar({ profileImageUrl, label }: { profileImageUrl?: string | 
 
   if (profileImageUrl && !imgError) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- remote avatar from arbitrary provider domains with an onError fallback; not a candidate for next/image optimization
       <img
         src={profileImageUrl}
         alt=""

@@ -328,7 +328,7 @@ export function TopicCaptureFlow({
     return (
       <div className="flex flex-col gap-4 py-2">
         {/* Topic echo */}
-        <p className="text-[13px] text-zinc-400 leading-snug line-clamp-2 italic">"{topic}"</p>
+        <p className="text-[13px] text-zinc-400 leading-snug line-clamp-2 italic">&ldquo;{topic}&rdquo;</p>
 
         {/* Progress bar */}
         <div className="h-[3px] rounded-full bg-zinc-100 overflow-hidden">

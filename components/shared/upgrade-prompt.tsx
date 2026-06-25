@@ -22,7 +22,7 @@ export function UpgradePrompt({ type, used, limit, onDismiss }: UpgradePromptPro
             Monthly {label} limit reached
           </p>
           <p className="text-xs text-amber-700">
-            You've used {used} of {limit} {label} this month. Upgrade to continue.
+            You&apos;ve used {used} of {limit} {label} this month. Upgrade to continue.
           </p>
         </div>
         {onDismiss && (

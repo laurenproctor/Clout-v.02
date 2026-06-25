@@ -10,6 +10,17 @@ import {
   markFailed,
 } from '@/lib/domain/publishing'
 
+// Narrow insert surface: the lineage column source_output_id is not yet in the
+// generated `outputs` Insert type, so the typed client rejects it.
+interface UntypedInsertQuery extends PromiseLike<{ data: { id: string } | null; error: { message: string } | null }> {
+  insert(values: Record<string, unknown>): UntypedInsertQuery
+  select(columns: string): UntypedInsertQuery
+  single(): UntypedInsertQuery
+}
+interface UntypedInsertClient {
+  from(table: string): UntypedInsertQuery
+}
+
 const PLATFORM_CONTENT_TYPE: Record<string, string> = {
   linkedin: 'linkedin',
   threads:  'threads',
@@ -69,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Insert derived output with lineage
-  const { data: newRow, error: insertError } = await (supabase as any)
+  const { data: newRow, error: insertError } = await (supabase as unknown as UntypedInsertClient)
     .from('outputs')
     .insert({
       workspace_id:     session.workspaceId,

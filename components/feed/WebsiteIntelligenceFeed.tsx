@@ -115,7 +115,6 @@ export function WebsiteIntelligenceFeed({
   error,
   workspaceSlug,
   websiteUrl,
-  onRetry,
   onUrlSaved,
 }: WebsiteIntelligenceFeedProps) {
   const [search, setSearch] = useState('')

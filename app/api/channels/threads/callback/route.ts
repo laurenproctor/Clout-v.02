@@ -30,10 +30,8 @@ export async function GET(req: NextRequest) {
   // Exchange code for short-lived token, then immediately get long-lived (60-day) token
   let longToken: string
   let expiresIn: number
-  let userId: string
   try {
     const shortLived = await exchangeThreadsCode(code, redirectUri)
-    userId = shortLived.user_id
     const longLived = await exchangeForLongLivedToken(shortLived.access_token)
     longToken = longLived.access_token
     expiresIn = longLived.expires_in

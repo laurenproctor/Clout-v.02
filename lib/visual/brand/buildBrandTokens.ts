@@ -39,6 +39,7 @@ function onColor(backgroundHex: string): string {
 
 function resolveBorderRadius(
   styleTrait?: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- reserved for profile-aware radius resolution; called positionally
   _semanticProfile?: BrandSemanticProfile
 ): BrandTokens['borderRadius'] {
   if (!styleTrait) return 'balanced'

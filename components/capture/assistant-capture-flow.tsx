@@ -43,7 +43,7 @@ export function AssistantCaptureFlow({
   const [intent, setIntent] = useState<InferredIntent | null>(null)
   const [overrides, setOverrides] = useState<Partial<Pick<InferredIntent, 'isPrivate' | 'outputFormat'>>>({})
   const [streamedContent, setStreamedContent] = useState('')
-  const [outputId, setOutputId] = useState<string | null>(null)
+  const [, setOutputId] = useState<string | null>(null)
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
   const [placeholderVisible, setPlaceholderVisible] = useState(true)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -156,7 +156,7 @@ export function AssistantCaptureFlow({
             } else if (msg.type === 'error') {
               throw new Error(msg.error ?? 'Generation failed')
             }
-          } catch (parseErr) {
+          } catch {
             // malformed line — ignore
           }
         }

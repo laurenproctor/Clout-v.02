@@ -3,6 +3,15 @@ import { syncGA4ForWorkspace } from '@/lib/analytics/ga4/sync'
 import { syncGSCForWorkspace } from '@/lib/analytics/gsc/sync'
 import { createServiceClient } from '@/lib/supabase/service'
 
+// analytics_connections is a post-migration table absent from generated Supabase types.
+interface UntypedQuery extends PromiseLike<{ data: { workspace_id: string }[] | null }> {
+  select(columns: string): UntypedQuery
+  eq(column: string, value: unknown): UntypedQuery
+}
+interface UntypedClient {
+  from(table: string): UntypedQuery
+}
+
 export const syncAnalyticsTask = task({
   id: 'sync-analytics',
   maxDuration: 120,
@@ -35,8 +44,8 @@ export const syncAllAnalyticsTask = task({
   id: 'sync-all-analytics',
   maxDuration: 300,
   run: async () => {
-    const supabase = createServiceClient()
-    const { data: connections } = await (supabase as any)
+    const supabase = createServiceClient() as unknown as UntypedClient
+    const { data: connections } = await supabase
       .from('analytics_connections')
       .select('workspace_id')
       .eq('provider', 'ga4')
