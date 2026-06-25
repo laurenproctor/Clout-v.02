@@ -27,7 +27,8 @@ const MAX_SUBTEXT_CHARS = 160
 const SYSTEM_PROMPT = `You write concise overlay copy for a single branded social image.
 You return ONLY valid JSON — no explanation, no markdown.
 Rules:
-- headline: max ${MAX_HEADLINE_WORDS} words, declarative, no ellipsis, no hashtags, no emoji, no surrounding quotes
+- headline: max ${MAX_HEADLINE_WORDS} words. A clear, self-contained, declarative statement a reader grasps instantly WITHOUT seeing the post.
+- The headline must be a complete thought. Do NOT use elliptical or parallel constructions that drop an implied word (avoid "X, not Y" / "It's the A, not the B" patterns), trailing fragments, ellipsis, hashtags, emoji, or surrounding quotes. Prefer fewer words over a clever-but-confusing phrase.
 - subtext: optional, max ${MAX_SUBTEXT_WORDS} words — supporting context only
 - Be ruthlessly concise — white space is the design`
 

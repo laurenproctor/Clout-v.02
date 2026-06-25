@@ -35,7 +35,7 @@ import type {
   VisualIntent,
   VisualPlatform,
 } from '../types/visual'
-import type { EditorialHeroProps, QuoteMonolithProps, TemplateId, LogoCorner } from '../types/template'
+import type { EditorialHeroProps, QuoteMonolithProps, SplitPanelProps, UpperLeftProps, TemplateId, LogoCorner } from '../types/template'
 
 const PUPPETEER_ENABLED = process.env.ENABLE_PUPPETEER_RENDERING === 'true'
 
@@ -275,6 +275,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     'right':       'split-panel',
     'upper-left':  'upper-left',
   }
+  // Headline overlays can relocate to any zone that still renders headline + subtext.
+  // 'center' is intentionally absent — that zone's template (quote-monolith) is
+  // quote-only and would drop the headline.
+  const HEADLINE_ZONE_TO_TEMPLATE: Partial<Record<string, TemplateId>> = {
+    'bottom-left': 'editorial-hero',
+    'right':       'split-panel',
+    'upper-left':  'upper-left',
+  }
 
   if (isHybridOverlay && templateSpec && grammar && backgroundMode === 'generated' && generatedProviderUrl !== null) {
     const score = await scoreImageQuality(generatedProviderUrl, grammar, templateSpec)
@@ -284,17 +292,27 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     const originalTemplateId   = templateId
     const originalTemplateSpec = templateSpec
 
-    // Confidence-gated template override — only switch when the vision model is sure.
-    // Not applied in the overlay path: user's content type (headline vs. quote) determines
-    // the template there, and that choice is not overridable by vision analysis.
-    if (
-      !hasOverlayContent &&
-      score.openZone &&
+    // Confidence-gated zone override — only relocate when the vision model is sure
+    // about where the open negative space actually is.
+    //  • No overlay content → any zone→template switch (content is derived from the image).
+    //  • Headline overlay → relocate to another HEADLINE-capable template/zone so the
+    //    headline lands in the open space instead of colliding with the subject (which
+    //    happens when the image model ignores the negative-space directive). Never switch
+    //    to the quote-only center template.
+    //  • Quote overlay → stay put (quote-monolith is the only quote zone).
+    const isHeadlineOverlay = hasOverlayContent && !!overlayParams?.headline && !overlayParams?.quote
+    const zoneIsConfident =
+      !!score.openZone &&
       score.openZoneConfidence != null &&
-      score.openZoneConfidence >= ZONE_CONFIDENCE_THRESHOLD &&
-      ZONE_TO_TEMPLATE[score.openZone] !== templateId
-    ) {
-      const overrideId = ZONE_TO_TEMPLATE[score.openZone]
+      score.openZoneConfidence >= ZONE_CONFIDENCE_THRESHOLD
+    const overrideId: TemplateId | undefined = !zoneIsConfident
+      ? undefined
+      : !hasOverlayContent
+        ? ZONE_TO_TEMPLATE[score.openZone!]
+        : isHeadlineOverlay
+          ? HEADLINE_ZONE_TO_TEMPLATE[score.openZone!]
+          : undefined
+    if (overrideId && overrideId !== templateId) {
       try {
         const overrideSpec = getTemplateSpec(overrideId)
         templateId = overrideId
@@ -345,14 +363,19 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         templateOverrideUsed = false
         logoCorner   = null
 
-        if (
-          !hasOverlayContent &&
-          retryScore.openZone &&
+        const retryZoneConfident =
+          !!retryScore.openZone &&
           retryScore.openZoneConfidence != null &&
-          retryScore.openZoneConfidence >= ZONE_CONFIDENCE_THRESHOLD &&
-          ZONE_TO_TEMPLATE[retryScore.openZone] !== templateId
-        ) {
-          const overrideId = ZONE_TO_TEMPLATE[retryScore.openZone]
+          retryScore.openZoneConfidence >= ZONE_CONFIDENCE_THRESHOLD
+        const retryOverrideId: TemplateId | undefined = !retryZoneConfident
+          ? undefined
+          : !hasOverlayContent
+            ? ZONE_TO_TEMPLATE[retryScore.openZone!]
+            : isHeadlineOverlay
+              ? HEADLINE_ZONE_TO_TEMPLATE[retryScore.openZone!]
+              : undefined
+        if (retryOverrideId && retryOverrideId !== templateId) {
+          const overrideId = retryOverrideId
           try {
             const overrideSpec = getTemplateSpec(overrideId)
             templateId   = overrideId
@@ -427,7 +450,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         }
         warnUnresolvedBrandFonts(brandFontDiagnostics, { workspaceId, assetId })
 
-        const overlayTemplateProps: EditorialHeroProps | QuoteMonolithProps = overlayParams.quote
+        // Headline templates (editorial-hero/split-panel/upper-left) share the same
+        // props shape — the templateId may have been relocated by the zone override
+        // above so the headline lands in the open space.
+        const headlineTemplateId =
+          (templateId === 'split-panel' || templateId === 'upper-left')
+            ? templateId
+            : 'editorial-hero'
+        const overlayTemplateProps: EditorialHeroProps | SplitPanelProps | UpperLeftProps | QuoteMonolithProps = overlayParams.quote
           ? ({
               templateId:     'quote-monolith',
               quote:          overlayParams.quote,
@@ -439,7 +469,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               overlayOpacity: overlayParams.overlayOpacity,
             } satisfies QuoteMonolithProps)
           : ({
-              templateId:     'editorial-hero',
+              templateId:     headlineTemplateId,
               headline:       overlayParams.headline!,
               subtext:        overlayParams.subtext,
               backgroundUrl:  upload?.publicUrl,
@@ -448,7 +478,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
               fontBodyUrl:    resolvedFontBodyUrl    ?? undefined,
               overlayOpacity: overlayParams.overlayOpacity,
               textShadow:     overlayParams.textShadow,
-            } satisfies EditorialHeroProps)
+            } as EditorialHeroProps | SplitPanelProps | UpperLeftProps)
 
         templatePayload = overlayTemplateProps as unknown as Record<string, unknown>
 
@@ -501,13 +531,15 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         // the screenshot before the background/logo has loaded. Embedding as data URIs
         // avoids the race for both renderers.
         let renderBackgroundUrl: string | undefined = upload?.publicUrl
-        // Auto scheme picks the matching logo variant: dark text (light scheme) →
-        // dark logo; light text (dark scheme) → light logo. Falls back to logoUrl.
-        let renderLogoUrl: string | undefined = overlayParams.autoColorScheme
-          ? (isLightScheme
-              ? (overlayParams.logoUrlDark ?? overlayParams.logoUrl)
-              : (overlayParams.logoUrlLight ?? overlayParams.logoUrl))
-          : overlayParams.logoUrl
+        // Logo variant follows the *resolved* scheme in every mode (not just auto):
+        // light scheme (dark text on a bright zone) → dark logo; dark scheme (light
+        // text on a dark zone) → light logo. Falls back to the primary logoUrl when a
+        // matching variant isn't configured (variants already default to logoUrl in the
+        // route, so brands with a single logo behave exactly as before). This prevents
+        // a dark logo from landing on a dark background in explicit-scheme requests.
+        let renderLogoUrl: string | undefined = isLightScheme
+          ? (overlayParams.logoUrlDark ?? overlayParams.logoUrl)
+          : (overlayParams.logoUrlLight ?? overlayParams.logoUrl)
 
         if (upload?.publicUrl) {
           if (generatedProviderUrl?.startsWith('data:')) {

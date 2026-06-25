@@ -6,24 +6,24 @@
 import type { TemplateSpec } from '../types/template'
 
 const DESIGN_DIRECTOR_PREFIX =
-  'Preserve a clear content zone with no overlapping foreground subjects. ' +
-  'Maintain unobstructed negative space in the designated text placement area. ' +
-  'Avoid placing the primary subject in the headline zone. ' +
-  'Favor asymmetrical editorial layouts over centered subject placement. ' +
-  'Ensure a corner of the frame has clean space for a small logo.'
+  'CRITICAL COMPOSITION REQUIREMENT: the primary subject must sit ONLY on the side opposite the text zone — it must never enter the text zone. ' +
+  'Keep the entire text placement area as clean, unobstructed negative space (empty surface, shadow, or gradient falloff) with no objects, props, or high-detail texture. ' +
+  'Use a strongly asymmetrical editorial layout; do not center the subject. ' +
+  'Leave one clean frame corner as quiet space for a small logo.'
 
 const ZONE_DIRECTIVES: Record<TemplateSpec['compositionZone'], string> = {
   'bottom-left':
-    'heavy negative space in the lower-left third, dark shadow zone or gradient falloff lower-left, main visual subject positioned upper-right or center-right, clear open area lower-left for text overlay',
+    'the ENTIRE lower-left half of the frame must be empty negative space — dark surface, shadow, or smooth gradient falloff with absolutely nothing of visual interest there; ' +
+    'place the main visual subject firmly in the upper-right or right portion only, never spilling past the centre line into the lower-left where the headline sits',
 
   'center':
     'abstract or environmental background, no dominant foreground subject, texture or tonal gradient suitable for centered text overlay, clean and uncluttered throughout',
 
   'right':
-    'main visual subject positioned left-center, heavy negative space on the right half of the frame, clean uncluttered right side for text',
+    'place the main visual subject firmly in the left or left-centre portion only; the ENTIRE right half of the frame must be empty negative space, clean and uncluttered for text, with nothing crossing the centre line',
 
   'upper-left':
-    'heavy negative space upper-left, main visual interest lower-right or center-right, open area upper-left for text placement',
+    'the ENTIRE upper-left region must be empty negative space for text; place the main visual interest firmly in the lower-right or right portion only, never entering the upper-left',
 }
 
 export function buildCompositionZoneDirective(templateSpec: TemplateSpec): string {
