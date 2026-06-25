@@ -1,6 +1,7 @@
 // lib/threads/runGeneration.ts
 import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
+import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
 import { THREADS_PLATFORM_MODEL } from '@/lib/syndication/platforms/threads'
 import type { BrandContext } from '@/lib/brand/getBrandContext'
 import type {
@@ -52,22 +53,7 @@ function buildSystemPrompt(ctx: ThreadsPromptContext): string {
     ``,
   ]
 
-  const { brandContext: brand } = ctx
-  const hasBrandVoice =
-    brand.toneTraits.length > 0 || brand.generationNotes || brand.negativeRules.length > 0
-  if (hasBrandVoice) {
-    lines.push(`## Workspace Brand Voice`)
-    if (brand.toneTraits.length > 0) {
-      lines.push(`Tone: ${brand.toneTraits.join(', ')}`)
-    }
-    if (brand.generationNotes) {
-      lines.push(`Notes: ${brand.generationNotes}`)
-    }
-    if (brand.negativeRules.length > 0) {
-      lines.push(`Avoid: ${brand.negativeRules.join(', ')}`)
-    }
-    lines.push(``)
-  }
+  lines.push(...buildBrandVoicePromptBlock(ctx.brandContext))
 
   if (ctx.lenses.length > 0) {
     lines.push(`## Editorial Lenses`)

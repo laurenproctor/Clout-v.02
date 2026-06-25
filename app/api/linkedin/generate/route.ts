@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
+import { getBrandContext } from '@/lib/brand/getBrandContext'
 import { runLinkedInGeneration } from '@/lib/linkedin/runGeneration'
 import { scrapeUrl } from '@/lib/scraper'
 import type { LinkedInGenerationRequest } from '@/lib/linkedin/types'
@@ -62,7 +63,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const [lensesResult, brandContext] = await Promise.all([
+    listLenses({ workspaceId: session.workspaceId }),
+    getBrandContext(),
+  ])
   const allLenses = lensesResult.ok ? lensesResult.data : []
   const resolvedLenses = (request.lensIds ?? [])
     .map((id) => allLenses.find((l) => l.id === id))
@@ -80,7 +84,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const ctx = { request, lenses: resolvedLenses, campaignContext }
+  const ctx = { request, lenses: resolvedLenses, brandContext, campaignContext }
   const stream = runLinkedInGeneration(ctx)
 
   if (request.audience === 'custom' && request.customAudience?.trim()) {
