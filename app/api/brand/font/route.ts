@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 
+// Keep in sync with the upload UI's accept list (components/brand/font-selector.tsx).
+// All four render correctly: Puppeteer/browser @font-face supports every format, and Satori
+// parses TTF/OTF/WOFF natively (it's woff2 that needs decompression — so ttf/otf are safe here).
+const FONT_CONTENT_TYPES: Record<string, string> = {
+  woff:  'font/woff',
+  woff2: 'font/woff2',
+  ttf:   'font/ttf',
+  otf:   'font/otf',
+}
+
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,8 +29,8 @@ export async function POST(req: NextRequest) {
   if (file.size > maxBytes) return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 400 })
 
   const ext = file.name.split('.').pop()?.toLowerCase()
-  if (!ext || !['woff', 'woff2'].includes(ext)) {
-    return NextResponse.json({ error: 'Only .woff and .woff2 files supported' }, { status: 400 })
+  if (!ext || !(ext in FONT_CONTENT_TYPES)) {
+    return NextResponse.json({ error: 'Only .woff, .woff2, .ttf, and .otf files supported' }, { status: 400 })
   }
 
   const path = `${session.workspaceId}/font-${role}.${ext}`
@@ -29,7 +39,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { error: uploadError } = await supabase.storage
     .from('brand-assets')
-    .upload(path, bytes, { contentType: file.type || 'font/woff2', upsert: true })
+    .upload(path, bytes, { contentType: file.type || FONT_CONTENT_TYPES[ext], upsert: true })
 
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
 
