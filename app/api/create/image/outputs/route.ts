@@ -68,16 +68,13 @@ async function promoteVisualAssetToOutput(
   const { assetId, workspaceId, title } = params
 
   // ── Primary: atomic RPC ─────────────────────────────────────────────────────
-  // Cast: the RPC isn't in the generated Database types until migrations are applied.
-  const rpcFn = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: PromotionRow[] | PromotionRow | null; error: { code?: string; message?: string } | null }>
-  const rpc = await rpcFn('save_image_asset_to_output', {
-    p_asset_id:     assetId,
-    p_workspace_id: workspaceId,
-    p_title:        title,
-  })
+  // Call inline (not via an extracted variable) so the supabase-js `this` binding is
+  // preserved; `as never` bypasses the typed overloads (the RPC isn't in the generated
+  // Database types until migrations are applied).
+  const rpc = await supabase.rpc(
+    'save_image_asset_to_output' as never,
+    { p_asset_id: assetId, p_workspace_id: workspaceId, p_title: title } as never,
+  ) as { data: PromotionRow[] | PromotionRow | null; error: { code?: string; message?: string } | null }
 
   if (!rpc.error) {
     const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data
