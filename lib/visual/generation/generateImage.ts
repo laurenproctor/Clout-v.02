@@ -19,7 +19,8 @@ import { selectTemplate, inferContentType } from '../templates/selector'
 import { getTemplateSpec } from '../templates/registry'
 import { buildBrandTokens } from '../brand/buildBrandTokens'
 import { normalizeBrandIdentity } from '../brand/normalizeBrandIdentity'
-import { loadFontsForSatori, resolveGoogleFontWoff2Url } from '../rendering/fonts'
+import { loadFontsForSatori, resolveGoogleFontWoff2Url, classifyBrandFont } from '../rendering/fonts'
+import type { BrandFontDiagnostics } from '@/lib/brand/types'
 import { renderTemplate } from '../rendering'
 import { extractTemplateProps } from './extractTemplateProps'
 import { scoreImageQuality, IMAGE_QUALITY_THRESHOLD } from './scoreImageQuality'
@@ -37,6 +38,31 @@ import type {
 import type { EditorialHeroProps, QuoteMonolithProps, TemplateId, LogoCorner } from '../types/template'
 
 const PUPPETEER_ENABLED = process.env.ENABLE_PUPPETEER_RENDERING === 'true'
+
+/**
+ * Warn (at the brand-font call site, not inside the generic resolver) when a user-configured
+ * non-generic font failed to resolve to a downloadable URL — the silent system-ui fallback that
+ * makes "my brand font isn't applied" hard to diagnose. Follows the `[visual/...]` structured-
+ * console convention used elsewhere in this pipeline.
+ */
+function warnUnresolvedBrandFonts(
+  diagnostics: BrandFontDiagnostics,
+  ctx: { workspaceId: string; assetId: string },
+): void {
+  for (const role of ['heading', 'body'] as const) {
+    const d = diagnostics[role]
+    if (d.source === 'unresolved') {
+      console.warn('[visual/fonts] brand font did not resolve; falling back to system-ui', {
+        workspaceId: ctx.workspaceId,
+        assetId:     ctx.assetId,
+        role,
+        requested:        d.requested,
+        sourceAttempted:  'google',
+        fallbackUsed:     true,
+      })
+    }
+  }
+}
 
 const MAX_NAME_LENGTH = 120
 const MAX_SLUG_LENGTH = 80
@@ -372,6 +398,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
   let composedStoragePath: string | null = null
   let composedFileSizeBytes: number | null = null
   let templatePayload: Record<string, unknown> | null = null
+  let brandFontDiagnostics: BrandFontDiagnostics | null = null
 
   if (isHybridOverlay && templateSpec && templateId) {
     try {
@@ -388,6 +415,12 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
           overlayParams.fontHeadingUrl ?? resolveGoogleFontWoff2Url(overlayParams.fontHeading, 700),
           overlayParams.fontBodyUrl    ?? resolveGoogleFontWoff2Url(overlayParams.fontBody,    400),
         ])
+
+        brandFontDiagnostics = {
+          heading: classifyBrandFont({ requested: overlayParams.fontHeading, customUrl: overlayParams.fontHeadingUrl, resolvedUrl: resolvedFontHeadingUrl }),
+          body:    classifyBrandFont({ requested: overlayParams.fontBody,    customUrl: overlayParams.fontBodyUrl,    resolvedUrl: resolvedFontBodyUrl }),
+        }
+        warnUnresolvedBrandFonts(brandFontDiagnostics, { workspaceId, assetId })
 
         const overlayTemplateProps: EditorialHeroProps | QuoteMonolithProps = overlayParams.quote
           ? ({
@@ -414,10 +447,19 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
 
         templatePayload = overlayTemplateProps as unknown as Record<string, unknown>
 
-        // Build brand tokens from overlay params; use minimal semantic profile for non-color decisions.
+        // Build brand tokens. Precedence (highest first): overlayParams (user/color-scheme
+        // overrides) win for fonts/colors; the real brandProfile supplies semantic + style
+        // traits (e.g. border_radius) when present, falling back to a minimal profile.
         // colorScheme overrides surface: 'light' forces white surface so text is dark and the
         // gradient panel blends with light backgrounds instead of creating a visible dark box.
-        const minimalProfile = normalizeBrandIdentity(null, null)
+        const semanticProfile = brandProfile ?? normalizeBrandIdentity(null, null)
+        // Render fields (fontHeading/styleTrait_borderRadius/…) live on the loaded profile but
+        // aren't on the BrandSemanticProfile input type — read them via the same cast the brand
+        // path uses below.
+        const overlayBrandRaw = brandProfile as unknown as Record<string, unknown> | undefined
+        const overlayBorderRadius = typeof overlayBrandRaw?.styleTrait_borderRadius === 'string'
+          ? overlayBrandRaw.styleTrait_borderRadius
+          : undefined
         const isLightScheme = overlayParams.colorScheme === 'light'
         const brandTokens = buildBrandTokens(
           {
@@ -426,8 +468,9 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
             accentColor:    overlayParams.accentColor    ?? '#D4A574',
             fontHeading:    overlayParams.fontHeading    ?? 'system-ui',
             fontBody:       overlayParams.fontBody       ?? 'system-ui',
+            styleTrait_borderRadius: overlayBorderRadius,
           },
-          minimalProfile
+          semanticProfile
         )
 
         // Puppeteer loads fonts via CSS @font-face in the HTML document; no ArrayBuffer needed.
@@ -500,18 +543,34 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
             primaryColor:   String(brandRaw.primaryColor   ?? '#1A1A1A'),
             secondaryColor: String(brandRaw.secondaryColor ?? '#FFFFFF'),
             accentColor:    String(brandRaw.accentColor    ?? '#D4A574'),
-            fontHeading:    brandProfile.imageryType ? String(brandRaw.fontHeading ?? 'system-ui') : 'system-ui',
+            fontHeading:    String(brandRaw.fontHeading ?? 'system-ui'),
             fontBody:       String(brandRaw.fontBody ?? 'system-ui'),
             styleTrait_borderRadius: String((brandRaw.styleTrait_borderRadius ?? 'balanced')),
           },
           brandProfile
         )
 
+        // Resolve .woff2 URLs the same way the overlay path does: custom URL wins, else
+        // resolve the brand font NAME via Google Fonts. (Previously this path only loaded a
+        // font when a URL was already stored, so name-only brand fonts silently fell back.)
+        const customHeadingUrl = String(brandRaw.fontHeadingUrl ?? '') || undefined
+        const customBodyUrl    = String(brandRaw.fontBodyUrl    ?? '') || undefined
+        const [resolvedFontHeadingUrl, resolvedFontBodyUrl] = await Promise.all([
+          customHeadingUrl ?? resolveGoogleFontWoff2Url(brandTokens.fontHeading, 700),
+          customBodyUrl    ?? resolveGoogleFontWoff2Url(brandTokens.fontBody,    400),
+        ])
+
+        brandFontDiagnostics = {
+          heading: classifyBrandFont({ requested: brandTokens.fontHeading, customUrl: customHeadingUrl, resolvedUrl: resolvedFontHeadingUrl }),
+          body:    classifyBrandFont({ requested: brandTokens.fontBody,    customUrl: customBodyUrl,    resolvedUrl: resolvedFontBodyUrl }),
+        }
+        warnUnresolvedBrandFonts(brandFontDiagnostics, { workspaceId, assetId })
+
         const fonts = await loadFontsForSatori({
           fontHeading:    brandTokens.fontHeading,
           fontBody:       brandTokens.fontBody,
-          fontHeadingUrl: String(brandRaw.fontHeadingUrl ?? '') || undefined,
-          fontBodyUrl:    String(brandRaw.fontBodyUrl    ?? '') || undefined,
+          fontHeadingUrl: resolvedFontHeadingUrl ?? undefined,
+          fontBodyUrl:    resolvedFontBodyUrl    ?? undefined,
         })
 
         const pngBuffer = await renderTemplate(templateSpec, templateProps, brandTokens, size.width, size.height, fonts)
@@ -586,8 +645,15 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       brandProfileApplied: !!brandProfile,
       brandProfileSources: brandProfileSources ?? null,
       renderMode:          renderMode,
-      // Brand fonts only truly land when text is composited via hybrid-overlay.
-      brandFontsApplied:   !!composedUrl && isHybridOverlay && !!brandProfile,
+      // Per-font, per-stage truth (source of truth). Null when no text was composited.
+      brandFontDiagnostics: brandFontDiagnostics,
+      // Back-compat: "brand typography affected the render" — a generic family the user chose
+      // counts as applied. Derived from the diagnostics, not from brandProfile presence.
+      brandFontsApplied: !!composedUrl && !!brandFontDiagnostics &&
+        (brandFontDiagnostics.heading.passedToRenderer || brandFontDiagnostics.body.passedToRenderer),
+      // Narrower signal: a downloadable custom/Google font file actually resolved.
+      brandDownloadableFontsResolved: !!brandFontDiagnostics &&
+        (brandFontDiagnostics.heading.resolvedUrl !== null || brandFontDiagnostics.body.resolvedUrl !== null),
     } as unknown as Json,
   }
 
