@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { ImageIcon, Check, Copy as CopyIcon } from 'lucide-react'
 import type { LinkedInVariation } from '@/lib/linkedin/types'
@@ -15,6 +15,10 @@ import {
   previewFromStudioState,
   type ChannelLike,
 } from '@/components/social-preview'
+import { usePreviewAssets } from '@/components/social-preview/hooks/usePreviewAssets'
+import { parseAspectRatio } from '@/components/social-preview/core/spec'
+import type { PreviewMedia } from '@/components/social-preview/core/types'
+import { requestVisual } from '@/lib/visual/requestVisual'
 import { serializeForCopy } from '@/lib/create/serializeForCopy'
 
 interface VariationCardProps {
@@ -23,13 +27,23 @@ interface VariationCardProps {
   initialOutputId?: string | null
   linkedInChannelId?: string | null
   channel?: ChannelLike | null
+  /** Auto-generate a branded overlay image for this card (image-post anchor only). */
+  autoGenerateImage?: boolean
 }
+
+type AutoImageStatus =
+  | 'idle'
+  | 'generating'
+  | 'attaching'
+  | 'done'
+  | 'generation_error'
+  | 'attach_error'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
-export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId, channel }: VariationCardProps) {
+export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId, channel, autoGenerateImage = false }: VariationCardProps) {
   const params = useParams<{ workspaceSlug?: string }>()
   const workspaceSlug = params?.workspaceSlug
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -43,6 +57,27 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
   // it survives toggling this panel.
   const [editing, setEditing] = useState(false)
 
+  // Auto image generation (image-post anchor). This card owns the visual-asset
+  // fetch so it has both the readiness signal (avoid racing a slow fetch) and the
+  // merge decision below; SocialPreviewInline therefore gets outputId={null}.
+  const { media: fetchedMedia, loading: assetsLoading } = usePreviewAssets(savedOutputId ?? null, 'linkedin')
+  const [autoStatus, setAutoStatus] = useState<AutoImageStatus>('idle')
+  const [autoMedia, setAutoMedia] = useState<PreviewMedia[] | null>(null)
+  const [autoError, setAutoError] = useState<string | null>(null)
+  const autoStartedRef = useRef(false)
+  const lastAssetIdRef = useRef<string | null>(null)
+
+  // Show the freshly generated image as soon as it exists (generating → attaching
+  // → done) and keep it visible even if the attach PATCH later fails. Otherwise
+  // fall back to persisted assets; a pending skeleton only when nothing is shown.
+  const localImage =
+    autoMedia && (autoStatus === 'attaching' || autoStatus === 'done' || autoStatus === 'attach_error')
+      ? autoMedia
+      : null
+  const previewMedia: PreviewMedia[] | undefined =
+    localImage ?? (fetchedMedia.length ? fetchedMedia : undefined)
+  const previewPending = !previewMedia && autoStatus === 'generating'
+
   const previewData = useMemo(
     () =>
       previewFromStudioState({
@@ -50,13 +85,16 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         channel,
         body: variation.body ?? '',
         hashtags: variation.hashtags ?? [],
+        media: previewMedia,
+        mediaPending: previewPending,
       }),
-    [channel, variation.body, variation.hashtags],
+    [channel, variation.body, variation.hashtags, previewMedia, previewPending],
   )
 
   // Sync when async auto-save completes and parent passes back the ID
   useEffect(() => {
     if (initialOutputId && !savedOutputId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSavedOutputId(initialOutputId)
       if (saveState === 'idle') setSaveState('saved')
     }
@@ -139,25 +177,113 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
     }
   }
 
-  async function handleAttach(assetId: string) {
+  // Persistence path shared by manual attach and the auto-flow. Sets the local
+  // selection and PATCHes primaryVisualAssetId. Throws on PATCH failure so the
+  // auto-flow can distinguish attach failure from generation failure.
+  async function attachVisualAsset(assetId: string) {
     onChange({ ...variation, selectedVisualAssetId: assetId })
-    // If already saved, immediately persist the visual attachment
-    if (savedOutputId) {
+    if (!savedOutputId) return
+    const res = await fetch(`/api/outputs/${savedOutputId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: {
+          body: variation.body,
+          hashtags: variation.hashtags,
+          primaryVisualAssetId: assetId,
+        },
+      }),
+    })
+    if (!res.ok) throw new Error(`Attach failed: HTTP ${res.status}`)
+  }
+
+  // Manual attach (edit-panel "Attach to post"). Non-fatal on PATCH failure —
+  // the asset is attached locally and persists on the next manual save. Also
+  // reflect the chosen image in the preview immediately.
+  async function handleAttach(assetId: string, url?: string) {
+    if (url) setAutoMedia([{ url, aspectRatio: parseAspectRatio('landscape', 'linkedin') }])
+    try {
+      await attachVisualAsset(assetId)
+    } catch {
+      // non-fatal for the manual path
+    }
+  }
+
+  // ── Auto image generation (image-post anchor) ────────────────────────────
+  async function runAutoGenerate(signal: AbortSignal) {
+    if (!savedOutputId) return
+    setAutoStatus('generating')
+    setAutoError(null)
+    try {
+      const result = await requestVisual(
+        {
+          content: variation.body,
+          platform: 'linkedin',
+          aspectRatio: 'landscape',
+          // Auto: the renderer picks light/dark text (and the matching logo) from the
+          // generated background's luminance, so the overlay always contrasts —
+          // whether the background comes out dark/dramatic or light. The text shadow
+          // adds insurance over busy/mid-tone patches.
+          colorScheme: 'auto',
+          textShadow: 'medium',
+          includeLogo: true,
+          deriveOverlay: true,
+          outputId: savedOutputId,
+          autoLinkedInImagePost: true,
+        },
+        { signal },
+      )
+      if (signal.aborted) return
+      lastAssetIdRef.current = result.assetId
+      setAutoMedia([
+        { url: result.composedUrl ?? result.url, aspectRatio: parseAspectRatio(result.aspectRatio, 'linkedin') },
+      ])
+      // Server may return a pre-existing asset (idempotent); attach anyway unless
+      // the output already has a primary visual.
+      setAutoStatus('attaching')
       try {
-        await fetch(`/api/outputs/${savedOutputId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: {
-              body: variation.body,
-              hashtags: variation.hashtags,
-              primaryVisualAssetId: assetId,
-            },
-          }),
-        })
+        if (variation.selectedVisualAssetId !== result.assetId) {
+          await attachVisualAsset(result.assetId)
+        }
+        if (!signal.aborted) setAutoStatus('done')
       } catch {
-        // non-fatal — asset is attached locally, will persist on next manual save
+        if (!signal.aborted) setAutoStatus('attach_error')
       }
+    } catch (err) {
+      if (signal.aborted) return
+      setAutoError(err instanceof Error ? err.message : null)
+      setAutoStatus('generation_error')
+    }
+  }
+
+  useEffect(() => {
+    if (!autoGenerateImage) return
+    if (!savedOutputId) return
+    if (assetsLoading) return                      // wait for the existing-asset fetch
+    if (variation.selectedVisualAssetId) return    // already has a locally attached visual
+    if (fetchedMedia.length > 0) return            // output already has a persisted visual
+    if (autoStartedRef.current) return
+    autoStartedRef.current = true
+
+    const controller = new AbortController()
+    void runAutoGenerate(controller.signal)
+    return () => controller.abort()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGenerateImage, savedOutputId, assetsLoading])
+
+  function retryGenerate() {
+    const controller = new AbortController()
+    void runAutoGenerate(controller.signal)
+  }
+
+  async function retryAttach() {
+    if (!lastAssetIdRef.current) return
+    setAutoStatus('attaching')
+    try {
+      await attachVisualAsset(lastAssetIdRef.current)
+      setAutoStatus('done')
+    } catch {
+      setAutoStatus('attach_error')
     }
   }
 
@@ -220,13 +346,33 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         </div>
       )}
 
-      {/* C. Canonical full LinkedIn preview — contains the complete post */}
+      {/* C. Canonical full LinkedIn preview — contains the complete post.
+          outputId is null: this card owns the asset fetch (see usePreviewAssets
+          above) and feeds media in through previewData. */}
       <SocialPreviewInline
         data={previewData}
-        outputId={savedOutputId ?? null}
+        outputId={null}
         mode="full"
         fit
       />
+
+      {/* Auto-image status — calm, secondary. The post is always usable. */}
+      {autoStatus === 'generation_error' && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <span className="text-xs text-zinc-500">
+            {autoError && /limit/i.test(autoError)
+              ? 'Image generation hit a limit.'
+              : 'Couldn’t generate the image.'}
+          </span>
+          <button type="button" onClick={retryGenerate} className={actionBtn}>Retry</button>
+        </div>
+      )}
+      {autoStatus === 'attach_error' && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <span className="text-xs text-zinc-500">Image created, but couldn’t save to the draft.</span>
+          <button type="button" onClick={retryAttach} className={actionBtn}>Retry save</button>
+        </div>
+      )}
 
       {/* D. Action controls — the anchor is auto-saved, so we surface a clear
           saved state rather than a redundant primary "Save". Update PATCHes the
@@ -316,10 +462,15 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
             onChange={(body) => onChange({ ...variation, body })}
           />
 
+          {/* No outputId: keep manual assets unlinked from the output so they
+              don't join the auto asset as a multi-image carousel on reload.
+              Manual attach updates the preview in-session via handleAttach and
+              sets primaryVisualAssetId for publish. */}
           <VisualGenerator
             content={variation.body}
             platform="linkedin"
             aspectRatio="landscape"
+            deriveOverlay={autoGenerateImage}
             onAttach={handleAttach}
           />
 

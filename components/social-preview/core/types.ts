@@ -96,6 +96,12 @@ export interface PreviewData {
   body: string
   hashtags?: string[]
   media?: PreviewMedia[]
+  /**
+   * Render a skeleton in the media slot while an image is being generated.
+   * Only honored when there's no resolved `media`/`carousel`. Kept as a flag
+   * (not a `PreviewMedia` variant) so renderers reading `media.url` are untouched.
+   */
+  mediaPending?: boolean
   carousel?: PreviewCarousel
   /** Display timestamp; defaults to "now" when absent. */
   timestamp?: string

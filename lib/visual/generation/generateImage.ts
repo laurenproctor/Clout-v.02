@@ -150,6 +150,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     quality = 'standard',
     seed,
     overlayParams,
+    overlaySource,
+    purpose,
   } = input
 
   const backgroundMode = input.backgroundMode ?? (input.suppliedBackgroundUrl ? 'uploaded' : 'generated')
@@ -379,13 +381,16 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     } catch { /* fall through — upload will fetch independently */ }
   }
 
-  // Score readability from buffer before upload (no extra network request)
+  // Score readability from buffer before upload (no extra network request).
+  // We also keep the text-zone brightness to auto-pick the overlay color scheme.
   let readabilityRating: string | null = null
+  let textZoneBrightness: number | null = null
   if (imageBuffer && hasOverlayContent && backgroundMode === 'generated') {
     const activeZone = templateSpec?.compositionZone ?? 'bottom-left'
     try {
       const score = await scoreReadabilityLocal(imageBuffer, activeZone)
       readabilityRating = score.rating
+      textZoneBrightness = score.brightness
     } catch { /* non-fatal — generation succeeds without a score */ }
   }
 
@@ -460,7 +465,14 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         const overlayBorderRadius = typeof overlayBrandRaw?.styleTrait_borderRadius === 'string'
           ? overlayBrandRaw.styleTrait_borderRadius
           : undefined
-        const isLightScheme = overlayParams.colorScheme === 'light'
+        // Auto color scheme: pick from the background's text-zone luminance so text
+        // always contrasts. Bright zone → light scheme (dark text); dark zone → dark
+        // scheme (light text). Falls back to the requested colorScheme when brightness
+        // is unavailable (e.g. non-generated background).
+        const isLightScheme =
+          overlayParams.autoColorScheme && textZoneBrightness != null
+            ? textZoneBrightness >= 0.5
+            : overlayParams.colorScheme === 'light'
         const brandTokens = buildBrandTokens(
           {
             primaryColor:   isLightScheme ? '#FFFFFF' : (overlayParams.primaryColor ?? '#1A1A1A'),
@@ -489,7 +501,13 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         // the screenshot before the background/logo has loaded. Embedding as data URIs
         // avoids the race for both renderers.
         let renderBackgroundUrl: string | undefined = upload?.publicUrl
-        let renderLogoUrl: string | undefined = overlayParams.logoUrl
+        // Auto scheme picks the matching logo variant: dark text (light scheme) →
+        // dark logo; light text (dark scheme) → light logo. Falls back to logoUrl.
+        let renderLogoUrl: string | undefined = overlayParams.autoColorScheme
+          ? (isLightScheme
+              ? (overlayParams.logoUrlDark ?? overlayParams.logoUrl)
+              : (overlayParams.logoUrlLight ?? overlayParams.logoUrl))
+          : overlayParams.logoUrl
 
         if (upload?.publicUrl) {
           if (generatedProviderUrl?.startsWith('data:')) {
@@ -634,6 +652,10 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     description:          assetDescription,
     generation_context:   {
       backgroundMode:    backgroundMode,
+      // Provenance + intent tag — overlaySource explains where the headline came
+      // from; purpose is the server-derived idempotency tag for auto flows.
+      overlaySource:     overlaySource ?? null,
+      purpose:           purpose ?? null,
       preferredTextZone: null,
       overlayStrength:   overlayParams?.overlayStrength ?? null,
       overlayOpacity:    overlayParams?.overlayOpacity ?? null,
@@ -657,12 +679,33 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     } as unknown as Json,
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: row, error } = await supabase
+  let { data: row, error } = await supabase
     .from('visual_assets')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert(insertPayload as any)
     .select()
     .single()
+
+  // Race-safe idempotency for auto flows: a partial unique index on
+  // (workspace_id, output_id, generation_context->>'purpose') means a concurrent
+  // request may have persisted the auto asset first. On unique violation, return
+  // the winner's row instead of a duplicate. (This image's storage upload is
+  // orphaned — an acceptable cost for the rare simultaneous double-submit; the
+  // route's pre-check avoids regenerating in the common reload/sequential case.)
+  if (error && (error as { code?: string }).code === '23505' && purpose && outputId) {
+    console.warn('[visual/generateImage] idempotency conflict — returning existing auto asset', { outputId, purpose })
+    const existing = await supabase
+      .from('visual_assets')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('output_id', outputId)
+      .filter('generation_context->>purpose', 'eq', purpose)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    row = existing.data
+    error = existing.error
+  }
 
   if (error || !row) {
     console.error('[visual/generateImage] DB insert failed', { error: error?.message, assetId })

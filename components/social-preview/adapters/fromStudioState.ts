@@ -16,6 +16,7 @@ export interface FromStudioStateArgs {
   title?: string
   hashtags?: string[]
   media?: PreviewMedia[] | null
+  mediaPending?: boolean
   carousel?: PreviewCarousel | null
 }
 
@@ -30,6 +31,7 @@ export function previewFromStudioState(args: FromStudioStateArgs): PreviewData {
     body: args.body ?? '',
     hashtags: normalizeHashtags(args.hashtags),
     media: args.media ?? undefined,
+    mediaPending: args.mediaPending ?? undefined,
     carousel: args.carousel ?? undefined,
   }
 }

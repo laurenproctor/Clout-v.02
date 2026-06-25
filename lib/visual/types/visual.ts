@@ -145,6 +145,10 @@ export interface OverlayParams {
   quote?: string          // quote-monolith
   attribution?: string    // quote-monolith
   logoUrl?: string
+  // Both logo variants — supplied for autoColorScheme so the renderer can pick the
+  // one that matches the scheme it derives from the background luminance.
+  logoUrlLight?: string   // light logo, for dark backgrounds
+  logoUrlDark?: string    // dark logo, for light backgrounds
   fontHeading?: string
   fontBody?: string
   fontHeadingUrl?: string
@@ -153,6 +157,9 @@ export interface OverlayParams {
   secondaryColor?: string
   accentColor?: string
   colorScheme?: 'light' | 'dark'
+  // When true, the renderer picks light vs dark scheme (and logo) from the
+  // generated background's text-zone luminance instead of `colorScheme`.
+  autoColorScheme?: boolean
   overlayStrength?: 'subtle' | 'balanced' | 'strong'  // UX label; translated to overlayOpacity in route
   overlayOpacity?:  number                             // 0.0–1.0, preferred internal form
   textShadow?:      'none' | 'light' | 'medium' | 'strong'
@@ -183,6 +190,8 @@ export interface GenerateImageInput {
   backgroundMode?: 'generated' | 'uploaded' | 'solid'  // defaults to 'generated'
   suppliedBackgroundUrl?: string  // required when backgroundMode === 'uploaded'
   overlayParams?: OverlayParams   // when set: forces hybrid-overlay with user's exact text (headline or quote)
+  overlaySource?: 'manual' | 'ai-derived' | 'fallback'  // provenance of overlay copy; stored in generation_context
+  purpose?: string                // server-derived intent tag (e.g. 'linkedin-image-post-auto'); stored in generation_context for idempotency
 }
 
 // ─── Persisted asset ────────────────────────────────────────────────────────

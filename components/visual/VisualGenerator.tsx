@@ -7,27 +7,18 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { VisualPreview } from './VisualPreview'
-import type { VisualPlatform, AspectRatio, VisualIntent } from '@/lib/visual/types/visual'
+import { requestVisual, type GeneratedVisualResult } from '@/lib/visual/requestVisual'
+import type { VisualPlatform, AspectRatio } from '@/lib/visual/types/visual'
 
 type GeneratorState = 'idle' | 'generating' | 'done' | 'error'
-
-interface GeneratedResult {
-  assetId: string
-  url: string                    // preferred display URL (composedUrl if available)
-  backgroundUrl?: string         // raw AI background
-  composedUrl?: string | null    // final composed image (hybrid-overlay)
-  templateId?: string | null     // which template was used
-  visualIntent: VisualIntent | null
-  prompt: string
-  aspectRatio: AspectRatio
-  generationGroupId: string
-}
 
 interface VisualGeneratorProps {
   content: string
   platform: VisualPlatform
   outputId?: string
   aspectRatio?: AspectRatio
+  /** Produce a branded overlay card (headline composited) instead of a plain image. */
+  deriveOverlay?: boolean
   onAttach?: (assetId: string, url: string) => void
   className?: string
 }
@@ -37,11 +28,12 @@ export function VisualGenerator({
   platform,
   outputId,
   aspectRatio = 'landscape',
+  deriveOverlay = false,
   onAttach,
   className,
 }: VisualGeneratorProps) {
   const [state, setState] = useState<GeneratorState>('idle')
-  const [result, setResult] = useState<GeneratedResult | null>(null)
+  const [result, setResult] = useState<GeneratedVisualResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [promptDraft, setPromptDraft] = useState('')
@@ -54,26 +46,19 @@ export function VisualGenerator({
     setAttached(false)
 
     try {
-      const res = await fetch('/api/visual/generate', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content,
-          platform,
-          outputId,
-          aspectRatio,
-          ...(params?.promptOverride    ? { promptOverride: params.promptOverride }       : {}),
-          ...(params?.parentAssetId     ? { parentAssetId: params.parentAssetId }         : {}),
-          ...(params?.generationGroupId ? { generationGroupId: params.generationGroupId } : {}),
-        }),
+      const data = await requestVisual({
+        content,
+        platform,
+        outputId,
+        aspectRatio,
+        // Overlay card consistency: when the host wants a branded card, derive copy
+        // and brand the image (logo + auto scheme from background luminance + text
+        // shadow → readable text and a visible logo on any background) like the auto flow.
+        ...(deriveOverlay ? { deriveOverlay: true, includeLogo: true, colorScheme: 'auto' as const, textShadow: 'medium' as const } : {}),
+        ...(params?.promptOverride    ? { promptOverride: params.promptOverride }       : {}),
+        ...(params?.parentAssetId     ? { parentAssetId: params.parentAssetId }         : {}),
+        ...(params?.generationGroupId ? { generationGroupId: params.generationGroupId } : {}),
       })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(data.error ?? `HTTP ${res.status}`)
-      }
-
-      const data = await res.json() as GeneratedResult
       setResult(data)
       setState('done')
     } catch (err) {

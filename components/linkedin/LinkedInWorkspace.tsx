@@ -347,6 +347,7 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
             initialOutputId={savedVariationIds[0] ?? null}
             linkedInChannelId={linkedInChannelId}
             channel={linkedInChannel}
+            autoGenerateImage={request.postType === 'image'}
           />
         )}
 
