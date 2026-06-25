@@ -22,8 +22,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Use `npm install` (not `npm ci`): @resvg/resvg-js pulls optional
+      # @napi-rs/wasm-runtime → @emnapi/* whose Linux resolution isn't captured
+      # by a lockfile generated on macOS, so strict `npm ci` rejects it. The
+      # lenient install resolves correctly on the runner's platform.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       # Hard gates — these block the merge. Both are green as of this commit.
       - name: Type check
