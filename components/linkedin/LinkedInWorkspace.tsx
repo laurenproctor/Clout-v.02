@@ -34,6 +34,9 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
   const [variations, setVariations] = useState<LinkedInVariation[]>([])
   const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])
   const [coaching, setCoaching] = useState<PostCoaching | null>(null)
+  // Coaching streams in parallel and is best-effort; this flips true once the
+  // stream closes so the panel stops showing "Loading…" if coaching never arrives.
+  const [coachingResolved, setCoachingResolved] = useState(false)
   const [progressLabel, setProgressLabel] = useState<string>('Generating...')
   const [error, setError] = useState<string | null>(null)
   const [linkedInChannelId, setLinkedInChannelId] = useState<string | null>(null)
@@ -68,6 +71,8 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
     setState('generating')
     setProgressLabel('Generating...')
     setSavedVariationIds([])
+    setCoaching(null)
+    setCoachingResolved(false)
 
     try {
       const response = await fetch('/api/linkedin/generate', {
@@ -143,6 +148,9 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
           }
         }
       }
+
+      // Stream closed — coaching either arrived above or won't (best-effort).
+      setCoachingResolved(true)
 
       if (!receivedComplete) {
         throw new Error('Generation timed out — try a shorter source or fewer lenses.')
@@ -236,6 +244,8 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
       <div className="w-80 shrink-0 border-l border-zinc-100 overflow-y-auto">
         {coaching ? (
           <CoachingPanel coaching={coaching} />
+        ) : coachingResolved ? (
+          <div className="p-4 text-xs text-zinc-400">Coaching insights unavailable for this run.</div>
         ) : (
           <div className="p-4 text-xs text-zinc-400">Loading coaching insights...</div>
         )}
