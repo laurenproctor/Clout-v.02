@@ -26,6 +26,9 @@ import type {
 } from '@/types/feed'
 import type { CompetitorContentItem } from '@/app/api/competitors/content/route'
 
+// Cards revealed per "Show 10 more" click, and the batch revealed after a fetch.
+const PAGE_SIZE = 10
+
 const EXAMPLE_TOPICS = [
   'AI retailers begin replacing recommendation systems with intent prediction models',
   'The rise of synthetic operational memory in enterprise AI systems',
@@ -70,6 +73,10 @@ export function SignalFeed({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedStats, setFeedStats] = useState<FeedStats | null>(null)
+  // "Show 10 more / Find new signals" pagination for the list tabs (news/concepts).
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [fetchingMore, setFetchingMore] = useState(false)
+  const [moreNotice, setMoreNotice] = useState<string | null>(null)
   // Confirmation when arriving from a successful Settings refresh
   // (?refresh=added&n=N). Derived from the URL during render (no setState on
   // mount); auto-dismissed and the params stripped by the effect below.
@@ -120,8 +127,8 @@ export function SignalFeed({
     return { items: data.items ?? [], gaps: data.gaps ?? [], websiteUrl: data.website_url ?? websiteUrl }
   }, [])
 
-  const fetchTab = useCallback(async (tab: FeedTab) => {
-    setLoading(true)
+  const fetchTab = useCallback(async (tab: FeedTab, opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true)
     setError(null)
     try {
       if (tab === 'competitors') {
@@ -162,7 +169,7 @@ export function SignalFeed({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load signals')
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
   }, [analyzeConfiguredWebsite])
 
@@ -176,6 +183,18 @@ export function SignalFeed({
         .catch(() => {})
     }
   }, [feedPhase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset pagination whenever the feed identity changes (tab or workspace), so a
+  // new list always starts at one page and stale notices don't linger. Adjusting
+  // state during render on an identity change is React's documented pattern
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
+  const feedIdentity = `${activeTab}|${workspaceSlug}`
+  const [prevFeedIdentity, setPrevFeedIdentity] = useState(feedIdentity)
+  if (feedIdentity !== prevFeedIdentity) {
+    setPrevFeedIdentity(feedIdentity)
+    setVisibleCount(PAGE_SIZE)
+    setMoreNotice(null)
+  }
 
   const handleTabChange = useCallback((tab: FeedTab) => {
     setActiveTab(tab)
@@ -200,6 +219,41 @@ export function SignalFeed({
       return updated
     })
   }, [])
+
+  // "Show 10 more" reveals already-loaded cards; once exhausted (news only), it
+  // runs on-demand ingestion, reloads the tab, and surfaces any new cards.
+  async function handleFetchMore() {
+    const cards = cardCache[activeTab] ?? []
+
+    // Reveal phase — more already-loaded cards remain.
+    if (visibleCount < cards.length) {
+      setMoreNotice(null)
+      setVisibleCount(v => Math.min(v + PAGE_SIZE, cards.length))
+      return
+    }
+
+    // Fetch phase — news only (concepts has no ingestion path; button hidden there).
+    if (activeTab !== 'news' || fetchingMore) return
+    setFetchingMore(true)
+    setMoreNotice(null)
+    try {
+      const res = await fetch('/api/feed/refresh', { method: 'POST' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.ok) {
+        setMoreNotice(data?.error ?? 'Couldn’t find new signals right now. Try again shortly.')
+        return
+      }
+      await fetchTab(activeTab, { silent: true }) // reload without flashing the list
+      setVisibleCount(v => v + PAGE_SIZE)         // tolerate overage; cap on next render
+      if ((data.newCards ?? 0) === 0) {
+        setMoreNotice('No new signals right now. Check back later.')
+      }
+    } catch {
+      setMoreNotice('Couldn’t find new signals right now. Try again shortly.')
+    } finally {
+      setFetchingMore(false)
+    }
+  }
 
   async function handleOnboardingComplete(payload: OnboardingPayload) {
     setFeedPhase('generating')
@@ -372,22 +426,66 @@ export function SignalFeed({
 
         {/* Signal cards */}
         {!loading && !error && !isEmpty && !isManagedTab && (
-          activeCards!.map((card, index) => (
-            <div
-              key={card.id}
-              style={{
-                animation: 'feedCardEnter 0.35s ease both',
-                animationDelay: `${index * 60}ms`,
-              }}
-            >
-              {activeTab === 'concepts' && (
-                <ConceptCard card={card} userId={userId} onDismiss={handleDismiss} />
-              )}
-              {activeTab === 'news' && (
-                <SignalCard card={card} userId={userId} onDismiss={handleDismiss} />
-              )}
-            </div>
-          ))
+          <>
+            {activeCards!.slice(0, visibleCount).map((card, index) => (
+              <div
+                key={card.id}
+                style={{
+                  animation: 'feedCardEnter 0.35s ease both',
+                  animationDelay: `${index * 60}ms`,
+                }}
+              >
+                {activeTab === 'concepts' && (
+                  <ConceptCard card={card} userId={userId} onDismiss={handleDismiss} />
+                )}
+                {activeTab === 'news' && (
+                  <SignalCard card={card} userId={userId} onDismiss={handleDismiss} />
+                )}
+              </div>
+            ))}
+
+            {/* Show 10 more (reveal) → Find new signals (ingest, news only). Concepts
+                has no ingestion path, so its button hides once all cards are shown. */}
+            {(() => {
+              const hasMoreLoaded = visibleCount < activeCards!.length
+              if (activeTab === 'concepts' && !hasMoreLoaded) return null
+              const label = fetchingMore
+                ? 'Finding new signals…'
+                : hasMoreLoaded
+                  ? 'Show 10 more'
+                  : 'Find new signals'
+              return (
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                  <button
+                    onClick={handleFetchMore}
+                    disabled={fetchingMore}
+                    style={{
+                      padding: '8px 20px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      backgroundColor: 'var(--workspace-accent, #1a1560)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: fetchingMore ? 'default' : 'pointer',
+                      opacity: fetchingMore ? 0.7 : 1,
+                    }}
+                  >
+                    {label}
+                  </button>
+                  {moreNotice && (
+                    <p style={{
+                      marginTop: '10px',
+                      fontSize: '12px',
+                      color: tokens.colors.sectionHeaderColor,
+                    }}>
+                      {moreNotice}
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
+          </>
         )}
       </div>
     </>
