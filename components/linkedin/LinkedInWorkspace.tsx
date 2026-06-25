@@ -14,12 +14,52 @@ import { StrategyPanel } from './StrategyPanel'
 import { GenerationProgress } from './GenerationProgress'
 import { VariationCard } from './VariationCard'
 import { CoachingPanel } from './CoachingPanel'
+import { AlternateAnglesList } from './AlternateAnglesList'
+import { AdaptationCard } from '@/components/create/AdaptationCard'
+import type { AdaptedDraft, AdaptTargetPlatform } from '@/lib/create/types'
 import type { ChannelLike } from '@/components/social-preview'
 
 // Lightweight product event (matches the local convention in welcome/page.tsx).
 // Not an analytics pipeline — just enough signal to see how the new flow is used.
 function trackEvent(event: string, props: Record<string, unknown>) {
   console.log('[create]', event, props)
+}
+
+const ADAPT_TARGETS: { platform: AdaptTargetPlatform; label: string }[] = [
+  { platform: 'threads', label: 'Threads' },
+  { platform: 'x', label: 'X' },
+]
+
+// Read an NDJSON variation stream and resolve the variations from the `complete`
+// event. Throws on an `error` event or if the stream closes without completing.
+async function readVariationStream(response: Response): Promise<LinkedInVariation[]> {
+  if (!response.ok) throw new Error('Request failed')
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error('No stream')
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let result: LinkedInVariation[] | null = null
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line.trim()) continue
+      let event: { type: string; data?: unknown; message?: string }
+      try { event = JSON.parse(line) } catch { continue }
+      if (event.type === 'complete') {
+        result = (event.data as { variations: LinkedInVariation[] }).variations
+      } else if (event.type === 'error') {
+        throw new Error(event.message ?? 'Generation failed')
+      }
+    }
+  }
+
+  if (!result) throw new Error('Generation timed out — try again.')
+  return result
 }
 
 interface LinkedInWorkspaceProps {
@@ -48,6 +88,15 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
   const [linkedInChannelId, setLinkedInChannelId] = useState<string | null>(null)
   const [linkedInChannel,   setLinkedInChannel]   = useState<ChannelLike | null>(null)
   const linkedInChannelIdRef = useRef<string | null>(null)
+
+  // Secondary, on-demand intents (PR 2). Both are isolated from the anchor: a
+  // failure here surfaces a section-level error and never mutates the anchor.
+  const [alternates, setAlternates] = useState<LinkedInVariation[]>([])
+  const [alternatesState, setAlternatesState] = useState<'idle' | 'loading' | 'shown'>('idle')
+  const [alternatesError, setAlternatesError] = useState<string | null>(null)
+  const [adaptations, setAdaptations] = useState<AdaptedDraft[]>([])
+  const [adaptingPlatform, setAdaptingPlatform] = useState<AdaptTargetPlatform | null>(null)
+  const [adaptError, setAdaptError] = useState<string | null>(null)
 
   // Fetch the workspace's connected LinkedIn channel for output association + preview author
   useEffect(() => {
@@ -79,6 +128,12 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
     setSavedVariationIds([])
     setCoaching(null)
     setCoachingResolved(false)
+    // Reset secondary results — they belong to the previous anchor.
+    setAlternates([])
+    setAlternatesState('idle')
+    setAlternatesError(null)
+    setAdaptations([])
+    setAdaptError(null)
 
     try {
       const response = await fetch('/api/linkedin/generate', {
@@ -176,6 +231,78 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
     setVariations(prev => prev.map((v, i) => (i === index ? updated : v)))
   }, [])
 
+  // "Show alternate angles" — explicit second call seeded with the current anchor
+  // body so results are genuinely distinct. Not auto-saved; failure is isolated.
+  const handleShowAlternates = useCallback(async () => {
+    const anchor = variations[0]
+    if (!anchor) return
+    setAlternatesError(null)
+    setAlternatesState('loading')
+    trackEvent('linkedin_alternates_requested', { intent: request.intent })
+    try {
+      const response = await fetch('/api/linkedin/alternates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request, anchorBody: anchor.body }),
+      })
+      const generated = await readVariationStream(response)
+      setAlternates(generated)
+      setAlternatesState('shown')
+    } catch (err) {
+      setAlternatesError(err instanceof Error ? err.message : 'Could not load alternate angles.')
+      setAlternatesState('idle')
+    }
+  }, [variations, request])
+
+  const handleAlternateChange = useCallback((index: number, updated: LinkedInVariation) => {
+    setAlternates(prev => prev.map((v, i) => (i === index ? updated : v)))
+  }, [])
+
+  // "Adapt to other platforms" — derive a native draft from the CURRENT (possibly
+  // edited) anchor body. Failure is isolated to this section; the anchor is untouched.
+  const handleAdapt = useCallback(async (platform: AdaptTargetPlatform) => {
+    const anchor = variations[0]
+    if (!anchor || adaptingPlatform) return
+    setAdaptError(null)
+    setAdaptingPlatform(platform)
+    trackEvent('linkedin_adaptation_requested', { platform })
+    try {
+      const res = await fetch('/api/create/adapt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          anchorBody: anchor.body,
+          anchorHashtags: anchor.hashtags,
+          targetPlatform: platform,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(data.error ?? 'Adaptation failed.')
+      }
+      const data = await res.json() as { body: string; hashtags: string[]; campaignName: string }
+      setAdaptations(prev => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          platform,
+          sourceAnchorId: anchor.id,
+          body: data.body,
+          hashtags: data.hashtags ?? [],
+          campaignName: data.campaignName,
+        },
+      ])
+    } catch (err) {
+      setAdaptError(err instanceof Error ? err.message : 'Adaptation failed.')
+    } finally {
+      setAdaptingPlatform(null)
+    }
+  }, [variations, adaptingPlatform])
+
+  const handleAdaptationChange = useCallback((index: number, updated: AdaptedDraft) => {
+    setAdaptations(prev => prev.map((d, i) => (i === index ? updated : d)))
+  }, [])
+
   const patchRequest = useCallback((patch: Partial<LinkedInGenerationRequest>) => {
     setRequest(prev => ({ ...prev, ...patch }))
   }, [])
@@ -236,20 +363,83 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
     )
   }
 
-  // result state
+  // result state — one recommended anchor; alternates + adaptations on demand.
+  const anchor = variations[0]
   return (
     <div className="flex h-full min-h-0">
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
-        {variations.map((variation, index) => (
+        {anchor && (
           <VariationCard
-            key={variation.id}
-            variation={variation}
-            onChange={updated => handleVariationChange(index, updated)}
-            initialOutputId={savedVariationIds[index] ?? null}
+            key={anchor.id}
+            variation={anchor}
+            onChange={updated => handleVariationChange(0, updated)}
+            initialOutputId={savedVariationIds[0] ?? null}
             linkedInChannelId={linkedInChannelId}
             channel={linkedInChannel}
           />
-        ))}
+        )}
+
+        {/* Secondary actions — below the anchor, never above it */}
+        {anchor && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {alternatesState !== 'shown' && (
+                <button
+                  type="button"
+                  onClick={handleShowAlternates}
+                  disabled={alternatesState === 'loading'}
+                  className="text-xs font-medium text-zinc-500 hover:text-zinc-800 disabled:opacity-50"
+                >
+                  {alternatesState === 'loading' ? 'Exploring alternate angles…' : 'Show alternate angles'}
+                </button>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-zinc-400">Adapt to other platforms:</span>
+                {ADAPT_TARGETS.map(({ platform, label }) => (
+                  <button
+                    key={platform}
+                    type="button"
+                    onClick={() => handleAdapt(platform)}
+                    disabled={adaptingPlatform !== null}
+                    className="rounded-full border border-zinc-200 px-3 py-1 text-xs text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 disabled:opacity-50"
+                  >
+                    {adaptingPlatform === platform ? `Adapting…` : label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {alternatesError && (
+              <p className="text-xs text-red-500">{alternatesError}</p>
+            )}
+            {adaptError && (
+              <p className="text-xs text-red-500">{adaptError}</p>
+            )}
+          </div>
+        )}
+
+        {/* Alternate angles — subordinate, collapsed by default */}
+        <AlternateAnglesList
+          alternates={alternates}
+          onChange={handleAlternateChange}
+          linkedInChannelId={linkedInChannelId}
+          channel={linkedInChannel}
+        />
+
+        {/* Platform adaptations — derived channel versions */}
+        {adaptations.length > 0 && (
+          <div className="space-y-3 border-t border-zinc-100 pt-4">
+            <p className="text-xs font-medium text-zinc-400">Platform adaptations</p>
+            {adaptations.map((draft, index) => (
+              <AdaptationCard
+                key={draft.id}
+                draft={draft}
+                onChange={updated => handleAdaptationChange(index, updated)}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <div className="w-80 shrink-0 border-l border-zinc-100 overflow-y-auto">
         {coaching ? (

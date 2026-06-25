@@ -73,7 +73,10 @@ interface ClaudeVariationsResponse {
   variations: ClaudeVariation[]
 }
 
-function buildSystemPrompt(ctx: LinkedInPromptContext): string {
+// Shared editorial-standards + lenses + brand + campaign prefix. Both the anchor
+// (one recommended post) and the alternates (other angles) prompts build on this;
+// only the trailing output-format schema differs.
+function buildPromptPrefix(ctx: LinkedInPromptContext): string[] {
   const lines: string[] = [
     '# LinkedIn Post Generation — Editorial Standards',
     '',
@@ -113,6 +116,12 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
   if (campaignLines.length > 0) {
     lines.push(...campaignLines, '')
   }
+
+  return lines
+}
+
+function buildSystemPrompt(ctx: LinkedInPromptContext): string {
+  const lines = buildPromptPrefix(ctx)
 
   lines.push('## Output Format')
   lines.push('Respond with ONLY valid JSON matching this exact schema (a single recommended post in a one-element array):')
@@ -236,6 +245,53 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
   return lines.join('\n')
 }
 
+// Alternates are an explicit, on-demand second intent: given the already-shown
+// anchor, produce two genuinely different angles so the user can inspect other
+// strategic directions. Same editorial standards; a two-element output schema.
+function buildAlternatesSystemPrompt(ctx: LinkedInPromptContext): string {
+  const lines = buildPromptPrefix(ctx)
+
+  lines.push('## Output Format')
+  lines.push('Respond with ONLY valid JSON matching this exact schema (exactly two alternate posts):')
+  lines.push('')
+  lines.push(JSON.stringify({
+    variations: [
+      {
+        label: 'Alternate angle',
+        campaignName: 'Why Most Teams Underestimate Technical Debt — Story Angle',
+        body: '...',
+        hooks: [
+          { type: 'statistical', text: '...' },
+          { type: 'tension', text: '...' },
+          { type: 'story', text: '...' },
+          { type: 'contrarian', text: '...' },
+        ],
+        hashtags: ['leadership', 'strategy', 'operations', 'growth', 'management'],
+        ctaSuggestions: ['What\'s your take?', 'Drop a comment below', 'DM me to discuss'],
+        transformationDelta: { changes: ['Narrative-first opener', 'Distinct from the recommended post'] },
+      },
+      { label: 'Alternate angle', campaignName: 'Why Most Teams Underestimate Technical Debt — Debate Angle', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
+    ],
+  }, null, 2))
+
+  return lines.join('\n')
+}
+
+function buildAlternatesUserMessage(request: LinkedInGenerationRequest, anchorBody: string): string {
+  return [
+    buildUserMessage(request),
+    ``,
+    `## Already-recommended post (do NOT repeat this angle)`,
+    ``,
+    anchorBody,
+    ``,
+    `## Alternate-angles instruction`,
+    ``,
+    `The post above is the recommended version the user has already seen. Now produce TWO alternate posts that take genuinely different angles from it and from each other — e.g. if the recommended post is narrative, offer an authority and a debate angle.`,
+    `Each alternate must stand on its own as a strong post, follow all editorial standards, and include the same fields (label "Alternate angle", campaignName, 4 hook alternatives, exactly 5 hashtags, 3 CTA suggestions, and a transformationDelta of 2–3 short labels describing how it differs from the recommended post).`,
+  ].join('\n')
+}
+
 function isOverloaded(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err)
   return msg.includes('overloaded') || msg.includes('529') || msg.includes('overloaded_error')
@@ -343,6 +399,85 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
           new Promise<null>((r) => setTimeout(() => r(null), 20000)),
         ])
         if (coaching?.readerPsychology) emit({ type: 'coaching', data: coaching })
+      } catch (err) {
+        emit({ type: 'error', message: friendlyError(err) })
+      } finally {
+        controller.close()
+      }
+    },
+  })
+}
+
+// On-demand alternate angles: streamed like the anchor but seeded with the
+// already-shown post so the two results are genuinely distinct. No coaching —
+// this is a secondary action and must never sit on the anchor's critical path.
+export function runLinkedInAlternates(
+  ctx: LinkedInPromptContext,
+  anchorBody: string,
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder()
+
+  return new ReadableStream({
+    async start(controller) {
+      const emit = (event: object) => {
+        controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
+      }
+
+      async function generateAlternates(): Promise<void> {
+        const stream = callClaudeStream({
+          systemPrompt: buildAlternatesSystemPrompt(ctx),
+          userMessage: buildAlternatesUserMessage(ctx.request, anchorBody),
+          maxTokens: 4000,
+        })
+
+        let accumulated = ''
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            accumulated += event.delta.text
+          }
+        }
+
+        const parsed = parseJson<ClaudeVariationsResponse>(accumulated)
+        if (!Array.isArray(parsed?.variations)) {
+          throw new Error('Claude returned an unexpected response structure. Try again.')
+        }
+
+        // Cap at two alternates; drop any without a body.
+        const variations: LinkedInVariation[] = parsed.variations
+          .filter((v) => v?.body)
+          .slice(0, 2)
+          .map((v) => ({
+            id: crypto.randomUUID(),
+            label: v.label || 'Alternate angle',
+            campaignName: v.campaignName ?? v.label,
+            body: v.body,
+            hooks: v.hooks ?? [],
+            hashtags: normalizeHashtags(v.hashtags),
+            mentions: [],
+            ctaSuggestions: v.ctaSuggestions ?? [],
+            transformationDelta: v.transformationDelta ?? { changes: [] },
+          }))
+
+        if (variations.length === 0) {
+          throw new Error('No alternate angles were produced. Try again.')
+        }
+
+        emit({ type: 'complete', data: { variations } as LinkedInGenerationResult })
+      }
+
+      try {
+        emit({ type: 'progress', label: 'Exploring alternate angles...' })
+        try {
+          await generateAlternates()
+        } catch (err) {
+          if (isOverloaded(err)) {
+            emit({ type: 'progress', label: 'API busy — retrying...' })
+            await new Promise(r => setTimeout(r, 3000))
+            await generateAlternates()
+          } else {
+            throw err
+          }
+        }
       } catch (err) {
         emit({ type: 'error', message: friendlyError(err) })
       } finally {
