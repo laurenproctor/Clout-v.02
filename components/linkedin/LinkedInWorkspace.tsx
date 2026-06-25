@@ -16,6 +16,12 @@ import { VariationCard } from './VariationCard'
 import { CoachingPanel } from './CoachingPanel'
 import type { ChannelLike } from '@/components/social-preview'
 
+// Lightweight product event (matches the local convention in welcome/page.tsx).
+// Not an analytics pipeline — just enough signal to see how the new flow is used.
+function trackEvent(event: string, props: Record<string, unknown>) {
+  console.log('[create]', event, props)
+}
+
 interface LinkedInWorkspaceProps {
   lenses: Lens[]
   savedAudiences?: string[]
@@ -110,37 +116,41 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
           } else if (event.type === 'complete') {
             receivedComplete = true
             const { variations: generated } = event.data as { variations: LinkedInVariation[] }
-            setVariations(generated)
-            setSavedVariationIds(new Array(generated.length).fill(null))
+            // Default output is one recommended post. Render only the anchor
+            // (variations[0]); ignore any extras the model may have returned.
+            const anchor = generated[0]
+            if (!anchor?.body) {
+              throw new Error('Generation did not produce a usable post — try again.')
+            }
+            trackEvent('linkedin_anchor_generated', { length: request.length, intent: request.intent })
+            setVariations([anchor])
+            setSavedVariationIds([null])
             setState('result')
 
             // Read from ref to avoid stale closure — channel fetch may complete after callback creation
             const channelId = linkedInChannelIdRef.current
-            // Auto-save all variations so they appear in studio with title + channel
-            Promise.all(
-              generated.map(v =>
-                fetch('/api/linkedin/outputs', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    variation: {
-                      body:          v.body,
-                      hashtags:      v.hashtags,
-                      campaignName:  v.campaignName,
-                      cta:           v.ctaSuggestions?.[0] ?? null,
-                      voiceRegister: request.voiceRegister ?? null,
-                      lensName:      lenses.find(l => request.lensIds?.[0] === l.id)?.name ?? null,
-                    },
-                    title:     v.campaignName,
-                    channelId: channelId ?? null,
-                  }),
-                })
-                  .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
-                  .catch(() => null)
-              )
-            ).then(results => {
-              setSavedVariationIds(results.map(r => r?.id ?? null))
+            // Auto-save only the anchor so exactly one studio draft is created.
+            fetch('/api/linkedin/outputs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                variation: {
+                  body:          anchor.body,
+                  hashtags:      anchor.hashtags,
+                  campaignName:  anchor.campaignName,
+                  cta:           anchor.ctaSuggestions?.[0] ?? null,
+                  voiceRegister: request.voiceRegister ?? null,
+                  lensName:      lenses.find(l => request.lensIds?.[0] === l.id)?.name ?? null,
+                },
+                title:     anchor.campaignName,
+                channelId: channelId ?? null,
+              }),
             })
+              .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
+              .catch(() => null)
+              .then(result => {
+                setSavedVariationIds([result?.id ?? null])
+              })
           } else if (event.type === 'coaching') {
             setCoaching(event.data as PostCoaching)
           } else if (event.type === 'error') {

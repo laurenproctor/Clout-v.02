@@ -115,13 +115,13 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
   }
 
   lines.push('## Output Format')
-  lines.push('Respond with ONLY valid JSON matching this exact schema:')
+  lines.push('Respond with ONLY valid JSON matching this exact schema (a single recommended post in a one-element array):')
   lines.push('')
   lines.push(JSON.stringify({
     variations: [
       {
-        label: 'Authority Version',
-        campaignName: 'Why Most Teams Underestimate Technical Debt — Authority Angle',
+        label: 'Recommended',
+        campaignName: 'Why Most Teams Underestimate Technical Debt — Recommended',
         body: '...',
         hooks: [
           { type: 'statistical', text: '...' },
@@ -131,10 +131,8 @@ function buildSystemPrompt(ctx: LinkedInPromptContext): string {
         ],
         hashtags: ['leadership', 'strategy', 'operations', 'growth', 'management'],
         ctaSuggestions: ['What\'s your take?', 'Drop a comment below', 'DM me to discuss'],
-        transformationDelta: { changes: ['Elevated authority framing', 'Direct claim opener'] },
+        transformationDelta: { changes: ['Strongest angle for this brief', 'Direct claim opener'] },
       },
-      { label: 'Narrative Version', campaignName: 'Why Most Teams Underestimate Technical Debt — Story Angle', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
-      { label: 'Debate Version', campaignName: 'Why Most Teams Underestimate Technical Debt — Debate Angle', body: '...', hooks: [], hashtags: [], ctaSuggestions: [], transformationDelta: { changes: [] } },
     ],
   }, null, 2))
 
@@ -219,18 +217,20 @@ function buildUserMessage(request: LinkedInGenerationRequest): string {
     ``,
     `## Instructions`,
     ``,
-    `Generate exactly 3 variations:`,
+    `Write ONE recommended post — the single strongest version for this brief. Do not produce multiple variations.`,
     ``,
-    `1. **Authority Version** — establishes credibility, positions author as expert. Lead with data, credentials, or a sharp declarative claim.`,
-    `2. **Narrative Version** — leads with a story or relatable moment before the insight. Create a scene first, then extract the lesson.`,
-    `3. **Debate Version** — opens with a contrarian claim or challenges a common belief. Make the reader disagree (or strongly agree) immediately.`,
+    `Choose the angle that will perform best for this specific source, intent, and audience. Common angles to weigh (pick exactly one, whichever is strongest — do not default to authority):`,
+    `- **Authority** — lead with data, credentials, or a sharp declarative claim.`,
+    `- **Narrative** — open with a story or relatable moment, then extract the lesson.`,
+    `- **Debate** — open with a contrarian claim that challenges a common belief.`,
     ``,
-    `Each variation must include:`,
-    `- campaignName: a compelling, specific headline (8–12 words) that describes what this post is about — used as the studio title. Format: "[Core insight or hook] — [Variation angle]". Do not use generic labels like "LinkedIn Post".`,
+    `Return it as a one-element "variations" array. The post must include:`,
+    `- label: "Recommended"`,
+    `- campaignName: a compelling, specific headline (8–12 words) that describes what this post is about — used as the studio title. Do not use generic labels like "LinkedIn Post".`,
     `- 4 hook alternatives (one of each type: statistical, tension, story, contrarian)`,
     `- exactly 5 hashtags (no # prefix) — common, widely-followed tags that improve reach, not niche ones`,
     `- 3 CTA suggestions`,
-    `- transformationDelta with 2–3 short labels describing what makes this variation distinct`,
+    `- transformationDelta with 2–3 short labels describing the angle chosen and why it fits`,
   )
 
   return lines.join('\n')
@@ -284,7 +284,20 @@ export function runLinkedInGeneration(ctx: LinkedInPromptContext): ReadableStrea
           throw new Error('Claude returned an unexpected response structure. Try again.')
         }
 
-        const variations: LinkedInVariation[] = parsed.variations.map((v) => ({
+        // Default output is one recommended post. Guard against model drift: if the
+        // model returns more than one despite the prompt, keep only the first and
+        // warn — never surface extras to the UI.
+        if (parsed.variations.length > 1) {
+          console.warn(
+            `[linkedin/generate] model returned ${parsed.variations.length} variations; keeping only the first (one recommended post).`,
+          )
+        }
+        const recommended = parsed.variations[0]
+        if (!recommended?.body) {
+          throw new Error('Claude did not return a usable post. Try again.')
+        }
+
+        const variations: LinkedInVariation[] = [recommended].map((v) => ({
           id: crypto.randomUUID(),
           label: v.label,
           campaignName: v.campaignName ?? v.label,

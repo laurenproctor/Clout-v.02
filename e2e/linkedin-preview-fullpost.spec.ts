@@ -58,6 +58,7 @@ test.describe('LinkedIn create — preview-first result', () => {
   test('full post renders inside the preview; body textarea only in Edit', async ({ page }) => {
     test.setTimeout(240_000) // cold Turbopack route compiles can be slow on first hit
     await setupClerkTestingToken({ page })
+    await page.context().grantPermissions(['clipboard-write']) // for the Copy action
 
     // Mock generation (deterministic, no Claude call) and auto-save (returns an id).
     await page.route('**/api/linkedin/generate', async (route) => {
@@ -109,6 +110,20 @@ test.describe('LinkedIn create — preview-first result', () => {
     const bodyTextareas = page.locator('textarea')
     await expect(bodyTextareas).toHaveCount(0)
     await page.screenshot({ path: 'e2e/.report/li-02-result-default.png', fullPage: true })
+
+    // One recommended post, not a stack: exactly one card's Schedule action.
+    await expect(page.getByRole('button', { name: /^Schedule$/ })).toHaveCount(1)
+    await expect(page.getByText('Content as durable artifacts')).toHaveCount(1)
+
+    // Simplified action set: Copy present; legacy Duplicate/Rewrite/Queue gone.
+    await expect(page.getByRole('button', { name: /^Copy$/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Duplicate$/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Rewrite$/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Queue$/ })).toHaveCount(0)
+
+    // Copy gives feedback (button flips to "Copied").
+    await page.getByRole('button', { name: /^Copy$/ }).click()
+    await expect(page.getByRole('button', { name: /Copied/ })).toBeVisible()
 
     // ── Edit mode reveals the editor, preview stays visible ──────────────────────
     await page.getByRole('button', { name: /^Edit$/ }).click()

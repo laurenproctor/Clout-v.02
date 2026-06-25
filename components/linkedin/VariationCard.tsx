@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ImageIcon, Check } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { ImageIcon, Check, Copy as CopyIcon } from 'lucide-react'
 import type { LinkedInVariation } from '@/lib/linkedin/types'
 import { PostEditor } from './PostEditor'
 import { HookSuggestions } from './HookSuggestions'
@@ -27,11 +28,38 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
+/**
+ * Build the clipboard payload for "Copy": the post body plus any hashtags that
+ * aren't already written into the body. Hashtags are stored without the '#'
+ * prefix; we skip ones already present (case-insensitive, word-boundary) so a
+ * body that already ends with its tags isn't given a duplicate block.
+ */
+export function serializeForCopy(body: string, hashtags: string[]): string {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const seen = new Set<string>()
+  const toAppend = (hashtags ?? [])
+    .map(t => t.replace(/^#+/, '').trim())
+    .filter(Boolean)
+    .filter(t => {
+      const key = t.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .filter(t => !new RegExp(`#${escape(t)}\\b`, 'i').test(body))
+
+  if (toAppend.length === 0) return body.trimEnd()
+  return `${body.trimEnd()}\n\n${toAppend.map(t => `#${t}`).join(' ')}`
+}
+
 export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId, channel }: VariationCardProps) {
+  const params = useParams<{ workspaceSlug?: string }>()
+  const workspaceSlug = params?.workspaceSlug
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
   const [scheduling, setScheduling] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
+  const [copied, setCopied] = useState(false)
   // Preview-first card: the full LinkedIn preview is the canonical read view.
   // The editor controls (body textarea, transforms, visual, hashtags, …) only
   // appear when editing. State lives in `variation` (lifted via onChange), so
@@ -104,16 +132,6 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
     }
   }
 
-  async function handleQueue() {
-    if (!savedOutputId) return
-    try {
-      await fetch(`/api/outputs/${savedOutputId}/queue`, { method: 'POST' })
-      setSaveState('queued')
-    } catch {
-      // non-fatal
-    }
-  }
-
   async function handleConfirmSchedule() {
     if (!savedOutputId || !scheduleDate) return
     try {
@@ -131,6 +149,16 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
       setSaveState('scheduled')
     } catch {
       // non-fatal
+    }
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(serializeForCopy(variation.body, variation.hashtags))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard unavailable — non-fatal
     }
   }
 
@@ -181,8 +209,14 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
             >
               {editing ? 'Done' : 'Edit'}
             </button>
-            <button type="button" className={actionBtn}>Duplicate</button>
-            <button type="button" className={actionBtn}>Rewrite</button>
+            <button
+              type="button"
+              className={`${actionBtn} flex items-center gap-1`}
+              onClick={handleCopy}
+            >
+              {copied ? <Check className="h-3 w-3 text-green-600" /> : <CopyIcon className="h-3 w-3" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
           </div>
         </div>
         {variation.campaignName && (
@@ -217,13 +251,15 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         fit
       />
 
-      {/* D. Action controls */}
+      {/* D. Action controls — the anchor is auto-saved, so we surface a clear
+          saved state rather than a redundant primary "Save". Update PATCHes the
+          existing draft (never creates a second one); Schedule reuses it too. */}
       <div className="space-y-1">
         <div className="flex justify-end gap-0.5 items-center">
-          {saveState === 'saved' && savedOutputId && (
+          {savedOutputId && saveState !== 'scheduled' && saveState !== 'queued' && (
             <span className="flex items-center gap-1 text-[10px] text-green-600 mr-1">
               <Check className="h-3 w-3" />
-              Saved
+              {saveState === 'saving' ? 'Saving…' : 'Saved'}
             </span>
           )}
           {saveState === 'queued' && (
@@ -241,21 +277,21 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
           {saveState === 'error' && (
             <span className="text-[10px] text-red-500 mr-1">Save failed</span>
           )}
+          {savedOutputId && workspaceSlug && (
+            <a
+              href={`/${workspaceSlug}/studio/${savedOutputId}`}
+              className={actionBtn}
+            >
+              View in Studio
+            </a>
+          )}
           <button
             type="button"
             className={actionBtn}
             onClick={handleSaveDraft}
             disabled={saveState === 'saving' || isActioned}
           >
-            {saveState === 'saving' ? 'Saving...' : 'Save Draft'}
-          </button>
-          <button
-            type="button"
-            className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={handleQueue}
-            disabled={!savedOutputId || isActioned}
-          >
-            Queue
+            {saveState === 'saving' ? 'Saving…' : savedOutputId ? 'Update' : 'Save'}
           </button>
           <button
             type="button"
