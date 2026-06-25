@@ -22,7 +22,17 @@ const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram',
   youtube: 'YouTube',
   facebook: 'Facebook',
+  tiktok: 'TikTok',
+  threads: 'Threads',
+  pinterest: 'Pinterest',
+  newsletter: 'Newsletter',
+  substack: 'Substack',
+  rss: 'RSS',
 }
+
+// Channels we actively ingest content from today. Everything else is discovered
+// and saved, but not yet monitored — the UI must not imply otherwise.
+const TRACKED_CHANNELS = new Set(['twitter', 'linkedin', 'instagram', 'youtube', 'facebook', 'rss'])
 
 export function CompetitorInput({ competitors, onChange, competitorMetadata = {}, onMetadataChange }: CompetitorInputProps) {
   const [inputValue, setInputValue] = useState('')
@@ -91,7 +101,11 @@ export function CompetitorInput({ competitors, onChange, competitorMetadata = {}
           [domain]: {
             name: data.name ?? domain,
             rss_url: data.rss_url ?? undefined,
+            newsletter_url: data.newsletter_url ?? undefined,
+            substack_url: data.substack_url ?? undefined,
             socials: data.socials ?? {},
+            candidate_channels: data.candidate_channels ?? {},
+            confidence: data.confidence ?? {},
           },
         })
       }
@@ -122,6 +136,34 @@ export function CompetitorInput({ competitors, onChange, competitorMetadata = {}
       delete updated[domain]
       onMetadataChange(updated)
     }
+  }
+
+  // Promote a "needs review" candidate into the verified record (user-confirmed).
+  function confirmCandidate(domain: string, channel: string) {
+    const meta = competitorMetadata[domain]
+    const cand = meta?.candidate_channels?.[channel as keyof typeof meta.candidate_channels]
+    if (!meta || !cand) return
+
+    const candidates = { ...(meta.candidate_channels ?? {}) }
+    delete candidates[channel as keyof typeof candidates]
+    const confidence = { ...(meta.confidence ?? {}) }
+    confidence[channel as keyof typeof confidence] = { ...cand, status: 'verified', source: 'user_confirmed' }
+
+    const entry = { ...meta, candidate_channels: candidates, confidence }
+    if (channel === 'newsletter') entry.newsletter_url = cand.url
+    else if (channel === 'substack') entry.substack_url = cand.url
+    else if (channel === 'rss') entry.rss_url = cand.url
+    else entry.socials = { ...(meta.socials ?? {}), [channel]: cand.url }
+
+    onMetadataChange?.({ ...competitorMetadata, [domain]: entry })
+  }
+
+  function dismissCandidate(domain: string, channel: string) {
+    const meta = competitorMetadata[domain]
+    if (!meta?.candidate_channels) return
+    const candidates = { ...meta.candidate_channels }
+    delete candidates[channel as keyof typeof candidates]
+    onMetadataChange?.({ ...competitorMetadata, [domain]: { ...meta, candidate_channels: candidates } })
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -164,8 +206,19 @@ export function CompetitorInput({ competitors, onChange, competitorMetadata = {}
           {competitors.map(domain => {
             const meta = competitorMetadata[domain]
             const socials = meta?.socials ?? {}
-            const socialEntries = Object.entries(socials).filter(([, url]) => !!url) as [string, string][]
             const isDiscovering = discovering[domain]
+
+            // Verified channels — safe to show as real, monitored or saved.
+            const verifiedEntries: [string, string][] = [
+              ...Object.entries(socials).filter(([, url]) => !!url),
+              ...(meta?.rss_url ? [['rss', meta.rss_url]] : []),
+              ...(meta?.newsletter_url ? [['newsletter', meta.newsletter_url]] : []),
+              ...(meta?.substack_url ? [['substack', meta.substack_url]] : []),
+            ] as [string, string][]
+
+            // Unverified candidates — surfaced for the user to confirm or dismiss.
+            const candidateEntries = Object.entries(meta?.candidate_channels ?? {})
+              .filter(([, ev]) => !!ev?.url) as [string, { url: string; reason?: string }][]
 
             return (
               <div key={domain}>
@@ -207,44 +260,81 @@ export function CompetitorInput({ competitors, onChange, competitorMetadata = {}
                     Discovering channels…
                   </span>
                 )}
-                {!isDiscovering && socialEntries.length > 0 && (
+
+                {/* Verified channels — Tracked (monitored) vs Discovered (saved, not yet monitored) */}
+                {!isDiscovering && verifiedEntries.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px', paddingLeft: '4px' }}>
-                    <span style={{ fontSize: '11px', color: '#9ca3af', alignSelf: 'center' }}>Found:</span>
-                    {socialEntries.map(([platform, url]) => (
-                      <a
-                        key={platform}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          backgroundColor: '#f3f4f6',
-                          color: '#374151',
-                          textDecoration: 'none',
-                          border: '1px solid #e5e7eb',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#e5e7eb')}
-                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                      >
-                        {PLATFORM_LABELS[platform] ?? platform}
-                      </a>
-                    ))}
-                    {meta?.rss_url && (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center',
-                        padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 500,
-                        backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0',
-                      }}>
-                        RSS ✓
-                      </span>
-                    )}
+                    <span style={{ fontSize: '11px', color: '#9ca3af', alignSelf: 'center' }}>Channels:</span>
+                    {verifiedEntries.map(([channel, url]) => {
+                      const tracked = TRACKED_CHANNELS.has(channel)
+                      return (
+                        <a
+                          key={channel}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={tracked ? 'Tracked — Clout monitors this channel' : 'Discovered — saved, not yet monitored'}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 500,
+                            backgroundColor: tracked ? '#dcfce7' : '#f3f4f6',
+                            color: tracked ? '#166534' : '#6b7280',
+                            textDecoration: 'none',
+                            border: `1px solid ${tracked ? '#bbf7d0' : '#e5e7eb'}`,
+                          }}
+                        >
+                          {PLATFORM_LABELS[channel] ?? channel}
+                          {tracked ? ' ✓' : ''}
+                        </a>
+                      )
+                    })}
                   </div>
                 )}
+
+                {/* Needs review — unverified candidates with confirm / dismiss */}
+                {!isDiscovering && candidateEntries.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px', paddingLeft: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#b45309', alignSelf: 'center' }}>Needs review:</span>
+                    {candidateEntries.map(([channel, ev]) => (
+                      <span
+                        key={channel}
+                        title={ev.reason ?? 'Possible channel — confirm if this is the right account'}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '5px',
+                          padding: '2px 6px 2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 500,
+                          backgroundColor: '#fffbeb', color: '#92400e',
+                          border: '1px dashed #fcd34d',
+                        }}
+                      >
+                        <a
+                          href={ev.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#92400e', textDecoration: 'none' }}
+                        >
+                          {PLATFORM_LABELS[channel] ?? channel}
+                        </a>
+                        <button
+                          onClick={() => confirmCandidate(domain, channel)}
+                          aria-label={`Confirm ${PLATFORM_LABELS[channel] ?? channel}`}
+                          title="Confirm — this is the right account"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#15803d', fontSize: '13px', lineHeight: 1, padding: 0 }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => dismissCandidate(domain, channel)}
+                          aria-label={`Dismiss ${PLATFORM_LABELS[channel] ?? channel}`}
+                          title="Dismiss — not the right account"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', fontSize: '13px', lineHeight: 1, padding: 0 }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {!isDiscovering && !meta && (
                   <button
                     onClick={() => discoverSocials(domain)}

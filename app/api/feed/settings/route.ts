@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest) {
     content_topics?: string[]
     services?: string[]
     competitors?: string[]
-    competitor_metadata?: Record<string, { name?: string; rss_url?: string; socials?: Record<string, string> }>
+    competitor_metadata?: import('@/types/feed').CompetitorMetadata
     editorial_voices?: string[]
     website_url?: string | null
   }

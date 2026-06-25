@@ -74,7 +74,10 @@ export async function ingestCompetitorContent(): Promise<IngestResult> {
     const allPosts: Array<{ sourceType: SourceType; post: RawPost }> = blogPosts.map(p => ({ sourceType: 'blog' as SourceType, post: p }))
 
     for (const [sourceType, url] of Object.entries(socials) as [SourceType, string][]) {
-      if (!url || sourceType === 'blog') continue
+      // Ingestion boundary: only scrape platforms we actually support. Newer
+      // discoverable channels (tiktok/threads/pinterest/substack/newsletter) are
+      // saved by discovery but not yet ingested — skip rather than error on them.
+      if (!url || sourceType === 'blog' || !(sourceType in SCRAPERS)) continue
       await delay(1500)
       try {
         const posts = await SCRAPERS[sourceType](url)

@@ -67,20 +67,61 @@ export interface CompetitorCard {
   differentiated_angle: string
 }
 
-export type SocialPlatform = 'twitter' | 'linkedin' | 'instagram' | 'youtube' | 'facebook'
+export type SocialPlatform =
+  | 'twitter'
+  | 'linkedin'
+  | 'instagram'
+  | 'youtube'
+  | 'facebook'
+  | 'tiktok'
+  | 'threads'
+  | 'pinterest'
+
+// Channels we can discover — social profiles PLUS non-social marketing channels.
+export type DiscoverableChannel = SocialPlatform | 'rss' | 'newsletter' | 'substack'
 
 export interface CompetitorSocials {
+  // NOTE: `twitter` stays the stored key for backward compatibility; display label is "X".
+  // Do NOT add a second `x` key — dual keys cause subtle bugs without a migration.
   twitter?: string
   linkedin?: string
   instagram?: string
   youtube?: string
   facebook?: string
+  tiktok?: string
+  threads?: string
+  pinterest?: string
+}
+
+export type DiscoveryStatus = 'verified' | 'likely' | 'rejected'
+
+// `source` is the EVIDENCE BASIS for the status, not just the mechanism.
+export type DiscoverySource =
+  | 'homepage'          // link on the competitor's own domain
+  | 'llm_web_search'    // surfaced by web search, not yet identity-confirmed
+  | 'reciprocal_link'   // profile links back to the competitor domain
+  | 'metadata_match'    // profile name/metadata matches company + domain
+  | 'user_confirmed'    // human promoted/added it
+
+export interface ChannelEvidence {
+  url: string
+  status: DiscoveryStatus
+  source: DiscoverySource
+  evidence_url?: string  // citation or reciprocal backlink that justified the status
+  reason?: string
+  checked_at: string     // ISO timestamp
 }
 
 export type CompetitorMetadata = Record<string, {
   name?: string
   rss_url?: string
-  socials?: CompetitorSocials
+  newsletter_url?: string
+  substack_url?: string
+  socials?: CompetitorSocials  // VERIFIED ONLY — safe to ingest
+  // Plausible-but-unverified channels (status: 'likely'), surfaced in the UI as "needs review".
+  candidate_channels?: Partial<Record<DiscoverableChannel, ChannelEvidence>>
+  // Provenance for every kept decision (verified + likely).
+  confidence?: Partial<Record<DiscoverableChannel, ChannelEvidence>>
 }>
 
 export interface CompetitorPost {

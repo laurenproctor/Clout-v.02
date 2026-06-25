@@ -1,137 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { CompetitorSocials } from '@/types/feed'
+import { LRUCache } from 'lru-cache'
+import { discoverCompetitorChannels, type DiscoveryResult } from '@/lib/competitors/discover-socials'
+import { discoverChannelsViaWebSearch } from '@/lib/competitors/web-search-channels'
 
-const TWITTER_BLOCKED = new Set(['intent', 'home', 'login', 'signup', 'explore', 'i', 'share', 'hashtag', 'search'])
-const LINKEDIN_BLOCKED = new Set(['login', 'signup', 'feed', 'jobs', 'learning', 'pulse', 'in', 'authwall'])
-const INSTAGRAM_BLOCKED = new Set(['p', 'explore', 'reel', 'reels', 'stories', 'tv', 'accounts'])
-const FACEBOOK_BLOCKED = new Set(['sharer', 'dialog', 'login', 'signup', 'photo', 'video', 'share'])
+// Web search (Layer 2) can take ~30s worst-case (multiple searches + per-platform
+// validation fetches); give headroom while staying well under Vercel's 300s cap.
+export const maxDuration = 60
 
-function extractSiteName(html: string, domain: string): string {
-  const og = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i)
-    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)
-  if (og) return og[1].trim()
+// Kill switch: Layer-2 LLM web search is opt-in. Off → Layer-1 homepage scrape only.
+const WEB_SEARCH_ENABLED = process.env.COMPETITOR_DISCOVERY_WEB_SEARCH_ENABLED === 'true'
 
-  const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  if (title) {
-    // Strip common suffixes like " | Company Name" → "Company Name"
-    const parts = title[1].split(/\s*[\|\-–—]\s*/)
-    return (parts.length > 1 ? parts[parts.length - 1] : parts[0]).trim().slice(0, 60)
-  }
-
-  // Fall back to domain without TLD
-  return domain.replace(/^www\./, '').split('.')[0]
-}
-
-function extractSocialLinks(html: string): CompetitorSocials {
-  const socials: CompetitorSocials = {}
-  const seen = new Set<string>()
-
-  const hrefRegex = /href=["']([^"'\s]+)["']/gi
-  let match: RegExpExecArray | null
-
-  while ((match = hrefRegex.exec(html)) !== null) {
-    const raw = match[1]
-    if (seen.has(raw)) continue
-    seen.add(raw)
-
-    try {
-      const urlObj = new URL(raw)
-      const host = urlObj.hostname.replace(/^www\./, '')
-      const parts = urlObj.pathname.split('/').filter(Boolean)
-      const slug = parts[0]
-
-      if (!slug) continue
-
-      if ((host === 'twitter.com' || host === 'x.com') && !TWITTER_BLOCKED.has(slug) && !socials.twitter) {
-        socials.twitter = `https://twitter.com/${slug}`
-      }
-      if (host === 'linkedin.com' && parts[0] === 'company' && parts[1] && !LINKEDIN_BLOCKED.has(parts[1]) && !socials.linkedin) {
-        socials.linkedin = `https://linkedin.com/company/${parts[1]}`
-      }
-      if (host === 'instagram.com' && !INSTAGRAM_BLOCKED.has(slug) && !socials.instagram) {
-        socials.instagram = `https://instagram.com/${slug}`
-      }
-      if (host === 'youtube.com' && !socials.youtube) {
-        if (parts[0] === 'channel' || parts[0] === 'user' || parts[0]?.startsWith('@')) {
-          socials.youtube = raw
-        } else if (slug?.startsWith('@')) {
-          socials.youtube = raw
-        }
-      }
-      if (host === 'facebook.com' && !FACEBOOK_BLOCKED.has(slug) && !socials.facebook) {
-        socials.facebook = `https://facebook.com/${slug}`
-      }
-    } catch {
-      // Not a valid URL
-    }
-  }
-
-  return socials
-}
-
-async function discoverRssUrl(domain: string, html: string): Promise<string | null> {
-  // Try <link rel="alternate" type="application/rss+xml"> in HTML
-  const rssLink = html.match(/<link[^>]+type=["']application\/(?:rss|atom)\+xml["'][^>]+href=["']([^"']+)["']/i)
-    || html.match(/<link[^>]+href=["']([^"']+)["'][^>]+type=["']application\/(?:rss|atom)\+xml["']/i)
-  if (rssLink) {
-    const href = rssLink[1]
-    if (href.startsWith('http')) return href
-    return `https://${domain}${href.startsWith('/') ? '' : '/'}${href}`
-  }
-
-  // Try common paths
-  const paths = ['/feed', '/rss', '/feed.xml', '/rss.xml', '/atom.xml', '/blog/feed', '/blog/rss', '/feed/posts/default']
-  for (const path of paths) {
-    try {
-      const res = await fetch(`https://${domain}${path}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CloutBot/1.0)' },
-        signal: AbortSignal.timeout(3000),
-        redirect: 'follow',
-      })
-      const ct = res.headers.get('content-type') ?? ''
-      if (res.ok && (ct.includes('xml') || ct.includes('rss') || ct.includes('atom'))) {
-        return `https://${domain}${path}`
-      }
-    } catch {
-      // Try next path
-    }
-  }
-
-  return null
-}
+// Per-domain result cache (24h) to avoid repeat web-search charges. Bypassed with ?refresh=1.
+const cache = new LRUCache<string, DiscoveryResult>({ max: 500, ttl: 24 * 60 * 60 * 1000 })
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const rawUrl = searchParams.get('url')
   if (!rawUrl) return NextResponse.json({ error: 'url required' }, { status: 400 })
 
-  const domain = rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase()
+  const refresh = searchParams.get('refresh') === '1'
+  const domain = rawUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase().replace(/^www\./, '')
 
-  try {
-    const res = await fetch(`https://${domain}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; CloutBot/1.0; +https://clout.so)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      signal: AbortSignal.timeout(6000),
-      redirect: 'follow',
-      next: { revalidate: 3600 },
-    })
+  if (!refresh) {
+    const cached = cache.get(domain)
+    if (cached) return NextResponse.json(toResponse(cached))
+  }
 
-    if (!res.ok) {
-      return NextResponse.json({ name: domain, domain, socials: {}, rss_url: null })
-    }
+  const started = Date.now()
+  const result = await discoverCompetitorChannels(domain, {
+    webSearch: WEB_SEARCH_ENABLED ? discoverChannelsViaWebSearch : null,
+  })
 
-    // Limit to first 200KB to avoid memory pressure on large pages
-    const buf = await res.arrayBuffer()
-    const html = new TextDecoder().decode(buf.slice(0, 200_000))
+  // Observability — one structured line; web search is billed per search.
+  console.info('[competitor-discovery]', JSON.stringify({
+    domain,
+    layer1_found_count: result.meta.layer1_found_count,
+    missing_platforms: result.meta.missing_platforms,
+    web_search_used: result.meta.web_search_used,
+    verified_count: result.meta.verified_count,
+    likely_count: result.meta.likely_count,
+    duration_ms: Date.now() - started,
+    fallback_reason: result.meta.fallback_reason,
+  }))
 
-    const name = extractSiteName(html, domain)
-    const socials = extractSocialLinks(html)
-    const rss_url = await discoverRssUrl(domain, html)
+  cache.set(domain, result)
+  return NextResponse.json(toResponse(result))
+}
 
-    return NextResponse.json({ name, domain, socials, rss_url })
-  } catch {
-    return NextResponse.json({ name: domain, domain, socials: {}, rss_url: null })
+// Public response shape — preserves the legacy { name, domain, socials, rss_url }
+// fields and adds candidate_channels + confidence + the new channel URLs.
+function toResponse(r: DiscoveryResult) {
+  return {
+    name: r.name,
+    domain: r.domain,
+    socials: r.socials,
+    rss_url: r.rss_url ?? null,
+    newsletter_url: r.newsletter_url ?? null,
+    substack_url: r.substack_url ?? null,
+    candidate_channels: r.candidate_channels,
+    confidence: r.confidence,
   }
 }
