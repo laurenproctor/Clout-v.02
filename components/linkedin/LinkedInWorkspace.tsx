@@ -14,7 +14,7 @@ import { StrategyPanel } from './StrategyPanel'
 import { GenerationProgress } from './GenerationProgress'
 import { VariationCard } from './VariationCard'
 import { CoachingPanel } from './CoachingPanel'
-import { AlternateAnglesList } from './AlternateAnglesList'
+import { AlternateAnglesList } from '@/components/create/AlternateAnglesList'
 import { AdaptationCard } from '@/components/create/AdaptationCard'
 import { useAdaptations } from '@/lib/create/useAdaptations'
 import type { AdaptTargetPlatform } from '@/lib/create/types'
@@ -393,9 +393,16 @@ export function LinkedInWorkspace({ lenses, savedAudiences = [] }: LinkedInWorks
         {/* Alternate angles — subordinate, collapsed by default */}
         <AlternateAnglesList
           alternates={alternates}
-          onChange={handleAlternateChange}
-          linkedInChannelId={linkedInChannelId}
-          channel={linkedInChannel}
+          getTitle={v => v.campaignName || v.label}
+          renderCard={(v, i) => (
+            <VariationCard
+              variation={v}
+              onChange={updated => handleAlternateChange(i, updated)}
+              initialOutputId={null}
+              linkedInChannelId={linkedInChannelId}
+              channel={linkedInChannel}
+            />
+          )}
         />
 
         {/* Platform adaptations — derived channel versions */}

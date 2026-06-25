@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Check } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { Check, Copy as CopyIcon } from 'lucide-react'
 import { validateThreadsPost } from '@/lib/syndication/validation/threads'
 import type { ThreadsVariation } from '@/lib/threads/types'
+import { serializeForCopy } from '@/lib/create/serializeForCopy'
 import {
   SocialPreviewInline,
   previewFromStudioState,
@@ -21,12 +24,19 @@ interface Props {
   channel?: ChannelLike | null
 }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
+type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'scheduled'
 type PublishState = 'idle' | 'publishing' | 'published' | 'error'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
+// Preview-first Threads result card: the full post is the canonical read view
+// inside the Threads preview. The body/hashtag editors and validation appear
+// only in Edit mode. State lives in `variation` (lifted via onChange).
 export function ThreadsVariationCard({ variation, onChange, initialOutputId, threadsChannelId, channel }: Props) {
+  const params = useParams<{ workspaceSlug?: string }>()
+  const workspaceSlug = params?.workspaceSlug
+  const [editing, setEditing] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedOutputId, setSavedOutputId] = useState<string | null>(initialOutputId ?? null)
   const [scheduling, setScheduling] = useState(false)
@@ -48,7 +58,7 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
     if (!el) return
     el.style.height = 'auto'
     el.style.height = `${Math.max(80, el.scrollHeight)}px`
-  }, [variation.primaryText])
+  }, [variation.primaryText, editing])
 
   const renderedText = [
     variation.primaryText.trim(),
@@ -57,7 +67,7 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
 
   const charCount = renderedText.length
   const validation = validateThreadsPost(renderedText)
-  const isActioned = saveState === 'queued' || saveState === 'scheduled'
+  const isActioned = saveState === 'scheduled'
 
   const previewData = useMemo(
     () =>
@@ -69,6 +79,18 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
       }),
     [channel, variation.primaryText, variation.hashtag],
   )
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(
+        serializeForCopy(variation.primaryText, variation.hashtag ? [variation.hashtag] : []),
+      )
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard unavailable — non-fatal */
+    }
+  }
 
   async function handleSaveDraft() {
     setSaveState('saving')
@@ -120,16 +142,6 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
     }
   }
 
-  async function handleQueue() {
-    if (!savedOutputId) return
-    try {
-      await fetch(`/api/outputs/${savedOutputId}/queue`, { method: 'POST' })
-      setSaveState('queued')
-    } catch {
-      // non-fatal
-    }
-  }
-
   async function handleConfirmSchedule() {
     if (!savedOutputId || !scheduleDate) return
     try {
@@ -159,9 +171,7 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ outputId: savedOutputId }),
       })
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`)
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json() as { postId?: string }
       setPublishedPostId(data.postId ?? null)
       setPublishState('published')
@@ -173,57 +183,22 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
 
   return (
     <div className="border border-zinc-200 rounded-xl p-5 space-y-4 bg-white">
-      {/* Live preview */}
-      <SocialPreviewInline data={previewData} outputId={savedOutputId ?? null} label="Preview" />
-
-      {/* Header */}
+      {/* A. Header — label + Edit/Copy */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 bg-zinc-50 border border-zinc-100 rounded-full px-2.5 py-0.5">
-              {variation.label}
-            </span>
-          </div>
+          <span className="text-sm font-semibold text-zinc-900">{variation.label}</span>
           <div className="flex items-center gap-0.5">
-            {saveState === 'saved' && savedOutputId && (
-              <span className="flex items-center gap-1 text-[10px] text-green-600 mr-1">
-                <Check className="h-3 w-3" />
-                Saved
-              </span>
-            )}
-            {saveState === 'queued' && (
-              <span className="flex items-center gap-1 text-[10px] text-blue-600 mr-1">
-                <Check className="h-3 w-3" />
-                Queued
-              </span>
-            )}
-            {saveState === 'scheduled' && (
-              <span className="flex items-center gap-1 text-[10px] text-blue-600 mr-1">
-                <Check className="h-3 w-3" />
-                Scheduled
-              </span>
-            )}
-            {saveState === 'error' && (
-              <span className="text-[10px] text-red-500 mr-1">Save failed</span>
-            )}
-            <button type="button" className={actionBtn} onClick={handleSaveDraft} disabled={saveState === 'saving' || isActioned}>
-              {saveState === 'saving' ? 'Saving...' : 'Save Draft'}
-            </button>
             <button
               type="button"
-              className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={handleQueue}
-              disabled={!savedOutputId || isActioned}
+              className={`${actionBtn} ${editing ? 'text-zinc-800 bg-zinc-100' : ''}`}
+              aria-pressed={editing}
+              onClick={() => setEditing(v => !v)}
             >
-              Queue
+              {editing ? 'Done' : 'Edit'}
             </button>
-            <button
-              type="button"
-              className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => { if (savedOutputId && !isActioned) setScheduling(v => !v) }}
-              disabled={!savedOutputId || isActioned}
-            >
-              Schedule
+            <button type="button" className={`${actionBtn} flex items-center gap-1`} onClick={handleCopy}>
+              {copied ? <Check className="h-3 w-3 text-green-600" /> : <CopyIcon className="h-3 w-3" />}
+              {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
         </div>
@@ -232,6 +207,52 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
             {variation.campaignName}
           </p>
         )}
+      </div>
+
+      {/* B. Canonical full Threads preview — contains the complete post */}
+      <SocialPreviewInline data={previewData} outputId={savedOutputId ?? null} mode="full" fit />
+
+      {/* C. Action controls — auto-saved anchor shows a clear saved state */}
+      <div className="space-y-1">
+        <div className="flex justify-end gap-0.5 items-center">
+          {savedOutputId && saveState !== 'scheduled' && (
+            <span className="flex items-center gap-1 text-[10px] text-green-600 mr-1">
+              <Check className="h-3 w-3" />
+              {saveState === 'saving' ? 'Saving…' : 'Saved'}
+            </span>
+          )}
+          {saveState === 'scheduled' && (
+            <span className="flex items-center gap-1 text-[10px] text-blue-600 mr-1">
+              <Check className="h-3 w-3" />
+              Scheduled
+            </span>
+          )}
+          {saveState === 'error' && (
+            <span className="text-[10px] text-red-500 mr-1">Save failed</span>
+          )}
+          {savedOutputId && workspaceSlug && (
+            <a href={`/${workspaceSlug}/studio/${savedOutputId}`} className={actionBtn}>
+              View in Studio
+            </a>
+          )}
+          <button
+            type="button"
+            className={actionBtn}
+            onClick={handleSaveDraft}
+            disabled={saveState === 'saving' || isActioned}
+          >
+            {saveState === 'saving' ? 'Saving…' : savedOutputId ? 'Update' : 'Save'}
+          </button>
+          <button
+            type="button"
+            className={`${actionBtn} ${!savedOutputId || isActioned ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => { if (savedOutputId && !isActioned) setScheduling(v => !v) }}
+            disabled={!savedOutputId || isActioned}
+          >
+            Schedule
+          </button>
+        </div>
+
         {scheduling && (
           <div className="flex items-center gap-2 pt-1 justify-end">
             <input
@@ -259,50 +280,52 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
         )}
       </div>
 
-      {/* Char counter + validation */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {validation.technicalErrors.map((e, i) => (
-            <span key={i} className="text-[11px] text-red-500 flex items-center gap-1">⚠ {e}</span>
-          ))}
-          {validation.platformRisks.map((r, i) => (
-            <span key={i} className="text-[11px] text-orange-500">· {r}</span>
-          ))}
-          {validation.qualityWarnings.map((w, i) => (
-            <span key={i} className="text-[11px] text-amber-600">· {w}</span>
-          ))}
+      {/* D. Edit panel — body + hashtag + char counter + validation, only while editing */}
+      {editing && (
+        <div className="space-y-3 border-t border-zinc-100 pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {validation.technicalErrors.map((e, i) => (
+                <span key={i} className="text-[11px] text-red-500 flex items-center gap-1">⚠ {e}</span>
+              ))}
+              {validation.platformRisks.map((r, i) => (
+                <span key={i} className="text-[11px] text-orange-500">· {r}</span>
+              ))}
+              {validation.qualityWarnings.map((w, i) => (
+                <span key={i} className="text-[11px] text-amber-600">· {w}</span>
+              ))}
+            </div>
+            <span className={`text-[11px] tabular-nums shrink-0 ${charCount > MAX_LENGTH ? 'text-red-500' : charCount > WARN_LENGTH ? 'text-amber-500' : 'text-zinc-400'}`}>
+              {charCount} / {MAX_LENGTH}
+            </span>
+          </div>
+
+          <textarea
+            ref={textareaRef}
+            value={variation.primaryText}
+            onChange={e => onChange({ ...variation, primaryText: e.target.value })}
+            placeholder="Write your Threads post..."
+            className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none leading-relaxed"
+            style={{ minHeight: '80px', maxHeight: '200px', overflowY: 'auto' }}
+          />
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-400 shrink-0">#</span>
+            <input
+              type="text"
+              value={variation.hashtag ?? ''}
+              onChange={e => {
+                const val = e.target.value.replace(/^#+/, '')
+                onChange({ ...variation, hashtag: val || null })
+              }}
+              placeholder="optional hashtag"
+              className="flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none"
+            />
+          </div>
         </div>
-        <span className={`text-[11px] tabular-nums shrink-0 ${charCount > MAX_LENGTH ? 'text-red-500' : charCount > WARN_LENGTH ? 'text-amber-500' : 'text-zinc-400'}`}>
-          {charCount} / {MAX_LENGTH}
-        </span>
-      </div>
+      )}
 
-      {/* Textarea */}
-      <textarea
-        ref={textareaRef}
-        value={variation.primaryText}
-        onChange={e => onChange({ ...variation, primaryText: e.target.value })}
-        placeholder="Write your Threads post..."
-        className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none leading-relaxed"
-        style={{ minHeight: '80px', maxHeight: '200px', overflowY: 'auto' }}
-      />
-
-      {/* Hashtag */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-zinc-400 shrink-0">#</span>
-        <input
-          type="text"
-          value={variation.hashtag ?? ''}
-          onChange={e => {
-            const val = e.target.value.replace(/^#+/, '')
-            onChange({ ...variation, hashtag: val || null })
-          }}
-          placeholder="optional hashtag"
-          className="flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none"
-        />
-      </div>
-
-      {/* Publish */}
+      {/* E. Publish — Threads-native capability, available once saved */}
       <div className="pt-2 border-t border-zinc-100">
         {publishState === 'published' && publishedPostId && (
           <div className="flex items-center gap-1.5 text-[11px] text-green-600">
@@ -325,12 +348,12 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
                 {publishState === 'publishing' ? 'Publishing...' : 'Publish to Threads'}
               </button>
             ) : (
-              <a
-                href="/settings/publishing"
+              <Link
+                href={workspaceSlug ? `/${workspaceSlug}/settings/publishing` : '/settings/publishing'}
                 className="text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
               >
                 Connect Threads to publish →
-              </a>
+              </Link>
             )}
           </div>
         )}
