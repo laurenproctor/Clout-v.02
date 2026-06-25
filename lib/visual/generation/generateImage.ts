@@ -19,6 +19,7 @@ import { selectTemplate, inferContentType } from '../templates/selector'
 import { getTemplateSpec } from '../templates/registry'
 import { buildBrandTokens } from '../brand/buildBrandTokens'
 import { normalizeBrandIdentity } from '../brand/normalizeBrandIdentity'
+import { pickLogoByContrast } from '../brand/pickLogoByContrast'
 import { loadFontsForSatori, resolveGoogleFontWoff2Url, classifyBrandFont } from '../rendering/fonts'
 import type { BrandFontDiagnostics } from '@/lib/brand/types'
 import { renderTemplate } from '../rendering'
@@ -531,15 +532,16 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
         // the screenshot before the background/logo has loaded. Embedding as data URIs
         // avoids the race for both renderers.
         let renderBackgroundUrl: string | undefined = upload?.publicUrl
-        // Logo variant follows the *resolved* scheme in every mode (not just auto):
-        // light scheme (dark text on a bright zone) → dark logo; dark scheme (light
-        // text on a dark zone) → light logo. Falls back to the primary logoUrl when a
-        // matching variant isn't configured (variants already default to logoUrl in the
-        // route, so brands with a single logo behave exactly as before). This prevents
-        // a dark logo from landing on a dark background in explicit-scheme requests.
-        let renderLogoUrl: string | undefined = isLightScheme
-          ? (overlayParams.logoUrlDark ?? overlayParams.logoUrl)
-          : (overlayParams.logoUrlLight ?? overlayParams.logoUrl)
+        // Pick the logo that actually CONTRASTS with the background by measuring each
+        // variant's pixel luminance — the light/dark *tags* are ambiguous and brands
+        // frequently set them the wrong way round (e.g. tagging a dark wordmark as
+        // "light" = "for light backgrounds"). Dark background (light text / !isLightScheme)
+        // → the lightest logo; light background → the darkest. Single-logo brands return
+        // that one logo unchanged.
+        let renderLogoUrl: string | undefined = await pickLogoByContrast(
+          [overlayParams.logoUrlLight, overlayParams.logoUrlDark, overlayParams.logoUrl],
+          /* preferLight = dark background */ !isLightScheme,
+        )
 
         if (upload?.publicUrl) {
           if (generatedProviderUrl?.startsWith('data:')) {
