@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
+import { getBrandContext } from '@/lib/brand/getBrandContext'
 import { generateDistribution, type SocialPlatform } from '@/lib/blog/generateDistribution'
 import type { GeneratedBlogPackage } from '@/lib/blog/types'
 import type { BlogPromptContext } from '@/lib/blog/buildBlogPrompt'
@@ -20,7 +21,10 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'blogPackage with article and selectedHeadline is required' }), { status: 400 })
   }
 
-  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const [lensesResult, brandContext] = await Promise.all([
+    listLenses({ workspaceId: session.workspaceId }),
+    getBrandContext(),
+  ])
   const allLenses = lensesResult.ok ? lensesResult.data : []
   const resolvedLenses = (blogPackage.request.lensIds ?? [])
     .map(id => allLenses.find(l => l.id === id))
@@ -30,6 +34,7 @@ export async function POST(req: NextRequest) {
   const ctx: BlogPromptContext = {
     request: blogPackage.request,
     lenses: resolvedLenses,
+    brandContext,
     selectedHeadline: blogPackage.selectedHeadline,
   }
 

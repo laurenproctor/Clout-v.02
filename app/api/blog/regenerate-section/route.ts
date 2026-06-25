@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
+import { getBrandContext } from '@/lib/brand/getBrandContext'
 import { callClaude } from '@/lib/ai/generate'
 import { buildBlogSystemPrompt } from '@/lib/blog/buildBlogPrompt'
 import type { BlogGenerationRequest, NarrativeStrategy, OutlineSection } from '@/lib/blog/types'
@@ -33,14 +34,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const lensesResult = await listLenses({ workspaceId: session.workspaceId })
+  const [lensesResult, brandContext] = await Promise.all([
+    listLenses({ workspaceId: session.workspaceId }),
+    getBrandContext(),
+  ])
   const allLenses = lensesResult.ok ? lensesResult.data : []
   const resolvedLenses = (request.lensIds ?? [])
     .map(id => allLenses.find(l => l.id === id))
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map(l => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
-  const ctx: BlogPromptContext = { request, lenses: resolvedLenses, selectedHeadline }
+  const ctx: BlogPromptContext = { request, lenses: resolvedLenses, brandContext, selectedHeadline }
   const system = buildBlogSystemPrompt(ctx)
   const section = outline[sectionIndex]
 

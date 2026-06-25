@@ -62,9 +62,9 @@ file actually loaded).
 | LinkedIn | `/api/linkedin/generate` | ✅ voice via shared helper |
 | Note | `/api/note/generate` | ✅ voice via shared helper |
 | Blog (Phase 1–3) | `/api/blog/generate` | ✅ voice via shared helper (covers narrative + hook phases) |
-| Blog article phases | `/api/blog/generate-article`, `/generate-social`, `/regenerate-section` | ⏳ follow-up (same 3 edits) |
-| Substack | `/api/substack/generate` | ⏳ follow-up |
-| Draft | `/api/draft/generate`, `/competitor-intel` | ◑ partial (competitor-intel uses `getBrandContext`) |
+| Blog article phases | `/api/blog/generate-article`, `/generate-social`, `/regenerate-section` | ✅ voice via `BlogPromptContext.brandContext` (flows through `buildBlogSystemPrompt`) |
+| Substack | `/api/substack/generate` | ✅ voice via shared helper |
+| Draft | `/api/draft/generate`, `/competitor-intel` | ✅ voice via shared helper (appended to the OpenAI system prompt; `PROMPT_VERSION` bumped to invalidate cache) |
 | Syndication | `/api/syndication/generate` | n/a — publishing adapters, not voice generation |
 | Substack Email | — | n/a — no generation step |
 
