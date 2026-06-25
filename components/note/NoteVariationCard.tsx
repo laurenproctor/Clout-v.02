@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import Link from 'next/link'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import type { NoteVariation, NoteRegister } from '@/lib/note/types'
 import { SocialPreviewInline, previewFromStudioState } from '@/components/social-preview'
@@ -253,12 +254,12 @@ export function NoteVariationCard({ variation, onChange, initialOutputId, channe
           })}
 
           {crosspostChannels.length === 0 && (
-            <a
+            <Link
               href="/settings/publishing"
               className="text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
             >
               Connect channels to publish →
-            </a>
+            </Link>
           )}
         </div>
       </div>

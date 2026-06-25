@@ -164,6 +164,10 @@ export function ImageCreator({ workspaceSlug, logoUrl, brandColors: _brandColors
     }
   }
 
+  // NOTE: React Compiler flags this as "Cannot access refs during render" when
+  // called from JSX, because reading lastGeneratedParams.current during render
+  // isn't reactive. It's only used to pick the button label and is recomputed on
+  // every state-driven render, so it's correct in practice. Deferred intentionally.
   function hasFormChanges(): boolean {
     if (!lastGeneratedParams.current) return true
     return JSON.stringify(getCurrentParams()) !== JSON.stringify(lastGeneratedParams.current)

@@ -28,10 +28,10 @@ function AccountAvatar({ profileImageUrl, label }: { profileImageUrl?: string | 
 const SEVEN_DAYS_S = 7 * 24 * 60 * 60
 
 function tokenExpiryStatus(
-  expiresAt: number | null | undefined
+  expiresAt: number | null | undefined,
+  nowS: number,
 ): 'ok' | 'soon' | 'expired' | 'none' {
   if (expiresAt == null) return 'none'
-  const nowS = Math.floor(Date.now() / 1000)
   if (expiresAt < nowS) return 'expired'
   if (expiresAt < nowS + SEVEN_DAYS_S) return 'soon'
   return 'ok'
@@ -44,11 +44,14 @@ function TokenExpiryWarning({
   expiresAt: number | null | undefined
   reconnectHref?: string
 }) {
-  const status = tokenExpiryStatus(expiresAt)
+  // Stabilize "now" for the component lifetime — calling Date.now() during
+  // render is impure and triggers a render-purity diagnostic.
+  const [nowS] = useState(() => Math.floor(Date.now() / 1000))
+  const status = tokenExpiryStatus(expiresAt, nowS)
   if (status === 'ok' || status === 'none') return null
   const daysLeft =
     expiresAt != null
-      ? Math.max(0, Math.floor((expiresAt - Math.floor(Date.now() / 1000)) / 86400))
+      ? Math.max(0, Math.floor((expiresAt - nowS) / 86400))
       : 0
   const isExpired = status === 'expired'
   const label = isExpired

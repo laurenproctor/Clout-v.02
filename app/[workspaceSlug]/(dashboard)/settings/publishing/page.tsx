@@ -268,6 +268,7 @@ function LinkedInTypePicker({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="space-y-2">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth redirect must perform a full document navigation. */}
           <a
             href="/api/channels/linkedin/connect"
             className="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-left text-sm transition-colors hover:border-zinc-400"

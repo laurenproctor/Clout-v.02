@@ -76,6 +76,7 @@ export default function LocalDistributionSection({
             <p className="text-[14px] font-medium text-zinc-700">Google Business Profile</p>
             <p className="text-[13px] text-zinc-400 mt-0.5">Publish local business updates directly to your Google presence.</p>
           </div>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth redirect must perform a full document navigation. */}
           <a
             href="/api/channels/google-business-profile/connect"
             className="shrink-0 text-[13px] font-medium text-zinc-600 border border-zinc-300 rounded-lg px-3 py-1.5 hover:border-zinc-900 hover:text-zinc-900 transition-colors"

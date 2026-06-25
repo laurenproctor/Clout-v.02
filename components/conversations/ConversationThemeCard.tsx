@@ -1,20 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import type { ConversationTheme } from '@/types/domain'
 
 interface Props { theme: ConversationTheme }
 
 export function ConversationThemeCard({ theme }: Props) {
+  // Stabilize "now" for the component lifetime — calling Date.now() during
+  // render is impure and triggers a render-purity diagnostic.
+  const [now] = useState(() => Date.now())
+
   const scoreColor =
     theme.themeScore >= 70 ? 'bg-green-100 text-green-700 border-green-200' :
     theme.themeScore >= 45 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
     'bg-muted text-muted-foreground border-border'
 
   const daysSinceFirst = Math.round(
-    (Date.now() - new Date(theme.firstDetectedAt).getTime()) / (1000 * 60 * 60 * 24)
+    (now - new Date(theme.firstDetectedAt).getTime()) / (1000 * 60 * 60 * 24)
   )
   const daysSinceSeen = Math.round(
-    (Date.now() - new Date(theme.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24)
+    (now - new Date(theme.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24)
   )
 
   return (

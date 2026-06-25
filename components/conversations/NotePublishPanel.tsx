@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -180,12 +181,12 @@ export function NotePublishPanel({ draft, onChange }: Props) {
           })}
 
           {channels.length === 0 && (
-            <a
+            <Link
               href="/settings/publishing"
               className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
             >
               Connect channels to publish →
-            </a>
+            </Link>
           )}
         </div>
       </div>

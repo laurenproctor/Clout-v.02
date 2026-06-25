@@ -79,6 +79,11 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
   }, [heroAssetId, blogOutputId])
 
   // Keyboard shortcuts: narrative-review — ↑/↓ navigate headlines, Enter select, ⌘↵ generate
+  // NOTE: React Compiler flags handleContinue/handleGenerateSocial as "accessed
+  // before declared" here because these handlers are declared lower in the
+  // component. The reference lives inside an event-handler closure that only runs
+  // after mount, so it resolves correctly at runtime. Deferred intentionally —
+  // reordering the declarations would risk the working generate/editor flow.
   useEffect(() => {
     if (state !== 'narrative-review' || !hookExploration) return
     const headlines = request?.title

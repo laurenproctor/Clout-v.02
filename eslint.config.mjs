@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated build artifacts inside git worktrees — ignore the artifacts,
+    // not the whole worktree (a worktree may hold legitimate source to lint).
+    ".worktrees/**/.next/**",
+    ".worktrees/**/out/**",
+    ".worktrees/**/build/**",
   ]),
 ]);
 
