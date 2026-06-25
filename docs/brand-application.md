@@ -75,7 +75,32 @@ file actually loaded).
    in the system-prompt builder, **before** the output schema.
 3. Visual → load `loadGenerationBrandProfile()` and follow the image precedence above.
 4. Add a row to the inventory table.
+5. Declare the generator's brand surfaces in `lib/brand/generatorCapabilities.ts` (the test fails
+   until you do) — this keeps brand application explicit rather than implicit.
 
-**Known follow-ups:** per-level `typography_settings` (h1–h6) is saved but only used in previews,
-not in image rendering; and a future `GeneratorBrandCapabilities` contract would make each
-generator declare its brand relationship explicitly.
+## Brand capabilities registry
+
+`lib/brand/generatorCapabilities.ts` is the source of truth for which brand surfaces each
+generator consumes (voice / identity / imagery / custom fonts / diagnostics). A test guards its
+invariants. Use it to audit coverage and to catch a new generator that forgot to wire brand.
+
+## Known follow-up: `typography_settings` (deferred — needs a design decision + visual review)
+
+Per-level `typography_settings` (h1–h6/body/ui: weight, line-height, letter-spacing, transform,
+color, size) is saved and used in brand *previews*, but **not** in image rendering. Wiring it into
+the Satori/Puppeteer templates was attempted and deferred because it needs decisions this layer
+can't make safely on its own:
+
+- **It's populated with defaults for every workspace**, so applying it unconditionally would
+  change the typography of *every* generated image — there's no "user customized this" signal to
+  distinguish an intentional override from an untouched default.
+- **Templates own responsive sizing** (`fitHeadlineSize`, tuned line-height/letter-spacing per
+  element) to prevent overflow; brand fixed sizes would fight that. Any wiring should apply only
+  non-size attributes and map template elements → levels (headline→h1, subtext→body, credit→ui).
+- **Two `textTransform` values** (`sentence-case`, `title-case`) have no pure-CSS equivalent.
+- **It can't be verified locally** — the renderer uses serverless Chromium (`@sparticuz/chromium`)
+  which won't launch on local macOS, so any change must be reviewed in a preview deploy.
+
+Recommended approach when picked up: add a "typography customized" flag (or diff against the
+seeded defaults) so only intentional overrides apply; wire non-size attributes through
+`BrandTokens` to the Puppeteer templates via a shared CSS helper; verify in a preview deploy.
