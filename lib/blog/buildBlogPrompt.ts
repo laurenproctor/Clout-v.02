@@ -1,3 +1,5 @@
+import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
+import type { BrandContext } from '@/lib/brand/getBrandContext'
 import type { BlogGenerationRequest } from './types'
 
 export interface LensContext {
@@ -9,6 +11,8 @@ export interface LensContext {
 export interface BlogPromptContext {
   request: BlogGenerationRequest
   lenses: LensContext[]
+  // Optional so the separate article-phase route (which builds its own ctx) keeps compiling.
+  brandContext?: BrandContext
   selectedHeadline?: string
 }
 
@@ -43,6 +47,9 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
   lines.push(`Reading Level: ${r.readingLevel}`)
   lines.push(`Length Target: ${r.length}`)
   lines.push('')
+
+  // Workspace Brand Voice — layered on top of the per-request Brand Voice/Tone fields above.
+  lines.push(...buildBrandVoicePromptBlock(ctx.brandContext))
 
   lines.push('## Audience Context')
   const audienceGuidance: Record<string, string> = {
