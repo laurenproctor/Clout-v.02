@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import { getBrandContext } from '@/lib/brand/getBrandContext'
+import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
 import type { DraftRequest } from '@/types/feed'
 
-const PROMPT_VERSION = '2.0.0'
+// Bump when the prompt changes — invalidates draft_cache so stale (pre-brand-voice) drafts
+// aren't served. 2.1.0 layers the workspace Brand Voice (tone/notes/negative rules) on top.
+const PROMPT_VERSION = '2.1.0'
 
 const VALID_FORMATS = ['linkedin', 'twitter', 'blog', 'newsletter', 'instagram']
 const VALID_TONES = ['authoritative', 'conversational', 'provocative', 'educational']
@@ -135,13 +139,16 @@ export async function POST(req: NextRequest) {
     }
     const openai = new OpenAI({ apiKey: openaiKey })
 
+    // Layer the workspace Brand Voice (tone/notes/negative rules) on top of the user-profile
+    // brand fields above, so drafts respect Brand Settings like the other generators.
+    const brandVoice = buildBrandVoicePromptBlock(await getBrandContext())
     const systemPrompt = buildSystemPrompt(
       profile.brand_name,
       profile.niche ?? '',
       profile.tone_preference,
       profile.content_topics ?? [],
       competitorSummary
-    )
+    ) + (brandVoice.length > 0 ? `\n\n${brandVoice.join('\n')}` : '')
 
     const userPrompt = buildUserPrompt(card.title, card.gdelt_score, tone, format)
 
