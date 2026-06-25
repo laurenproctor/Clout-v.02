@@ -210,13 +210,19 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Load workspace brand profile ──────────────────────────────────────────
-  // Feeds brand imagery settings into the AI brief (generateVisualIntent) and brand
-  // fonts/colors into the hybrid-overlay render. Skipped for prompt-driven or
-  // pure supplied/solid backgrounds (no AI step). This is what gives Instagram (and
-  // every other content-derived caller) its brand — previously always undefined.
+  // The profile feeds TWO consumers, so the gate is rendering-need-based, not mode-based:
+  //   1. The AI brief (generateVisualIntent) — only for an AI-generated background, and
+  //      already skipped internally for prompt-driven.
+  //   2. The hybrid-overlay render — brand semantic/style traits whenever text is composited,
+  //      regardless of background mode (solid/uploaded) OR generation mode (incl. prompt-driven).
+  // Loading it for a prompt-driven image that ALSO has overlay text is correct and harmless.
+  const needsBrandProfile =
+    resolvedBackgroundMode === 'generated' ||
+    Boolean(overlayHeadline) ||
+    Boolean(overlayQuote)
   let brandProfile: GenerationBrandProfile | undefined
   let brandProfileSources: BrandProfileSources | undefined
-  if (mode !== 'prompt-driven' && resolvedBackgroundMode === 'generated') {
+  if (needsBrandProfile) {
     const brandClient = await createClient()
     const loaded = await loadGenerationBrandProfile(session.workspaceId, brandClient)
     if (loaded) {
