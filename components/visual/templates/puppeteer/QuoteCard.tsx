@@ -5,6 +5,7 @@
 
 import type { BrandTokens } from '@/lib/visual/types/template'
 import { SAFE_ZONE } from '@/lib/visual/tokens/spacing'
+import { fontFaceRule } from './fontFace'
 
 interface QuoteCardProps {
   quote: string
@@ -18,18 +19,6 @@ interface QuoteCardProps {
   width: number
   height: number
   overlayOpacity?: number
-}
-
-function fontFaceRule(family: string, url: string | undefined): string {
-  if (!url) return ''
-  return `
-    @font-face {
-      font-family: ${JSON.stringify(family)};
-      src: url(${JSON.stringify(url)}) format('woff2');
-      font-weight: 100 900;
-      font-style: normal;
-    }
-  `
 }
 
 export function QuoteCard({
