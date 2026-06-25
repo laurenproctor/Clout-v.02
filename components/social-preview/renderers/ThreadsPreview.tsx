@@ -15,6 +15,9 @@ export function ThreadsPreview({ data, theme, density }: RendererProps) {
   const p = spec.palette[theme]
   const { author } = data
   const media = data.media?.[0]
+  // When a post type expects media but none is attached yet, render a neutral
+  // placeholder slot rather than implying an image exists.
+  const showMediaSlot = Boolean(media) || data.mediaPending
   const isMini = density === 'mini'
 
   return (
@@ -66,10 +69,11 @@ export function ThreadsPreview({ data, theme, density }: RendererProps) {
           />
         </div>
 
-        {media && (
+        {showMediaSlot && (
           <div style={{ marginTop: 10 }}>
             <PreviewMediaBlock
-              media={media}
+              media={media ?? { url: '', aspectRatio: 1 }}
+              pending={!media && data.mediaPending}
               chrome="rounded"
               borderColor={p.border}
               placeholderBg={p.border}

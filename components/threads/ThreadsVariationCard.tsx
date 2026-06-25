@@ -7,6 +7,7 @@ import { Check, Copy as CopyIcon } from 'lucide-react'
 import { validateThreadsPost } from '@/lib/syndication/validation/threads'
 import type { ThreadsVariation } from '@/lib/threads/types'
 import { serializeForCopy } from '@/lib/create/serializeForCopy'
+import { VisualGenerator } from '@/components/visual/VisualGenerator'
 import {
   SocialPreviewInline,
   previewFromStudioState,
@@ -44,6 +45,8 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
   const [scheduleDate, setScheduleDate] = useState('')
   const [publishState, setPublishState] = useState<PublishState>('idle')
   const [publishedPostId, setPublishedPostId] = useState<string | null>(null)
+  // URL of an in-session attached visual, used to render real media in the preview.
+  const [attachedUrl, setAttachedUrl] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const postType = variation.postType ?? 'single'
@@ -86,9 +89,18 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
         channel,
         body: variation.primaryText,
         hashtags: variation.hashtag ? [variation.hashtag] : [],
+        // Media posts: show the attached asset, or a neutral placeholder slot
+        // (never imply media exists) when nothing is attached yet.
+        media: isMediaPost && attachedUrl ? [{ url: attachedUrl, aspectRatio: 1 }] : undefined,
+        mediaPending: isMediaPost && !attachedUrl ? true : undefined,
       }),
-    [channel, variation.primaryText, variation.hashtag],
+    [channel, variation.primaryText, variation.hashtag, isMediaPost, attachedUrl],
   )
+
+  function handleAttachVisual(assetId: string, url: string) {
+    setAttachedUrl(url)
+    onChange({ ...variation, selectedVisualAssetId: assetId })
+  }
 
   // Common content payload persisted on save/update.
   function buildContent() {
@@ -348,12 +360,23 @@ export function ThreadsVariationCard({ variation, onChange, initialOutputId, thr
             />
           </div>
 
-          {/* Image/video posts: the caption is generated and saved to Studio;
-              media attachment + publishing land with the visual pipeline. */}
-          {mediaIncomplete && (
-            <p className="text-[11px] text-amber-600">
-              Visual needed before publishing. You can save this draft now and attach media in Studio later.
-            </p>
+          {/* Media attach — image/video posts can attach a visual asset */}
+          {isMediaPost && (
+            <div className="space-y-2">
+              {/* The visual backend has no 'threads' platform; reuse the
+                  square/image-native 'instagram' profile for the generic asset. */}
+              <VisualGenerator
+                content={variation.primaryText}
+                platform="instagram"
+                aspectRatio="square"
+                onAttach={handleAttachVisual}
+              />
+              {mediaIncomplete && (
+                <p className="text-[11px] text-amber-600">
+                  Visual needed before publishing. You can save this draft now and attach media later.
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
