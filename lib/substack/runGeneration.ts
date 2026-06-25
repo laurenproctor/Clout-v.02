@@ -1,14 +1,17 @@
 import { callClaudeStream } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
+import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
 import { markdownToCanonicalBody } from '@/lib/publishing/canonical/from-blog'
 import { generateSlug, generateExcerpt } from '@/lib/publishing/canonical/normalizer'
 import { SUBSTACK_PLATFORM_MODEL, SUBSTACK_LENGTH_TARGETS, SUBSTACK_ARTICLE_TYPES } from '@/lib/syndication/platforms/substack'
+import type { BrandContext } from '@/lib/brand/getBrandContext'
 import type { SubstackGenerationRequest, SubstackGeneratedArticle } from './types'
 import type { CanonicalArticle } from '@/lib/publishing/canonical/types'
 
 export interface SubstackPromptContext {
   request: SubstackGenerationRequest
   lenses:  Array<{ id: string; name: string; systemPrompt: string }>
+  brandContext?: BrandContext
 }
 
 interface ClaudeArticleResponse {
@@ -38,6 +41,9 @@ function buildSystemPrompt(ctx: SubstackPromptContext): string {
       lines.push(`### ${lens.name}`, lens.systemPrompt, '')
     }
   }
+
+  const brandVoice = buildBrandVoicePromptBlock(ctx.brandContext)
+  if (brandVoice.length > 0) lines.push('', ...brandVoice)
 
   lines.push(
     '',
