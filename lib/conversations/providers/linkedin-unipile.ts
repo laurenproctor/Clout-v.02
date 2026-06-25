@@ -2,7 +2,8 @@ import { contentHash } from './hash'
 import type { ConversationProvider, NormalizedItem, ProviderFetchContext } from './types'
 import { evaluateUnipileMonitoring } from '@/lib/unipile/gates'
 import { getUnipileConnection } from '@/lib/unipile/connection'
-import { searchPosts, type UnipilePost } from '@/lib/unipile/client'
+import type { UnipilePost } from '@/lib/unipile/client'
+import { type LinkedInMonitoringClient, linkedinMonitoringClient } from '@/lib/unipile/monitoring-client'
 import { UNIPILE_LIMITS } from '@/lib/unipile/ratelimit'
 
 // LinkedIn keyword monitoring via the Unipile beta connector. READ-ONLY: this provider
@@ -73,6 +74,10 @@ function mapPost(post: UnipilePost): NormalizedItem {
 export class LinkedInUnipileProvider implements ConversationProvider {
   sourceType = 'linkedin' as const
 
+  // Depend ONLY on the read-only monitoring surface — never the full Unipile client.
+  // Any outbound mutation call is now a compile-time error (the surface exposes searchPosts only).
+  constructor(private readonly client: LinkedInMonitoringClient = linkedinMonitoringClient) {}
+
   canHandle(url: string): boolean {
     try {
       const u = new URL(url)
@@ -98,7 +103,7 @@ export class LinkedInUnipileProvider implements ConversationProvider {
     const keyword = keywordFromUrl(sourceUrl)
     if (!keyword) return []
 
-    const posts = await searchPosts(connection.accountId, keyword, {
+    const posts = await this.client.searchPosts(connection.accountId, keyword, {
       datePosted: DATE_POSTED,
       limit: MAX_ITEMS,
     })
