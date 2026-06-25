@@ -52,8 +52,9 @@ export function VisualGenerator({
         outputId,
         aspectRatio,
         // Overlay card consistency: when the host wants a branded card, derive copy
-        // and brand the image (logo + light scheme) just like the auto flow.
-        ...(deriveOverlay ? { deriveOverlay: true, includeLogo: true, colorScheme: 'light' as const } : {}),
+        // and brand the image (logo + dark scheme + text shadow → readable light text
+        // and a visible light logo on dark backgrounds) just like the auto flow.
+        ...(deriveOverlay ? { deriveOverlay: true, includeLogo: true, colorScheme: 'dark' as const, textShadow: 'medium' as const } : {}),
         ...(params?.promptOverride    ? { promptOverride: params.promptOverride }       : {}),
         ...(params?.parentAssetId     ? { parentAssetId: params.parentAssetId }         : {}),
         ...(params?.generationGroupId ? { generationGroupId: params.generationGroupId } : {}),

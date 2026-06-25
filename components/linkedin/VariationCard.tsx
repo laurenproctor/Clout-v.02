@@ -220,7 +220,11 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
           content: variation.body,
           platform: 'linkedin',
           aspectRatio: 'landscape',
-          colorScheme: 'light',
+          // Dark scheme = light text + dark legibility gradient + light logo, which
+          // reads on the dark/dramatic backgrounds this pipeline produces. The text
+          // shadow keeps light text legible even over lighter patches.
+          colorScheme: 'dark',
+          textShadow: 'medium',
           includeLogo: true,
           deriveOverlay: true,
           outputId: savedOutputId,

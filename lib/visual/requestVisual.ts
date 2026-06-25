@@ -19,6 +19,7 @@ export interface RequestVisualBody {
   autoLinkedInImagePost?: boolean
   colorScheme?: 'light' | 'dark'
   includeLogo?: boolean
+  textShadow?: 'none' | 'light' | 'medium' | 'strong'
 }
 
 export interface GeneratedVisualResult {
