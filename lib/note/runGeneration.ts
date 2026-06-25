@@ -1,11 +1,14 @@
 import { callClaudeStream } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
+import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
 import { SUBSTACK_NOTE_PLATFORM_MODEL } from '@/lib/syndication/platforms/substack'
+import type { BrandContext } from '@/lib/brand/getBrandContext'
 import type { NoteGenerationRequest, NoteVariation, NoteRegister } from './types'
 
 export interface NotePromptContext {
   request: NoteGenerationRequest
   lenses:  Array<{ id: string; name: string; systemPrompt: string }>
+  brandContext?: BrandContext
 }
 
 interface ClaudeNoteResponse {
@@ -39,6 +42,9 @@ function buildSystemPrompt(ctx: NotePromptContext): string {
       lines.push(`### ${lens.name}`, lens.systemPrompt, '')
     }
   }
+
+  const brandVoice = buildBrandVoicePromptBlock(ctx.brandContext)
+  if (brandVoice.length > 0) lines.push('', ...brandVoice)
 
   lines.push(
     '',
