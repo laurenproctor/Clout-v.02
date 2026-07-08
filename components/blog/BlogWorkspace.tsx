@@ -149,7 +149,8 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
       const response = await fetch('/api/blog/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request: req }),
+        // campaignId is read at the top level by the route.
+        body: JSON.stringify({ request: req, campaignId: req.campaignId ?? null }),
       })
 
       if (!response.ok) throw new Error('Generation failed')
@@ -239,6 +240,7 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
           narrativeStrategy: editedStrategy,
           hookExploration: mergedHookExploration,
           selectedHeadline: headline,
+          campaignId: request?.campaignId ?? null,
         }),
       })
 
@@ -281,6 +283,7 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
                   title: pkg.article.title,
                   wordCount: pkg.article.wordCount,
                   markdown: pkg.article.markdown,
+                  campaignId: request?.campaignId ?? null,
                 }),
               })
                 .then(r => r.ok ? r.json() : Promise.reject(r.statusText))

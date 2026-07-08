@@ -81,6 +81,7 @@ export function LinkedInWorkspace({
 }: LinkedInWorkspaceProps) {
   const [state, setState] = useState<LinkedInWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<LinkedInGenerationRequest>>({
+    campaignId: null,
     ...DEFAULT_LINKEDIN_CREATE_SETTINGS,
     ...initialSettings,
   })
@@ -151,7 +152,8 @@ export function LinkedInWorkspace({
       const response = await fetch('/api/linkedin/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request }),
+        // campaignId is read at the top level by the route.
+        body: JSON.stringify({ request, campaignId: request.campaignId ?? null }),
       })
 
       if (!response.ok) throw new Error('Generation failed')
@@ -209,8 +211,9 @@ export function LinkedInWorkspace({
                   voiceRegister: request.voiceRegister ?? null,
                   lensName:      lenses.find(l => request.lensIds?.[0] === l.id)?.name ?? null,
                 },
-                title:     anchor.campaignName,
-                channelId: channelId ?? null,
+                title:      anchor.campaignName,
+                channelId:  channelId ?? null,
+                campaignId: request.campaignId ?? null,
               }),
             })
               .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
@@ -255,7 +258,7 @@ export function LinkedInWorkspace({
       const response = await fetch('/api/linkedin/alternates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request, anchorBody: anchor.body }),
+        body: JSON.stringify({ request, anchorBody: anchor.body, campaignId: request.campaignId ?? null }),
       })
       const generated = await readVariationStream(response)
       setAlternates(generated)

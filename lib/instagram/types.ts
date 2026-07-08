@@ -29,6 +29,7 @@ export interface InstagramGenerationRequest {
   audience: LinkedInAudience
   customAudience?: string
   lensIds: string[]
+  campaignId?: string | null  // optional campaign attribution; read at the top level by the routes
 }
 
 export interface InstagramSlide {

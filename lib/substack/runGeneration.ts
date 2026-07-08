@@ -1,4 +1,4 @@
-import { callClaudeStream } from '@/lib/ai/generate'
+import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
 import { markdownToCanonicalBody } from '@/lib/publishing/canonical/from-blog'
@@ -12,6 +12,8 @@ export interface SubstackPromptContext {
   request: SubstackGenerationRequest
   lenses:  Array<{ id: string; name: string; systemPrompt: string }>
   brandContext?: BrandContext
+  // Campaign goal/purpose, injected so the article is written toward the objective.
+  campaignContext?: { goal: string; purpose: string | null } | null
 }
 
 interface ClaudeArticleResponse {
@@ -44,6 +46,9 @@ function buildSystemPrompt(ctx: SubstackPromptContext): string {
 
   const brandVoice = buildBrandVoicePromptBlock(ctx.brandContext)
   if (brandVoice.length > 0) lines.push('', ...brandVoice)
+
+  const campaignLines = campaignPromptLines(ctx.campaignContext)
+  if (campaignLines.length > 0) lines.push('', ...campaignLines)
 
   lines.push(
     '',

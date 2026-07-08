@@ -1,4 +1,5 @@
 import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
+import { campaignPromptLines } from '@/lib/ai/generate'
 import type { BrandContext } from '@/lib/brand/getBrandContext'
 import type { BlogGenerationRequest } from './types'
 
@@ -14,6 +15,8 @@ export interface BlogPromptContext {
   // Optional so the separate article-phase route (which builds its own ctx) keeps compiling.
   brandContext?: BrandContext
   selectedHeadline?: string
+  // Campaign goal/purpose, injected so the article is written toward the objective.
+  campaignContext?: { goal: string; purpose: string | null } | null
 }
 
 export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
@@ -50,6 +53,11 @@ export function buildBlogSystemPrompt(ctx: BlogPromptContext): string {
 
   // Workspace Brand Voice — layered on top of the per-request Brand Voice/Tone fields above.
   lines.push(...buildBrandVoicePromptBlock(ctx.brandContext))
+
+  const campaignLines = campaignPromptLines(ctx.campaignContext)
+  if (campaignLines.length > 0) {
+    lines.push(...campaignLines, '')
+  }
 
   lines.push('## Audience Context')
   const audienceGuidance: Record<string, string> = {

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
 import { getBrandContext } from '@/lib/brand/getBrandContext'
+import { getCampaignContext } from '@/lib/domain/campaign'
 import { runPhase4to10 } from '@/lib/blog/runPhase4to10'
 import type { BlogGenerationRequest, NarrativeStrategy, HookExploration } from '@/lib/blog/types'
 import type { BlogPromptContext } from '@/lib/blog/buildBlogPrompt'
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
     hookExploration: HookExploration
     selectedHeadline: string
   }
+  const campaignId = (body as { campaignId?: string }).campaignId ?? null
 
   if (!request?.primaryKeyword || !narrativeStrategy?.coreArgument || !selectedHeadline) {
     return new Response(JSON.stringify({ error: 'request, narrativeStrategy, and selectedHeadline are required' }), { status: 400 })
@@ -36,7 +38,17 @@ export async function POST(req: NextRequest) {
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map(l => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
-  const ctx: BlogPromptContext = { request, lenses: resolvedLenses, brandContext, selectedHeadline }
+  // Validate campaign ownership and load its goal/purpose so the article body is
+  // written toward the campaign objective.
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (campaignId) {
+    campaignContext = await getCampaignContext(campaignId, session.workspaceId)
+    if (!campaignContext) {
+      return new Response(JSON.stringify({ error: 'Campaign not found' }), { status: 404 })
+    }
+  }
+
+  const ctx: BlogPromptContext = { request, lenses: resolvedLenses, brandContext, selectedHeadline, campaignContext }
 
   const stream = runPhase4to10({
     ctx,

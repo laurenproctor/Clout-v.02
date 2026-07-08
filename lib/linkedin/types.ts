@@ -36,6 +36,7 @@ export interface LinkedInGenerationRequest {
   imageDirection?: string     // optional per-post art brief for Image Posts: how the image should look
   sourcePostId?: string
   sourcePostType?: string
+  campaignId?: string | null  // optional campaign attribution; read at the top level by the routes
 }
 
 export interface LinkedInHook {
@@ -51,7 +52,9 @@ export interface LinkedInVariation {
   id: string
   label: string
   campaignName: string      // compelling headline for studio — what this post is about
-  body: string
+  body: string              // plain-text projection of bodyRich (source of truth when present)
+  bodyRich?: import('./richText').TiptapDoc
+  bodyRichVersion?: 1
   hooks: LinkedInHook[]
   hashtags: string[]        // without # prefix
   mentions: string[]        // without @ prefix

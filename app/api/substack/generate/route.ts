@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { listLenses } from '@/lib/domain/lens'
 import { getBrandContext } from '@/lib/brand/getBrandContext'
+import { getCampaignContext } from '@/lib/domain/campaign'
 import { scrapeUrl } from '@/lib/scraper'
 import { runSubstackGeneration } from '@/lib/substack/runGeneration'
 import { FEATURES } from '@/lib/features'
@@ -71,7 +72,18 @@ export async function POST(req: NextRequest) {
     .filter((l): l is NonNullable<typeof l> => l !== undefined)
     .map(l => ({ id: l.id, name: l.name, systemPrompt: l.systemPrompt }))
 
-  const stream = runSubstackGeneration({ request, lenses: resolvedLenses, brandContext })
+  // If generating for a campaign, validate ownership and load its goal/purpose
+  // so the article is written toward the campaign objective.
+  const campaignId = (body as { campaignId?: string }).campaignId ?? null
+  let campaignContext: { goal: string; purpose: string } | null = null
+  if (campaignId) {
+    campaignContext = await getCampaignContext(campaignId, session.workspaceId)
+    if (!campaignContext) {
+      return new Response(JSON.stringify({ error: 'Campaign not found' }), { status: 404 })
+    }
+  }
+
+  const stream = runSubstackGeneration({ request, lenses: resolvedLenses, brandContext, campaignContext })
 
   return new Response(stream, {
     headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-cache' },

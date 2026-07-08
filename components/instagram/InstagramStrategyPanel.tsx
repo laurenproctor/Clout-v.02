@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import type { Lens } from '@/types/domain'
 import type { SourceIntent, LinkedInAudience } from '@/lib/linkedin/types'
 import type { InstagramGenerationRequest } from '@/lib/instagram/types'
+import { CampaignSelect } from '@/components/create/CampaignSelect'
 import { VisualStyleSelector } from './VisualStyleSelector'
 
 interface InstagramStrategyPanelProps {
@@ -179,6 +180,16 @@ export function InstagramStrategyPanel({
               className="mt-2 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
             />
           )}
+        </div>
+
+        {/* Campaign — optional attribution */}
+        <div>
+          <p className={sectionLabel}>Campaign</p>
+          <CampaignSelect
+            value={values.campaignId ?? null}
+            onChange={id => !readOnly && onChange({ campaignId: id })}
+            disabled={readOnly}
+          />
         </div>
 
         {/* Advanced */}

@@ -141,6 +141,8 @@ export interface BlogGenerationRequest {
 
   lensIds: string[]
 
+  campaignId?: string | null  // optional campaign attribution; read at the top level by the routes
+
   length: 'short' | 'standard' | 'long' | 'pillar'
   readingLevel: 'general' | 'professional' | 'technical' | 'executive'
   visualDensity: 'minimal' | 'balanced' | 'heavy'

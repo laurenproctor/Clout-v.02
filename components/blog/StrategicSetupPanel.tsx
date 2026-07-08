@@ -7,6 +7,7 @@ import { SourceInputTabs } from './SourceInputTabs'
 import { AudienceIdentitySelector } from './AudienceIdentitySelector'
 import { OpinionStrengthSelector } from './OpinionStrengthSelector'
 import { MultiLensSelector } from './MultiLensSelector'
+import { CampaignSelect } from '@/components/create/CampaignSelect'
 
 interface StrategicSetupPanelProps {
   lenses: Lens[]
@@ -177,6 +178,15 @@ export function StrategicSetupPanel({ lenses, onGenerate, disabled, initialValue
               lenses={lenses}
               selectedIds={values.lensIds ?? []}
               onChange={(lensIds) => set({ lensIds })}
+            />
+          </div>
+
+          {/* Campaign — optional attribution */}
+          <div>
+            <label className={labelClass}>Campaign</label>
+            <CampaignSelect
+              value={values.campaignId ?? null}
+              onChange={(campaignId) => set({ campaignId })}
             />
           </div>
 

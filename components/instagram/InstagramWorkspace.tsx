@@ -30,6 +30,7 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
     sourceType:    'text',
     audience:      'general_audience',
     lensIds:       [],
+    campaignId:    null,
   })
   const [variations, setVariations]               = useState<InstagramVariation[]>([])
   const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])
@@ -85,7 +86,8 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
       const response = await fetch('/api/instagram/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request: finalRequest }),
+        // campaignId is read at the top level by the route.
+        body: JSON.stringify({ request: finalRequest, campaignId: finalRequest.campaignId ?? null }),
       })
       if (!response.ok) throw new Error('Generation failed')
 
@@ -137,8 +139,9 @@ export function InstagramWorkspace({ lenses, logoUrl, savedAudiences = [] }: Ins
                       resolvedFormat: v.resolvedFormat,
                       resolvedStyle:  v.resolvedStyle,
                     },
-                    title:     v.campaignName,
-                    channelId: channelId ?? null,
+                    title:      v.campaignName,
+                    channelId:  channelId ?? null,
+                    campaignId: request.campaignId ?? null,
                   }),
                 })
                   .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))

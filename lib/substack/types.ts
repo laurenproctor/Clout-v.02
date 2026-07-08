@@ -10,6 +10,7 @@ export interface SubstackGenerationRequest {
   lensIds:       string[]
   articleType?:  SubstackArticleType
   length?:       SubstackArticleLength
+  campaignId?:   string | null  // optional campaign attribution; read at the top level by the route
 }
 
 export interface SubstackGeneratedArticle {
