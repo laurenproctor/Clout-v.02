@@ -36,9 +36,11 @@ interface ProgressEvent {
 interface BlogWorkspaceProps {
   lenses: Lens[]
   workspaceId: string
+  /** Seed text from a universal-create brief (via ?briefCaptureId). */
+  initialSourceContent?: string
 }
 
-export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
+export function BlogWorkspace({ lenses, workspaceId, initialSourceContent }: BlogWorkspaceProps) {
   const [state, setState] = useState<WorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<BlogGenerationRequest> | null>(null)
   const [progressEvents, setProgressEvents] = useState<ProgressEvent[]>([])
@@ -50,7 +52,9 @@ export function BlogWorkspace({ lenses, workspaceId }: BlogWorkspaceProps) {
   const [blogPackage, setBlogPackage] = useState<GeneratedBlogPackage | null>(null)
   const [isSocialGenerating, setIsSocialGenerating] = useState(false)
   const [selectedPlatforms, setSelectedPlatforms] = useState<SocialPlatform[]>(['linkedin', 'xThread', 'newsletter'])
-  const [setupInitialValues, setSetupInitialValues] = useState<Partial<BlogGenerationRequest> | undefined>(undefined)
+  const [setupInitialValues, setSetupInitialValues] = useState<Partial<BlogGenerationRequest> | undefined>(
+    initialSourceContent ? { sourceType: 'text', sourceContent: initialSourceContent } : undefined
+  )
   const [error, setError] = useState<string | null>(null)
   const [keyboardIndex, setKeyboardIndex] = useState(0)
   const [livePreview, setLivePreview] = useState<LivePreview>({})

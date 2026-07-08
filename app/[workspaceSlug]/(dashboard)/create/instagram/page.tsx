@@ -2,15 +2,19 @@ import { redirect, notFound } from 'next/navigation'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
+import { loadBriefSeed } from '@/lib/create/loadBriefSeed'
 import { InstagramWorkspace } from '@/components/instagram/InstagramWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
 export default async function InstagramCreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ briefCaptureId?: string }>
 }) {
   const { workspaceSlug } = await params
+  const { briefCaptureId } = await searchParams
   const user = await getAuthenticatedUserId()
   if (!user) redirect('/sign-in')
 
@@ -33,6 +37,7 @@ export default async function InstagramCreatePage({
     .maybeSingle()
 
   const logoUrl = brand?.logo_url ?? null
+  const initialSourceContent = await loadBriefSeed(briefCaptureId, workspace.id)
 
   return (
     <div className="flex h-full flex-col">
@@ -46,7 +51,7 @@ export default async function InstagramCreatePage({
         <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
-        <InstagramWorkspace lenses={lenses} logoUrl={logoUrl} savedAudiences={workspace.custom_audiences ?? []} />
+        <InstagramWorkspace lenses={lenses} logoUrl={logoUrl} savedAudiences={workspace.custom_audiences ?? []} initialSourceContent={initialSourceContent} />
       </div>
     </div>
   )

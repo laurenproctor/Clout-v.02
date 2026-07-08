@@ -4,7 +4,12 @@
  * prefix; we skip ones already present (case-insensitive, word-boundary) so a
  * body that already ends with its tags isn't given a duplicate block.
  */
-export function serializeForCopy(body: string, hashtags: string[]): string {
+import { docToDisplayText, docHasContent } from '@/lib/linkedin/richText'
+
+export function serializeForCopy(body: string, hashtags: string[], bodyRich?: unknown): string {
+  // Copy must match what publishes: Unicode bold/italic + plain @Name, but WITHOUT
+  // little escaping (clipboard should read `@Name`/`#Tag`, never `\@Name`).
+  const base = docHasContent(bodyRich) ? docToDisplayText(bodyRich) : body
   const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const seen = new Set<string>()
   const toAppend = (hashtags ?? [])
@@ -16,8 +21,8 @@ export function serializeForCopy(body: string, hashtags: string[]): string {
       seen.add(key)
       return true
     })
-    .filter(t => !new RegExp(`#${escape(t)}\\b`, 'i').test(body))
+    .filter(t => !new RegExp(`#${escape(t)}\\b`, 'i').test(base))
 
-  if (toAppend.length === 0) return body.trimEnd()
-  return `${body.trimEnd()}\n\n${toAppend.map(t => `#${t}`).join(' ')}`
+  if (toAppend.length === 0) return base.trimEnd()
+  return `${base.trimEnd()}\n\n${toAppend.map(t => `#${t}`).join(' ')}`
 }

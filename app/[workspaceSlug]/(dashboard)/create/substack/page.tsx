@@ -4,17 +4,21 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
 import { listConnections } from '@/lib/publishing/domain'
 import { FEATURES } from '@/lib/features'
+import { loadBriefSeed } from '@/lib/create/loadBriefSeed'
 import { SubstackWorkspace } from './SubstackWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
 export default async function SubstackCreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ briefCaptureId?: string }>
 }) {
   if (!FEATURES.substackPublishing) notFound()
 
   const { workspaceSlug } = await params
+  const { briefCaptureId } = await searchParams
   const user = await getAuthenticatedUserId()
   if (!user) redirect('/sign-in')
 
@@ -35,6 +39,7 @@ export default async function SubstackCreatePage({
   const lenses             = lensesResult.ok ? lensesResult.data : []
   const allConnections     = connectionsResult.ok ? connectionsResult.data : []
   const substackConnections = allConnections.filter(c => c.provider === 'substack' && c.isActive)
+  const initialSourceContent = await loadBriefSeed(briefCaptureId, workspace.id)
 
   return (
     <div className="flex h-full flex-col">
@@ -55,6 +60,7 @@ export default async function SubstackCreatePage({
           lenses={lenses}
           substackConnections={substackConnections}
           workspaceSlug={workspaceSlug}
+          initialSourceContent={initialSourceContent}
         />
       </div>
     </div>

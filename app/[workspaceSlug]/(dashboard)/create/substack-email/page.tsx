@@ -3,6 +3,7 @@ import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
 import { listConnections } from '@/lib/publishing/domain'
+import { loadBriefSeed } from '@/lib/create/loadBriefSeed'
 import { SubstackEmailWorkspace } from './SubstackEmailWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
@@ -11,10 +12,13 @@ import { IdentityBar } from '@/components/publishing/identity-bar'
 // downstream (capabilities endpoint + connection presence) on the secondary action.
 export default async function SubstackEmailCreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ briefCaptureId?: string }>
 }) {
   const { workspaceSlug } = await params
+  const { briefCaptureId } = await searchParams
   const user = await getAuthenticatedUserId()
   if (!user) redirect('/sign-in')
 
@@ -35,6 +39,7 @@ export default async function SubstackEmailCreatePage({
   const lenses              = lensesResult.ok ? lensesResult.data : []
   const allConnections      = connectionsResult.ok ? connectionsResult.data : []
   const substackConnections = allConnections.filter(c => c.provider === 'substack' && c.isActive)
+  const initialSourceContent = await loadBriefSeed(briefCaptureId, workspace.id)
 
   return (
     <div className="flex h-full flex-col">
@@ -54,6 +59,7 @@ export default async function SubstackEmailCreatePage({
           lenses={lenses}
           substackConnections={substackConnections}
           workspaceSlug={workspaceSlug}
+          initialSourceContent={initialSourceContent}
         />
       </div>
     </div>

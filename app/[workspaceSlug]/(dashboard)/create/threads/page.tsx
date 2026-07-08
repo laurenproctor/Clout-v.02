@@ -3,15 +3,19 @@ import { redirect, notFound } from 'next/navigation'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
+import { loadBriefSeed } from '@/lib/create/loadBriefSeed'
 import { ThreadsWorkspace } from '@/components/threads/ThreadsWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
 export default async function ThreadsCreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ briefCaptureId?: string }>
 }) {
   const { workspaceSlug } = await params
+  const { briefCaptureId } = await searchParams
   const user = await getAuthenticatedUserId()
   if (!user) redirect('/sign-in')
 
@@ -26,6 +30,7 @@ export default async function ThreadsCreatePage({
 
   const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
+  const initialSourceContent = await loadBriefSeed(briefCaptureId, workspace.id)
 
   return (
     <div className="flex h-full flex-col">
@@ -39,7 +44,7 @@ export default async function ThreadsCreatePage({
         <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
-        <ThreadsWorkspace lenses={lenses} savedAudiences={workspace.custom_audiences ?? []} />
+        <ThreadsWorkspace lenses={lenses} savedAudiences={workspace.custom_audiences ?? []} initialSourceContent={initialSourceContent} />
       </div>
     </div>
   )

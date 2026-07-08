@@ -35,8 +35,8 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'blog',
     title: 'Blog Post',
     description:
-      'Generate SEO-ready long-form content with titles, metadata, structure, and AI-assisted writing workflows.',
-    ctaLabel: 'Create Blog Post',
+      'Start with a blog-first, SEO-ready long-form piece, then adapt it into LinkedIn, Threads, or a Substack email.',
+    ctaLabel: 'Start with blog',
     route: '/create/blog',
     status: 'active',
     icon: FileText,
@@ -45,8 +45,8 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'linkedin',
     title: 'LinkedIn Post',
     description:
-      'Create professional thought leadership content optimized for reach, credibility, and engagement.',
-    ctaLabel: 'Create LinkedIn Post',
+      'Create a LinkedIn-first thought leadership post, then adapt it for Threads, Substack, Instagram, or blog.',
+    ctaLabel: 'Start with LinkedIn',
     route: '/create/linkedin',
     status: 'active',
     icon: Briefcase,
@@ -55,8 +55,8 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'threads',
     title: 'Threads Post',
     description:
-      'Authentic engagement — create real conversations and build genuine connections with your audience.',
-    ctaLabel: 'Create Threads Post',
+      'Open a conversation with a Threads-first post, then expand it into LinkedIn, a blog, or a Substack note.',
+    ctaLabel: 'Start with Threads',
     route: '/create/threads',
     status: 'active',
     icon: MessageCircle,
@@ -65,8 +65,8 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'image',
     title: 'Create Image',
     description:
-      'Generate brand-consistent social images — quote cards, headline banners, editorial photography, and more.',
-    ctaLabel: 'Create Image',
+      'Create a brand-consistent visual asset, then attach it to platform-specific content in Studio.',
+    ctaLabel: 'Start with image',
     route: '/create/image',
     status: 'active',
     icon: ImageIcon,
@@ -75,8 +75,8 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'instagram',
     title: 'Instagram Post',
     description:
-      'Create platform native Instagram content including captions, carousel slides, quote graphics, educational content, and branded visual assets.',
-    ctaLabel: 'Create Instagram Post',
+      'Build an Instagram-first caption and carousel, then adapt the message for LinkedIn, Threads, or a note.',
+    ctaLabel: 'Start with Instagram',
     route: '/create/instagram',
     status: 'active',
     icon: Camera,
@@ -84,8 +84,9 @@ export const CONTENT_TYPES: ContentType[] = [
   {
     id: 'substack-note',
     title: 'Note',
-    description: 'Short observations and insights — write once, publish anywhere.',
-    ctaLabel: 'Write a Note',
+    description:
+      'Capture a short, note-first observation, then expand it into a post, thread, or long-form email later.',
+    ctaLabel: 'Start with note',
     route: '/create/note',
     status: 'active',
     icon: Zap,
@@ -94,8 +95,8 @@ export const CONTENT_TYPES: ContentType[] = [
     id: 'substack-email',
     title: 'Substack Email',
     description:
-      'Draft a long-form Substack email, then refine, schedule, and publish it through Studio.',
-    ctaLabel: 'Write a Substack email',
+      'Draft an email-first, long-form Substack piece, then adapt highlights into LinkedIn, Threads, or a note.',
+    ctaLabel: 'Start with email',
     route: '/create/substack-email',
     status: 'active',
     icon: Mail,

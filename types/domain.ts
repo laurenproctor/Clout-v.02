@@ -2,6 +2,7 @@
 // Used across lib/domain/ and components
 
 import type { NarrativeRole, NarrativeGoal, FunnelStage, ResonancePrediction } from './calendar'
+import type { TiptapDoc } from '@/lib/linkedin/richText'
 // Re-export so domain consumers can import NarrativeGoal from '@/types/domain'.
 export type { NarrativeGoal } from './calendar'
 
@@ -214,6 +215,11 @@ export interface PinterestPlatformContent {
 
 export interface OutputContent {
   body: string
+  // Rich-text source of truth for the LinkedIn editor (constrained TipTap doc).
+  // Plain `body` is its projection; absent → `body` is the post text (legacy drafts).
+  // Publish/copy derive final text from this via lib/linkedin/richText.
+  bodyRich?: TiptapDoc
+  bodyRichVersion?: 1
   hook?: string
   hashtags?: string[]
   wordCount?: number

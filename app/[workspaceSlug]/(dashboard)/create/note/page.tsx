@@ -2,15 +2,19 @@ import { redirect, notFound } from 'next/navigation'
 import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
+import { loadBriefSeed } from '@/lib/create/loadBriefSeed'
 import { NoteWorkspace } from './NoteWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
 export default async function NoteCreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ briefCaptureId?: string }>
 }) {
   const { workspaceSlug } = await params
+  const { briefCaptureId } = await searchParams
   const user = await getAuthenticatedUserId()
   if (!user) redirect('/sign-in')
 
@@ -25,6 +29,7 @@ export default async function NoteCreatePage({
 
   const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
+  const initialSourceContent = await loadBriefSeed(briefCaptureId, workspace.id)
 
   return (
     <div className="flex h-full flex-col">
@@ -38,7 +43,7 @@ export default async function NoteCreatePage({
         <IdentityBar />
       </div>
       <div className="flex-1 min-h-0">
-        <NoteWorkspace lenses={lenses} savedAudiences={workspace.custom_audiences ?? []} />
+        <NoteWorkspace lenses={lenses} savedAudiences={workspace.custom_audiences ?? []} initialSourceContent={initialSourceContent} />
       </div>
     </div>
   )

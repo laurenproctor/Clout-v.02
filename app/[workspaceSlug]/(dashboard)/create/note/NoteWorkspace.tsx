@@ -16,6 +16,8 @@ type ConnectedChannel = { id: string; platform: string }
 interface NoteWorkspaceProps {
   lenses: Lens[]
   savedAudiences?: string[]
+  /** Seed text from a universal-create brief (via ?briefCaptureId). */
+  initialSourceContent?: string
 }
 
 const pillBase = 'text-xs rounded-full px-3 py-1.5 transition-colors cursor-pointer border'
@@ -58,10 +60,11 @@ const AUDIENCES = [
   { value: 'general_audience', label: 'General Audience' },
 ]
 
-export function NoteWorkspace({ lenses, savedAudiences = [] }: NoteWorkspaceProps) {
+export function NoteWorkspace({ lenses, savedAudiences = [], initialSourceContent }: NoteWorkspaceProps) {
   const [state, setState]                 = useState<WorkspaceState>('setup')
   const [request, setRequest]             = useState<Partial<NoteGenerationRequest>>({
     sourceType:   'text',
+    sourceContent: initialSourceContent ?? '',
     audience:     'general_audience',
     lensIds:      [],
     campaignId:   null,

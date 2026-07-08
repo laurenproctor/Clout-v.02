@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import type { PreviewDensity } from '../core/types'
+import type { BodySegment, PreviewDensity } from '../core/types'
 
 /**
  * Post body text. Preserves line breaks, renders hashtags in the brand accent,
@@ -14,6 +14,8 @@ import type { PreviewDensity } from '../core/types'
 
 interface PreviewTextProps {
   body: string
+  /** Formatted runs; when present, rendered with CSS bold/italic instead of plain `body`. */
+  bodySegments?: BodySegment[]
   hashtags?: string[]
   /** Chars before "see more"; null disables truncation. */
   seeMoreAfterChars: number | null
@@ -57,8 +59,37 @@ function renderWithHashtags(text: string, accentColor: string, trailing?: string
   return nodes
 }
 
+// Preview uses CSS marks for readability; publish/copy use Unicode glyphs because
+// LinkedIn commentary has no rich-text marks. So this is a semantic simulation.
+function renderSegments(segments: BodySegment[], accentColor: string, trailing?: string[]) {
+  const nodes: React.ReactNode[] = segments.map((s, i) => {
+    const style: React.CSSProperties = {}
+    if (s.bold) style.fontWeight = 700
+    if (s.italic) style.fontStyle = 'italic'
+    if (s.mention) style.color = accentColor
+    // Mentions render literally; other runs still get inline #hashtag coloring.
+    const inner = s.mention ? s.text : renderWithHashtags(s.text, accentColor)
+    return <span key={i} style={style}>{inner}</span>
+  })
+  if (trailing && trailing.length) {
+    const bodyText = segments.map((s) => s.text).join('')
+    const present = new Set((bodyText.match(/#[\p{L}0-9_]+/gu) ?? []).map((h) => h.toLowerCase()))
+    const extra = trailing
+      .map((h) => (h.startsWith('#') ? h : `#${h}`))
+      .filter((h) => !present.has(h.toLowerCase()))
+    if (extra.length) {
+      nodes.push(
+        <React.Fragment key="tags-sep">{'\n\n'}</React.Fragment>,
+        <span key="tags" style={{ color: accentColor }}>{extra.join(' ')}</span>,
+      )
+    }
+  }
+  return nodes
+}
+
 export function PreviewText({
   body,
+  bodySegments,
   hashtags,
   seeMoreAfterChars,
   density,
@@ -106,7 +137,11 @@ export function PreviewText({
   // Char-based "see more" truncation applies to `standard` density only. `mini`
   // is handled by the early line-clamp branch above; `expanded` renders the full
   // body (no truncation, no "see more").
+  // Rich (formatted) bodies render in full — char-slice truncation would break
+  // segment boundaries. Plain bodies keep the platform "see more" affordance.
+  const hasRich = !!(bodySegments && bodySegments.length)
   const shouldTruncate =
+    !hasRich &&
     density === 'standard' &&
     seeMoreAfterChars != null &&
     !expanded &&
@@ -124,7 +159,9 @@ export function PreviewText({
         wordBreak: 'break-word',
       }}
     >
-      {renderWithHashtags(shown, accentColor, shouldTruncate ? undefined : hashtags)}
+      {hasRich
+        ? renderSegments(bodySegments!, accentColor, hashtags)
+        : renderWithHashtags(shown, accentColor, shouldTruncate ? undefined : hashtags)}
       {shouldTruncate && (
         <>
           {'… '}

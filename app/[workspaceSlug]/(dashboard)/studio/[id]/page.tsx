@@ -979,13 +979,15 @@ export default function StudioEditorPage() {
       {/* ── Bottom bar ── */}
       <div className="flex items-center justify-between px-4 h-12 flex-shrink-0 border-t border-zinc-800/60">
         <div className="flex items-center gap-3 text-xs text-zinc-700">
-          <span>{wordCount}w</span>
-          <span className={cn(charCount > warnAt ? 'text-amber-600' : '')}>{charCount}c</span>
+          <span>{wordCount.toLocaleString()} {wordCount === 1 ? 'word' : 'words'}</span>
+          <span className={cn(charCount > warnAt ? 'text-amber-600' : '')}>
+            {charCount.toLocaleString()} / {charLimit.toLocaleString()} characters
+          </span>
           {charCount > warnAt && charCount <= charLimit && (
-            <span className="text-amber-500">{charLimit - charCount} left</span>
+            <span className="text-amber-500">{(charLimit - charCount).toLocaleString()} characters left</span>
           )}
           {charCount > charLimit && (
-            <span className="text-red-500">+{charCount - charLimit} over</span>
+            <span className="text-red-500">{(charCount - charLimit).toLocaleString()} characters over limit</span>
           )}
         </div>
 

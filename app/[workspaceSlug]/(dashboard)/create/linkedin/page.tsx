@@ -4,15 +4,19 @@ import { getAuthenticatedUserId } from '@/lib/auth/session'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listLenses } from '@/lib/domain/lens'
 import { sanitizeLinkedInLastSettings } from '@/lib/linkedin/create-settings'
+import { loadBriefSeed } from '@/lib/create/loadBriefSeed'
 import { LinkedInWorkspace } from '@/components/linkedin/LinkedInWorkspace'
 import { IdentityBar } from '@/components/publishing/identity-bar'
 
 export default async function LinkedInCreatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string }>
+  searchParams: Promise<{ briefCaptureId?: string }>
 }) {
   const { workspaceSlug } = await params
+  const { briefCaptureId } = await searchParams
   const user = await getAuthenticatedUserId()
   if (!user) redirect('/sign-in')
 
@@ -27,6 +31,7 @@ export default async function LinkedInCreatePage({
 
   const lensesResult = await listLenses({ workspaceId: workspace.id })
   const lenses = lensesResult.ok ? lensesResult.data : []
+  const initialSourceContent = await loadBriefSeed(briefCaptureId, workspace.id)
 
   // Pre-fill the create flow with the brand's last-used settings (sanitized against the
   // current lens list so stale/invalid values fall back to defaults).
@@ -51,6 +56,7 @@ export default async function LinkedInCreatePage({
           lenses={lenses}
           savedAudiences={workspace.custom_audiences ?? []}
           initialSettings={initialSettings}
+          initialSourceContent={initialSourceContent}
         />
       </div>
     </div>

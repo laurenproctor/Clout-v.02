@@ -72,18 +72,22 @@ interface LinkedInWorkspaceProps {
   savedAudiences?: string[]
   /** Brand's last-used create settings, restored into the form (already sanitized). */
   initialSettings?: Partial<LinkedInLastSettings>
+  /** Seed text from a universal-create brief (via ?briefCaptureId). */
+  initialSourceContent?: string
 }
 
 export function LinkedInWorkspace({
   lenses,
   savedAudiences = [],
   initialSettings = {},
+  initialSourceContent,
 }: LinkedInWorkspaceProps) {
   const [state, setState] = useState<LinkedInWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<LinkedInGenerationRequest>>({
     campaignId: null,
     ...DEFAULT_LINKEDIN_CREATE_SETTINGS,
     ...initialSettings,
+    ...(initialSourceContent ? { sourceContent: initialSourceContent, sourceType: 'text' as const } : {}),
   })
   const [variations, setVariations] = useState<LinkedInVariation[]>([])
   const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])

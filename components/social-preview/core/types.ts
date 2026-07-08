@@ -88,12 +88,25 @@ export interface PreviewLink {
   domain?: string
 }
 
+/** A styled run of body text — the preview's CSS simulation of what publishes as Unicode. */
+export interface BodySegment {
+  text: string
+  bold?: boolean
+  italic?: boolean
+  mention?: boolean
+}
+
 export interface PreviewData {
   platform: PreviewPlatform
   author: PreviewAuthor
   /** Subject (newsletter) / headline (article). */
   title?: string
   body: string
+  /**
+   * Formatted runs (bold/italic/mention) for the body. When present, renderers
+   * show these instead of the plain `body`; `body` stays the plain projection.
+   */
+  bodySegments?: BodySegment[]
   hashtags?: string[]
   media?: PreviewMedia[]
   /**

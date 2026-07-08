@@ -20,6 +20,7 @@ import { parseAspectRatio } from '@/components/social-preview/core/spec'
 import type { PreviewMedia } from '@/components/social-preview/core/types'
 import { requestVisual } from '@/lib/visual/requestVisual'
 import { serializeForCopy } from '@/lib/create/serializeForCopy'
+import { docToSegments } from '@/lib/linkedin/richText'
 
 interface VariationCardProps {
   variation: LinkedInVariation
@@ -90,8 +91,11 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         hashtags: variation.hashtags ?? [],
         media: previewMedia,
         mediaPending: previewPending,
+        bodySegments: variation.bodyRich
+          ? docToSegments(variation.bodyRich).map(s => ({ text: s.text, bold: s.bold, italic: s.italic, mention: !!s.mention }))
+          : undefined,
       }),
-    [channel, variation.body, variation.hashtags, previewMedia, previewPending],
+    [channel, variation.body, variation.hashtags, variation.bodyRich, previewMedia, previewPending],
   )
 
   // Sync when async auto-save completes and parent passes back the ID
@@ -115,6 +119,8 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
             title: variation.campaignName,
             content: {
               body: variation.body,
+              bodyRich: variation.bodyRich,
+              bodyRichVersion: variation.bodyRich ? 1 : undefined,
               hashtags: variation.hashtags,
               primaryVisualAssetId: variation.selectedVisualAssetId ?? null,
             },
@@ -129,6 +135,8 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
           body: JSON.stringify({
             variation: {
               body: variation.body,
+              bodyRich: variation.bodyRich,
+              bodyRichVersion: variation.bodyRich ? 1 : undefined,
               hashtags: variation.hashtags,
               primaryVisualAssetId: variation.selectedVisualAssetId ?? null,
             },
@@ -172,7 +180,7 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(serializeForCopy(variation.body, variation.hashtags))
+      await navigator.clipboard.writeText(serializeForCopy(variation.body, variation.hashtags, variation.bodyRich))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -192,6 +200,8 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
       body: JSON.stringify({
         content: {
           body: variation.body,
+          bodyRich: variation.bodyRich,
+          bodyRichVersion: variation.bodyRich ? 1 : undefined,
           hashtags: variation.hashtags,
           primaryVisualAssetId: assetId,
         },
@@ -469,7 +479,10 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
         <div className="space-y-5 border-t border-zinc-100 pt-5">
           <PostEditor
             body={variation.body}
-            onChange={(body) => onChange({ ...variation, body })}
+            bodyRich={variation.bodyRich}
+            resetKey={variation.id}
+            mentionSuggestions={variation.mentions}
+            onChange={({ body, bodyRich }) => onChange({ ...variation, body, bodyRich, bodyRichVersion: 1 })}
           />
 
           {/* No outputId: keep manual assets unlinked from the output so they

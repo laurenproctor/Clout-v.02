@@ -50,6 +50,7 @@ async function getChannelAccountType(channelId: string): Promise<string> {
   return (data?.account_type as string | null) ?? 'personal'
 }
 import type { Output, OutputContent, OutputStatus, PublishIntent } from '@/types/domain'
+import { docToApiCommentary, docHasContent, countLinkedInChars } from '@/lib/linkedin/richText'
 
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
@@ -57,11 +58,17 @@ export function formatLinkedInText(title: string | null, content: OutputContent)
   const hashtags = ((content.hashtags as string[] | undefined) ?? [])
     .map((h) => `#${h}`)
     .join(' ')
-  return [title, content.body, hashtags ? `\n${hashtags}` : '']
+  // Rich body (when present) becomes little-safe commentary: Unicode bold/italic,
+  // reserved chars escaped in prose, protected tokens (URLs/hashtags) left linkable.
+  const body = docHasContent(content.bodyRich) ? docToApiCommentary(content.bodyRich) : content.body
+  return [title, body, hashtags ? `\n${hashtags}` : '']
     .filter(Boolean)
     .join('\n\n')
     .trim()
 }
+
+/** LinkedIn post commentary hard limit (code points). */
+export const LINKEDIN_MAX_CHARS = 3000
 
 // ─── Queue queries ────────────────────────────────────────────────────────────
 
@@ -331,6 +338,15 @@ export async function publishLinkedInOutput(
     throw Object.assign(
       new Error('This draft has no content to post.'),
       { code: 'no_content', retryable: false }
+    )
+  }
+  // Guard on the FINAL serialized string (Unicode glyphs are astral, so count code
+  // points, not UTF-16 units) — the user-facing count is on plain text, so formatting
+  // could push the real post over LinkedIn's limit without this check.
+  if (countLinkedInChars(text) > LINKEDIN_MAX_CHARS) {
+    throw Object.assign(
+      new Error(`Post exceeds LinkedIn's ${LINKEDIN_MAX_CHARS}-character limit.`),
+      { code: 'too_long', retryable: false }
     )
   }
 

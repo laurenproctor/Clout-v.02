@@ -4,7 +4,7 @@
  */
 
 import type { ChannelPlatform } from '@/types/domain'
-import type { PreviewCarousel, PreviewData, PreviewMedia } from '../core/types'
+import type { BodySegment, PreviewCarousel, PreviewData, PreviewMedia } from '../core/types'
 import { ChannelLike, normalizeHashtags, resolvePreviewAuthor, toPreviewPlatform } from './shared'
 
 export interface FromStudioStateArgs {
@@ -13,6 +13,7 @@ export interface FromStudioStateArgs {
   /** Display name fallback when the channel lacks a label. */
   accountName?: string
   body: string
+  bodySegments?: BodySegment[]
   title?: string
   hashtags?: string[]
   media?: PreviewMedia[] | null
@@ -29,6 +30,7 @@ export function previewFromStudioState(args: FromStudioStateArgs): PreviewData {
     author,
     title: args.title?.trim() || undefined,
     body: args.body ?? '',
+    bodySegments: args.bodySegments && args.bodySegments.length ? args.bodySegments : undefined,
     hashtags: normalizeHashtags(args.hashtags),
     media: args.media ?? undefined,
     mediaPending: args.mediaPending ?? undefined,

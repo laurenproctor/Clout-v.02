@@ -17,6 +17,8 @@ interface SubstackEmailWorkspaceProps {
   lenses:               Lens[]
   substackConnections:  ProviderConnectionSafe[]
   workspaceSlug:        string
+  /** Seed text from a universal-create brief (via ?briefCaptureId). */
+  initialSourceContent?: string
 }
 
 type WorkspaceState = 'setup' | 'generating' | 'result'
@@ -26,11 +28,11 @@ interface DraftResult {
   providerUrl:       string
 }
 
-export function SubstackEmailWorkspace({ lenses, substackConnections, workspaceSlug }: SubstackEmailWorkspaceProps) {
+export function SubstackEmailWorkspace({ lenses, substackConnections, workspaceSlug, initialSourceContent }: SubstackEmailWorkspaceProps) {
   const router = useRouter()
 
   const [state,         setState]         = useState<WorkspaceState>('setup')
-  const [sourceContent, setSourceContent] = useState('')
+  const [sourceContent, setSourceContent] = useState(initialSourceContent ?? '')
   const [length,        setLength]        = useState<SubstackGenerationRequest['length']>('standard')
   const [articleType,   setArticleType]   = useState<SubstackGenerationRequest['articleType']>('essay')
   const [selectedLens,  setSelectedLens]  = useState<string | null>(lenses[0]?.id ?? null)

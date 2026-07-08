@@ -64,6 +64,7 @@ export function LinkedInPreview({ data, theme, density }: RendererProps) {
         <div style={{ marginTop: 8 }}>
           <PreviewText
             body={data.body}
+            bodySegments={data.bodySegments}
             hashtags={data.hashtags}
             seeMoreAfterChars={spec.seeMoreAfterChars}
             density={density}

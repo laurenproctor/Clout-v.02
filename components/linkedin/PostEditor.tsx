@@ -1,25 +1,25 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useState } from 'react'
+import { RichPostEditor } from './RichPostEditor'
+import { docFromPlainText, type TiptapDoc } from '@/lib/linkedin/richText'
 
 interface PostEditorProps {
   body: string
-  onChange: (body: string) => void
+  bodyRich?: TiptapDoc | null
+  /** Stable per post (e.g. variation id); a change reloads the editor content. */
+  resetKey: string | number
+  onChange: (v: { body: string; bodyRich: TiptapDoc }) => void
+  mentionSuggestions?: string[]
 }
 
 const TRANSFORMS = ["Shorten", "Expand", "Stronger Hook", "Executive Tone", "More Concise", "Add Tension", "Rewrite"]
 
-export function PostEditor({ body, onChange }: PostEditorProps) {
-  const ref = useRef<HTMLTextAreaElement>(null)
+export function PostEditor({ body, bodyRich, resetKey, onChange, mentionSuggestions }: PostEditorProps) {
   const [transforming, setTransforming] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
-  }, [body])
+  // Bumped after an AI transform to force the editor to reload the new content.
+  const [transformSeq, setTransformSeq] = useState(0)
 
   async function handleTransform(label: string) {
     if (transforming) return
@@ -33,7 +33,10 @@ export function PostEditor({ body, onChange }: PostEditorProps) {
       })
       if (!res.ok) throw new Error('Transform failed')
       const data = await res.json() as { body: string }
-      onChange(data.body)
+      // A transform rewrites the whole post → the old rich doc is stale. Rebuild it
+      // from the returned plain text so publish/copy/preview never use dead formatting.
+      onChange({ body: data.body, bodyRich: docFromPlainText(data.body) })
+      setTransformSeq(s => s + 1)
     } catch {
       setError(`${label} failed — try again`)
       setTimeout(() => setError(null), 3000)
@@ -44,11 +47,12 @@ export function PostEditor({ body, onChange }: PostEditorProps) {
 
   return (
     <div>
-      <textarea
-        ref={ref}
-        value={body}
-        onChange={e => onChange(e.target.value)}
-        className="w-full min-h-[140px] text-sm leading-relaxed text-zinc-900 resize-none border-0 outline-none focus:ring-0 p-0 bg-transparent"
+      <RichPostEditor
+        value={bodyRich ?? null}
+        plainFallback={body}
+        resetKey={`${resetKey}:${transformSeq}`}
+        onChange={({ doc, plainText }) => onChange({ body: plainText, bodyRich: doc })}
+        mentionSuggestions={mentionSuggestions}
       />
       {error && (
         <p className="text-[10px] text-red-500 mt-1">{error}</p>

@@ -60,12 +60,15 @@ async function readVariationStream(response: Response): Promise<ThreadsVariation
 interface ThreadsWorkspaceProps {
   lenses: Lens[]
   savedAudiences?: string[]
+  /** Seed text from a universal-create brief (via ?briefCaptureId). */
+  initialSourceContent?: string
 }
 
-export function ThreadsWorkspace({ lenses, savedAudiences = [] }: ThreadsWorkspaceProps) {
+export function ThreadsWorkspace({ lenses, savedAudiences = [], initialSourceContent }: ThreadsWorkspaceProps) {
   const [state, setState] = useState<ThreadsWorkspaceState>('setup')
   const [request, setRequest] = useState<Partial<ThreadsGenerationRequest>>({
     sourceType:     'text',
+    sourceContent:  initialSourceContent ?? '',
     audience:       'general_audience',
     lensIds:        [],
     postType:       'single',
