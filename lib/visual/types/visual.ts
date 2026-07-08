@@ -192,6 +192,7 @@ export interface GenerateImageInput {
   overlayParams?: OverlayParams   // when set: forces hybrid-overlay with user's exact text (headline or quote)
   overlaySource?: 'manual' | 'ai-derived' | 'fallback'  // provenance of overlay copy; stored in generation_context
   purpose?: string                // server-derived intent tag (e.g. 'linkedin-image-post-auto'); stored in generation_context for idempotency
+  imageDirection?: string         // creator's optional art brief (normalized); steers visual intent + stored in generation_context
 }
 
 // ─── Persisted asset ────────────────────────────────────────────────────────

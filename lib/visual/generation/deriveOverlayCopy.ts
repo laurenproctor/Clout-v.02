@@ -66,7 +66,18 @@ function clean(copy: { headline?: string; subtext?: string }): OverlayCopy {
  * AI-derived overlay copy. Throws on an empty/unusable result so callers fall
  * back deterministically.
  */
-export async function deriveOverlayCopy(content: string): Promise<OverlayCopy> {
+export async function deriveOverlayCopy(content: string, direction?: string): Promise<OverlayCopy> {
+  // The creator's image direction informs the *tone and framing* of the copy — it must
+  // not be transcribed literally into the headline (e.g. "no people, dark navy" is art
+  // direction, not a headline). Only include it when present.
+  const directionLines = direction
+    ? [
+        '',
+        `Creator's image direction: ${direction}`,
+        'Use this to inform the visual mood, specificity, and framing of the overlay copy where natural. Do not force literal visual details into the headline or subtext unless they are relevant to the post\'s message.',
+      ]
+    : []
+
   const result = await callClaude({
     systemPrompt: SYSTEM_PROMPT,
     userMessage: [
@@ -74,6 +85,7 @@ export async function deriveOverlayCopy(content: string): Promise<OverlayCopy> {
       '',
       'Post:',
       content,
+      ...directionLines,
       '',
       'Return JSON: { "headline": string, "subtext"?: string }',
     ].join('\n'),

@@ -354,6 +354,7 @@ export function LinkedInWorkspace({
             linkedInChannelId={linkedInChannelId}
             channel={linkedInChannel}
             autoGenerateImage={request.postType === 'image'}
+            imageDirection={request.imageDirection}
           />
         )}
 

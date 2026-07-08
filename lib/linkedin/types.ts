@@ -33,6 +33,7 @@ export interface LinkedInGenerationRequest {
   customAudience?: string     // free-text when audience === 'custom'
   length: LinkedInLength
   lensIds: string[]
+  imageDirection?: string     // optional per-post art brief for Image Posts: how the image should look
   sourcePostId?: string
   sourcePostType?: string
 }

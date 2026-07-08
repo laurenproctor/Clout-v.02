@@ -31,14 +31,25 @@ export interface GenerateVisualIntentInput {
   visualObjective?: VisualObjective
   audienceFrame?: string
   lensType?: LensType
+  userDirection?: string   // creator's optional free-text art brief for how the image should look
 }
 
 export async function generateVisualIntent(
   input: GenerateVisualIntentInput
 ): Promise<{ intent: VisualIntent; inputTokens: number; outputTokens: number }> {
-  const { content, platform, emotionalTone, keyIdea, brandProfile, visualObjective, audienceFrame, lensType } = input
+  const { content, platform, emotionalTone, keyIdea, brandProfile, visualObjective, audienceFrame, lensType, userDirection } = input
 
   const lines: string[] = []
+
+  // Creator's art direction leads so it frames every downstream decision. It is the
+  // highest-priority *creative* input, but is explicitly scoped below brand guidelines,
+  // platform constraints, safety, and format so it can't push the image off-brand.
+  if (userDirection) {
+    lines.push("## Creator's art direction")
+    lines.push('Treat this as the highest-priority creative direction, while still respecting brand guidelines, platform constraints, safety rules, and the required image format:')
+    lines.push(userDirection)
+    lines.push('')
+  }
 
   lines.push('## Content to visualize')
   lines.push(content.slice(0, 2000))

@@ -20,6 +20,8 @@ export interface RequestVisualBody {
   colorScheme?: 'light' | 'dark' | 'auto'
   includeLogo?: boolean
   textShadow?: 'none' | 'light' | 'medium' | 'strong'
+  /** Creator's optional art brief for how the image should look (Image Posts). */
+  imageDirection?: string
 }
 
 export interface GeneratedVisualResult {

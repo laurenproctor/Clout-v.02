@@ -153,6 +153,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
     overlayParams,
     overlaySource,
     purpose,
+    imageDirection,
   } = input
 
   const backgroundMode = input.backgroundMode ?? (input.suppliedBackgroundUrl ? 'uploaded' : 'generated')
@@ -191,6 +192,7 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       visualObjective,
       audienceFrame,
       lensType,
+      userDirection: imageDirection,
     })
     resolvedIntent = result.intent
     intentInputTokens = result.inputTokens
@@ -690,6 +692,8 @@ export async function generateImage(input: GenerateImageInput): Promise<VisualAs
       // from; purpose is the server-derived idempotency tag for auto flows.
       overlaySource:     overlaySource ?? null,
       purpose:           purpose ?? null,
+      // Creator's art brief captured for reproducibility (per-output, not a reusable default).
+      imageDirection:    imageDirection ?? null,
       preferredTextZone: null,
       overlayStrength:   overlayParams?.overlayStrength ?? null,
       overlayOpacity:    overlayParams?.overlayOpacity ?? null,

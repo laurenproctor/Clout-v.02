@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
     textShadow,
     deriveOverlay,
     autoLinkedInImagePost,
+    imageDirection,
   } = body as {
     outputId?:                string
     content?:                 string
@@ -135,7 +136,16 @@ export async function POST(req: NextRequest) {
     textShadow?:              'none' | 'light' | 'medium' | 'strong'
     deriveOverlay?:           boolean
     autoLinkedInImagePost?:   boolean   // constrained flag → server derives `purpose`
+    imageDirection?:          string    // creator's optional art brief (Image Posts)
   }
+
+  // Normalize the creator's art brief at the boundary: empty/whitespace-only → undefined,
+  // trimmed, and length-capped so it can't bloat the prompt. Everything downstream uses
+  // this (never the raw value) so "present but blank" behaves exactly like absent.
+  const normalizedImageDirection =
+    typeof imageDirection === 'string' && imageDirection.trim()
+      ? imageDirection.trim().slice(0, 800)
+      : undefined
 
   // Purpose is server-derived, never trusted from the client. Only a constrained
   // flag is accepted; arbitrary client strings never reach generation_context.
@@ -203,6 +213,14 @@ export async function POST(req: NextRequest) {
   // this output+purpose. Covers reload, sequential duplicates, and slow-fetch
   // races; the DB unique index (see migration) is the backstop for truly
   // simultaneous requests.
+  //
+  // NOTE: the key is (output_id, purpose) — it does NOT include imageDirection.
+  // That's correct today because imageDirection is fixed for a given output in the
+  // auto flow (Retry only re-runs a *failed* generation, so no completed asset
+  // exists to return). If a future "regenerate after a successful image" lets the
+  // user change imageDirection on the same outputId, it MUST bypass this fast-path
+  // (e.g. a forceRegenerate flag, or fold an imageDirection hash into the key) —
+  // otherwise it would return the prior asset instead of honoring the new brief.
   if (purpose && outputId) {
     const supabase = await createClient()
     // generation_context / composed_url / template_id are Phase-2 columns the
@@ -234,7 +252,7 @@ export async function POST(req: NextRequest) {
 
   if (deriveOverlay && !overlayHeadline && !overlayQuote && content) {
     try {
-      const d = await withTimeout(deriveOverlayCopy(content), 2_500)
+      const d = await withTimeout(deriveOverlayCopy(content, normalizedImageDirection), 2_500)
       ovHeadline = d.headline
       ovSubtext = d.subtext
       overlaySource = 'ai-derived'
@@ -356,6 +374,7 @@ export async function POST(req: NextRequest) {
       overlayParams,
       overlaySource,
       purpose,
+      imageDirection: normalizedImageDirection,
     })
 
     const assetV2 = asset as typeof asset & {

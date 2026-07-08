@@ -29,6 +29,9 @@ interface VariationCardProps {
   channel?: ChannelLike | null
   /** Auto-generate a branded overlay image for this card (image-post anchor only). */
   autoGenerateImage?: boolean
+  /** Creator's optional art brief for how the image should look. Read as a snapshot when
+   *  auto-generation first fires — see the auto-generate effect below. */
+  imageDirection?: string
 }
 
 type AutoImageStatus =
@@ -43,7 +46,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'queued' | 'scheduled'
 
 const actionBtn = "text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1 rounded hover:bg-zinc-100"
 
-export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId, channel, autoGenerateImage = false }: VariationCardProps) {
+export function VariationCard({ variation, onChange, initialOutputId, linkedInChannelId, channel, autoGenerateImage = false, imageDirection }: VariationCardProps) {
   const params = useParams<{ workspaceSlug?: string }>()
   const workspaceSlug = params?.workspaceSlug
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -230,6 +233,9 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
           deriveOverlay: true,
           outputId: savedOutputId,
           autoLinkedInImagePost: true,
+          // Snapshot: the creator's art brief captured for this post. Read here (not via
+          // effect deps) so editing the field after the card exists won't regenerate.
+          imageDirection,
         },
         { signal },
       )
@@ -268,6 +274,10 @@ export function VariationCard({ variation, onChange, initialOutputId, linkedInCh
     const controller = new AbortController()
     void runAutoGenerate(controller.signal)
     return () => controller.abort()
+  // Deps are intentionally limited to the readiness signals. Do NOT add `imageDirection`
+  // (or `variation.body`) here — the one-shot `autoStartedRef` guard means the effect fires
+  // once, capturing the then-current brief as a snapshot. Adding it would let a later edit
+  // silently regenerate the image.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoGenerateImage, savedOutputId, assetsLoading])
 

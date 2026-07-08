@@ -161,6 +161,24 @@ export function StrategyPanel({
           </div>
         </div>
 
+        {/* Image direction — Image Posts only. Optional per-post art brief; NOT persisted
+            as a reusable strategy default (see LINKEDIN_LAST_SETTINGS_KEYS). */}
+        {values.postType === 'image' && (
+          <div>
+            <p className={sectionLabel}>Image direction</p>
+            <p className={sectionSub}>Optional — the subject, mood, colors, composition, or style for the image</p>
+            <textarea
+              value={values.imageDirection ?? ''}
+              onChange={e => !readOnly && onChange({ imageDirection: e.target.value })}
+              placeholder="Minimal dark navy background, abstract geometric shapes, no people."
+              disabled={readOnly}
+              rows={3}
+              maxLength={800}
+              className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none disabled:opacity-50"
+            />
+          </div>
+        )}
+
         {/* Audience */}
         <div>
           <p className={sectionLabel}>Audience</p>

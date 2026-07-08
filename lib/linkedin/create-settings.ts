@@ -15,6 +15,9 @@ import type {
 
 // One key list governs BOTH the write path (preferences.server.ts) and the read path
 // (sanitizeLinkedInLastSettings) so the persisted shape can't drift between them.
+// NOTE: `imageDirection` is deliberately excluded — it is a per-post art brief, not a
+// reusable strategy default (same rationale as sourceContent/sourceType/sourceUrl). It is
+// captured per-output as generation metadata on the visual asset, not restored on reload.
 export const LINKEDIN_LAST_SETTINGS_KEYS = [
   'postType',
   'intent',
