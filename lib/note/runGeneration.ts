@@ -1,4 +1,4 @@
-import { callClaudeStream } from '@/lib/ai/generate'
+import { callClaudeStream, campaignPromptLines } from '@/lib/ai/generate'
 import { parseJson } from '@/lib/blog/parseJson'
 import { buildBrandVoicePromptBlock } from '@/lib/brand/buildBrandVoicePromptBlock'
 import { SUBSTACK_NOTE_PLATFORM_MODEL } from '@/lib/syndication/platforms/substack'
@@ -9,6 +9,8 @@ export interface NotePromptContext {
   request: NoteGenerationRequest
   lenses:  Array<{ id: string; name: string; systemPrompt: string }>
   brandContext?: BrandContext
+  // Campaign goal/purpose, injected so the notes are written toward the objective.
+  campaignContext?: { goal: string; purpose: string | null } | null
 }
 
 interface ClaudeNoteResponse {
@@ -45,6 +47,9 @@ function buildSystemPrompt(ctx: NotePromptContext): string {
 
   const brandVoice = buildBrandVoicePromptBlock(ctx.brandContext)
   if (brandVoice.length > 0) lines.push('', ...brandVoice)
+
+  const campaignLines = campaignPromptLines(ctx.campaignContext)
+  if (campaignLines.length > 0) lines.push('', ...campaignLines)
 
   lines.push(
     '',

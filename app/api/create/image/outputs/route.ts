@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
+import { resolveCampaignStamp } from '@/lib/campaigns/saveStamp'
 import { z } from 'zod'
 
 // Promote a generated visual asset to a Studio output (image-only draft).
@@ -12,8 +13,9 @@ import { z } from 'zod'
 // row lock, returns the existing link if already promoted). Falls back to a
 // conditional-update + cleanup path only if the RPC isn't present yet.
 const bodySchema = z.object({
-  assetId: z.string().uuid(),
-  title:   z.string().optional(),
+  assetId:    z.string().uuid(),
+  title:      z.string().optional(),
+  campaignId: z.string().uuid().nullable().optional(),
 })
 
 interface PromotionResult {
@@ -44,7 +46,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request' }, { status: 400 })
   }
 
-  const { assetId, title } = parsed.data
+  const { assetId, title, campaignId } = parsed.data
+
+  // Validate campaign ownership up front (mirrors the other channels' outputs routes).
+  const stamp = await resolveCampaignStamp({ campaignId, workspaceId: session.workspaceId })
+  if (!stamp.ok) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+
   const supabase = await createClient()
 
   const result = await promoteVisualAssetToOutput(supabase, {
@@ -56,6 +63,19 @@ export async function POST(req: NextRequest) {
   if ('error' in result) {
     return NextResponse.json({ error: result.error }, { status: result.status })
   }
+
+  // Promotion (RPC or fallback) creates the outputs row without campaign fields, so
+  // stamp them in a follow-up update. Only for a freshly-created output — an
+  // idempotent re-save must not overwrite an existing draft's campaign.
+  if (!result.alreadyLinked && Object.keys(stamp.fields).length > 0) {
+    const { error: stampErr } = await supabase
+      .from('outputs')
+      .update(stamp.fields)
+      .eq('id', result.outputId)
+      .eq('workspace_id', session.workspaceId)
+    if (stampErr) console.warn('[create/image/outputs] campaign stamp failed', stampErr)
+  }
+
   return NextResponse.json(result, { status: result.alreadyLinked ? 200 : 201 })
 }
 

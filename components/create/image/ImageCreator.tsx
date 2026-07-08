@@ -6,6 +6,7 @@ import { ImageIcon, Sun, Moon, Upload, X } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { VisualPreview } from '@/components/visual/VisualPreview'
+import { CampaignSelect } from '@/components/create/CampaignSelect'
 import type { AspectRatio, VisualIntent } from '@/lib/visual/types/visual'
 
 type ImageStyle = 'quote-overlay' | 'headline-overlay' | 'blog-image'
@@ -106,6 +107,7 @@ export function ImageCreator({ workspaceSlug, logoUrl }: ImageCreatorProps) {
   const [genState, setGenState] = useState<GeneratorState>('idle')
   const [result, setResult] = useState<GeneratedResult | null>(null)
   const [downloadName, setDownloadName] = useState('')
+  const [campaignId, setCampaignId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const lastGeneratedParams = useRef<GenerationParams | null>(null)
 
@@ -373,7 +375,7 @@ export function ImageCreator({ workspaceSlug, logoUrl }: ImageCreatorProps) {
       const res = await fetch('/api/create/image/outputs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assetId: result.assetId, title: downloadName || undefined }),
+        body: JSON.stringify({ assetId: result.assetId, title: downloadName || undefined, campaignId: campaignId ?? null }),
       })
       const data = await res.json().catch(() => ({})) as { outputId?: string; error?: string }
       if (!res.ok || !data.outputId) throw new Error(data.error ?? `HTTP ${res.status}`)
@@ -694,6 +696,12 @@ export function ImageCreator({ workspaceSlug, logoUrl }: ImageCreatorProps) {
                 Dark
               </button>
             </div>
+          </div>
+
+          {/* Campaign — optional attribution */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-zinc-600">Campaign</p>
+            <CampaignSelect value={campaignId ?? null} onChange={setCampaignId} />
           </div>
 
           {/* Overlay strength — only when a background image is used */}

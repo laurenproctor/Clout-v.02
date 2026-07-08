@@ -7,6 +7,7 @@ import type { NoteGenerationRequest, NoteVariation } from '@/lib/note/types'
 import { GenerationProgress } from '@/components/linkedin/GenerationProgress'
 import { SourceInputPanel } from '@/components/linkedin/SourceInputPanel'
 import { NoteVariationCard } from '@/components/note/NoteVariationCard'
+import { CampaignSelect } from '@/components/create/CampaignSelect'
 
 type WorkspaceState = 'setup' | 'generating' | 'result'
 
@@ -63,6 +64,7 @@ export function NoteWorkspace({ lenses, savedAudiences = [] }: NoteWorkspaceProp
     sourceType:   'text',
     audience:     'general_audience',
     lensIds:      [],
+    campaignId:   null,
   })
   const [variations, setVariations]               = useState<NoteVariation[]>([])
   const [savedVariationIds, setSavedVariationIds] = useState<(string | null)[]>([])
@@ -102,7 +104,8 @@ export function NoteWorkspace({ lenses, savedAudiences = [] }: NoteWorkspaceProp
       const response = await fetch('/api/note/generate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ request }),
+        // campaignId is read at the top level by the route.
+        body:    JSON.stringify({ request, campaignId: request.campaignId ?? null }),
       })
       if (!response.ok) throw new Error('Generation failed')
 
@@ -141,7 +144,7 @@ export function NoteWorkspace({ lenses, savedAudiences = [] }: NoteWorkspaceProp
                 fetch('/api/note/outputs', {
                   method:  'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body:    JSON.stringify({ variation: { body: v.body, register: v.register, wordCount: v.wordCount } }),
+                  body:    JSON.stringify({ variation: { body: v.body, register: v.register, wordCount: v.wordCount }, campaignId: request.campaignId ?? null }),
                 })
                   .then(r => (r.ok ? (r.json() as Promise<{ id: string }>) : null))
                   .catch(() => null)
@@ -263,6 +266,16 @@ export function NoteWorkspace({ lenses, savedAudiences = [] }: NoteWorkspaceProp
             )}
           </div>
         )}
+
+        {/* Campaign — optional attribution */}
+        <div>
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Campaign</p>
+          <CampaignSelect
+            value={request.campaignId ?? null}
+            onChange={id => state === 'setup' && patchRequest({ campaignId: id })}
+            disabled={state !== 'setup'}
+          />
+        </div>
       </div>
 
       {state === 'setup' && (

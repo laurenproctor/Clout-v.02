@@ -4,6 +4,7 @@ import { useMemo, useState, useRef } from 'react'
 import { ExternalLink, ChevronDown } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 import { SocialPreviewInline, previewFromStudioState } from '@/components/social-preview'
+import { CampaignSelect } from '@/components/create/CampaignSelect'
 import type { SubstackGenerationRequest, SubstackGeneratedArticle, SubstackGenerationEvent } from '@/lib/substack/types'
 import type { ProviderConnectionSafe } from '@/lib/publishing/types'
 import type { CanonicalArticle } from '@/lib/publishing/canonical/types'
@@ -31,6 +32,7 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
   const [length,        setLength]        = useState<SubstackGenerationRequest['length']>('standard')
   const [articleType,   setArticleType]   = useState<SubstackGenerationRequest['articleType']>('essay')
   const [selectedLens,  setSelectedLens]  = useState<string | null>(lenses[0]?.id ?? null)
+  const [campaignId,    setCampaignId]    = useState<string | null>(null)
   const [progressLabel, setProgressLabel] = useState('')
   const [generated,     setGenerated]     = useState<SubstackGeneratedArticle | null>(null)
   const [error,         setError]         = useState<string | null>(null)
@@ -85,13 +87,15 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
       lensIds:       selectedLens ? [selectedLens] : [],
       articleType,
       length,
+      campaignId,
     }
 
     try {
       const res = await fetch('/api/substack/generate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ request }),
+        // campaignId is read at the top level by the route.
+        body:    JSON.stringify({ request, campaignId: request.campaignId ?? null }),
         signal:  abortRef.current.signal,
       })
 
@@ -209,6 +213,7 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
           sourceCreator:  'create/substack',
           substackFormat: 'article',
           sourceGenerationHash,
+          campaignId:     campaignId ?? null,
         }),
       })
       const data = await res.json().catch(() => ({})) as { id?: string; error?: string }
@@ -301,6 +306,16 @@ export function SubstackWorkspace({ lenses, substackConnections, workspaceSlug }
               </div>
             </div>
           )}
+
+          {/* Campaign — optional attribution */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-400">Campaign</label>
+            <CampaignSelect
+              value={campaignId ?? null}
+              onChange={id => setCampaignId(id)}
+              disabled={state === 'generating'}
+            />
+          </div>
 
           {error && (
             <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>

@@ -8,6 +8,7 @@ export interface NoteGenerationRequest {
   audience?:      string
   customAudience?: string
   lensIds?:        string[]
+  campaignId?:    string | null  // optional campaign attribution; read at the top level by the route
 }
 
 export interface NoteVariation {
